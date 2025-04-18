@@ -1,0 +1,49 @@
+# Gradle
+.gradle/
+build/
+**/build/
+!gradle/wrapper/gradle-wrapper.jar
+
+# Kotlin
+*.class
+*.log
+*.ctxt
+
+# IDE - IntelliJ IDEA
+.idea/
+*.iml
+*.iws
+*.ipr
+*.iws
+out/
+
+# Local configuration files
+local.properties
+
+# OS specific files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Compiled output
+bin/
+gen/
+
+# Cache files
+.cache/
+
+# Logs
+logs/
+*.log
+
+# Temporary files
+*.tmp
+*.swp
+*~
+
+# Gradle property files
+# gradle-wrapper.properties should be included in version control 
