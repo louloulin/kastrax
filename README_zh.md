@@ -71,7 +71,8 @@ myAgent.stream("讲个故事") { chunk ->
 KastraX 遵循模块化架构，包含以下组件：
 
 - **kastrax-core**：核心框架组件 ✅
-- **kastrax-memory**：内存和存储系统 ✅
+- **kastrax-memory-api**：内存系统接口 ✅
+- **kastrax-memory-impl**：内存系统实现 ✅
 - **kastrax-integrations**：第三方集成
   - **kastrax-openai**：OpenAI 集成 ✅
   - **kastrax-anthropic**：Anthropic 集成（即将推出）
