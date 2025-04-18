@@ -2,6 +2,8 @@
 
 KastraX 是一个用 Kotlin 构建的现代 AI 代理框架，受到 Kastra 和 Mastra 的启发。它提供了一套全面的工具和抽象，用于构建 AI 驱动的应用程序，注重类型安全、模块化和开发者体验。
 
+> 注意：我们对 Mastra 框架进行了详细分析，并基于分析结果设计了 KastraX。详细分析请参见 [Mastra 分析与 KastraX 设计](mastra_analysis_zh.md)。
+
 ## 1. 核心设计原则
 
 1. **Kotlin 优先**: 利用 Kotlin 的语言特性（协程、DSL、扩展函数）提供流畅的开发体验
@@ -18,7 +20,8 @@ KastraX 遵循模块化架构，包含以下组件：
 ```
 kastrax/
 ├── kastrax-core/               # 核心框架组件 ✅
-├── kastrax-memory/             # 内存和存储系统 ✅
+├── kastrax-memory-api/         # 内存系统接口 ✅
+├── kastrax-memory-impl/        # 内存系统实现 ✅
 ├── kastrax-rag/                # 检索增强生成
 ├── kastrax-cli/                # 命令行工具
 ├── kastrax-evals/              # 评估框架
@@ -48,11 +51,33 @@ val myAgent = agent {
     // 添加工具
     tools {
         tool("calculator") {
+            name = "计算器"
             description = "执行数学计算"
-            input = CalculatorInput::class
-            output = CalculatorOutput::class
+
+            input {
+                obj {
+                    field("expression", string()) {
+                        description = "要计算的数学表达式"
+                        required = true
+                    }
+                }
+            }
+
+            output {
+                obj {
+                    field("result", number()) {
+                        description = "计算结果"
+                    }
+                }
+            }
+
             execute { input ->
-                // 实现
+                val expression = input.getString("expression")
+                val result = evaluateExpression(expression)
+
+                output {
+                    "result" to result
+                }
             }
         }
     }
@@ -106,53 +131,51 @@ val weatherTool = tool {
     name = "天气信息"
     description = "获取位置的当前天气信息"
 
-    // 定义输入模式
-    inputSchema = buildJsonObject {
-        put("type", "object")
-        putJsonObject("properties") {
-            putJsonObject("location") {
-                put("type", "string")
-                put("description", "城市和国家")
+    // 使用类型安全的模式构建器定义输入
+    input {
+        obj {
+            field("location", string()) {
+                description = "城市和国家"
+                required = true
             }
-            putJsonObject("units") {
-                put("type", "string")
-                put("description", "温度单位（摄氏或华氏）")
+            field("units", string()) {
+                description = "温度单位（celsius 或 fahrenheit）"
+                default = "celsius"
+                enum("celsius", "fahrenheit")
             }
-        }
-        putJsonArray("required") {
-            add("location")
         }
     }
 
-    // 定义输出模式
-    outputSchema = buildJsonObject {
-        put("type", "object")
-        putJsonObject("properties") {
-            putJsonObject("temperature") {
-                put("type", "number")
+    // 使用类型安全的模式构建器定义输出
+    output {
+        obj {
+            field("temperature", number()) {
+                description = "温度"
             }
-            putJsonObject("conditions") {
-                put("type", "string")
+            field("conditions", string()) {
+                description = "天气状况"
             }
-            putJsonObject("humidity") {
-                put("type", "integer")
+            field("humidity", integer()) {
+                description = "湿度百分比"
+                minimum = 0
+                maximum = 100
             }
         }
     }
 
     // 实现执行逻辑
-    execute = { input ->
-        val location = input.jsonObject["location"]?.jsonPrimitive?.content ?: ""
-        val units = input.jsonObject["units"]?.jsonPrimitive?.content ?: "celsius"
+    execute { input ->
+        val location = input.getString("location")
+        val units = input.getString("units", "celsius")
 
         // 获取天气数据的实现
         val weatherData = getWeatherData(location, units)
 
-        // 返回结构化输出
-        buildJsonObject {
-            put("temperature", weatherData.temperature)
-            put("conditions", weatherData.conditions)
-            put("humidity", weatherData.humidity)
+        // 返回类型安全的输出
+        output {
+            "temperature" to weatherData.temperature
+            "conditions" to weatherData.conditions
+            "humidity" to weatherData.humidity
         }
     }
 }

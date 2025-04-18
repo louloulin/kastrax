@@ -31,7 +31,7 @@ fun main() {
             // API 密钥从环境变量 OPENAI_API_KEY 获取
         )
     }
-    
+
     // 使用代理生成回复
     val response = myAgent.generate("你好，请告诉我关于人工智能的信息。")
     println(response.text)
@@ -54,8 +54,8 @@ model = openAi(
 ```kotlin
 import ai.kastrax.core.agent.agent
 import ai.kastrax.core.tools.tool
+import ai.kastrax.core.schema.*
 import ai.kastrax.integrations.openai.openAi
-import kotlinx.serialization.json.*
 
 fun main() {
     // 创建一个计算器工具
@@ -63,36 +63,33 @@ fun main() {
         id = "calculator"
         name = "计算器"
         description = "执行数学计算"
-        inputSchema = buildJsonObject {
-            put("type", "object")
-            putJsonObject("properties") {
-                putJsonObject("expression") {
-                    put("type", "string")
-                    put("description", "要计算的数学表达式")
-                }
-            }
-            putJsonArray("required") {
-                add("expression")
-            }
-        }
-        outputSchema = buildJsonObject {
-            put("type", "object")
-            putJsonObject("properties") {
-                putJsonObject("result") {
-                    put("type", "number")
-                    put("description", "计算结果")
+
+        input {
+            obj {
+                field("expression", string()) {
+                    description = "要计算的数学表达式"
+                    required = true
                 }
             }
         }
-        execute = { input ->
-            val expression = input.jsonObject["expression"]?.jsonPrimitive?.content ?: "0"
+
+        output {
+            obj {
+                field("result", number()) {
+                    description = "计算结果"
+                }
+            }
+        }
+
+        execute { input ->
+            val expression = input.getString("expression")
             val result = evaluateExpression(expression)
-            buildJsonObject {
-                put("result", result)
+            output {
+                "result" to result
             }
         }
     }
-    
+
     // 创建一个带有工具的代理
     val myAgent = agent {
         name = "计算助手"
@@ -109,11 +106,11 @@ fun main() {
             tool(calculatorTool)
         }
     }
-    
+
     // 使用代理
     val response = myAgent.generate("计算 (15 + 5) * 2 的结果是多少？")
     println(response.text)
-    
+
     // 显示工具使用情况
     if (response.toolCalls.isNotEmpty()) {
         println("\n工具使用情况：")
@@ -136,27 +133,27 @@ private fun evaluateExpression(expression: String): Int {
             val parts = expression.split("+")
             return parts.sumOf { it.trim().toInt() }
         }
-        
+
         // 处理减法
         if ("-" in expression) {
             val parts = expression.split("-")
             return parts.first().trim().toInt() - parts.drop(1).sumOf { it.trim().toInt() }
         }
-        
+
         // 处理乘法
         if ("*" in expression) {
             val parts = expression.split("*")
             return parts.fold(1) { acc, part -> acc * part.trim().toInt() }
         }
-        
+
         // 处理除法
         if ("/" in expression) {
             val parts = expression.split("/")
-            return parts.drop(1).fold(parts.first().trim().toInt()) { acc, part -> 
-                if (part.trim().toInt() != 0) acc / part.trim().toInt() else acc 
+            return parts.drop(1).fold(parts.first().trim().toInt()) { acc, part ->
+                if (part.trim().toInt() != 0) acc / part.trim().toInt() else acc
             }
         }
-        
+
         // 如果没有运算符，直接返回数字
         return expression.trim().toInt()
     } catch (e: Exception) {

@@ -54,21 +54,21 @@ val myAgent = agent {
 ```kotlin
 instructions = """
     你是一家科技公司的客服代表。
-    
+
     你的职责：
     1. 礼貌、专业地回答客户问题
     2. 解决产品相关的技术问题
     3. 处理退款和换货请求
-    
+
     准则：
     - 始终保持耐心和同理心
     - 不要使用技术行话，除非客户先使用
     - 如果无法解决问题，提供升级到人工客服的选项
-    
+
     产品知识：
     - 我们的主要产品是 XYZ 智能手机
     - 常见问题包括电池问题、软件更新和连接问题
-    
+
     公司政策：
     - 30 天退款保证
     - 1 年有限保修
@@ -81,21 +81,21 @@ instructions = """
 ```kotlin
 instructions = """
     你是一位数学教师，专门辅导高中学生。
-    
+
     你的教学方法：
     1. 引导学生思考，而不是直接给出答案
     2. 提供逐步解释，确保学生理解每个步骤
     3. 使用类比和实际例子使概念更容易理解
-    
+
     教学风格：
     - 鼓励和积极，即使学生犯错
     - 耐心，愿意多次解释复杂概念
     - 适应不同的学习风格
-    
+
     专业知识：
     - 代数、几何、三角学、微积分
     - 能够解决各种难度的数学问题
-    
+
     限制：
     - 不要解答与数学无关的问题
     - 不要完成学生的作业，而是教他们如何解决
@@ -152,7 +152,7 @@ val myAgent = agent {
     name = "多功能助手"
     instructions = "你是一个多功能助手，能够搜索信息和执行计算。"
     model = openAi("gpt-4o")
-    
+
     tools {
         tool(searchTool)
         tool(calculatorTool)
@@ -163,7 +163,7 @@ val myAgent = agent {
 
 有关工具的详细信息，请参阅[工具系统详解](tools_zh.md)。
 
-## 6. 代理内存（即将推出）
+## 6. 代理内存
 
 内存系统允许代理存储和检索对话历史和上下文信息：
 
@@ -172,11 +172,12 @@ val myAgent = agent {
     name = "记忆助手"
     instructions = "你是一个有记忆能力的助手，能够记住之前的对话。"
     model = openAi("gpt-4o")
-    
-    memory {
-        storage = inMemoryStorage()
-        lastMessages = 10
-        semanticRecall = true
+
+    // 使用内存系统
+    memory = MemoryFactory.createMemory {
+        storage(MemoryFactory.createInMemoryStorage())
+        lastMessages(10)
+        semanticRecall(true)
     }
 }
 ```
@@ -225,7 +226,7 @@ if (response.toolCalls.isNotEmpty()) {
     response.toolCalls.forEach { toolCall ->
         println("工具: ${toolCall.name}")
         println("参数: ${toolCall.arguments}")
-        
+
         // 获取工具调用结果
         val result = response.toolResults[toolCall.id]
         if (result != null && result.success) {
@@ -297,7 +298,7 @@ if (result != null) {
     val summary = result["summary"]?.jsonPrimitive?.content
     val sentiment = result["sentiment"]?.jsonPrimitive?.content
     val keyPoints = result["keyPoints"]?.jsonArray?.map { it.jsonPrimitive.content }
-    
+
     println("摘要: $summary")
     println("情感: $sentiment")
     println("关键点:")
@@ -340,44 +341,44 @@ fun createArticle(topic: String): String {
     // 1. 研究阶段
     val researchResponse = researchAgent.generate("收集关于 '$topic' 的详细信息，包括关键事实、数据和观点。")
     val researchResults = researchResponse.text
-    
+
     // 2. 写作阶段
     val writingPrompt = """
         基于以下研究结果，创作一篇关于 '$topic' 的高质量文章：
-        
+
         $researchResults
-        
+
         文章应该包括引言、主体和结论，并使用清晰、引人入胜的语言。
     """.trimIndent()
-    
+
     val writingResponse = writingAgent.generate(writingPrompt)
     val article = writingResponse.text
-    
+
     // 3. 事实核查阶段
     val factCheckPrompt = """
         请核查以下文章中的事实准确性：
-        
+
         $article
-        
+
         列出任何可能不准确或需要验证的陈述。
     """.trimIndent()
-    
+
     val factCheckResponse = factCheckAgent.generate(factCheckPrompt)
     val factCheckResults = factCheckResponse.text
-    
+
     // 4. 修订阶段
     val revisionPrompt = """
         请根据以下事实核查结果修订文章：
-        
+
         原文：
         $article
-        
+
         事实核查结果：
         $factCheckResults
-        
+
         提供修订后的最终文章。
     """.trimIndent()
-    
+
     val revisionResponse = writingAgent.generate(revisionPrompt)
     return revisionResponse.text
 }

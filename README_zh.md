@@ -1,6 +1,8 @@
 # KastraX
 
-KastraX 是一个用 Kotlin 构建的现代 AI 代理框架，提供了一套全面的工具和抽象，用于构建 AI 驱动的应用程序，注重类型安全、模块化和开发者体验。
+KastraX 是一个用 Kotlin 构建的现代 AI 代理框架，受到 Mastra 和 Kastra 的启发。它提供了一套全面的工具和抽象，用于构建 AI 驱动的应用程序，注重类型安全、模块化和开发者体验。
+
+> 我们对 Mastra 框架进行了详细分析，并基于分析结果设计了 KastraX。详细分析请参见 [Mastra 分析与 KastraX 设计](docs/mastra_analysis_zh.md)。
 
 ## 特性
 
@@ -90,6 +92,8 @@ KastraX 遵循模块化架构，包含以下组件：
 - [代理系统详解](docs/agents_zh.md)
 - [工具系统详解](docs/tools_zh.md)
 - [LLM 抽象层详解](docs/llm_abstraction_zh.md)
+- [内存系统详解](docs/memory_zh.md)
+- [Mastra 分析与 KastraX 设计](docs/mastra_analysis_zh.md)
 - [KastraX 完整设计文档](docs/kastrax_zh.md)
 
 ## 许可证
