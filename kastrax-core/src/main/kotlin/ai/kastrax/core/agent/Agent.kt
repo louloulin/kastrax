@@ -2,8 +2,14 @@ package ai.kastrax.core.agent
 
 import ai.kastrax.core.common.KastraXBase
 import ai.kastrax.core.llm.*
+import ai.kastrax.core.memory.toMessage
+import ai.kastrax.core.memory.toLlmMessage
 import ai.kastrax.core.tools.Tool
 import ai.kastrax.core.tools.ToolCallResult
+import ai.kastrax.memory.api.Memory
+import ai.kastrax.memory.api.MemoryBuilder
+import ai.kastrax.memory.api.Message
+import ai.kastrax.memory.api.MessageRole
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.serialization.json.*
@@ -174,9 +180,8 @@ class AgentBuilder {
     /**
      * Configure memory for the agent.
      */
-    fun memory(init: ai.kastrax.memory.api.MemoryBuilder.() -> Unit) {
-        // 这里需要一个实现了 MemoryBuilder 接口的具体类
-        // 在实际使用时，会由 kastrax-memory-impl 模块提供
+    fun memory(memory: Memory) {
+        this.memory = memory
     }
 
     /**
@@ -308,14 +313,14 @@ class LLMAgent(
 
         // 如果有内存系统和线程ID，保存用户消息
         if (memory != null && threadId != null) {
-            val memoryAdapter = ai.kastrax.core.memory.MemoryAdapter(memory)
-            memoryAdapter.saveMessage(userMessage, threadId)
+            // 保存用户消息
+            memory.saveMessage(userMessage.toMessage(), threadId)
 
             // 获取历史消息
-            val historyMessages = memoryAdapter.getMessages(threadId)
+            val historyMessages = memory.getMessages(threadId).map { it.message.toLlmMessage() }
 
             // 生成响应
-            val response = generate(historyMessages, options)
+            val response = generate(historyMessages.toList(), options)
 
             // 保存助手消息
             val assistantMessage = LlmMessage(
@@ -323,7 +328,7 @@ class LLMAgent(
                 content = response.text,
                 toolCalls = response.toolCalls
             )
-            memoryAdapter.saveMessage(assistantMessage, threadId)
+            memory.saveMessage(assistantMessage.toMessage(), threadId)
 
             // 返回带有线程ID的响应
             return response.copy(threadId = threadId)
@@ -354,21 +359,21 @@ class LLMAgent(
         val userMessage = LlmMessage(role = LlmMessageRole.USER, content = prompt)
 
         // 如果有内存系统，保存用户消息
-        memory?.saveMessage(userMessage, threadId)
+        if (memory != null) {
+            memory.saveMessage(userMessage.toMessage(), threadId)
+        }
 
         // 获取历史消息（如果有内存系统）
         val historyMessages = if (memory != null) {
-            memory.getMessages(threadId).map { it.message }
-        } else {
-            emptyList()
-        }
+            memory.getMessages(threadId).map { it.message.toLlmMessage() }
+        } else emptyList()
 
         // 合并系统指令和历史消息
         val allMessages = if (historyMessages.isNotEmpty() && historyMessages[0].role == LlmMessageRole.SYSTEM) {
-            historyMessages + userMessage
+            historyMessages.toList() + userMessage
         } else {
             listOf(LlmMessage(role = LlmMessageRole.SYSTEM, content = instructions)) +
-            historyMessages + userMessage
+            historyMessages.toList() + userMessage
         }
 
         // 从LLM流式生成响应
@@ -388,7 +393,7 @@ class LLMAgent(
                     role = LlmMessageRole.ASSISTANT,
                     content = responseBuilder.toString()
                 )
-                memory.saveMessage(assistantMessage, threadId)
+                memory.saveMessage(assistantMessage.toMessage(), threadId)
             }
         }
 

@@ -2,7 +2,7 @@ package ai.kastrax.examples
 
 import ai.kastrax.core.agent.agent
 import ai.kastrax.integrations.openai.openAi
-import ai.kastrax.memory.MemoryFactory
+import ai.kastrax.memory.impl.MemoryFactory
 import kotlinx.coroutines.runBlocking
 
 fun main() = runBlocking {
@@ -20,8 +20,11 @@ fun main() = runBlocking {
         )
 
         // 配置内存系统
-        // 注意：由于我们重构了内存系统，这里的 memory 配置暂时不可用
-        // 需要在实际使用时提供一个 MemoryBuilder 的实现
+        memory = ai.kastrax.memory.impl.MemoryFactory.createMemory {
+            storage(ai.kastrax.memory.impl.MemoryFactory.createInMemoryStorage())
+            lastMessages(10)
+            semanticRecall(true)
+        }
     }
 
     println("记忆助手示例")
