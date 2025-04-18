@@ -69,6 +69,8 @@ interface Agent {
  * @property executeTools Whether to execute tools
  * @property output Optional schema for structured output
  * @property onStepFinish Callback for step completion
+ * @property threadId Optional thread ID for memory
+ * @property threadTitle Optional title for new threads
  */
 data class AgentGenerateOptions(
     val maxSteps: Int = 1,
@@ -76,7 +78,9 @@ data class AgentGenerateOptions(
     val maxTokens: Int? = null,
     val executeTools: Boolean = true,
     val output: JsonElement? = null,
-    val onStepFinish: ((StepResult) -> Unit)? = null
+    val onStepFinish: ((StepResult) -> Unit)? = null,
+    val threadId: String? = null,
+    val threadTitle: String? = null
 ) {
     /**
      * Convert to LLM options.
@@ -156,6 +160,7 @@ class AgentBuilder {
     var instructions: String = ""
     lateinit var model: LlmProvider
     var tools: MutableMap<String, Tool> = mutableMapOf()
+    var memory: ai.kastrax.memory.api.Memory? = null
 
     /**
      * Add tools to the agent.
@@ -164,6 +169,14 @@ class AgentBuilder {
         val builder = ToolsBuilder()
         builder.init()
         tools.putAll(builder.tools)
+    }
+
+    /**
+     * Configure memory for the agent.
+     */
+    fun memory(init: ai.kastrax.memory.api.MemoryBuilder.() -> Unit) {
+        // 这里需要一个实现了 MemoryBuilder 接口的具体类
+        // 在实际使用时，会由 kastrax-memory-impl 模块提供
     }
 
     /**
@@ -198,7 +211,8 @@ class AgentBuilder {
             name = name,
             instructions = instructions,
             model = model,
-            tools = tools
+            tools = tools,
+            memory = memory
         )
     }
 }
@@ -210,12 +224,14 @@ class AgentBuilder {
  * @property instructions Instructions/system prompt for the agent
  * @property model LLM provider
  * @property tools Available tools
+ * @property memory Optional memory system for conversation history
  */
 class LLMAgent(
     name: String,
     val instructions: String,
     val model: LlmProvider,
-    val tools: Map<String, Tool> = emptyMap()
+    val tools: Map<String, Tool> = emptyMap(),
+    val memory: ai.kastrax.memory.api.Memory? = null
 ) : KastraXBase(component = "AGENT", name = name), Agent {
 
     /**
@@ -280,10 +296,42 @@ class LLMAgent(
         prompt: String,
         options: AgentGenerateOptions
     ): AgentResponse {
-        val messages = listOf(
-            LlmMessage(role = LlmMessageRole.USER, content = prompt)
-        )
-        return generate(messages, options)
+        // 创建用户消息
+        val userMessage = LlmMessage(role = LlmMessageRole.USER, content = prompt)
+
+        // 如果有内存系统，创建或使用现有线程
+        val threadId = options.threadId ?: if (memory != null) {
+            memory.createThread(options.threadTitle)
+        } else {
+            null
+        }
+
+        // 如果有内存系统和线程ID，保存用户消息
+        if (memory != null && threadId != null) {
+            val memoryAdapter = ai.kastrax.core.memory.MemoryAdapter(memory)
+            memoryAdapter.saveMessage(userMessage, threadId)
+
+            // 获取历史消息
+            val historyMessages = memoryAdapter.getMessages(threadId)
+
+            // 生成响应
+            val response = generate(historyMessages, options)
+
+            // 保存助手消息
+            val assistantMessage = LlmMessage(
+                role = LlmMessageRole.ASSISTANT,
+                content = response.text,
+                toolCalls = response.toolCalls
+            )
+            memoryAdapter.saveMessage(assistantMessage, threadId)
+
+            // 返回带有线程ID的响应
+            return response.copy(threadId = threadId)
+        } else {
+            // 如果没有内存系统，直接生成响应
+            val messages = listOf(userMessage)
+            return generate(messages, options)
+        }
     }
 
     /**
@@ -293,27 +341,58 @@ class LLMAgent(
         prompt: String,
         options: AgentStreamOptions
     ): AgentResponse {
-        val threadId = options.threadId ?: UUID.randomUUID().toString()
+        // 使用提供的线程ID或创建新的线程ID
+        val threadId = options.threadId ?: if (memory != null) {
+            // 如果有内存系统，创建新线程
+            memory.createThread(options.threadTitle)
+        } else {
+            // 否则生成随机ID
+            UUID.randomUUID().toString()
+        }
 
-        // Prepare messages
-        val messages = listOf(
-            LlmMessage(role = LlmMessageRole.SYSTEM, content = instructions),
-            LlmMessage(role = LlmMessageRole.USER, content = prompt)
-        )
+        // 准备消息
+        val userMessage = LlmMessage(role = LlmMessageRole.USER, content = prompt)
 
-        // Stream response from LLM
-        val responseStream = model.streamGenerate(messages, options.llmOptions)
+        // 如果有内存系统，保存用户消息
+        memory?.saveMessage(userMessage, threadId)
 
-        // Create response flow that collects the full text
+        // 获取历史消息（如果有内存系统）
+        val historyMessages = if (memory != null) {
+            memory.getMessages(threadId).map { it.message }
+        } else {
+            emptyList()
+        }
+
+        // 合并系统指令和历史消息
+        val allMessages = if (historyMessages.isNotEmpty() && historyMessages[0].role == LlmMessageRole.SYSTEM) {
+            historyMessages + userMessage
+        } else {
+            listOf(LlmMessage(role = LlmMessageRole.SYSTEM, content = instructions)) +
+            historyMessages + userMessage
+        }
+
+        // 从LLM流式生成响应
+        val responseStream = model.streamGenerate(allMessages, options.llmOptions)
+
+        // 创建响应流，收集完整文本
+        val responseBuilder = StringBuilder()
         val processedStream = flow {
-            val responseBuilder = StringBuilder()
-
             responseStream.collect { chunk ->
                 responseBuilder.append(chunk)
                 emit(chunk)
             }
+
+            // 当流完成后，如果有内存系统，保存助手消息
+            if (memory != null) {
+                val assistantMessage = LlmMessage(
+                    role = LlmMessageRole.ASSISTANT,
+                    content = responseBuilder.toString()
+                )
+                memory.saveMessage(assistantMessage, threadId)
+            }
         }
 
+        // 创建响应对象
         return AgentResponse(
             textStream = processedStream,
             threadId = threadId

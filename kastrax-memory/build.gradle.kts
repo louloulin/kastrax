@@ -9,7 +9,7 @@ plugins {
 dependencies {
     // Project dependencies
     implementation(project(":kastrax-core"))
-    
+
     // Kotlin
     implementation(kotlin("stdlib"))
     implementation(kotlin("reflect"))

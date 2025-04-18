@@ -43,7 +43,7 @@ val myAgent = agent {
         model = "gpt-4o",
         // API 密钥从环境变量 OPENAI_API_KEY 获取
     )
-    
+
     // 添加工具
     tools {
         tool {
@@ -71,7 +71,7 @@ myAgent.stream("讲个故事") { chunk ->
 KastraX 遵循模块化架构，包含以下组件：
 
 - **kastrax-core**：核心框架组件 ✅
-- **kastrax-memory**：内存和存储系统 ⏳
+- **kastrax-memory**：内存和存储系统 ✅
 - **kastrax-integrations**：第三方集成
   - **kastrax-openai**：OpenAI 集成 ✅
   - **kastrax-anthropic**：Anthropic 集成（即将推出）

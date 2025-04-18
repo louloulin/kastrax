@@ -10,25 +10,17 @@ dependencies {
     // Kotlin
     implementation(kotlin("stdlib"))
     implementation(kotlin("reflect"))
-    implementation(project(":kastrax-memory-api"))
-
+    
     // Coroutines
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
-
+    
     // Serialization
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.0")
     implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.4.1")
-
+    
     // Logging
     implementation("io.github.microutils:kotlin-logging-jvm:3.0.5")
-    implementation("ch.qos.logback:logback-classic:1.4.11")
-
-    // HTTP Client
-    implementation("io.ktor:ktor-client-core:2.3.6")
-    implementation("io.ktor:ktor-client-cio:2.3.6")
-    implementation("io.ktor:ktor-client-content-negotiation:2.3.6")
-    implementation("io.ktor:ktor-serialization-kotlinx-json:2.3.6")
-
+    
     // Testing
     testImplementation("org.jetbrains.kotlin:kotlin-test")
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")

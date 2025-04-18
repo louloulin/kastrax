@@ -18,7 +18,7 @@ KastraX 遵循模块化架构，包含以下组件：
 ```
 kastrax/
 ├── kastrax-core/               # 核心框架组件 ✅
-├── kastrax-memory/             # 内存和存储系统 ⏳
+├── kastrax-memory/             # 内存和存储系统 ✅
 ├── kastrax-rag/                # 检索增强生成
 ├── kastrax-cli/                # 命令行工具
 ├── kastrax-evals/              # 评估框架
@@ -44,14 +44,14 @@ val myAgent = agent {
     name = "助手"
     instructions = "你是一个有帮助的助手。"
     model = openAi("gpt-4o")
-    
+
     // 添加工具
     tools {
         tool("calculator") {
             description = "执行数学计算"
             input = CalculatorInput::class
             output = CalculatorOutput::class
-            execute { input -> 
+            execute { input ->
                 // 实现
             }
         }
@@ -79,12 +79,12 @@ interface LlmProvider {
         messages: List<LlmMessage>,
         options: LlmOptions = LlmOptions()
     ): LlmResponse
-    
+
     suspend fun streamGenerate(
         messages: List<LlmMessage>,
         options: LlmOptions = LlmOptions()
     ): Flow<String>
-    
+
     suspend fun embedText(text: String): List<Float>
 }
 
@@ -105,7 +105,7 @@ val weatherTool = tool {
     id = "weather"
     name = "天气信息"
     description = "获取位置的当前天气信息"
-    
+
     // 定义输入模式
     inputSchema = buildJsonObject {
         put("type", "object")
@@ -123,7 +123,7 @@ val weatherTool = tool {
             add("location")
         }
     }
-    
+
     // 定义输出模式
     outputSchema = buildJsonObject {
         put("type", "object")
@@ -139,15 +139,15 @@ val weatherTool = tool {
             }
         }
     }
-    
+
     // 实现执行逻辑
     execute = { input ->
         val location = input.jsonObject["location"]?.jsonPrimitive?.content ?: ""
         val units = input.jsonObject["units"]?.jsonPrimitive?.content ?: "celsius"
-        
+
         // 获取天气数据的实现
         val weatherData = getWeatherData(location, units)
-        
+
         // 返回结构化输出
         buildJsonObject {
             put("temperature", weatherData.temperature)
@@ -158,7 +158,7 @@ val weatherTool = tool {
 }
 ```
 
-### 3.4 内存系统 (Memory System) ⏳
+### 3.4 内存系统 (Memory System) ✅
 
 内存系统提供对话历史的持久存储和检索。
 
@@ -189,7 +189,7 @@ val memory = memory {
 val myWorkflow = workflow {
     name = "content-creation"
     description = "生成和审核内容"
-    
+
     // 定义输入模式
     inputSchema {
         property("topic", String::class) {
@@ -201,48 +201,48 @@ val myWorkflow = workflow {
             defaultValue = "informative"
         }
     }
-    
+
     // 定义输出模式
     outputSchema {
         property("content", String::class)
         property("qualityScore", Float::class)
     }
-    
+
     // 定义步骤
     step("generate-content") {
         execute { context ->
             val topic = context.input.getString("topic")
             val tone = context.input.getString("tone")
-            
+
             val contentAgent = getAgent("content-creator")
             val response = contentAgent.generate(
                 "创建关于 $topic 的内容，语调为 $tone。"
             )
-            
+
             jsonOutput {
                 "content" to response.text
             }
         }
     }
-    
+
     step("review-content") {
         after("generate-content")
         execute { context ->
             val content = context.getStepOutput("generate-content")
                 .getString("content")
-            
+
             val reviewAgent = getAgent("content-reviewer")
             val response = reviewAgent.generate(
                 "审核这个内容并提供 0 到 1 的质量分数：$content"
             )
-            
+
             jsonOutput {
                 "review" to response.text
                 "qualityScore" to extractScore(response.text)
             }
         }
     }
-    
+
     // 映射输出
     output {
         "content" from { context ->
@@ -277,7 +277,7 @@ plugins {
 allprojects {
     group = "ai.kastrax"
     version = "0.1.0"
-    
+
     repositories {
         mavenCentral()
         maven { url = uri("https://jitpack.io") }
@@ -296,11 +296,11 @@ allprojects {
    - 构建 LLM 抽象层 ✅
    - 实现 Workflow 引擎 ⏳
 
-2. **kastrax-memory** ⏳
-   - 设计内存接口
-   - 实现内存存储
-   - 创建持久层
-   - 添加语义搜索功能
+2. **kastrax-memory** ✅
+   - 设计内存接口 ✅
+   - 实现内存存储 ✅
+   - 创建持久层 ✅
+   - 添加语义搜索功能 ✅
 
 3. **kastrax-integrations**
    - 实现 OpenAI 集成 ✅
@@ -365,14 +365,14 @@ allprojects {
 3. 创建 LLM 提供商抽象和实现 ✅
 4. 开发带有 DSL 的 Agent 系统 ✅
 5. 实现 Tool 系统 ✅
-6. 创建基本的 Memory 系统 ⏳
+6. 创建基本的 Memory 系统 ✅
 7. 开发简单的 Workflow 引擎 ⏳
 8. 为核心组件编写全面的测试 ✅
 9. 为核心功能创建文档 ✅
 
 ### 7.2 中优先级
 
-1. 使用语义搜索增强 Memory 系统
+1. 使用语义搜索增强 Memory 系统 ✅
 2. 实现 RAG 系统
 3. 开发评估框架
 4. 创建项目管理的 CLI 工具
