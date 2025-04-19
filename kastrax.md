@@ -8,6 +8,7 @@
 > - [工具系统详解](docs/tools_zh.md)
 > - [LLM 抽象层详解](docs/llm_abstraction_zh.md)
 > - [内存系统详解](docs/memory_zh.md)
+> - [DeepSeek 集成详解](docs/deepseek_zh.md)
 > - [Mastra 分析与 KastraX 设计](docs/mastra_analysis_zh.md)
 > - [中文 README](README_zh.md)
 
@@ -404,6 +405,7 @@ val result = workflow.execute(mapOf("topic" to "AI"))
 
 4. **kastrax-integrations**
    - Implement OpenAI integration ✅
+   - Implement DeepSeek integration ✅
    - Implement Anthropic integration ⏳
    - Implement Google Gemini integration ⏳
    - Implement Mistral integration ⏳

@@ -77,6 +77,7 @@ KastraX 遵循模块化架构，包含以下组件：
 - **kastrax-memory-impl**：内存系统实现 ✅
 - **kastrax-integrations**：第三方集成
   - **kastrax-openai**：OpenAI 集成 ✅
+  - **kastrax-deepseek**：DeepSeek 集成 ✅
   - **kastrax-anthropic**：Anthropic 集成（即将推出）
   - **kastrax-gemini**：Google Gemini 集成（即将推出）
   - **kastrax-mistral**：Mistral 集成（即将推出）
@@ -93,6 +94,7 @@ KastraX 遵循模块化架构，包含以下组件：
 - [工具系统详解](docs/tools_zh.md)
 - [LLM 抽象层详解](docs/llm_abstraction_zh.md)
 - [内存系统详解](docs/memory_zh.md)
+- [DeepSeek 集成详解](docs/deepseek_zh.md)
 - [Mastra 分析与 KastraX 设计](docs/mastra_analysis_zh.md)
 - [KastraX 完整设计文档](docs/kastrax_zh.md)
 
