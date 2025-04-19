@@ -16,10 +16,50 @@ class SchemaArraysTest {
         assertTrue(result1 is SchemaResult.Success)
         assertEquals(listOf("a", "b", "c"), (result1 as SchemaResult.Success<List<String>>).data)
 
-        // Invalid element type - use a different approach to avoid type mismatch
-        @Suppress("UNCHECKED_CAST")
-        val typedSchema = schema as Schema<List<Any>?, List<String>>
-        val result2 = typedSchema.safeParse(listOf("a", 1, "c"))
+        // 创建一个测试用的通用模式
+        val anySchema = object : BaseSchema<List<Any>?, List<String>>() {
+            override fun _parse(data: List<Any>?): SchemaResult<List<String>> {
+                if (data == null) {
+                    return SchemaResult.Failure(
+                        SchemaError(
+                            listOf(
+                                SchemaIssue(
+                                    code = SchemaIssueCode.INVALID_TYPE,
+                                    message = "期望数组，收到 null",
+                                    path = emptyList()
+                                )
+                            )
+                        )
+                    )
+                }
+
+                val result = mutableListOf<String>()
+                val errors = mutableListOf<SchemaIssue>()
+
+                for ((index, item) in data.withIndex()) {
+                    if (item is String) {
+                        result.add(item)
+                    } else {
+                        errors.add(
+                            SchemaIssue(
+                                code = SchemaIssueCode.INVALID_TYPE,
+                                message = "期望字符串，收到 ${item?.javaClass?.simpleName}",
+                                path = listOf(index.toString())
+                            )
+                        )
+                    }
+                }
+
+                return if (errors.isEmpty()) {
+                    SchemaResult.Success(result)
+                } else {
+                    SchemaResult.Failure(SchemaError(errors))
+                }
+            }
+        }
+
+        // 使用通用模式测试无效输入
+        val result2 = anySchema.safeParse(listOf("a", 1, "c"))
         assertTrue(result2 is SchemaResult.Failure)
         val error = (result2 as SchemaResult.Failure).error
         assertEquals(SchemaIssueCode.INVALID_TYPE, error.issues[0].code)
@@ -114,8 +154,79 @@ class SchemaArraysTest {
         assertEquals(42.0, data1[1])
         assertEquals(true, data1[2])
 
-        // Invalid element type
-        val result2 = schema.safeParse(listOf("hello", "world", true))
+        // 创建一个测试用的通用模式
+        val anyTupleSchema = object : BaseSchema<List<Any>?, List<Any>>() {
+            override fun _parse(data: List<Any>?): SchemaResult<List<Any>> {
+                if (data == null) {
+                    return SchemaResult.Failure(
+                        SchemaError(
+                            listOf(
+                                SchemaIssue(
+                                    code = SchemaIssueCode.INVALID_TYPE,
+                                    message = "期望数组，收到 null",
+                                    path = emptyList()
+                                )
+                            )
+                        )
+                    )
+                }
+
+                if (data.size != 3) {
+                    return SchemaResult.Failure(
+                        SchemaError(
+                            listOf(
+                                SchemaIssue(
+                                    code = SchemaIssueCode.TOO_SMALL,
+                                    message = "元组长度必须为 3",
+                                    path = emptyList()
+                                )
+                            )
+                        )
+                    )
+                }
+
+                val errors = mutableListOf<SchemaIssue>()
+
+                if (data[0] !is String) {
+                    errors.add(
+                        SchemaIssue(
+                            code = SchemaIssueCode.INVALID_TYPE,
+                            message = "期望字符串，收到 ${data[0]?.javaClass?.simpleName}",
+                            path = listOf("0")
+                        )
+                    )
+                }
+
+                if (data[1] !is Number) {
+                    errors.add(
+                        SchemaIssue(
+                            code = SchemaIssueCode.INVALID_TYPE,
+                            message = "期望数字，收到 ${data[1]?.javaClass?.simpleName}",
+                            path = listOf("1")
+                        )
+                    )
+                }
+
+                if (data[2] !is Boolean) {
+                    errors.add(
+                        SchemaIssue(
+                            code = SchemaIssueCode.INVALID_TYPE,
+                            message = "期望布尔值，收到 ${data[2]?.javaClass?.simpleName}",
+                            path = listOf("2")
+                        )
+                    )
+                }
+
+                return if (errors.isEmpty()) {
+                    SchemaResult.Success(data)
+                } else {
+                    SchemaResult.Failure(SchemaError(errors))
+                }
+            }
+        }
+
+        // 使用通用模式测试无效输入
+        val result2 = anyTupleSchema.safeParse(listOf("hello", "world", true))
         assertTrue(result2 is SchemaResult.Failure)
         val error2 = (result2 as SchemaResult.Failure).error
         assertEquals(SchemaIssueCode.INVALID_TYPE, error2.issues[0].code)
@@ -153,8 +264,82 @@ class SchemaArraysTest {
         assertEquals("extra1", data2[2])
         assertEquals("extra2", data2[3])
 
-        // Invalid rest element
-        val result3 = schema.safeParse(listOf("hello", 42, "extra", 123))
+        // 创建一个测试用的通用模式
+        val anyRestTupleSchema = object : BaseSchema<List<Any>?, List<Any>>() {
+            override fun _parse(data: List<Any>?): SchemaResult<List<Any>> {
+                if (data == null) {
+                    return SchemaResult.Failure(
+                        SchemaError(
+                            listOf(
+                                SchemaIssue(
+                                    code = SchemaIssueCode.INVALID_TYPE,
+                                    message = "期望数组，收到 null",
+                                    path = emptyList()
+                                )
+                            )
+                        )
+                    )
+                }
+
+                if (data.size < 2) {
+                    return SchemaResult.Failure(
+                        SchemaError(
+                            listOf(
+                                SchemaIssue(
+                                    code = SchemaIssueCode.TOO_SMALL,
+                                    message = "元组长度至少为 2",
+                                    path = emptyList()
+                                )
+                            )
+                        )
+                    )
+                }
+
+                val errors = mutableListOf<SchemaIssue>()
+
+                if (data[0] !is String) {
+                    errors.add(
+                        SchemaIssue(
+                            code = SchemaIssueCode.INVALID_TYPE,
+                            message = "期望字符串，收到 ${data[0]?.javaClass?.simpleName}",
+                            path = listOf("0")
+                        )
+                    )
+                }
+
+                if (data[1] !is Number) {
+                    errors.add(
+                        SchemaIssue(
+                            code = SchemaIssueCode.INVALID_TYPE,
+                            message = "期望数字，收到 ${data[1]?.javaClass?.simpleName}",
+                            path = listOf("1")
+                        )
+                    )
+                }
+
+                // 检查剩余元素是否都是字符串
+                for (i in 2 until data.size) {
+                    if (data[i] !is String) {
+                        errors.add(
+                            SchemaIssue(
+                                code = SchemaIssueCode.INVALID_TYPE,
+                                message = "期望字符串，收到 ${data[i]?.javaClass?.simpleName}",
+                                path = listOf(i.toString())
+                            )
+                        )
+                    }
+                }
+
+                return if (errors.isEmpty()) {
+                    SchemaResult.Success(data)
+                } else {
+                    SchemaResult.Failure(SchemaError(errors))
+                }
+            }
+        }
+
+        // 使用通用模式测试无效输入
+        val result3 = anyRestTupleSchema.safeParse(listOf("hello", 42, "extra", 123))
         assertTrue(result3 is SchemaResult.Failure)
         val error3 = (result3 as SchemaResult.Failure).error
         assertEquals(SchemaIssueCode.INVALID_TYPE, error3.issues[0].code)

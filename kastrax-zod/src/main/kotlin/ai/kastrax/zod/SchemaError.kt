@@ -109,6 +109,7 @@ object ErrorMap {
                 "数字必须是 $multipleOf 的倍数"
             }
             SchemaIssueCode.NOT_FINITE -> "数字必须是有限的"
+            SchemaIssueCode.MISSING_REQUIRED_FIELD -> "缺少必填字段"
         }
     }
 

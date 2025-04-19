@@ -103,7 +103,8 @@ enum class SchemaIssueCode {
     INVALID_DATE,
     INVALID_INTERSECTION_TYPES,
     NOT_MULTIPLE_OF,
-    NOT_FINITE
+    NOT_FINITE,
+    MISSING_REQUIRED_FIELD
 }
 
 /**
