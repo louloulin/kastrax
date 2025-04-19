@@ -75,7 +75,7 @@ fun obj(init: ObjectSchemaBuilder.() -> Unit): ObjectSchema<Map<String, Any?>, M
  * 对象模式构建器，用于DSL。
  */
 class ObjectSchemaBuilder {
-    private val fields = mutableMapOf<String, ObjectField<String, Any>>()
+    private val fields = mutableMapOf<String, ObjectField<String, Any?>>()
     private var strict = false
     private var catchall: Schema<*, *>? = null
     private var unknownKeys = ObjectSchema.UnknownKeysStrategy.STRIP
@@ -85,7 +85,7 @@ class ObjectSchemaBuilder {
      */
     fun <T : Any> field(key: String, schema: Schema<*, T>, required: Boolean = true) {
         @Suppress("UNCHECKED_CAST")
-        fields[key] = ObjectField(key, schema as Schema<*, Any>, required)
+        fields[key] = ObjectField(key, schema as Schema<Any?, Any?>, required)
     }
 
     /**
@@ -123,7 +123,7 @@ class ObjectSchemaBuilder {
      * 构建对象模式。
      */
     fun build(): ObjectSchema<Map<String, Any?>, Map<String, Any?>> {
-        return ObjectSchema(fields, strict, catchall, unknownKeys)
+        return ObjectSchema(fields, strict, catchall as Schema<Any?, Any?>?, unknownKeys)
     }
 }
 
@@ -139,15 +139,17 @@ fun <I, O> array(schema: Schema<I, O>, init: ArraySchema<I, O>.() -> Unit = {}):
 /**
  * 用于创建元组模式的DSL。
  */
-fun tuple(vararg schemas: Schema<*, *>): TupleSchema<Any?, Any?> {
-    return TupleSchema(schemas.toList())
+fun tuple(vararg schemas: Schema<*, *>): TupleSchema {
+    @Suppress("UNCHECKED_CAST")
+    return TupleSchema(schemas.toList() as List<Schema<Any?, Any?>>)
 }
 
 /**
  * 用于创建联合模式的DSL。
  */
 fun union(vararg schemas: Schema<*, *>): UnionSchema {
-    return UnionSchema(schemas.toList())
+    @Suppress("UNCHECKED_CAST")
+    return UnionSchema(schemas.toList() as List<Schema<Any?, Any?>>)
 }
 
 /**
@@ -166,13 +168,14 @@ fun <K : Any> discriminatedUnion(
  * 判别联合模式构建器，用于DSL。
  */
 class DiscriminatedUnionBuilder<K : Any>(private val discriminator: String) {
-    private val schemas = mutableMapOf<K, Schema<*, *>>()
+    private val schemas = mutableMapOf<K, Schema<Any?, Any?>>()
 
     /**
      * 添加模式。
      */
     fun schema(key: K, schema: Schema<*, *>) {
-        schemas[key] = schema
+        @Suppress("UNCHECKED_CAST")
+        schemas[key] = schema as Schema<Any?, Any?>
     }
 
     /**

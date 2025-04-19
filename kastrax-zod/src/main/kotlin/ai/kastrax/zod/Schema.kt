@@ -113,7 +113,7 @@ enum class SchemaIssueCode {
  * @param I 输入类型
  * @param O 输出类型
  */
-interface Schema<I, O> {
+interface Schema<in I, out O> {
     /**
      * 解析并验证输入数据。
      * 如果验证成功，返回验证后的数据；如果失败，抛出异常。
@@ -183,7 +183,7 @@ interface Schema<I, O> {
      * @param defaultValue 默认值
      * @return 带有默认值的新模式
      */
-    fun default(defaultValue: O): Schema<I?, O>
+    fun default(defaultValue: @UnsafeVariance O): Schema<I?, O>
 
     /**
      * 为此模式添加描述。
@@ -264,7 +264,7 @@ class SchemaValidationException(val error: SchemaError) : Exception(
  * @param I 输入类型
  * @param O 输出类型
  */
-abstract class BaseSchema<I, O> : Schema<I, O> {
+abstract class BaseSchema<in I, out O> : Schema<I, O> {
     /**
      * 内部验证方法，由子类实现。
      *
@@ -319,7 +319,7 @@ abstract class BaseSchema<I, O> : Schema<I, O> {
         return NullishSchema(this)
     }
 
-    override fun default(defaultValue: O): Schema<I?, O> {
+    override fun default(defaultValue: @UnsafeVariance O): Schema<I?, O> {
         return DefaultSchema(this, defaultValue)
     }
 
@@ -336,11 +336,14 @@ abstract class BaseSchema<I, O> : Schema<I, O> {
     }
 
     override fun <I2, O2> or(other: Schema<I2, O2>): Schema<Any?, Any?> {
-        return UnionSchema(listOf(this, other))
+        @Suppress("UNCHECKED_CAST")
+        val schemas = listOf(this as Schema<Any?, Any?>, other as Schema<Any?, Any?>)
+        return UnionSchema(schemas)
     }
 
     override fun <I2, O2> and(other: Schema<I2, O2>): Schema<Any?, Any?> {
-        return IntersectionSchema(this, other)
+        @Suppress("UNCHECKED_CAST")
+        return IntersectionSchema<Any?, Any?>(this as Schema<Any?, Any?>, other as Schema<Any?, Any?>)
     }
 
     override fun array(): Schema<List<I>?, List<O>> {
@@ -407,9 +410,9 @@ class NullishSchema<I, O>(private val schema: Schema<I, O>) : BaseSchema<I?, O?>
 /**
  * 带有默认值的模式。
  */
-class DefaultSchema<I, O>(
+class DefaultSchema<in I, out O>(
     private val schema: Schema<I, O>,
-    private val defaultValue: O
+    private val defaultValue: @UnsafeVariance O
 ) : BaseSchema<I?, O>() {
     override fun _parse(data: I?): SchemaResult<O> {
         if (data == null) {
@@ -510,7 +513,7 @@ class TransformedSchema<I, O, U>(
  * @property discriminator 判别器字段名，用于区分联合类型
  */
 class UnionSchema(
-    val schemas: List<Schema<*, *>>,
+    val schemas: List<Schema<Any?, Any?>>,
     val discriminator: String? = null
 ) : BaseSchema<Any?, Any?>() {
     override fun _parse(data: Any?): SchemaResult<Any?> {
@@ -525,8 +528,7 @@ class UnionSchema(
                         if (typeField?.schema is LiteralSchema<*>) {
                             val literalSchema = typeField.schema as LiteralSchema<*>
                             if (discriminatorValue == literalSchema.value) {
-                                @Suppress("UNCHECKED_CAST")
-                                return (schema as Schema<Any?, Any?>).safeParse(data)
+                                return schema.safeParse(data)
                             }
                         }
                     }
@@ -538,8 +540,7 @@ class UnionSchema(
         val errors = mutableListOf<SchemaError>()
 
         for (schema in schemas) {
-            @Suppress("UNCHECKED_CAST")
-            val result = (schema as Schema<Any?, Any?>).safeParse(data)
+            val result = schema.safeParse(data)
 
             when (result) {
                 is SchemaResult.Success -> return result
@@ -565,30 +566,36 @@ class UnionSchema(
 /**
  * 交叉模式，要求同时满足两个模式。
  */
-class IntersectionSchema<I1, O1, I2, O2>(
-    private val left: Schema<I1, O1>,
-    private val right: Schema<I2, O2>
-) : BaseSchema<Any?, Any?>() {
-    override fun _parse(data: Any?): SchemaResult<Any?> {
-        @Suppress("UNCHECKED_CAST")
-        val leftResult = (left as Schema<Any?, Any?>).safeParse(data)
+class IntersectionSchema<in I, out O>(
+    private val left: Schema<I, Any?>,
+    private val right: Schema<I, Any?>
+) : BaseSchema<I, O>() {
+    override fun _parse(data: I): SchemaResult<O> {
+        val leftResult = left.safeParse(data)
 
         when (leftResult) {
             is SchemaResult.Success -> {
-                @Suppress("UNCHECKED_CAST")
-                val rightResult = (right as Schema<Any?, Any?>).safeParse(data)
+                val rightResult = right.safeParse(data)
 
                 return when (rightResult) {
                     is SchemaResult.Success -> {
                         // 合并结果
                         // 注意：这里的实现取决于具体的数据类型
                         // 对于对象，应该合并属性
-                        SchemaResult.Success(rightResult.data)
+                        @Suppress("UNCHECKED_CAST")
+                        SchemaResult.Success(rightResult.data as O)
                     }
-                    is SchemaResult.Failure -> rightResult
+                    is SchemaResult.Failure -> {
+                        @Suppress("UNCHECKED_CAST")
+                        rightResult as SchemaResult.Failure
+                        return rightResult
+                    }
                 }
             }
-            is SchemaResult.Failure -> return leftResult
+            is SchemaResult.Failure -> {
+                @Suppress("UNCHECKED_CAST")
+                return leftResult as SchemaResult.Failure
+            }
         }
     }
 }
@@ -601,7 +608,7 @@ class IntersectionSchema<I1, O1, I2, O2>(
  * @property maxLength 最大长度
  * @property nonempty 是否非空
  */
-class ArraySchema<I, O>(
+class ArraySchema<in I, out O>(
     val elementSchema: Schema<I, O>,
     var minLength: Int? = null,
     var maxLength: Int? = null,

@@ -64,13 +64,13 @@ fun <I, O> ArraySchema<I, O>.element(): Schema<I, O> {
  * @property schemas 元素模式列表
  * @property rest 用于验证额外元素的模式
  */
-class TupleSchema<I, O>(
-    val schemas: List<Schema<*, *>>,
-    val rest: Schema<*, *>? = null
-) : BaseSchema<List<*>?, List<*>>() {
+class TupleSchema(
+    val schemas: List<Schema<Any?, Any?>>,
+    val rest: Schema<Any?, Any?>? = null
+) : BaseSchema<List<*>?, List<Any?>>() {
 
     @Suppress("UNCHECKED_CAST")
-    override fun _parse(data: List<*>?): SchemaResult<List<*>> {
+    override fun _parse(data: List<*>?): SchemaResult<List<Any?>> {
         if (data == null) {
             return SchemaResult.Failure(
                 SchemaError(
@@ -171,7 +171,7 @@ class TupleSchema<I, O>(
      * @param schema 用于验证额外元素的模式
      * @return 更新后的元组模式
      */
-    fun rest(schema: Schema<*, *>): TupleSchema<I, O> {
+    fun rest(schema: Schema<Any?, Any?>): TupleSchema {
         return TupleSchema(schemas, schema)
     }
 }

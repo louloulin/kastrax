@@ -7,9 +7,9 @@ package ai.kastrax.zod
  * @property schema 字段的模式
  * @property required 字段是否必需
  */
-data class ObjectField<K : Any, V>(
+data class ObjectField<out K : Any, out V>(
     val key: K,
-    val schema: Schema<*, V>,
+    val schema: Schema<Any?, V>,
     val required: Boolean = true
 )
 
@@ -21,10 +21,10 @@ data class ObjectField<K : Any, V>(
  * @property catchall 用于验证所有未明确定义字段的模式
  * @property unknownKeys 处理未知键的策略
  */
-class ObjectSchema<I : Map<*, *>, O : Map<*, *>>(
-    val fields: Map<String, ObjectField<*, *>>,
+class ObjectSchema<in I : Map<String, Any?>, out O : Map<String, Any?>>(
+    val fields: Map<String, ObjectField<String, Any?>>,
     val strict: Boolean = false,
-    val catchall: Schema<*, *>? = null,
+    val catchall: Schema<Any?, Any?>? = null,
     val unknownKeys: UnknownKeysStrategy = UnknownKeysStrategy.STRIP
 ) : BaseSchema<I, O>() {
 
@@ -157,7 +157,7 @@ class ObjectSchema<I : Map<*, *>, O : Map<*, *>>(
      * @param extension 要添加的字段
      * @return 新的对象模式
      */
-    fun extend(extension: Map<String, ObjectField<*, *>>): ObjectSchema<I, Map<String, Any?>> {
+    fun extend(extension: Map<String, ObjectField<String, Any?>>): ObjectSchema<I, Map<String, Any?>> {
         val newFields = fields.toMutableMap()
         newFields.putAll(extension)
         return ObjectSchema(newFields, strict, catchall, unknownKeys)
@@ -171,7 +171,8 @@ class ObjectSchema<I : Map<*, *>, O : Map<*, *>>(
      */
     fun merge(other: ObjectSchema<*, *>): ObjectSchema<I, Map<String, Any?>> {
         val newFields = fields.toMutableMap()
-        newFields.putAll(other.fields)
+        @Suppress("UNCHECKED_CAST")
+        newFields.putAll(other.fields as Map<String, ObjectField<String, Any?>>)
         return ObjectSchema(newFields, strict, catchall, unknownKeys)
     }
 
@@ -225,12 +226,12 @@ class ObjectSchema<I : Map<*, *>, O : Map<*, *>>(
             // 如果是对象模式，递归处理
             if (schema is ObjectSchema<*, *>) {
                 @Suppress("UNCHECKED_CAST")
-                val partialSchema = schema.deepPartial() as Schema<*, Any?>
+                val partialSchema = schema.deepPartial() as Schema<Any?, Any?>
                 newFields[key] = ObjectField(key, partialSchema, false)
             } else {
                 // 其他类型直接复制并设置为可选
                 @Suppress("UNCHECKED_CAST")
-                newFields[key] = ObjectField(key, schema as Schema<*, Any?>, false)
+                newFields[key] = ObjectField(key, schema as Schema<Any?, Any?>, false)
             }
         }
 
@@ -282,7 +283,7 @@ class ObjectSchema<I : Map<*, *>, O : Map<*, *>>(
      * @param schema 用于验证未定义字段的模式
      * @return 带有catchall模式的新对象模式
      */
-    fun catchall(schema: Schema<*, *>): ObjectSchema<I, Map<String, Any?>> {
+    fun catchall(schema: Schema<Any?, Any?>): ObjectSchema<I, Map<String, Any?>> {
         return ObjectSchema(fields, strict, schema, unknownKeys)
     }
 

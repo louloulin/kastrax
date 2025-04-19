@@ -22,23 +22,11 @@ fun UnionSchema.discriminatedBy(discriminator: String): UnionSchema {
  */
 class DiscriminatedUnionSchema<K : Any>(
     val discriminator: String,
-    val schemas: Map<K, Schema<*, *>>
-) : BaseSchema<Any?, Any?>() {
+    val schemas: Map<K, Schema<Any?, Any?>>
+) : BaseSchema<Map<String, Any?>, Any?>() {
 
-    override fun _parse(data: Any?): SchemaResult<Any?> {
-        if (data !is Map<*, *>) {
-            return SchemaResult.Failure(
-                SchemaError(
-                    listOf(
-                        SchemaIssue(
-                            code = SchemaIssueCode.INVALID_TYPE,
-                            message = "期望对象，收到 ${data?.javaClass?.simpleName}",
-                            path = emptyList()
-                        )
-                    )
-                )
-            )
-        }
+    override fun _parse(data: Map<String, Any?>): SchemaResult<Any?> {
+        // 数据已经由方法签名保证是 Map<String, Any?> 类型
 
         val discriminatorValue = data[discriminator]
         if (discriminatorValue == null) {
@@ -55,8 +43,8 @@ class DiscriminatedUnionSchema<K : Any>(
             )
         }
 
-        @Suppress("UNCHECKED_CAST")
-        val schema = schemas[discriminatorValue as? K]
+        val key = discriminatorValue as? K
+        val schema = if (key != null) schemas[key] else null
         if (schema == null) {
             return SchemaResult.Failure(
                 SchemaError(
@@ -72,7 +60,6 @@ class DiscriminatedUnionSchema<K : Any>(
             )
         }
 
-        @Suppress("UNCHECKED_CAST")
-        return (schema as Schema<Any?, Any?>).safeParse(data)
+        return schema.safeParse(data)
     }
 }
