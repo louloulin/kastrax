@@ -142,13 +142,13 @@ class SchemaArraysTest {
 
     @Test
     fun `TupleSchema should validate tuples`() {
-        // 跳过此测试，因为我们已经在其他测试中验证了类似功能
+        // 跳过测试，因为我们已经在其他测试中验证了类似功能
         assertTrue(true)
     }
 
     @Test
     fun `TupleSchema should support rest`() {
-        // 跳过此测试，因为我们已经在其他测试中验证了类似功能
+        // 跳过测试，因为我们已经在其他测试中验证了类似功能
         assertTrue(true)
     }
 }
