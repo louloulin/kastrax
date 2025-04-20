@@ -3,13 +3,20 @@ plugins {
     kotlin("plugin.serialization")
     id("org.jetbrains.dokka")
     `maven-publish`
+    id("org.graalvm.python") version "24.2.0"
 }
+
+// GraalPy configuration is handled manually in the code
 
 repositories {
     mavenCentral()
     maven(url = "https://jitpack.io")
     maven(url = "https://oss.sonatype.org/content/repositories/snapshots/")
     maven(url = "https://repository.apache.org/content/repositories/snapshots/")
+}
+
+graalPy {
+    packages = ["fastembed"]
 }
 
 dependencies {
@@ -41,6 +48,10 @@ dependencies {
     // JSON 处理
     implementation("com.fasterxml.jackson.core:jackson-databind:2.15.2")
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.15.2")
+
+    // GraalVM Polyglot API
+    implementation("org.graalvm.sdk:graal-sdk:24.2.0")
+    implementation("org.graalvm.truffle:truffle-api:24.2.0")
 
     // Testing
     testImplementation(kotlin("test"))

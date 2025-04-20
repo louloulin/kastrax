@@ -8,7 +8,7 @@ import ai.kastrax.rag.document.RecursiveCharacterTextSplitter
 import ai.kastrax.rag.document.TextFileDocumentLoader
 import ai.kastrax.rag.embedding.FastEmbedEmbeddingService
 import ai.kastrax.rag.vectorstore.InMemoryVectorStore
-import ai.kastrax.integrations.openai.OpenAiProvider
+import ai.kastrax.integrations.openai.openAi
 import kotlinx.coroutines.runBlocking
 import java.io.File
 
@@ -20,13 +20,14 @@ import java.io.File
 fun main() = runBlocking {
     println("初始化 FastEmbed 嵌入服务...")
 
-    // 创建 FastEmbed 嵌入服务
+    // 创建 FastEmbed 嵌入服务（使用命令行模式）
     val embeddingService = FastEmbedEmbeddingService(
         modelName = "BAAI/bge-small-zh-v1.5",  // 中文小型模型
         dimensions = 384,
         normalize = true,
-        pythonCommand = "python",  // 根据系统环境调整
-        timeout = 60  // 增加超时时间，防止首次加载模型超时
+        graalPyPath = "python",  // 使用系统 Python
+        timeout = 60,  // 增加超时时间，防止首次加载模型超时
+        usePolyglot = false  // 使用命令行模式
     )
 
     try {
@@ -73,9 +74,9 @@ fun main() = runBlocking {
             }
 
             // 创建 OpenAI 提供者（仅用于生成回答，嵌入使用本地模型）
-            val openai = OpenAiProvider(
-                apiKey = System.getenv("OPENAI_API_KEY") ?: "",
+            val openai = openAi(
                 model = "gpt-3.5-turbo"
+                // API 密钥从环境变量 OPENAI_API_KEY 获取
             )
 
             // 创建 RAG 代理
@@ -124,13 +125,26 @@ fun main() = runBlocking {
                 }
 
                 // 构建提示
-                val prompt = ragAgent.instructions
-                    .replace("{{context}}", context)
-                    .replace("{{question}}", question)
+                val instructions = """
+                    你是一个基于本地嵌入模型的问答助手。你的任务是使用提供的上下文信息回答用户的问题。
+
+                    请遵循以下准则：
+                    1. 仅使用提供的上下文信息回答问题
+                    2. 如果上下文中没有足够的信息，请坦诚地说明你不知道
+                    3. 不要编造信息或使用你自己的知识
+                    4. 引用信息的来源（如果有）
+                    5. 保持回答简洁、准确和有帮助
+
+                    上下文信息：
+                    $context
+
+                    用户问题：
+                    $question
+                """.trimIndent()
 
                 // 生成回答
                 println("正在生成回答...")
-                val response = ragAgent.generate(prompt)
+                val response = ragAgent.generate(instructions, options = ai.kastrax.core.agent.AgentGenerateOptions())
 
                 // 显示回答
                 println("\n回答:")
