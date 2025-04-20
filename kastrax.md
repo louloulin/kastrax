@@ -391,7 +391,7 @@ val result = workflow.execute(mapOf("topic" to "AI"))
    - Create Agent system with DSL ✅
    - Develop Tool system ✅
    - Build LLM abstraction layer ✅
-   - Implement Workflow engine ⏳
+   - Implement Workflow engine ✅
 
 2. **kastrax-memory-api** ✅
    - Design memory interfaces ✅
@@ -468,14 +468,14 @@ val result = workflow.execute(mapOf("topic" to "AI"))
 4. Develop Agent system with DSL ✅
 5. Implement Tool system ✅
 6. Create basic Memory system ✅
-7. Develop simple Workflow engine ⏳
+7. Develop simple Workflow engine ✅
 8. Write comprehensive tests for core components ✅
 9. Create documentation for core features ✅
 
 ### Medium Priority
 
 1. Enhance Memory system with semantic search ✅
-2. Implement RAG system
+2. Implement RAG system ✅
 3. Develop evaluation framework
 4. Create CLI tool for project management
 5. Implement more LLM provider integrations ⏳
