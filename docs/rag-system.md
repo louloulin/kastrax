@@ -42,6 +42,7 @@ RAG（检索增强生成）系统是 kastrax 框架的核心组件之一，它�
 嵌入服务负责生成文本的嵌入向量：
 
 - **OpenAIEmbeddingService**：使用 OpenAI API 生成嵌入向量
+- **FastEmbedEmbeddingService**：使用本地模型生成嵌入向量，无需外部 API
 - **RandomEmbeddingService**：生成随机嵌入向量，用于测试和开发
 
 ### 向量存储 (VectorStore)
@@ -68,12 +69,23 @@ RAG 系统的架构由以下主要组件组成：
 ### 创建 RAG 系统
 
 ```kotlin
-// 创建向量存储和嵌入服务
+// 创建向量存储
 val vectorStore = InMemoryVectorStore()
-val embeddingService = OpenAIEmbeddingService(apiKey = "your-api-key")
 
-// 创建 RAG 系统
-val rag = RAG(vectorStore, embeddingService)
+// 选项 1：使用 OpenAI 嵌入服务（需要 API 密钥）
+val openAIEmbeddingService = OpenAIEmbeddingService(apiKey = "your-api-key")
+val ragWithOpenAI = RAG(vectorStore, openAIEmbeddingService)
+
+// 选项 2：使用 FastEmbed 嵌入服务（本地模型，无需 API 密钥）
+val fastEmbedService = FastEmbedEmbeddingService(
+    modelId = "BAAI/bge-small-zh-v1.5",  // 中文小型模型
+    maxLength = 512
+)
+val ragWithFastEmbed = RAG(vectorStore, fastEmbedService)
+
+// 选项 3：使用随机嵌入服务（用于测试）
+val randomEmbeddingService = RandomEmbeddingService(dimensions = 1536)
+val ragWithRandom = RAG(vectorStore, randomEmbeddingService)
 ```
 
 ### 加载文档
@@ -149,10 +161,10 @@ val ragAgent = agent {
     name = "RAG Agent"
     instructions = """
         你是一个基于检索增强生成 (RAG) 的问答助手。你的任务是使用提供的上下文信息回答用户的问题。
-        
+
         上下文信息：
         {{context}}
-        
+
         用户问题：
         {{question}}
     """.trimIndent()
@@ -182,7 +194,7 @@ val response = ragAgent.generate(prompt)
 val researchWorkflow = workflow {
     name = "research-workflow"
     description = "研究和报告生成工作流"
-    
+
     step(researchAgent) {
         id = "research"
         name = "研究"
@@ -192,7 +204,7 @@ val researchWorkflow = workflow {
             "question" to variable("$.input.question")
         )
     }
-    
+
     step(analysisAgent) {
         id = "analysis"
         name = "分析"
@@ -203,7 +215,7 @@ val researchWorkflow = workflow {
             "question" to variable("$.input.question")
         )
     }
-    
+
     step(reportAgent) {
         id = "report"
         name = "报告生成"
@@ -248,6 +260,31 @@ class CustomEmbeddingService : EmbeddingService {
 }
 ```
 
+### 使用 FastEmbed 嵌入服务
+
+FastEmbed 嵌入服务使用本地模型生成嵌入向量，无需外部 API：
+
+```kotlin
+// 创建 FastEmbed 嵌入服务
+val fastEmbedService = FastEmbedEmbeddingService(
+    modelId = "BAAI/bge-small-zh-v1.5",  // 中文小型模型
+    maxLength = 512,                    // 最大文本长度
+    cacheDir = "~/.cache/kastrax/models", // 模型缓存目录
+    device = Device.cpu()                // 使用 CPU，也可以使用 GPU
+)
+
+// 使用完毕后关闭服务，释放资源
+fastEmbedService.close()
+```
+
+支持的模型包括：
+
+- `BAAI/bge-small-zh-v1.5`：中文小型模型，嵌入维度为 384
+- `BAAI/bge-base-zh-v1.5`：中文中型模型，嵌入维度为 768
+- `BAAI/bge-small-en-v1.5`：英文小型模型，嵌入维度为 384
+- `BAAI/bge-base-en-v1.5`：英文中型模型，嵌入维度为 768
+- `sentence-transformers/all-MiniLM-L6-v2`：多语言小型模型，嵌入维度为 384
+
 ### 自定义向量存储
 
 你可以创建自定义向量存储，实现 `VectorStore` 接口：
@@ -257,7 +294,7 @@ class CustomVectorStore : VectorStore {
     override suspend fun addEmbeddedDocuments(documents: List<EmbeddedDocument>): Int {
         // 实现添加文档逻辑
     }
-    
+
     override suspend fun similaritySearch(
         embedding: Embedding,
         limit: Int,
@@ -265,11 +302,11 @@ class CustomVectorStore : VectorStore {
     ): List<SearchResult> {
         // 实现搜索逻辑
     }
-    
+
     override suspend fun count(): Int {
         // 实现计数逻辑
     }
-    
+
     override suspend fun clear() {
         // 实现清空逻辑
     }
@@ -315,10 +352,10 @@ val qaAgent = agent {
     name = "QA Agent"
     instructions = """
         你是一个问答助手，使用提供的上下文回答问题。
-        
+
         上下文：
         {{context}}
-        
+
         问题：
         {{question}}
     """.trimIndent()

@@ -490,6 +490,9 @@ val result = workflow.execute(mapOf("topic" to "AI"))
 3. Create visualization tools for workflows
 4. Add more specialized tools and integrations
 5. Implement advanced RAG features
+   - Integrate FastEmbed for local embeddings ✅
+   - Add document processing for more formats ⏳
+   - Implement reranking and hybrid search ⏳
 6. Create performance optimization tools
 7. Develop monitoring and analytics
 8. Build community and contribution guidelines

@@ -5,6 +5,13 @@ plugins {
     `maven-publish`
 }
 
+repositories {
+    mavenCentral()
+    maven(url = "https://jitpack.io")
+    maven(url = "https://oss.sonatype.org/content/repositories/snapshots/")
+    maven(url = "https://repository.apache.org/content/repositories/snapshots/")
+}
+
 dependencies {
     // Project dependencies
     implementation(project(":kastrax-core"))
@@ -31,6 +38,10 @@ dependencies {
     // Vector Similarity
     implementation("org.apache.commons:commons-math3:3.6.1")
 
+    // JSON 处理
+    implementation("com.fasterxml.jackson.core:jackson-databind:2.15.2")
+    implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.15.2")
+
     // Testing
     testImplementation(kotlin("test"))
     testImplementation(kotlin("test-junit5"))
@@ -54,7 +65,7 @@ publishing {
             groupId = "ai.kastrax"
             artifactId = "kastrax-rag"
             version = "0.1.0"
-            
+
             from(components["java"])
         }
     }
