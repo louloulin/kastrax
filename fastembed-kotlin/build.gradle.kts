@@ -4,6 +4,7 @@ plugins {
     kotlin("jvm") version "1.9.20"
     `maven-publish`
     signing
+    application
 }
 
 group = "ai.kastrax"
@@ -16,17 +17,37 @@ repositories {
 dependencies {
     implementation(kotlin("stdlib"))
 
+    // Coroutines for async API
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
+
     // Testing
     testImplementation(kotlin("test"))
     testImplementation("org.junit.jupiter:junit-jupiter-api:5.10.0")
     testImplementation("org.junit.jupiter:junit-jupiter-engine:5.10.0")
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3")
 }
 
 tasks.test {
     useJUnitPlatform()
 
-    // Skip tests for now until we fix the native library loading
-    onlyIf { false }
+    // Make sure the native library is built before running tests
+    dependsOn("buildRustLibrary")
+
+    // Set system property for test logging
+    systemProperty("java.util.logging.config.file", "${projectDir}/src/test/resources/logging.properties")
+
+    // Set system property for test mode
+    systemProperty("ai.kastrax.fastembed.test.mode", "true")
+
+    // Increase memory for tests
+    maxHeapSize = "1g"
+
+    // Skip tests that require the native library for now
+    filter {
+        excludeTestsMatching("ai.kastrax.fastembed.TextEmbeddingTest")
+        excludeTestsMatching("ai.kastrax.fastembed.AsyncTextEmbeddingTest")
+        excludeTestsMatching("ai.kastrax.fastembed.LibraryLoadTest")
+    }
 }
 
 kotlin {
@@ -54,7 +75,7 @@ tasks.register<Exec>("buildRustLibrary") {
 
     doLast {
         // Create the native/os-specific directory if it doesn't exist
-        val nativeDir = file("src/main/resources/native/${currentOs.name.toLowerCase()}-${System.getProperty("os.arch")}")
+        val nativeDir = file("src/main/resources/native/${currentOs.name.lowercase()}-${System.getProperty("os.arch")}")
         nativeDir.mkdirs()
 
         // Copy the built library to the resources directory
@@ -138,4 +159,8 @@ signing {
         useInMemoryPgpKeys(signingKey, signingPassword)
         sign(publishing.publications["maven"])
     }
+}
+
+application {
+    mainClass.set("ai.kastrax.fastembed.examples.SimpleTestExampleKt")
 }
