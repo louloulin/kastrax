@@ -414,6 +414,16 @@ class DefaultSchema<in I, out O>(
     private val schema: Schema<I, O>,
     private val defaultValue: @UnsafeVariance O
 ) : BaseSchema<I?, O>() {
+
+    /**
+     * 获取基础模式。
+     */
+    fun getBaseSchema(): Schema<I, O> = schema
+
+    /**
+     * 获取默认值。
+     */
+    fun getDefaultValue(): O = defaultValue
     override fun _parse(data: I?): SchemaResult<O> {
         if (data == null) {
             return SchemaResult.Success(defaultValue)
@@ -446,6 +456,11 @@ class RefinedSchema<I, O>(
     private val check: (data: O) -> Boolean,
     private val message: String?
 ) : BaseSchema<I, O>() {
+
+    /**
+     * 获取基础模式。
+     */
+    fun getBaseSchema(): Schema<I, O> = schema
     override fun _parse(data: I): SchemaResult<O> {
         val result = schema.safeParse(data)
 
@@ -479,6 +494,11 @@ class TransformedSchema<I, O, U>(
     private val schema: Schema<I, O>,
     private val transform: (data: O) -> U
 ) : BaseSchema<I, U>() {
+
+    /**
+     * 获取基础模式。
+     */
+    fun getBaseSchema(): Schema<I, O> = schema
     override fun _parse(data: I): SchemaResult<U> {
         val result = schema.safeParse(data)
 
@@ -570,6 +590,16 @@ class IntersectionSchema<in I, out O>(
     private val left: Schema<I, Any?>,
     private val right: Schema<I, Any?>
 ) : BaseSchema<I, O>() {
+
+    /**
+     * 获取左侧模式。
+     */
+    fun getLeftSchema(): Schema<I, Any?> = left
+
+    /**
+     * 获取右侧模式。
+     */
+    fun getRightSchema(): Schema<I, Any?> = right
     override fun _parse(data: I): SchemaResult<O> {
         val leftResult = left.safeParse(data)
 

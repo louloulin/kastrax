@@ -595,6 +595,11 @@ class EnumSchema<T : Any>(
     private val values: List<T>
 ) : BaseSchema<T, T>() {
 
+    /**
+     * 获取枚举值列表。
+     */
+    fun getValues(): List<T> = values
+
     override fun _parse(data: T): SchemaResult<T> {
         if (!values.contains(data)) {
             return SchemaResult.Failure(

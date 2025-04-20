@@ -10,6 +10,7 @@ dependencies {
     // Kotlin
     implementation(kotlin("stdlib"))
     implementation(kotlin("reflect"))
+    implementation(project(":kastrax-zod"))
     implementation(project(":kastrax-memory-api"))
 
     // Coroutines
