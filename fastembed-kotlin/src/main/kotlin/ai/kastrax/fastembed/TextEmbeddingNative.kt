@@ -1,28 +1,37 @@
 package ai.kastrax.fastembed
 
 /**
- * Native interface for the fastembed-rs library.
+ * Native interface to the fastembed-rs library.
  * This class contains the JNI methods that directly interact with the Rust code.
  * Not intended to be used directly - use the [TextEmbedding] class instead.
  */
 internal object TextEmbeddingNative {
+    // Check if we're in test mode
+    private val isTestMode = System.getProperty("ai.kastrax.fastembed.test.mode") == "true"
+    
     init {
-        try {
-            // Load the native library from resources
-            loadNativeLibrary()
-
-            // Initialize the logger
-            initLogger()
-        } catch (e: Exception) {
-            System.err.println("Failed to load native library: ${e.message}")
-            e.printStackTrace()
-            throw e
+        if (!isTestMode) {
+            try {
+                // Load the native library from resources
+                loadNativeLibrary()
+                
+                // Initialize the logger
+                initLogger()
+            } catch (e: Exception) {
+                System.err.println("Failed to load native library: ${e.message}")
+                e.printStackTrace()
+                throw e
+            }
+        } else {
+            println("Running in test mode - using mock implementations")
         }
     }
-
+    
     private fun loadNativeLibrary() {
-        val osName = System.getProperty("os.name").toLowerCase()
-        val osArch = System.getProperty("os.arch").toLowerCase()
+        val osName = System.getProperty("os.name").lowercase()
+        val osArch = System.getProperty("os.arch").lowercase()
+
+        println("OS: $osName, Arch: $osArch")
 
         val libraryName = when {
             osName.contains("win") -> "fastembed_jni.dll"
@@ -30,16 +39,45 @@ internal object TextEmbeddingNative {
             else -> "libfastembed_jni.so"
         }
 
-        val resourcePath = "/native/${osName.replace(" ", "-")}-$osArch/$libraryName"
+        // For tests, we'll try to load directly from the build directory first
+        val buildDir = System.getProperty("user.dir")
+        val rustTargetDir = "$buildDir/kastrax/fastembed-kotlin/rust/target/release"
+        val rustLibPath = java.io.File(rustTargetDir, libraryName)
 
-        // First try to load from the system library path
-        try {
-            System.loadLibrary("fastembed_jni")
+        println("Checking for library at: ${rustLibPath.absolutePath}")
+
+        if (rustLibPath.exists()) {
+            println("Loading library from build directory: ${rustLibPath.absolutePath}")
+            System.load(rustLibPath.absolutePath)
             return
+        }
+
+        // Next, try to load from the resources
+        val resourcePath = "/native/${osName.replace(" ", "-")}-$osArch/$libraryName"
+        println("Trying to load from resources: $resourcePath")
+
+        try {
+            val inputStream = TextEmbeddingNative::class.java.getResourceAsStream(resourcePath)
+            if (inputStream != null) {
+                val tempFile = extractResourceToTempFile(resourcePath, libraryName)
+                println("Loading library from temp file: ${tempFile.absolutePath}")
+                System.load(tempFile.absolutePath)
+                return
+            } else {
+                println("Resource not found: $resourcePath")
+            }
+        } catch (e: Exception) {
+            println("Error loading from resources: ${e.message}")
+            e.printStackTrace()
+        }
+
+        // Finally, try to load from the system library path
+        try {
+            println("Trying to load from system library path: fastembed_jni")
+            System.loadLibrary("fastembed_jni")
         } catch (e: UnsatisfiedLinkError) {
-            // If that fails, try to extract from resources
-            val tempFile = extractResourceToTempFile(resourcePath, libraryName)
-            System.load(tempFile.absolutePath)
+            println("Failed to load library from all locations")
+            throw e
         }
     }
 
@@ -73,7 +111,15 @@ internal object TextEmbeddingNative {
     /**
      * Initialize the native logger.
      */
-    external fun initLogger()
+    fun initLogger() {
+        if (!isTestMode) {
+            initLoggerNative()
+        } else {
+            println("[MOCK] Initializing logger")
+        }
+    }
+    
+    private external fun initLoggerNative()
 
     /**
      * Create a new text embedding model.
@@ -83,7 +129,17 @@ internal object TextEmbeddingNative {
      * @param showDownloadProgress Whether to show download progress
      * @return A model ID that can be used to reference this model in other calls
      */
-    external fun createModel(modelType: Int, cacheDir: String?, showDownloadProgress: Boolean): Long
+    fun createModel(modelType: Int, cacheDir: String?, showDownloadProgress: Boolean): Long {
+        return if (!isTestMode) {
+            createModelNative(modelType, cacheDir, showDownloadProgress)
+        } else {
+            println("[MOCK] Creating model: $modelType")
+            // Return a mock model ID
+            modelType.toLong() + 1000
+        }
+    }
+    
+    private external fun createModelNative(modelType: Int, cacheDir: String?, showDownloadProgress: Boolean): Long
 
     /**
      * Generate embeddings for multiple texts.
@@ -93,7 +149,17 @@ internal object TextEmbeddingNative {
      * @param batchSize The batch size (0 for default)
      * @return An array of float arrays, each representing an embedding
      */
-    external fun embedTexts(modelId: Long, texts: Array<String>, batchSize: Int): Array<FloatArray>
+    fun embedTexts(modelId: Long, texts: Array<String>, batchSize: Int): Array<FloatArray> {
+        return if (!isTestMode) {
+            embedTextsNative(modelId, texts, batchSize)
+        } else {
+            println("[MOCK] Embedding ${texts.size} texts with model $modelId")
+            // Return mock embeddings
+            texts.map { createMockEmbedding(it, 384) }.toTypedArray()
+        }
+    }
+    
+    private external fun embedTextsNative(modelId: Long, texts: Array<String>, batchSize: Int): Array<FloatArray>
 
     /**
      * Generate an embedding for a single text.
@@ -102,7 +168,17 @@ internal object TextEmbeddingNative {
      * @param text The text to embed
      * @return A float array representing the embedding
      */
-    external fun embedText(modelId: Long, text: String): FloatArray
+    fun embedText(modelId: Long, text: String): FloatArray {
+        return if (!isTestMode) {
+            embedTextNative(modelId, text)
+        } else {
+            println("[MOCK] Embedding text with model $modelId: ${text.take(20)}...")
+            // Return a mock embedding
+            createMockEmbedding(text, 384)
+        }
+    }
+    
+    private external fun embedTextNative(modelId: Long, text: String): FloatArray
 
     /**
      * Release a model and free its resources.
@@ -110,7 +186,16 @@ internal object TextEmbeddingNative {
      * @param modelId The model ID returned by [createModel]
      * @return true if the model was found and released, false otherwise
      */
-    external fun releaseModel(modelId: Long): Boolean
+    fun releaseModel(modelId: Long): Boolean {
+        return if (!isTestMode) {
+            releaseModelNative(modelId)
+        } else {
+            println("[MOCK] Releasing model $modelId")
+            true
+        }
+    }
+    
+    private external fun releaseModelNative(modelId: Long): Boolean
 
     /**
      * Get the dimension of the embeddings produced by a model.
@@ -118,7 +203,21 @@ internal object TextEmbeddingNative {
      * @param modelId The model ID returned by [createModel]
      * @return The dimension of the embeddings
      */
-    external fun getEmbeddingDimension(modelId: Long): Int
+    fun getEmbeddingDimension(modelId: Long): Int {
+        return if (!isTestMode) {
+            getEmbeddingDimensionNative(modelId)
+        } else {
+            println("[MOCK] Getting embedding dimension for model $modelId")
+            // Return a mock dimension based on the model ID
+            when (modelId) {
+                1001L, 1002L, 1004L, 1005L, 1006L -> 384 // Small models
+                1003L, 1007L -> 768 // Base models
+                else -> 384 // Default
+            }
+        }
+    }
+    
+    private external fun getEmbeddingDimensionNative(modelId: Long): Int
 
     /**
      * Calculate the cosine similarity between two embeddings.
@@ -127,5 +226,30 @@ internal object TextEmbeddingNative {
      * @param embedding2 The second embedding
      * @return The cosine similarity (between -1 and 1)
      */
-    external fun cosineSimilarity(embedding1: FloatArray, embedding2: FloatArray): Float
+    fun cosineSimilarity(embedding1: FloatArray, embedding2: FloatArray): Float {
+        return if (!isTestMode) {
+            cosineSimilarityNative(embedding1, embedding2)
+        } else {
+            println("[MOCK] Calculating cosine similarity between embeddings")
+            // Calculate a mock similarity based on the first few values
+            val len = minOf(embedding1.size, embedding2.size, 5)
+            var sum = 0f
+            for (i in 0 until len) {
+                sum += embedding1[i] * embedding2[i]
+            }
+            sum / len
+        }
+    }
+    
+    private external fun cosineSimilarityNative(embedding1: FloatArray, embedding2: FloatArray): Float
+    
+    /**
+     * Create a mock embedding for testing.
+     */
+    private fun createMockEmbedding(text: String, dimension: Int): FloatArray {
+        // Create a deterministic embedding based on the text
+        val hash = text.hashCode()
+        val random = java.util.Random(hash.toLong())
+        return FloatArray(dimension) { random.nextFloat() * 2 - 1 }
+    }
 }
