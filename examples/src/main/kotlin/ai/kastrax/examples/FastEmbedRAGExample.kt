@@ -8,7 +8,7 @@ import ai.kastrax.rag.document.RecursiveCharacterTextSplitter
 import ai.kastrax.rag.document.TextFileDocumentLoader
 import ai.kastrax.rag.embedding.FastEmbedEmbeddingService
 import ai.kastrax.rag.vectorstore.InMemoryVectorStore
-import ai.kastrax.integrations.openai.OpenAIProvider
+import ai.kastrax.integrations.openai.OpenAiProvider
 import kotlinx.coroutines.runBlocking
 import java.io.File
 
@@ -73,7 +73,7 @@ fun main() = runBlocking {
             }
 
             // 创建 OpenAI 提供者（仅用于生成回答，嵌入使用本地模型）
-            val openai = OpenAIProvider(
+            val openai = OpenAiProvider(
                 apiKey = System.getenv("OPENAI_API_KEY") ?: "",
                 model = "gpt-3.5-turbo"
             )

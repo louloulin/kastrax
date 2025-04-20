@@ -90,7 +90,7 @@ interface ZodTool<I, O> {
                     @Suppress("UNCHECKED_CAST")
                     (this@ZodTool.outputSchema as Schema<Any?, O>).toJson(result)
                 } else {
-                    anyToJsonElement(result)
+                    ai.kastrax.core.tools.anyToJsonElement(result)
                 }
             }
 
@@ -105,7 +105,7 @@ interface ZodTool<I, O> {
                     @Suppress("UNCHECKED_CAST")
                     (this@ZodTool.outputSchema as Schema<Any?, O>).toJson(result)
                 } else {
-                    anyToJsonElement(result)
+                    ai.kastrax.core.tools.anyToJsonElement(result)
                 }
             }
         }

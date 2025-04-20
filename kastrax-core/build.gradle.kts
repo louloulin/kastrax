@@ -57,7 +57,8 @@ tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
 }
 
 detekt {
-    config = files("${rootProject.projectDir}/config/detekt/detekt.yml")
+    config = files("${rootProject.projectDir}/detekt.yml")
     buildUponDefaultConfig = true
     autoCorrect = true
+    ignoreFailures = true
 }

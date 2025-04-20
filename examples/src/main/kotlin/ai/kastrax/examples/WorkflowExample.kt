@@ -2,29 +2,29 @@ package ai.kastrax.examples
 
 import ai.kastrax.core.agent.agent
 import ai.kastrax.core.workflow.workflow
-import ai.kastrax.integrations.openai.OpenAIProvider
+import ai.kastrax.integrations.openai.openAi
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.runBlocking
 
 /**
  * 工作流示例：内容创作流程
- * 
+ *
  * 这个示例展示了如何使用工作流引擎创建一个内容创作流程，包括研究、写作和编辑三个步骤。
  */
 fun main() = runBlocking {
     // 创建 OpenAI 提供者
-    val openai = OpenAIProvider(
-        apiKey = System.getenv("OPENAI_API_KEY") ?: "",
+    val openai = openAi(
         model = "gpt-3.5-turbo"
+        // API 密钥从环境变量 OPENAI_API_KEY 获取
     )
-    
+
     // 创建研究代理
     val researchAgent = agent {
         name = "Research Agent"
         instructions = """
             你是一个专业的研究助手。你的任务是对给定的主题进行深入研究，并提供详细的研究结果。
             请确保你的研究全面、准确，并包含最新的信息。
-            
+
             输出格式：
             1. 主题概述
             2. 关键点（至少3个）
@@ -33,14 +33,14 @@ fun main() = runBlocking {
         """.trimIndent()
         model = openai
     }
-    
+
     // 创建写作代理
     val writingAgent = agent {
         name = "Writing Agent"
         instructions = """
             你是一个专业的内容写作助手。你的任务是根据提供的研究结果，撰写一篇高质量的文章。
             请确保文章结构清晰、内容丰富、语言流畅。
-            
+
             输出格式：
             1. 标题
             2. 引言
@@ -49,25 +49,25 @@ fun main() = runBlocking {
         """.trimIndent()
         model = openai
     }
-    
+
     // 创建编辑代理
     val editingAgent = agent {
         name = "Editing Agent"
         instructions = """
             你是一个专业的编辑助手。你的任务是对提供的文章进行编辑和优化。
             请检查并修正语法错误、拼写错误、表达不清的地方，并优化整体结构和流畅度。
-            
+
             输出格式：
             - 编辑后的完整文章
         """.trimIndent()
         model = openai
     }
-    
+
     // 创建内容创作工作流
     val contentCreationWorkflow = workflow {
         name = "content-creation"
         description = "创建高质量内容的工作流"
-        
+
         step(researchAgent) {
             id = "research"
             name = "研究"
@@ -76,7 +76,7 @@ fun main() = runBlocking {
                 "topic" to variable("$.input.topic")
             )
         }
-        
+
         step(writingAgent) {
             id = "writing"
             name = "写作"
@@ -86,7 +86,7 @@ fun main() = runBlocking {
                 "research" to variable("$.steps.research.output.text")
             )
         }
-        
+
         step(editingAgent) {
             id = "editing"
             name = "编辑"
@@ -97,14 +97,14 @@ fun main() = runBlocking {
             )
         }
     }
-    
+
     println("=== 内容创作工作流示例 ===")
     println("正在执行工作流...")
-    
+
     // 流式执行工作流
     val topic = "人工智能在医疗领域的应用"
     val input = mapOf("topic" to topic)
-    
+
     contentCreationWorkflow.streamExecute(input).collect { update ->
         when (update.status) {
             ai.kastrax.core.workflow.WorkflowStatus.STARTED -> {
@@ -124,20 +124,20 @@ fun main() = runBlocking {
             }
         }
     }
-    
+
     // 执行工作流并获取结果
     val result = contentCreationWorkflow.execute(input)
-    
+
     if (result.success) {
         println("\n=== 工作流执行结果 ===")
         println("研究结果:")
         println("----------")
         println(result.steps["research"]?.output?.get("text"))
-        
+
         println("\n文章草稿:")
         println("----------")
         println(result.steps["writing"]?.output?.get("text"))
-        
+
         println("\n最终文章:")
         println("----------")
         println(result.steps["editing"]?.output?.get("text"))

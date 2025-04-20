@@ -52,7 +52,7 @@ tasks.test {
 }
 
 kotlin {
-    jvmToolchain(21)
+    jvmToolchain(17)
 }
 
 application {
@@ -63,10 +63,10 @@ tasks.jar {
     manifest {
         attributes["Main-Class"] = "ai.kastrax.cli.KastraXCliKt"
     }
-    
+
     // Include all dependencies in the jar
     from(configurations.runtimeClasspath.get().map { if (it.isDirectory) it else zipTree(it) })
-    
+
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 }
 

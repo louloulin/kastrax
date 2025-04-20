@@ -10,7 +10,7 @@ import kotlin.test.assertEquals
  * Simple ZodTool test.
  */
 class SimpleZodToolTest {
-    
+
     /**
      * Test simple string reverse tool.
      */
@@ -21,20 +21,20 @@ class SimpleZodToolTest {
             id = "reverse_string"
             name = "Reverse String"
             description = "Reverses the input string"
-            
-            inputSchema = StringSchema().nullable()
-            outputSchema = StringSchema()
-            
+
+            inputSchema = stringInput("Input string").unsafeCast<String, String>()
+            outputSchema = stringOutput("Output string").unsafeCast<String, String>()
+
             execute = { input ->
-                input?.reversed() ?: ""
+                input.reversed()
             }
         }
-        
+
         // Test valid input
         val input = "Hello, World!"
         val output = reverseStringTool.execute(input)
         assertEquals("!dlroW ,olleH", output)
-        
+
         // Test empty string
         val emptyInput = ""
         val emptyOutput = reverseStringTool.execute(emptyInput)

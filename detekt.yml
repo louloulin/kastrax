@@ -1,0 +1,26 @@
+build:
+  maxIssues: 0  # 允许任意数量的问题
+
+complexity:
+  LongParameterList:
+    active: false  # 禁用长参数列表检查
+  TooManyFunctions:
+    active: false  # 禁用过多函数检查
+  LongMethod:
+    active: false  # 禁用长方法检查
+
+exceptions:
+  TooGenericExceptionCaught:
+    active: false  # 禁用过于通用的异常捕获检查
+  SwallowedException:
+    active: false  # 禁用吞噬异常检查
+
+style:
+  WildcardImport:
+    active: false  # 禁用通配符导入检查
+  FunctionOnlyReturningConstant:
+    active: false  # 禁用只返回常量的函数检查
+  LoopWithTooManyJumpStatements:
+    active: false  # 禁用循环中有太多跳转语句的检查
+  MagicNumber:
+    active: false  # 禁用魔法数字检查

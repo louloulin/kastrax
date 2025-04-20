@@ -2,6 +2,7 @@ package ai.kastrax.examples
 
 import ai.kastrax.core.tools.zodTool
 import ai.kastrax.zod.*
+import ai.kastrax.zod.SchemaResult
 import kotlinx.coroutines.runBlocking
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -64,11 +65,11 @@ class ZodToolExampleTest {
                 }
                 numberField("a", "First operand")
                 numberField("b", "Second operand")
-            }
+            }.unsafeCast<Map<String, Any?>, Map<String, Any?>>()
 
             outputSchema = objectOutput("Calculator output") {
                 numberField("result", "Result of the operation")
-            }
+            }.unsafeCast<Map<String, Any?>, Map<String, Any?>>()
 
             execute = { input ->
                 val operation = input["operation"] as String
@@ -187,8 +188,8 @@ class ZodToolExampleTest {
             id = "calculator_data_class"
             name = "Calculator (Data Class)"
             description = "Performs basic arithmetic operations using data classes"
-            inputSchema = calculatorInputSchema
-            outputSchema = calculatorOutputSchema
+            inputSchema = calculatorInputSchema.unsafeCast<CalculatorInput, CalculatorInput>()
+            outputSchema = calculatorOutputSchema.unsafeCast<CalculatorOutput, CalculatorOutput>()
 
             execute = { input ->
                 val result = when (input.operation) {
@@ -262,7 +263,7 @@ class ZodToolExampleTest {
                     email = input["email"] as String,
                     age = (input["age"] as Number).toInt()
                 )
-            }
+            }.unsafeCast<Map<String, Any?>, User>()
 
             // 创建输出模式
             val resultSchema = objectOutput("Validation result") {
@@ -273,10 +274,10 @@ class ZodToolExampleTest {
                     isValid = output["isValid"] as Boolean,
                     errors = output["errors"] as List<String>
                 )
-            }
+            }.unsafeCast<Map<String, Any?>, UserValidationResult>()
 
-            inputSchema = userSchema
-            outputSchema = resultSchema
+            inputSchema = userSchema.unsafeCast<User, User>()
+            outputSchema = resultSchema.unsafeCast<UserValidationResult, UserValidationResult>()
 
             execute = { user ->
                 val errors = mutableListOf<String>()
