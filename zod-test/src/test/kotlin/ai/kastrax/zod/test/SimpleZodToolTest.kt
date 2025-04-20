@@ -22,9 +22,8 @@ class SimpleZodToolTest {
             name = "Reverse String"
             description = "Reverses the input string"
 
-            @Suppress("UNCHECKED_CAST")
-            inputSchema = StringSchema().nullable() as Schema<String, String>
-            outputSchema = StringSchema()
+            inputSchema = StringSchema() as Schema<String, String>
+            outputSchema = StringSchema() as Schema<String, String>
 
             execute = { input ->
                 input.reversed()

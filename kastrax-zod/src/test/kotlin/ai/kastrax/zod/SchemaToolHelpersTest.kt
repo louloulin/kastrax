@@ -11,9 +11,9 @@ fun enumInput(values: List<String>, description: String? = null): Schema<String?
     val schema = EnumSchema(values)
     val nullableSchema = schema.nullable()
     return if (description != null) {
-        (nullableSchema.describe(description) as DescribedSchema<String?, String>).unsafeCast<String?, String>()
+        (nullableSchema.describe(description) as DescribedSchema<*, *>) as Schema<String?, String>
     } else {
-        nullableSchema.unsafeCast<String?, String>()
+        nullableSchema as Schema<String?, String>
     }
 }
 
@@ -21,7 +21,7 @@ fun enumInput(values: List<String>, description: String? = null): Schema<String?
 fun ObjectSchemaBuilder.enumField(key: String, values: List<String>, description: String? = null, required: Boolean = true) {
     val schema = EnumSchema(values)
     val finalSchema = if (description != null) {
-        schema.describe(description).unsafeCast<String, String>()
+        (schema.describe(description) as DescribedSchema<*, *>) as Schema<String, String>
     } else {
         schema
     }
@@ -32,7 +32,7 @@ class SchemaToolHelpersTest {
 
     @Test
     fun `stringInput should create StringSchema`() {
-        val schema = stringInput("A test string").unsafeCast<String?, String>()
+        val schema = stringInput("A test string") as Schema<String?, String>
 
         assertTrue(schema is Schema<*, *>)
 
@@ -48,7 +48,7 @@ class SchemaToolHelpersTest {
 
     @Test
     fun `numberInput should create NumberSchema`() {
-        val schema = numberInput("A test number").unsafeCast<Number?, Double>()
+        val schema = numberInput("A test number") as Schema<Number?, Double>
 
         assertTrue(schema is Schema<*, *>)
 
@@ -64,7 +64,7 @@ class SchemaToolHelpersTest {
 
     @Test
     fun `booleanInput should create BooleanSchema`() {
-        val schema = booleanInput("A test boolean").unsafeCast<Boolean?, Boolean>()
+        val schema = booleanInput("A test boolean") as Schema<Boolean?, Boolean>
 
         assertTrue(schema is Schema<*, *>)
 
@@ -84,7 +84,7 @@ class SchemaToolHelpersTest {
             stringField("name", "Person's name")
             numberField("age", "Person's age")
             booleanField("active", "Is the person active")
-        }.unsafeCast<Map<String, Any?>, Map<String, Any?>>()
+        } as Schema<Map<String, Any?>, Map<String, Any?>>
 
         assertTrue(schema is Schema<*, *>)
         val jsonSchema = schema.toJsonSchema()
@@ -106,7 +106,7 @@ class SchemaToolHelpersTest {
 
     @Test
     fun `arrayInput should create ArraySchema`() {
-        val schema = arrayInput(stringInput("Array element").unsafeCast<String?, String>(), "A test array").unsafeCast<List<String?>, List<String>>()
+        val schema = arrayInput(stringInput("Array element") as Schema<String?, String>, "A test array") as Schema<List<String?>, List<String>>
 
         assertTrue(schema is Schema<*, *>)
         val jsonSchema = schema.toJsonSchema()
