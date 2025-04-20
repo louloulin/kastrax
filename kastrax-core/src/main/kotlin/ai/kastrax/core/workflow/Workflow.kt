@@ -4,8 +4,17 @@ import ai.kastrax.core.agent.Agent
 import ai.kastrax.core.agent.AgentGenerateOptions
 import ai.kastrax.core.common.KastraXBase
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.FlowCollector
 import kotlinx.coroutines.flow.flow
-import kotlinx.serialization.json.*
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonNull
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import java.util.UUID
 
 /**
@@ -190,39 +199,51 @@ data class WorkflowContext(
     fun resolveReference(reference: VariableReference): Any? {
         val path = reference.path
 
-        // 处理简单路径
-        if (path.startsWith("$.input.")) {
-            val key = path.removePrefix("$.input.")
-            return input[key]
-        }
-
-        if (path.startsWith("$.steps.")) {
-            val parts = path.removePrefix("$.steps.").split(".")
-            if (parts.size >= 2) {
-                val stepId = parts[0]
-                val outputKey = parts[1]
-                val stepResult = steps[stepId]
-                if (stepResult != null) {
-                    if (outputKey == "output") {
-                        return stepResult.output
-                    } else {
-                        return stepResult.output[outputKey.removePrefix("output.")]
-                    }
-                }
-            }
-        }
-
-        if (path.startsWith("$.variables.")) {
-            val key = path.removePrefix("$.variables.")
-            return variables[key]
-        }
-
         // 如果是常量值，直接返回
         if (!path.startsWith("$")) {
             return path
         }
 
-        return null
+        return when {
+            path.startsWith("$.input.") -> resolveInputReference(path)
+            path.startsWith("$.steps.") -> resolveStepReference(path)
+            path.startsWith("$.variables.") -> resolveVariableReference(path)
+            else -> null
+        }
+    }
+
+    /**
+     * 解析输入引用。
+     */
+    private fun resolveInputReference(path: String): Any? {
+        val key = path.removePrefix("$.input.")
+        return input[key]
+    }
+
+    /**
+     * 解析步骤引用。
+     */
+    private fun resolveStepReference(path: String): Any? {
+        val parts = path.removePrefix("$.steps.").split(".")
+        if (parts.size < 2) return null
+
+        val stepId = parts[0]
+        val outputKey = parts[1]
+        val stepResult = steps[stepId] ?: return null
+
+        return if (outputKey == "output") {
+            stepResult.output
+        } else {
+            stepResult.output[outputKey.removePrefix("output.")]
+        }
+    }
+
+    /**
+     * 解析变量引用。
+     */
+    private fun resolveVariableReference(path: String): Any? {
+        val key = path.removePrefix("$.variables.")
+        return variables[key]
     }
 
     /**
@@ -318,6 +339,7 @@ class WorkflowBuilder {
     var name: String = ""
     var description: String = ""
     private val steps = mutableMapOf<String, WorkflowStep>()
+    private val outputMappings = mutableMapOf<String, OutputMapping>()
 
     /**
      * 添加代理步骤。
@@ -330,6 +352,15 @@ class WorkflowBuilder {
     }
 
     /**
+     * 定义输出映射。
+     */
+    fun output(init: OutputMappingBuilder.() -> Unit) {
+        val builder = OutputMappingBuilder()
+        builder.init()
+        outputMappings.putAll(builder.mappings)
+    }
+
+    /**
      * 构建工作流。
      */
     fun build(): SimpleWorkflow {
@@ -338,7 +369,8 @@ class WorkflowBuilder {
         return SimpleWorkflow(
             workflowName = name,
             description = description,
-            steps = steps
+            steps = steps,
+            outputMappings = outputMappings
         )
     }
 
@@ -389,15 +421,50 @@ class WorkflowBuilder {
 }
 
 /**
+ * 输出映射，用于将步骤输出映射到工作流输出。
+ *
+ * @property source 源路径（使用变量引用语法）
+ * @property transform 可选的转换函数
+ */
+data class OutputMapping(
+    val source: String,
+    val transform: ((Any?) -> Any?)? = null
+)
+
+/**
+ * 输出映射构建器。
+ */
+class OutputMappingBuilder {
+    val mappings = mutableMapOf<String, OutputMapping>()
+
+    /**
+     * 从源路径映射输出。
+     */
+    infix fun String.from(source: String) {
+        mappings[this] = OutputMapping(source)
+    }
+
+    /**
+     * 从源路径映射输出，并应用转换函数。
+     */
+    infix fun String.from(init: () -> Pair<String, (Any?) -> Any?>) {
+        val (source, transform) = init()
+        mappings[this] = OutputMapping(source, transform)
+    }
+}
+
+/**
  * 简单工作流实现。
  *
  * @property description 工作流描述
  * @property steps 工作流步骤
+ * @property outputMappings 输出映射
  */
 class SimpleWorkflow(
     workflowName: String,
     val description: String = "",
-    val steps: Map<String, WorkflowStep>
+    val steps: Map<String, WorkflowStep>,
+    val outputMappings: Map<String, OutputMapping> = emptyMap()
 ) : KastraXBase(component = "WORKFLOW", name = workflowName), Workflow {
 
     /**
@@ -416,70 +483,9 @@ class SimpleWorkflow(
             val executionOrder = computeExecutionOrder()
 
             // 执行步骤
-            for (stepId in executionOrder) {
-                val step = steps[stepId] ?: continue
-
-                // 检查是否超过最大步骤数
-                if (executedSteps.size >= options.maxSteps) {
-                    return WorkflowResult(
-                        success = false,
-                        output = emptyMap(),
-                        steps = executedSteps,
-                        error = "Maximum number of steps exceeded",
-                        executionTime = System.currentTimeMillis() - startTime
-                    )
-                }
-
-                // 检查是否超时
-                if (System.currentTimeMillis() - startTime > options.timeout) {
-                    return WorkflowResult(
-                        success = false,
-                        output = emptyMap(),
-                        steps = executedSteps,
-                        error = "Workflow execution timed out",
-                        executionTime = System.currentTimeMillis() - startTime
-                    )
-                }
-
-                // 检查条件
-                if (!step.condition(context)) {
-                    logger.debug { "Skipping step $stepId due to condition" }
-                    continue
-                }
-
-                // 执行步骤
-                try {
-                    val stepResult = step.execute(context)
-
-                    // 调用步骤完成回调
-                    options.onStepFinish?.invoke(stepResult)
-
-                    // 如果步骤失败，终止工作流
-                    if (!stepResult.success) {
-                        return WorkflowResult(
-                            success = false,
-                            output = emptyMap(),
-                            steps = executedSteps,
-                            error = "Step $stepId failed: ${stepResult.error}",
-                            executionTime = System.currentTimeMillis() - startTime
-                        )
-                    }
-
-                    // 只有成功的步骤才添加到执行步骤和上下文中
-                    executedSteps[stepId] = stepResult
-                    context.steps[stepId] = stepResult
-                } catch (e: Exception) {
-                    // 调用步骤错误回调
-                    options.onStepError?.invoke(stepId, e)
-
-                    return WorkflowResult(
-                        success = false,
-                        output = emptyMap(),
-                        steps = executedSteps,
-                        error = "Error executing step $stepId: ${e.message}",
-                        executionTime = System.currentTimeMillis() - startTime
-                    )
-                }
+            val result = executeSteps(executionOrder, context, executedSteps, options, startTime)
+            if (!result.success) {
+                return result
             }
 
             // 收集最终输出
@@ -492,14 +498,122 @@ class SimpleWorkflow(
                 executionTime = System.currentTimeMillis() - startTime
             )
         } catch (e: Exception) {
-            return WorkflowResult(
-                success = false,
-                output = emptyMap(),
-                steps = executedSteps,
-                error = "Workflow execution failed: ${e.message}",
-                executionTime = System.currentTimeMillis() - startTime
-            )
+            logger.error(e) { "Workflow execution failed" }
+            return createErrorResult(executedSteps, "Workflow execution failed: ${e.message}", startTime)
         }
+    }
+
+    /**
+     * 执行工作流步骤。
+     */
+    private suspend fun executeSteps(
+        executionOrder: List<String>,
+        context: WorkflowContext,
+        executedSteps: MutableMap<String, WorkflowStepResult>,
+        options: WorkflowExecuteOptions,
+        startTime: Long
+    ): WorkflowResult {
+        for (stepId in executionOrder) {
+            val step = steps[stepId] ?: continue
+
+            // 检查执行限制
+            val limitResult = checkExecutionLimits(executedSteps, options, startTime)
+            if (limitResult != null) {
+                return limitResult
+            }
+
+            // 检查条件
+            if (!step.condition.invoke(context)) {
+                logger.debug { "Skipping step $stepId due to condition" }
+                continue
+            }
+
+            // 执行步骤
+            val stepResult = executeStep(step, stepId, context, executedSteps, options, startTime)
+            if (!stepResult.success) {
+                return stepResult
+            }
+        }
+
+        return WorkflowResult(success = true, output = emptyMap(), steps = executedSteps)
+    }
+
+    /**
+     * 执行单个工作流步骤。
+     */
+    private suspend fun executeStep(
+        step: WorkflowStep,
+        stepId: String,
+        context: WorkflowContext,
+        executedSteps: MutableMap<String, WorkflowStepResult>,
+        options: WorkflowExecuteOptions,
+        startTime: Long
+    ): WorkflowResult {
+        try {
+            val stepResult = step.execute(context)
+
+            // 调用步骤完成回调
+            options.onStepFinish?.invoke(stepResult)
+
+            // 如果步骤失败，终止工作流
+            if (!stepResult.success) {
+                return createErrorResult(executedSteps, "Step $stepId failed: ${stepResult.error}", startTime)
+            }
+
+            // 只有成功的步骤才添加到执行步骤和上下文中
+            executedSteps[stepId] = stepResult
+            context.steps[stepId] = stepResult
+
+            return WorkflowResult(success = true, output = emptyMap(), steps = executedSteps)
+        } catch (e: IllegalArgumentException) {
+            // 调用步骤错误回调
+            options.onStepError?.invoke(stepId, e)
+            logger.error(e) { "Invalid arguments for step $stepId" }
+            return createErrorResult(executedSteps, "Invalid arguments for step $stepId: ${e.message}", startTime)
+        } catch (e: Exception) {
+            // 调用步骤错误回调
+            options.onStepError?.invoke(stepId, e)
+            logger.error(e) { "Error executing step $stepId" }
+            return createErrorResult(executedSteps, "Error executing step $stepId: ${e.message}", startTime)
+        }
+    }
+
+    /**
+     * 检查执行限制（最大步骤数和超时）。
+     */
+    private fun checkExecutionLimits(
+        executedSteps: Map<String, WorkflowStepResult>,
+        options: WorkflowExecuteOptions,
+        startTime: Long
+    ): WorkflowResult? {
+        // 检查是否超过最大步骤数
+        if (executedSteps.size >= options.maxSteps) {
+            return createErrorResult(executedSteps, "Maximum number of steps exceeded", startTime)
+        }
+
+        // 检查是否超时
+        if (System.currentTimeMillis() - startTime > options.timeout) {
+            return createErrorResult(executedSteps, "Workflow execution timed out", startTime)
+        }
+
+        return null
+    }
+
+    /**
+     * 创建错误结果。
+     */
+    private fun createErrorResult(
+        executedSteps: Map<String, WorkflowStepResult>,
+        error: String,
+        startTime: Long
+    ): WorkflowResult {
+        return WorkflowResult(
+            success = false,
+            output = emptyMap(),
+            steps = executedSteps,
+            error = error,
+            executionTime = System.currentTimeMillis() - startTime
+        )
     }
 
     /**
@@ -514,10 +628,7 @@ class SimpleWorkflow(
         val executedSteps = mutableMapOf<String, WorkflowStepResult>()
 
         // 发送开始状态
-        emit(WorkflowStatusUpdate(
-            status = WorkflowStatus.STARTED,
-            message = "Starting workflow execution"
-        ))
+        emitStatus(WorkflowStatus.STARTED, "Starting workflow execution")
 
         try {
             // 计算步骤执行顺序
@@ -525,100 +636,192 @@ class SimpleWorkflow(
             val totalSteps = executionOrder.size
 
             // 执行步骤
-            for ((index, stepId) in executionOrder.withIndex()) {
-                val step = steps[stepId] ?: continue
-
-                // 发送进行中状态
-                emit(WorkflowStatusUpdate(
-                    status = WorkflowStatus.IN_PROGRESS,
-                    stepId = stepId,
-                    message = "Executing step $stepId",
-                    progress = ((index.toDouble() / totalSteps) * 100).toInt()
-                ))
-
-                // 检查是否超过最大步骤数
-                if (executedSteps.size >= options.maxSteps) {
-                    emit(WorkflowStatusUpdate(
-                        status = WorkflowStatus.FAILED,
-                        message = "Maximum number of steps exceeded"
-                    ))
-                    return@flow
-                }
-
-                // 检查是否超时
-                if (System.currentTimeMillis() - startTime > options.timeout) {
-                    emit(WorkflowStatusUpdate(
-                        status = WorkflowStatus.FAILED,
-                        message = "Workflow execution timed out"
-                    ))
-                    return@flow
-                }
-
-                // 检查条件
-                if (!step.condition(context)) {
-                    logger.debug { "Skipping step $stepId due to condition" }
-                    continue
-                }
-
-                // 执行步骤
-                try {
-                    val stepResult = step.execute(context)
-
-                    // 调用步骤完成回调
-                    options.onStepFinish?.invoke(stepResult)
-
-                    // 发送步骤完成状态
-                    emit(WorkflowStatusUpdate(
-                        status = if (stepResult.success) WorkflowStatus.IN_PROGRESS else WorkflowStatus.FAILED,
-                        stepId = stepId,
-                        message = if (stepResult.success) "Step $stepId completed" else "Step $stepId failed: ${stepResult.error}",
-                        progress = ((index + 1.0) / totalSteps * 100).toInt(),
-                        result = stepResult
-                    ))
-
-                    // 如果步骤失败，终止工作流
-                    if (!stepResult.success) {
-                        emit(WorkflowStatusUpdate(
-                            status = WorkflowStatus.FAILED,
-                            message = "Workflow failed: Step $stepId failed"
-                        ))
-                        return@flow
-                    }
-
-                    // 只有成功的步骤才添加到执行步骤和上下文中
-                    executedSteps[stepId] = stepResult
-                    context.steps[stepId] = stepResult
-                } catch (e: Exception) {
-                    // 调用步骤错误回调
-                    options.onStepError?.invoke(stepId, e)
-
-                    // 发送错误状态
-                    emit(WorkflowStatusUpdate(
-                        status = WorkflowStatus.FAILED,
-                        stepId = stepId,
-                        message = "Error executing step $stepId: ${e.message}"
-                    ))
-
-                    return@flow
-                }
-            }
+            streamExecuteSteps(executionOrder, context, executedSteps, options, startTime, totalSteps)
 
             // 收集最终输出
-            val output = collectOutput(executedSteps)
+            collectOutput(executedSteps)
 
             // 发送完成状态
-            emit(WorkflowStatusUpdate(
-                status = WorkflowStatus.COMPLETED,
-                message = "Workflow execution completed",
-                progress = 100
-            ))
+            emitStatus(WorkflowStatus.COMPLETED, "Workflow execution completed", progress = 100)
         } catch (e: Exception) {
+            logger.error(e) { "Workflow execution failed" }
             // 发送失败状态
-            emit(WorkflowStatusUpdate(
-                status = WorkflowStatus.FAILED,
-                message = "Workflow execution failed: ${e.message}"
-            ))
+            emitStatus(WorkflowStatus.FAILED, "Workflow execution failed: ${e.message}")
         }
+    }
+
+    /**
+     * 流式执行工作流步骤。
+     */
+    private suspend fun FlowCollector<WorkflowStatusUpdate>.streamExecuteSteps(
+        executionOrder: List<String>,
+        context: WorkflowContext,
+        executedSteps: MutableMap<String, WorkflowStepResult>,
+        options: WorkflowExecuteOptions,
+        startTime: Long,
+        totalSteps: Int
+    ) {
+        for ((index, stepId) in executionOrder.withIndex()) {
+            val step = steps[stepId] ?: continue
+
+            // 发送进行中状态
+            emitStatus(
+                status = WorkflowStatus.IN_PROGRESS,
+                message = "Executing step $stepId",
+                stepId = stepId,
+                progress = ((index.toDouble() / totalSteps) * 100).toInt()
+            )
+
+            // 检查执行限制
+            if (checkStreamExecutionLimits(executedSteps, options, startTime)) {
+                return
+            }
+
+            // 检查条件
+            if (!step.condition.invoke(context)) {
+                logger.debug { "Skipping step $stepId due to condition" }
+                continue
+            }
+
+            // 执行步骤
+            if (!streamExecuteStep(step, stepId, context, executedSteps, options, index, totalSteps)) {
+                return
+            }
+        }
+    }
+
+    /**
+     * 流式执行单个工作流步骤。
+     *
+     * @return 是否继续执行工作流
+     */
+    private suspend fun FlowCollector<WorkflowStatusUpdate>.streamExecuteStep(
+        step: WorkflowStep,
+        stepId: String,
+        context: WorkflowContext,
+        executedSteps: MutableMap<String, WorkflowStepResult>,
+        options: WorkflowExecuteOptions,
+        index: Int,
+        totalSteps: Int
+    ): Boolean {
+        try {
+            val stepResult = step.execute(context)
+
+            // 调用步骤完成回调
+            options.onStepFinish?.invoke(stepResult)
+
+            // 发送步骤完成状态
+            emitStepResult(
+                stepId = stepId,
+                stepResult = stepResult,
+                index = index,
+                totalSteps = totalSteps
+            )
+
+            // 如果步骤失败，终止工作流
+            if (!stepResult.success) {
+                emitStatus(WorkflowStatus.FAILED, "Workflow failed: Step $stepId failed")
+                return false
+            }
+
+            // 只有成功的步骤才添加到执行步骤和上下文中
+            executedSteps[stepId] = stepResult
+            context.steps[stepId] = stepResult
+
+            return true
+        } catch (e: IllegalArgumentException) {
+            // 调用步骤错误回调
+            options.onStepError?.invoke(stepId, e)
+            logger.error(e) { "Invalid arguments for step $stepId" }
+
+            // 发送错误状态
+            emitStatus(
+                status = WorkflowStatus.FAILED,
+                message = "Invalid arguments for step $stepId: ${e.message}",
+                stepId = stepId
+            )
+
+            return false
+        } catch (e: Exception) {
+            // 调用步骤错误回调
+            options.onStepError?.invoke(stepId, e)
+            logger.error(e) { "Error executing step $stepId" }
+
+            // 发送错误状态
+            emitStatus(
+                status = WorkflowStatus.FAILED,
+                message = "Error executing step $stepId: ${e.message}",
+                stepId = stepId
+            )
+
+            return false
+        }
+    }
+
+    /**
+     * 检查流式执行限制。
+     *
+     * @return 是否应该停止执行
+     */
+    private suspend fun FlowCollector<WorkflowStatusUpdate>.checkStreamExecutionLimits(
+        executedSteps: Map<String, WorkflowStepResult>,
+        options: WorkflowExecuteOptions,
+        startTime: Long
+    ): Boolean {
+        // 检查是否超过最大步骤数
+        if (executedSteps.size >= options.maxSteps) {
+            emitStatus(WorkflowStatus.FAILED, "Maximum number of steps exceeded")
+            return true
+        }
+
+        // 检查是否超时
+        if (System.currentTimeMillis() - startTime > options.timeout) {
+            emitStatus(WorkflowStatus.FAILED, "Workflow execution timed out")
+            return true
+        }
+
+        return false
+    }
+
+    /**
+     * 发送状态更新。
+     */
+    private suspend fun FlowCollector<WorkflowStatusUpdate>.emitStatus(
+        status: WorkflowStatus,
+        message: String,
+        stepId: String? = null,
+        progress: Int = 0,
+        result: WorkflowStepResult? = null
+    ) {
+        emit(WorkflowStatusUpdate(
+            status = status,
+            message = message,
+            stepId = stepId,
+            progress = progress,
+            result = result
+        ))
+    }
+
+    /**
+     * 发送步骤结果状态。
+     */
+    private suspend fun FlowCollector<WorkflowStatusUpdate>.emitStepResult(
+        stepId: String,
+        stepResult: WorkflowStepResult,
+        index: Int,
+        totalSteps: Int
+    ) {
+        val status = if (stepResult.success) WorkflowStatus.IN_PROGRESS else WorkflowStatus.FAILED
+        val message = if (stepResult.success) "Step $stepId completed" else "Step $stepId failed: ${stepResult.error}"
+        val progress = ((index + 1.0) / totalSteps * 100).toInt()
+
+        emit(WorkflowStatusUpdate(
+            status = status,
+            stepId = stepId,
+            message = message,
+            progress = progress,
+            result = stepResult
+        ))
     }
 
     /**
@@ -653,12 +856,27 @@ class SimpleWorkflow(
      * 收集工作流输出。
      */
     private fun collectOutput(executedSteps: Map<String, WorkflowStepResult>): Map<String, Any?> {
-        // 简单实现：收集所有步骤的输出
         val output = mutableMapOf<String, Any?>()
 
-        for ((stepId, stepResult) in executedSteps) {
-            if (stepResult.success) {
-                output[stepId] = stepResult.output
+        // 如果有输出映射，使用映射规则
+        if (outputMappings.isNotEmpty()) {
+            val context = WorkflowContext(
+                input = emptyMap(),
+                steps = executedSteps.toMutableMap()
+            )
+
+            for ((key, mapping) in outputMappings) {
+                val reference = VariableReference(mapping.source)
+                val value = context.resolveReference(reference)
+                val transformedValue = mapping.transform?.invoke(value) ?: value
+                output[key] = transformedValue
+            }
+        } else {
+            // 否则，收集所有步骤的输出
+            for ((stepId, stepResult) in executedSteps) {
+                if (stepResult.success) {
+                    output[stepId] = stepResult.output
+                }
             }
         }
 

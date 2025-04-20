@@ -1,7 +1,12 @@
 package ai.kastrax.core.agent
 
 import ai.kastrax.core.common.KastraXBase
-import ai.kastrax.core.llm.*
+import ai.kastrax.core.llm.LlmMessage
+import ai.kastrax.core.llm.LlmMessageRole
+import ai.kastrax.core.llm.LlmOptions
+import ai.kastrax.core.llm.LlmProvider
+import ai.kastrax.core.llm.LlmToolCall
+import ai.kastrax.core.llm.LlmUsage
 import ai.kastrax.core.memory.toMessage
 import ai.kastrax.core.memory.toLlmMessage
 import ai.kastrax.core.tools.Tool
@@ -12,7 +17,12 @@ import ai.kastrax.memory.api.Message
 import ai.kastrax.memory.api.MessageRole
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
-import kotlinx.serialization.json.*
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 import java.util.UUID
 
 /**
@@ -424,42 +434,63 @@ class LLMAgent(
         val results = mutableMapOf<String, ToolCallResult>()
 
         for (toolCall in toolCalls) {
-            try {
-                val toolId = toolCall.name
-                val tool = tools[toolId]
-
-                if (tool != null) {
-                    // Parse arguments as JSON
-                    val arguments = try {
-                        Json.parseToJsonElement(toolCall.arguments)
-                    } catch (e: Exception) {
-                        logger.warn { "Failed to parse tool arguments as JSON: ${toolCall.arguments}" }
-                        JsonObject(emptyMap())
-                    }
-
-                    // Execute the tool
-                    val result = tool.execute(arguments)
-
-                    results[toolCall.id] = ToolCallResult(
-                        success = true,
-                        result = result
-                    )
-                } else {
-                    results[toolCall.id] = ToolCallResult(
-                        success = false,
-                        error = "Tool not found: $toolId"
-                    )
-                }
-            } catch (e: Exception) {
-                logger.error(e) { "Error executing tool call: ${toolCall.name}" }
-                results[toolCall.id] = ToolCallResult(
-                    success = false,
-                    error = "Error executing tool: ${e.message}"
-                )
-            }
+            val result = executeToolCall(toolCall)
+            results[toolCall.id] = result
         }
 
         return results
+    }
+
+    /**
+     * Execute a single tool call.
+     */
+    private suspend fun executeToolCall(toolCall: LlmToolCall): ToolCallResult {
+        val toolId = toolCall.name
+        val tool = tools[toolId]
+
+        if (tool == null) {
+            return ToolCallResult(
+                success = false,
+                error = "Tool not found: $toolId"
+            )
+        }
+
+        return try {
+            // Parse arguments as JSON
+            val arguments = parseToolArguments(toolCall.arguments)
+
+            // Execute the tool
+            val result = tool.execute(arguments)
+
+            ToolCallResult(
+                success = true,
+                result = result
+            )
+        } catch (e: IllegalArgumentException) {
+            logger.error(e) { "Invalid arguments for tool call: ${toolCall.name}" }
+            ToolCallResult(
+                success = false,
+                error = "Invalid arguments: ${e.message}"
+            )
+        } catch (e: Exception) {
+            logger.error(e) { "Error executing tool call: ${toolCall.name}" }
+            ToolCallResult(
+                success = false,
+                error = "Error executing tool: ${e.message}"
+            )
+        }
+    }
+
+    /**
+     * Parse tool arguments as JSON.
+     */
+    private fun parseToolArguments(arguments: String): JsonElement {
+        return try {
+            Json.parseToJsonElement(arguments)
+        } catch (e: kotlinx.serialization.SerializationException) {
+            logger.warn { "Failed to parse tool arguments as JSON: $arguments" }
+            JsonObject(emptyMap())
+        }
     }
 }
 
