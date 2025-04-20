@@ -1,0 +1,24 @@
+[package]
+name = "fastembed-jni"
+version = "0.1.0"
+edition = "2021"
+authors = ["KastraX Team"]
+description = "JNI bindings for fastembed-rs"
+license = "Apache-2.0"
+
+[lib]
+name = "fastembed_jni"
+crate-type = ["cdylib"]
+
+[dependencies]
+fastembed = { version = "4.7.0", features = ["default"] }
+jni = "0.21.1"
+anyhow = "1.0.75"
+ndarray = "0.16.0"
+log = "0.4.20"
+env_logger = "0.10.1"
+lazy_static = "1.4.0"
+path-absolutize = "3.1.1"
+
+[features]
+default = ["fastembed/default"]

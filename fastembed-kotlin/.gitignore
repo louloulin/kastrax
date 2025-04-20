@@ -1,0 +1,31 @@
+# Gradle
+.gradle/
+build/
+out/
+gradle-app.setting
+!gradle-wrapper.jar
+.gradletasknamecache
+
+# IntelliJ IDEA
+.idea/
+*.iws
+*.iml
+*.ipr
+
+# Rust
+rust/target/
+**/*.rs.bk
+Cargo.lock
+
+# Generated resources
+src/main/resources/native/
+
+# Sample files
+sample_document.txt
+
+# Logs
+*.log
+
+# OS-specific
+.DS_Store
+Thumbs.db

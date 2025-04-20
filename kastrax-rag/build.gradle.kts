@@ -3,7 +3,6 @@ plugins {
     kotlin("plugin.serialization")
     id("org.jetbrains.dokka")
     `maven-publish`
-    id("org.graalvm.python") version "24.2.0"
 }
 
 // GraalPy configuration is handled manually in the code
@@ -15,9 +14,7 @@ repositories {
     maven(url = "https://repository.apache.org/content/repositories/snapshots/")
 }
 
-graalPy {
-    packages = ["fastembed"]
-}
+
 
 dependencies {
     // Project dependencies
