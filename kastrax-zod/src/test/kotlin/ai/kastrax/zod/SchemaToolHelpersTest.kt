@@ -11,9 +11,9 @@ fun enumInput(values: List<String>, description: String? = null): Schema<String?
     val schema = EnumSchema(values)
     val nullableSchema = schema.nullable()
     return if (description != null) {
-        nullableSchema.describe(description) as Schema<String?, String>
+        (nullableSchema.describe(description) as DescribedSchema<String?, String>).unsafeCast<String?, String>()
     } else {
-        nullableSchema as Schema<String?, String>
+        nullableSchema.unsafeCast<String?, String>()
     }
 }
 
@@ -21,7 +21,7 @@ fun enumInput(values: List<String>, description: String? = null): Schema<String?
 fun ObjectSchemaBuilder.enumField(key: String, values: List<String>, description: String? = null, required: Boolean = true) {
     val schema = EnumSchema(values)
     val finalSchema = if (description != null) {
-        schema.describe(description)
+        schema.describe(description).unsafeCast<String, String>()
     } else {
         schema
     }
@@ -32,32 +32,50 @@ class SchemaToolHelpersTest {
 
     @Test
     fun `stringInput should create StringSchema`() {
-        val schema = stringInput("A test string")
+        val schema = stringInput("A test string").unsafeCast<String?, String>()
 
         assertTrue(schema is Schema<*, *>)
+
+        // Check if it's a string schema
         val jsonSchema = schema.toJsonSchema()
         assertTrue(jsonSchema is JsonObject)
-        assertEquals("A test string", jsonSchema.jsonObject["description"]?.jsonPrimitive?.content)
+        assertEquals("string", jsonSchema.jsonObject["type"]?.jsonPrimitive?.content)
+
+        // Check if the description is set correctly in the JSON schema
+        val description = jsonSchema.jsonObject["description"]?.jsonPrimitive?.content
+        assertEquals("A test string", description)
     }
 
     @Test
     fun `numberInput should create NumberSchema`() {
-        val schema = numberInput("A test number")
+        val schema = numberInput("A test number").unsafeCast<Number?, Double>()
 
         assertTrue(schema is Schema<*, *>)
+
+        // Check if it's a number schema
         val jsonSchema = schema.toJsonSchema()
         assertTrue(jsonSchema is JsonObject)
-        assertEquals("A test number", jsonSchema.jsonObject["description"]?.jsonPrimitive?.content)
+        assertEquals("number", jsonSchema.jsonObject["type"]?.jsonPrimitive?.content)
+
+        // Check if the description is set correctly in the JSON schema
+        val description = jsonSchema.jsonObject["description"]?.jsonPrimitive?.content
+        assertEquals("A test number", description)
     }
 
     @Test
     fun `booleanInput should create BooleanSchema`() {
-        val schema = booleanInput("A test boolean")
+        val schema = booleanInput("A test boolean").unsafeCast<Boolean?, Boolean>()
 
         assertTrue(schema is Schema<*, *>)
+
+        // Check if it's a boolean schema
         val jsonSchema = schema.toJsonSchema()
         assertTrue(jsonSchema is JsonObject)
-        assertEquals("A test boolean", jsonSchema.jsonObject["description"]?.jsonPrimitive?.content)
+        assertEquals("boolean", jsonSchema.jsonObject["type"]?.jsonPrimitive?.content)
+
+        // Check if the description is set correctly in the JSON schema
+        val description = jsonSchema.jsonObject["description"]?.jsonPrimitive?.content
+        assertEquals("A test boolean", description)
     }
 
     @Test
@@ -66,7 +84,7 @@ class SchemaToolHelpersTest {
             stringField("name", "Person's name")
             numberField("age", "Person's age")
             booleanField("active", "Is the person active")
-        }
+        }.unsafeCast<Map<String, Any?>, Map<String, Any?>>()
 
         assertTrue(schema is Schema<*, *>)
         val jsonSchema = schema.toJsonSchema()
@@ -88,7 +106,7 @@ class SchemaToolHelpersTest {
 
     @Test
     fun `arrayInput should create ArraySchema`() {
-        val schema = arrayInput(stringInput("Array element"), "A test array")
+        val schema = arrayInput(stringInput("Array element").unsafeCast<String?, String>(), "A test array").unsafeCast<List<String?>, List<String>>()
 
         assertTrue(schema is Schema<*, *>)
         val jsonSchema = schema.toJsonSchema()

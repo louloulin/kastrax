@@ -5,6 +5,19 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 import kotlin.test.assertNotNull
+import java.util.regex.Pattern
+
+/**
+ * Unsafe cast extension function for Schema
+ * This is used to work around type inference issues
+ */
+@Suppress("UNCHECKED_CAST")
+inline fun <reified T, reified R> Schema<*, *>.unsafeCast(): Schema<T, R> = this as Schema<T, R>
+
+/**
+ * Extension function to convert String to Pattern
+ */
+fun String.toPattern(): Pattern = Pattern.compile(this)
 
 class SchemaJsonExtensionsTest {
 
@@ -15,7 +28,7 @@ class SchemaJsonExtensionsTest {
         schema.maxLength = 10
         schema.pattern = "^[a-z]+$".toPattern()
         schema.email = true
-        val describedSchema = schema.describe("A test string") as DescribedSchema
+        val describedSchema = schema.describe("A test string") as DescribedSchema<String, String>
 
         val jsonSchema = describedSchema.toJsonSchema()
 
@@ -60,13 +73,13 @@ class SchemaJsonExtensionsTest {
 
     @Test
     fun `ObjectSchema should convert to JSON Schema`() {
-        val stringSchema = StringSchema()
-        val numberSchema = NumberSchema()
-        val nameField = ObjectField("name", stringSchema as Schema<Any?, Any?>, true)
-        val ageField = ObjectField("age", numberSchema as Schema<Any?, Any?>, false)
+        val stringSchema = StringSchema().unsafeCast<Any?, Any?>()
+        val numberSchema = NumberSchema().unsafeCast<Any?, Any?>()
+        val nameField = ObjectField("name", stringSchema, true)
+        val ageField = ObjectField("age", numberSchema, false)
         val fields = mapOf("name" to nameField, "age" to ageField)
         val schema = ObjectSchema<Map<String, Any?>, Map<String, Any?>>(fields)
-        val describedSchema = schema.describe("A test object") as DescribedSchema
+        val describedSchema = schema.describe("A test object") as DescribedSchema<Map<String, Any?>, Map<String, Any?>>
 
         val jsonSchema = describedSchema.toJsonSchema()
 
@@ -100,12 +113,12 @@ class SchemaJsonExtensionsTest {
 
     @Test
     fun `TupleSchema should convert to JSON Schema`() {
-        val stringSchema = StringSchema()
-        val numberSchema = NumberSchema()
-        val booleanSchema = BooleanSchema()
-        val schemas = listOf(stringSchema, numberSchema, booleanSchema) as List<Schema<Any?, Any?>>
+        val stringSchema = StringSchema().unsafeCast<Any?, Any?>()
+        val numberSchema = NumberSchema().unsafeCast<Any?, Any?>()
+        val booleanSchema = BooleanSchema().unsafeCast<Any?, Any?>()
+        val schemas = listOf(stringSchema, numberSchema, booleanSchema)
         val schema = TupleSchema(schemas)
-        val describedSchema = schema.describe("A test tuple") as DescribedSchema
+        val describedSchema = schema.describe("A test tuple") as DescribedSchema<List<Any?>, List<Any?>>
 
         val jsonSchema = describedSchema.toJsonSchema()
 
@@ -123,11 +136,11 @@ class SchemaJsonExtensionsTest {
 
     @Test
     fun `UnionSchema should convert to JSON Schema`() {
-        val stringSchema = StringSchema()
-        val numberSchema = NumberSchema()
-        val schemas = listOf(stringSchema, numberSchema) as List<Schema<Any?, Any?>>
+        val stringSchema = StringSchema().unsafeCast<Any?, Any?>()
+        val numberSchema = NumberSchema().unsafeCast<Any?, Any?>()
+        val schemas = listOf(stringSchema, numberSchema)
         val schema = UnionSchema(schemas)
-        val describedSchema = schema.describe("A test union") as DescribedSchema
+        val describedSchema = schema.describe("A test union") as DescribedSchema<Any?, Any?>
 
         val jsonSchema = describedSchema.toJsonSchema()
 
@@ -200,17 +213,17 @@ class SchemaJsonExtensionsTest {
 
         val result = schema.parseJson(json)
 
-        assertEquals(2, result?.size)
-        assertEquals("hello", result?.get(0))
-        assertEquals("world", result?.get(1))
+        assertEquals(2, result!!.size)
+        assertEquals("hello", result[0])
+        assertEquals("world", result[1])
     }
 
     @Test
     fun `TupleSchema should parse JSON`() {
-        val stringSchema = StringSchema()
-        val numberSchema = NumberSchema()
-        val booleanSchema = BooleanSchema()
-        val schemas = listOf(stringSchema, numberSchema, booleanSchema) as List<Schema<Any?, Any?>>
+        val stringSchema = StringSchema().unsafeCast<Any?, Any?>()
+        val numberSchema = NumberSchema().unsafeCast<Any?, Any?>()
+        val booleanSchema = BooleanSchema().unsafeCast<Any?, Any?>()
+        val schemas = listOf(stringSchema, numberSchema, booleanSchema)
         val schema = TupleSchema(schemas)
 
         val json = buildJsonArray {
@@ -221,17 +234,17 @@ class SchemaJsonExtensionsTest {
 
         val result = schema.parseJson(json)
 
-        assertEquals(3, result?.size)
-        assertEquals("hello", result?.get(0))
-        assertEquals(42.0, result?.get(1))
-        assertEquals(true, result?.get(2))
+        assertEquals(3, result!!.size)
+        assertEquals("hello", result[0])
+        assertEquals(42.0, result[1])
+        assertEquals(true, result[2])
     }
 
     @Test
     fun `UnionSchema should parse JSON`() {
-        val stringSchema = StringSchema()
-        val numberSchema = NumberSchema()
-        val schemas = listOf(stringSchema, numberSchema) as List<Schema<Any?, Any?>>
+        val stringSchema = StringSchema().unsafeCast<Any?, Any?>()
+        val numberSchema = NumberSchema().unsafeCast<Any?, Any?>()
+        val schemas = listOf(stringSchema, numberSchema)
         val schema = UnionSchema(schemas)
 
         val json1 = JsonPrimitive("hello")
@@ -299,8 +312,8 @@ class SchemaJsonExtensionsTest {
 
     @Test
     fun `ArraySchema should convert to JSON`() {
-        val stringSchema = StringSchema()
-        val schema = ArraySchema(stringSchema as Schema<Any?, Any?>)
+        val stringSchema = StringSchema().unsafeCast<Any?, Any?>()
+        val schema = ArraySchema(stringSchema)
 
         val output = listOf("hello", "world")
 
