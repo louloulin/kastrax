@@ -47,7 +47,9 @@ interface DataSource {
 enum class DataSourceType {
     DATABASE,
     API,
-    FILESYSTEM
+    FILESYSTEM,
+    NOSQL,
+    CLOUD_STORAGE
 }
 
 /**

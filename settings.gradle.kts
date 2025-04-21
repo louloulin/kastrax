@@ -19,6 +19,8 @@ include(":kastrax-datasource")
 include(":kastrax-datasource:kastrax-database")
 include(":kastrax-datasource:kastrax-api")
 include(":kastrax-datasource:kastrax-filesystem")
+include(":kastrax-datasource:kastrax-nosql")
+include(":kastrax-datasource:kastrax-cloud-storage")
 
 include(":fastembed-kotlin")
 // 已修复 AdvancedWorkflowExample.kt 文件的编译错误
