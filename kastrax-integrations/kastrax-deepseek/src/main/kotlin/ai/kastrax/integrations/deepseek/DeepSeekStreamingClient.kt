@@ -18,10 +18,9 @@ private val logger = KotlinLogging.logger {}
 
 /**
  * DeepSeek 流式客户端，专门处理 SSE (Server-Sent Events) 流式响应。
- * 参考了 OpenAI 和其他 SSE 实现的最佳实践。
  */
 class DeepSeekStreamingClient(
-    val httpClient: HttpClient,  // 更改为公开属性，以便外部访问
+    val httpClient: HttpClient,
     private val baseUrl: String,
     private val apiKey: String,
     private val json: Json = Json {
@@ -42,6 +41,7 @@ class DeepSeekStreamingClient(
     /**
      * 创建聊天完成流。
      * 使用 SSE 协议处理流式响应，每个事件作为单独的数据块处理。
+     * 使用 UTF-8 编码处理所有文本，确保中文等多字节字符能够正确显示。
      *
      * @param request 聊天完成请求
      * @return 包含增量响应的流
@@ -51,109 +51,83 @@ class DeepSeekStreamingClient(
     ): Flow<DeepSeekStreamChunk> {
         logger.debug { "Creating chat completion stream with model: ${request.model}" }
 
+        // 设置系统属性，确保 UTF-8 编码
+        System.setProperty("file.encoding", "UTF-8")
+        System.setProperty("sun.jnu.encoding", "UTF-8")
+
         // 确保请求是流式的
         val streamingRequest = request.copy(stream = true)
-
-        // 使用现有的 httpClient，而不是创建新的客户端
-        // 这样可以避免配置兼容性问题
 
         // 使用 channelFlow 而不是普通 flow，以便更好地控制背压
         return channelFlow {
             try {
-                // 使用现有的 httpClient，但采用字节级别的处理
-                httpClient.preparePost("$baseUrl/chat/completions") {
+                // 添加更多的 SSE 相关头部，确保实时响应
+                val response = httpClient.preparePost("$baseUrl/chat/completions") {
                     contentType(ContentType.Application.Json)
                     // 添加 SSE 相关头部
                     header("Accept", "text/event-stream")
                     header("Cache-Control", "no-cache")
                     header("Connection", "keep-alive")
-                    setBody(json.encodeToString(DeepSeekChatCompletionRequest.serializer(), streamingRequest))
-                }.execute { response ->
-                    // 检查响应状态
-                    if (!response.status.isSuccess()) {
-                        val errorBody = response.bodyAsText()
-                        logger.error { "DeepSeek API error: $errorBody" }
-                        throw DeepSeekException("DeepSeek API error: ${response.status.description}")
-                    }
+                    setBody(streamingRequest)
+                }.execute()
 
-                    // 使用低级别的 bodyAsChannel 直接处理字节流
-                    val channel = response.bodyAsChannel()
+                if (!response.status.isSuccess()) {
+                    val errorBody = response.bodyAsText()
+                    logger.error { "DeepSeek API error: $errorBody" }
+                    throw DeepSeekException("DeepSeek API error: ${response.status.description}")
+                }
 
-                    // 缓冲区用于收集 SSE 行
-                    val lineBuffer = StringBuilder()
+                // 处理 SSE 响应
+                val channel = response.bodyAsChannel()
 
-                    // 逐字节处理，确保实时性
-                    val buffer = ByteArray(1) // 一次只读取一个字节
+                // 逐行处理 SSE 数据，不使用缓冲区
+                while (!channel.isClosedForRead) {
+                    val line = channel.readUTF8Line() ?: continue
+                    if (line.isBlank()) continue
 
-                    while (!channel.isClosedForRead) {
+                    if (line.startsWith("data: ")) {
+                        val data = line.substring(6).trim()
+
+                        // 检查是否是结束标记
+                        if (data == "[DONE]") {
+                            send(DeepSeekStreamChunk.Done)
+                            break
+                        }
+
                         try {
-                            // 读取一个字节
-                            val bytesRead = channel.readAvailable(buffer, 0, 1)
-                            if (bytesRead <= 0) {
-                                // 没有数据可读，等待一下
-                                delay(1)
-                                continue
-                            }
+                            // 解析 JSON 数据
+                            val chatResponse = json.decodeFromString<DeepSeekChatCompletionResponse>(data)
+                            val choice = chatResponse.choices.firstOrNull()
 
-                            // 将字节转换为字符
-                            val char = buffer[0].toInt().toChar()
+                            // 提取增量内容
+                            val content = choice?.delta?.content
 
-                            if (char == '\n') {
-                                // 行结束，处理完整行
-                                val line = lineBuffer.toString()
-                                lineBuffer.clear()
+                            if (content != null && content.isNotEmpty()) {
+                                // 关键改进：将内容拆分为单个字符，确保真正的字符级实时返回
+                                // 先确保内容使用 UTF-8 编码处理
+                                val utf8Content = String(content.toByteArray(Charsets.UTF_8), Charsets.UTF_8)
 
-                                // 如果是空行，表示 SSE 事件结束
-                                if (line.isBlank()) continue
+                                // 将内容拆分为单个字符，逐个发送
+                                utf8Content.forEachIndexed { index, char ->
+                                    // 对于中文等多字节字符，需要特殊处理
+                                    val charStr = char.toString()
+                                    send(DeepSeekStreamChunk.Content(charStr))
 
-                                // 处理 SSE 数据行
-                                if (line.startsWith("data: ")) {
-                                    val data = line.substring(6).trim()
+                                    // 每发送一个字符就让出协程，确保实时处理
+                                    yield()
 
-                                    // 检查是否是结束标记
-                                    if (data == "[DONE]") {
-                                        send(DeepSeekStreamChunk.Done)
-                                        break
-                                    }
-
-                                    try {
-                                        // 解析 JSON 数据
-                                        val chatResponse = json.decodeFromString<DeepSeekChatCompletionResponse>(data)
-                                        val choice = chatResponse.choices.firstOrNull()
-
-                                        // 提取增量内容
-                                        val content = choice?.delta?.content
-
-                                        if (content != null && content.isNotEmpty()) {
-                                            // 关键改进：立即发送每个字符，不累积
-                                            for (contentChar in content) {
-                                                send(DeepSeekStreamChunk.Content(contentChar.toString()))
-                                                // 关键：每发送一个字符就让出协程
-                                                yield()
-                                            }
-                                        }
-
-                                        // 检查是否完成
-                                        val finishReason = choice?.finishReason
-                                        if (finishReason != null) {
-                                            send(DeepSeekStreamChunk.Finished(finishReason))
-                                        }
-                                    } catch (e: Exception) {
-                                        logger.warn { "Failed to parse SSE data: $data" }
-                                    }
+                                    // 添加小延迟，模拟打字效果，但不要太长
+                                    delay(5) // 5毫秒延迟，可以根据需要调整
                                 }
-                            } else if (char != '\r') { // 忽略回车符
-                                // 将字符添加到行缓冲区
-                                lineBuffer.append(char)
                             }
 
-                            // 立即让出协程，确保其他协程可以处理数据
-                            yield()
-                        } catch (e: CancellationException) {
-                            throw e
+                            // 检查是否完成
+                            val finishReason = choice?.finishReason
+                            if (finishReason != null) {
+                                send(DeepSeekStreamChunk.Finished(finishReason))
+                            }
                         } catch (e: Exception) {
-                            // 忽略读取错误，继续尝试
-                            delay(1)
+                            logger.warn { "Failed to parse SSE data: $data" }
                         }
                     }
                 }

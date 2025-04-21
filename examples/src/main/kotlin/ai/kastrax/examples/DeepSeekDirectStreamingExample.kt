@@ -62,8 +62,15 @@ fun runDirectStreamingExample() = runBlocking {
                     is DeepSeekStreamChunk.Content -> {
 //                        println("ffffxxxx-=====")
                         // 打印内容并立即刷新，确保实时显示
-                        print(chunk.text)
+                        // 使用 UTF-8 编码确保中文正确显示
+                        val text = chunk.text
+                        // 将文本转换为 UTF-8 字节数组，然后重新解析
+                        val utf8Text = String(text.toByteArray(Charsets.UTF_8), Charsets.UTF_8)
+                        print(utf8Text)
                         System.out.flush() // 关键：立即刷新输出缓冲区
+
+                        // 添加小延迟，确保字符能够被看到
+                        Thread.sleep(1) // 1毫秒延迟，可以根据需要调整
                     }
                     is DeepSeekStreamChunk.Finished -> {
                         // 完成时打印换行
@@ -94,5 +101,15 @@ fun runDirectStreamingExample() = runBlocking {
  * 主函数，调用示例。
  */
 fun main() {
+    // 设置系统属性，确保 UTF-8 编码
+    System.setProperty("file.encoding", "UTF-8")
+    System.setProperty("sun.jnu.encoding", "UTF-8")
+
+    // 设置控制台输出编码
+    System.setOut(java.io.PrintStream(System.out, true, "UTF-8"))
+
+    // 设置区域设置为 UTF-8
+    java.util.Locale.setDefault(java.util.Locale.US)
+
     runDirectStreamingExample()
 }
