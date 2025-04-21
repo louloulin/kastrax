@@ -39,6 +39,9 @@ dependencies {
     testImplementation("io.mockk:mockk:1.13.5")
     testImplementation("org.mockito:mockito-core:5.4.0")
     testImplementation("org.mockito.kotlin:mockito-kotlin:5.1.0")
+
+    // Integration testing
+    testImplementation(project(":kastrax-integrations:kastrax-deepseek"))
 }
 
 kotlin {
