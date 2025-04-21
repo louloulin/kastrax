@@ -4,7 +4,7 @@ import ai.kastrax.fastembed.EmbeddingModel
 import ai.kastrax.rag.RAG
 import ai.kastrax.rag.document.Document
 import ai.kastrax.rag.embedding.FastEmbedKotlinEmbeddingService
-import ai.kastrax.rag.vectorstore.RagInMemoryVectorStore
+import ai.kastrax.rag.vectorstore.InMemoryVectorStore
 import kotlinx.coroutines.runBlocking
 import kotlin.system.measureTimeMillis
 
@@ -33,8 +33,8 @@ fun main() = runBlocking {
 
         val time1 = measureTimeMillis {
             val embedding = embeddingService.embed(text)
-            println("嵌入维度: ${embedding.vector.size}")
-            println("前 5 个值: ${embedding.vector.take(5)}")
+            println("嵌入维度: ${embedding.size}")
+            println("前 5 个值: ${embedding.take(5).toList()}")
         }
         println("耗时: $time1 毫秒")
 
@@ -51,7 +51,7 @@ fun main() = runBlocking {
             val embeddings = embeddingService.embedBatch(texts)
             println("生成的嵌入向量数量: ${embeddings.size}")
             embeddings.forEachIndexed { index, embedding ->
-                println("嵌入 $index 维度: ${embedding.vector.size}")
+                println("嵌入 $index 维度: ${embedding.size}")
             }
         }
         println("耗时: $time2 毫秒")
@@ -71,8 +71,8 @@ fun main() = runBlocking {
             val embedding2 = embeddingService.embed(text2)
             val embedding3 = embeddingService.embed(text3)
 
-            val similarity12 = cosineSimilarity(embedding1.vector, embedding2.vector)
-            val similarity13 = cosineSimilarity(embedding1.vector, embedding3.vector)
+            val similarity12 = cosineSimilarity(embedding1, embedding2)
+            val similarity13 = cosineSimilarity(embedding1, embedding3)
 
             println("文本 1 和文本 2 的相似度: $similarity12")
             println("文本 1 和文本 3 的相似度: $similarity13")
@@ -82,7 +82,7 @@ fun main() = runBlocking {
 
         // 测试 RAG 系统
         println("\n测试 RAG 系统...")
-        val vectorStore = RagInMemoryVectorStore()
+        val vectorStore = InMemoryVectorStore()
         val rag = RAG(vectorStore, embeddingService)
 
         // 添加文档
@@ -125,8 +125,12 @@ fun main() = runBlocking {
             )
         )
 
-        val addedCount = vectorStore.addDocuments(documents, embeddingService)
-        println("添加了 $addedCount 个文档")
+        // 将 Document 对象转换为字符串和元数据映射
+        val docContents = documents.map { it.content }
+        val docMetadata = documents.map { doc -> doc.metadata.mapValues { it.value.toString() } }
+
+        val addedIds = vectorStore.addDocuments(docContents, embeddingService, docMetadata)
+        println("添加了 ${addedIds.size} 个文档")
 
         // 查询 RAG 系统
         val queries = listOf(
@@ -154,7 +158,7 @@ fun main() = runBlocking {
 /**
  * 计算两个向量的余弦相似度。
  */
-private fun cosineSimilarity(vec1: List<Float>, vec2: List<Float>): Float {
+private fun cosineSimilarity(vec1: FloatArray, vec2: FloatArray): Float {
     require(vec1.size == vec2.size) { "Vectors must have the same dimension" }
 
     var dotProduct = 0.0f

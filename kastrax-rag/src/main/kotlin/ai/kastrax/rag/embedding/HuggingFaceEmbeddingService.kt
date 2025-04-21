@@ -30,7 +30,8 @@ class HuggingFaceEmbeddingService(
     private val apiKey: String,
     private val modelId: String = "sentence-transformers/all-MiniLM-L6-v2",
     private val maxRetries: Int = 3,
-    private val timeout: Long = 30000
+    private val timeout: Long = 30000,
+    private val dimensions: Int = 384 // Default dimension for all-MiniLM-L6-v2
 ) : EmbeddingService {
 
     private val client = HttpClient(CIO) {
@@ -57,8 +58,9 @@ class HuggingFaceEmbeddingService(
      * @param text 要嵌入的文本
      * @return 嵌入向量
      */
-    override suspend fun embed(text: String): Embedding {
-        return embedWithRetry(text)
+    override suspend fun embed(text: String): FloatArray {
+        val embedding = embedWithRetry(text)
+        return FloatArray(embedding.size) { i -> embedding[i] }
     }
 
     /**
@@ -67,8 +69,25 @@ class HuggingFaceEmbeddingService(
      * @param texts 要嵌入的文本列表
      * @return 嵌入向量列表
      */
-    override suspend fun embedBatch(texts: List<String>): List<Embedding> {
-        return embedBatchWithRetry(texts)
+    override suspend fun embedBatch(texts: List<String>): List<FloatArray> {
+        val embeddings = embedBatchWithRetry(texts)
+        return embeddings.map { embedding -> FloatArray(embedding.size) { i -> embedding[i] } }
+    }
+
+    /**
+     * 获取嵌入向量的维度。
+     *
+     * @return 嵌入向量的维度
+     */
+    override fun dimension(): Int {
+        return dimensions
+    }
+
+    /**
+     * 关闭服务，释放资源。
+     */
+    override fun close() {
+        client.close()
     }
 
     /**
@@ -78,7 +97,7 @@ class HuggingFaceEmbeddingService(
      * @param retryCount 当前重试次数
      * @return 嵌入向量
      */
-    private suspend fun embedWithRetry(text: String, retryCount: Int = 0): Embedding {
+    private suspend fun embedWithRetry(text: String, retryCount: Int = 0): List<Float> {
         try {
             val response = client.post("https://api-inference.huggingface.co/models/$modelId") {
                 contentType(ContentType.Application.Json)
@@ -101,7 +120,7 @@ class HuggingFaceEmbeddingService(
             }
 
             val embeddings = response.body<List<List<Float>>>()
-            return Embedding(embeddings.first())
+            return embeddings.first()
         } catch (e: Exception) {
             if (retryCount < maxRetries) {
                 val backoffTime = (2.0.pow(retryCount.toDouble()) * 1000).toLong()
@@ -122,7 +141,7 @@ class HuggingFaceEmbeddingService(
      * @param retryCount 当前重试次数
      * @return 嵌入向量列表
      */
-    private suspend fun embedBatchWithRetry(texts: List<String>, retryCount: Int = 0): List<Embedding> {
+    private suspend fun embedBatchWithRetry(texts: List<String>, retryCount: Int = 0): List<List<Float>> {
         try {
             val response = client.post("https://api-inference.huggingface.co/models/$modelId") {
                 contentType(ContentType.Application.Json)
@@ -144,8 +163,7 @@ class HuggingFaceEmbeddingService(
                 throw Exception("Hugging Face API error: ${response.status} - $errorBody")
             }
 
-            val embeddings = response.body<List<List<Float>>>()
-            return embeddings.map { Embedding(it) }
+            return response.body<List<List<Float>>>()
         } catch (e: Exception) {
             if (retryCount < maxRetries) {
                 val backoffTime = (2.0.pow(retryCount.toDouble()) * 1000).toLong()

@@ -1,7 +1,5 @@
 package ai.kastrax.rag.vectorstore
 
-import ai.kastrax.rag.document.Document
-import ai.kastrax.rag.embedding.Embedding
 import ai.kastrax.rag.embedding.EmbeddingService
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.async
@@ -23,7 +21,7 @@ typealias MetadataFilter = (Map<String, Any>) -> Boolean
  * @property combinedScore 综合分数
  */
 data class HybridSearchResult(
-    val document: Document,
+    val document: RagDocument,
     val vectorScore: Double,
     val keywordScore: Double,
     val combinedScore: Double
@@ -46,13 +44,14 @@ object HybridSearch {
      */
     suspend fun hybridSearch(
         vectorStore: RagVectorStore,
-        embedding: Embedding,
+        query: String,
+        embeddingService: EmbeddingService,
         filter: MetadataFilter? = null,
         limit: Int = 5,
         minScore: Double = 0.0
     ): List<SearchResult> {
         // 首先进行向量相似度搜索
-        val vectorResults = vectorStore.similaritySearch(embedding, limit * 2, minScore)
+        val vectorResults = vectorStore.similaritySearch(query, embeddingService, limit * 2, minScore)
 
         // 如果没有过滤器，直接返回向量搜索结果
         if (filter == null) {
@@ -95,11 +94,8 @@ object HybridSearch {
         limit: Int = 5,
         minScore: Double = 0.0
     ): List<HybridSearchResult> = coroutineScope {
-        // 生成查询嵌入向量
-        val embedding = async { embeddingService.embed(text) }
-
         // 进行向量相似度搜索
-        val vectorResults = vectorStore.similaritySearch(embedding.await(), limit * 2, 0.0)
+        val vectorResults = vectorStore.similaritySearch(text, embeddingService, limit * 2, 0.0)
 
         // 计算关键词匹配分数并组合结果
         val hybridResults = vectorResults.map { result ->

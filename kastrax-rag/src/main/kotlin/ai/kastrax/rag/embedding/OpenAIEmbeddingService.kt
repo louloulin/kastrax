@@ -32,7 +32,8 @@ class OpenAIEmbeddingService(
     private val model: String = "text-embedding-ada-002",
     private val batchSize: Int = 16,
     private val maxRetries: Int = 3,
-    private val timeout: Long = 30000
+    private val timeout: Long = 30000,
+    private val dimensions: Int = 1536 // Default dimension for text-embedding-ada-002
 ) : EmbeddingService {
 
     private val client = HttpClient(CIO) {
@@ -50,18 +51,30 @@ class OpenAIEmbeddingService(
         }
     }
 
-    override suspend fun embed(text: String): Embedding {
+    override suspend fun embed(text: String): FloatArray {
         return embedBatch(listOf(text)).first()
     }
 
-    override suspend fun embedBatch(texts: List<String>): List<Embedding> {
+    override suspend fun embedBatch(texts: List<String>): List<FloatArray> {
         if (texts.isEmpty()) {
             return emptyList()
         }
+        return embedBatchInternal(texts)
+    }
+
+    override fun dimension(): Int {
+        return dimensions
+    }
+
+    override fun close() {
+        client.close()
+    }
+
+    private suspend fun embedBatchInternal(texts: List<String>): List<FloatArray> {
 
         // 将文本分成批次
         val batches = texts.chunked(batchSize)
-        val embeddings = mutableListOf<Embedding>()
+        val embeddings = mutableListOf<FloatArray>()
 
         for (batch in batches) {
             val batchEmbeddings = embedBatchWithRetry(batch)
@@ -71,7 +84,7 @@ class OpenAIEmbeddingService(
         return embeddings
     }
 
-    private suspend fun embedBatchWithRetry(texts: List<String>, retryCount: Int = 0): List<Embedding> {
+    private suspend fun embedBatchWithRetry(texts: List<String>, retryCount: Int = 0): List<FloatArray> {
         try {
             val request = OpenAIEmbeddingRequest(
                 model = model,
@@ -86,7 +99,9 @@ class OpenAIEmbeddingService(
 
             val embeddingResponse = response.body<OpenAIEmbeddingResponse>()
 
-            return embeddingResponse.data.map { Embedding(it.embedding) }
+            return embeddingResponse.data.map { data ->
+                FloatArray(data.embedding.size) { i -> data.embedding[i] }
+            }
         } catch (e: Exception) {
             if (retryCount < maxRetries) {
                 // 指数退避重试

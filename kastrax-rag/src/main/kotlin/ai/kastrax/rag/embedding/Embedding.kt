@@ -27,17 +27,17 @@ data class Embedding(val vector: List<Float>) {
         if (vector.isEmpty() || other.vector.isEmpty()) {
             return 0.0
         }
-        
+
         if (vector.size != other.vector.size) {
             throw IllegalArgumentException("Vectors must have the same dimension")
         }
-        
+
         val v1 = ArrayRealVector(vector.map { it.toDouble() }.toDoubleArray())
         val v2 = ArrayRealVector(other.vector.map { it.toDouble() }.toDoubleArray())
-        
+
         return cosineSimilarity(v1, v2)
     }
-    
+
     /**
      * 计算与另一个嵌入向量的欧几里得距离。
      *
@@ -48,17 +48,17 @@ data class Embedding(val vector: List<Float>) {
         if (vector.isEmpty() || other.vector.isEmpty()) {
             return 0.0
         }
-        
+
         if (vector.size != other.vector.size) {
             throw IllegalArgumentException("Vectors must have the same dimension")
         }
-        
+
         val v1 = ArrayRealVector(vector.map { it.toDouble() }.toDoubleArray())
         val v2 = ArrayRealVector(other.vector.map { it.toDouble() }.toDoubleArray())
-        
+
         return v1.getDistance(v2)
     }
-    
+
     /**
      * 计算与另一个嵌入向量的点积。
      *
@@ -69,17 +69,17 @@ data class Embedding(val vector: List<Float>) {
         if (vector.isEmpty() || other.vector.isEmpty()) {
             return 0.0
         }
-        
+
         if (vector.size != other.vector.size) {
             throw IllegalArgumentException("Vectors must have the same dimension")
         }
-        
+
         val v1 = ArrayRealVector(vector.map { it.toDouble() }.toDoubleArray())
         val v2 = ArrayRealVector(other.vector.map { it.toDouble() }.toDoubleArray())
-        
+
         return v1.dotProduct(v2)
     }
-    
+
     companion object {
         /**
          * 计算两个向量的余弦相似度。
@@ -92,7 +92,7 @@ data class Embedding(val vector: List<Float>) {
             val dotProduct = v1.dotProduct(v2)
             val normV1 = v1.norm
             val normV2 = v2.norm
-            
+
             return if (normV1 > 0 && normV2 > 0) {
                 dotProduct / (normV1 * normV2)
             } else {
@@ -113,57 +113,7 @@ data class EmbeddedDocument(
     val embedding: Embedding
 )
 
-/**
- * 嵌入服务接口，用于生成文本的嵌入向量。
- */
-interface EmbeddingService {
-    /**
-     * 为文本生成嵌入向量。
-     *
-     * @param text 要嵌入的文本
-     * @return 嵌入向量
-     */
-    suspend fun embed(text: String): Embedding
-    
-    /**
-     * 为多个文本生成嵌入向量。
-     *
-     * @param texts 要嵌入的文本列表
-     * @return 嵌入向量列表
-     */
-    suspend fun embedBatch(texts: List<String>): List<Embedding> {
-        return coroutineScope {
-            texts.map { text ->
-                async { embed(text) }
-            }.awaitAll()
-        }
-    }
-    
-    /**
-     * 为文档生成嵌入向量。
-     *
-     * @param document 要嵌入的文档
-     * @return 带有嵌入向量的文档
-     */
-    suspend fun embedDocument(document: Document): EmbeddedDocument {
-        val embedding = embed(document.content)
-        return EmbeddedDocument(document, embedding)
-    }
-    
-    /**
-     * 为多个文档生成嵌入向量。
-     *
-     * @param documents 要嵌入的文档列表
-     * @return 带有嵌入向量的文档列表
-     */
-    suspend fun embedDocuments(documents: List<Document>): List<EmbeddedDocument> {
-        return coroutineScope {
-            documents.map { document ->
-                async { embedDocument(document) }
-            }.awaitAll()
-        }
-    }
-}
+// EmbeddingService interface moved to EmbeddingService.kt
 
 /**
  * 简单的随机嵌入服务，用于测试和开发。
@@ -174,29 +124,41 @@ interface EmbeddingService {
 class RandomEmbeddingService(
     private val dimensions: Int = 1536,
     private val seed: Long = 42
-) : EmbeddingService {
-    
+) : ai.kastrax.rag.embedding.EmbeddingService {
+
     private val random = java.util.Random(seed)
-    
-    override suspend fun embed(text: String): Embedding {
+
+    override suspend fun embed(text: String): FloatArray {
         // 使用文本的哈希码作为随机数生成器的种子，以确保相同的文本生成相同的嵌入
         val textSeed = text.hashCode().toLong()
         val textRandom = java.util.Random(textSeed)
-        
+
         // 生成随机向量
-        val vector = List(dimensions) {
+        val vector = FloatArray(dimensions) {
             // 生成 [-1, 1] 范围内的随机浮点数
             textRandom.nextFloat() * 2 - 1
         }
-        
+
         // 归一化向量
         val norm = sqrt(vector.sumOf { it * it.toDouble() })
-        val normalizedVector = if (norm > 0) {
-            vector.map { (it / norm).toFloat() }
-        } else {
-            vector
+        if (norm > 0) {
+            for (i in vector.indices) {
+                vector[i] = (vector[i] / norm).toFloat()
+            }
         }
-        
-        return Embedding(normalizedVector)
+
+        return vector
+    }
+
+    override suspend fun embedBatch(texts: List<String>): List<FloatArray> {
+        return texts.map { embed(it) }
+    }
+
+    override fun dimension(): Int {
+        return dimensions
+    }
+
+    override fun close() {
+        // Nothing to close for random embedding service
     }
 }

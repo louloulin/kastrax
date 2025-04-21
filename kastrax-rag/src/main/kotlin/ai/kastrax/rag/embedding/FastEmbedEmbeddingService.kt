@@ -81,7 +81,7 @@ class FastEmbedEmbeddingService(
         logger.info { "FastEmbed initialized with embedding dimensions: $dimensions" }
     }
 
-    override suspend fun embed(text: String): Embedding {
+    override suspend fun embed(text: String): FloatArray {
         return withContext(Dispatchers.IO) {
             try {
                 val embeddings = embedTexts(listOf(text))
@@ -89,21 +89,25 @@ class FastEmbedEmbeddingService(
             } catch (e: Exception) {
                 logger.error(e) { "Error generating embedding for text" }
                 // 返回零向量作为后备
-                Embedding(List(dimensions) { 0f })
+                FloatArray(dimensions) { 0f }
             }
         }
     }
 
-    override suspend fun embedBatch(texts: List<String>): List<Embedding> {
+    override suspend fun embedBatch(texts: List<String>): List<FloatArray> {
         return withContext(Dispatchers.IO) {
             try {
                 embedTexts(texts)
             } catch (e: Exception) {
                 logger.error(e) { "Error generating batch embeddings" }
                 // 返回零向量作为后备
-                texts.map { Embedding(List(dimensions) { 0f }) }
+                texts.map { FloatArray(dimensions) { 0f } }
             }
         }
+    }
+
+    override fun dimension(): Int {
+        return dimensions
     }
 
     /**
@@ -250,7 +254,7 @@ if __name__ == '__main__':
     /**
      * 生成文本嵌入。
      */
-    private fun embedTexts(texts: List<String>): List<Embedding> {
+    private fun embedTexts(texts: List<String>): List<FloatArray> {
         if (texts.isEmpty()) {
             return emptyList()
         }
@@ -270,7 +274,7 @@ if __name__ == '__main__':
     /**
      * 使用 GraalPy Polyglot API 生成文本嵌入。
      */
-    private fun embedTextsWithPolyglot(texts: List<String>): List<Embedding> {
+    private fun embedTextsWithPolyglot(texts: List<String>): List<FloatArray> {
         try {
             logger.info { "Generating embeddings for ${texts.size} texts using GraalPy Polyglot API" }
 
@@ -286,20 +290,19 @@ if __name__ == '__main__':
             )
 
             // 转换结果
-            val embeddings = mutableListOf<Embedding>()
+            val embeddings = mutableListOf<FloatArray>()
             val size = result?.getArraySize() ?: 0
 
             for (i in 0 until size) {
                 val embedding = result?.getArrayElement(i)
-                val embeddingSize = embedding?.getArraySize() ?: 0
-                val vector = mutableListOf<Float>()
+                val embeddingSize = embedding?.getArraySize()?.toInt() ?: 0
+                val vector = FloatArray(embeddingSize)
 
                 for (j in 0 until embeddingSize) {
-                    val value = embedding?.getArrayElement(j)?.asFloat() ?: 0f
-                    vector.add(value)
+                    vector[j] = embedding?.getArrayElement(j.toLong())?.asFloat() ?: 0f
                 }
 
-                embeddings.add(Embedding(vector))
+                embeddings.add(vector)
             }
 
             return embeddings
@@ -312,7 +315,7 @@ if __name__ == '__main__':
     /**
      * 使用命令行方式生成文本嵌入。
      */
-    private fun embedTextsWithCommandLine(texts: List<String>): List<Embedding> {
+    private fun embedTextsWithCommandLine(texts: List<String>): List<FloatArray> {
         try {
             // 创建临时输入和输出文件
             val tempDir = Files.createTempDirectory("kastrax-fastembed-io").toFile()
@@ -357,8 +360,10 @@ if __name__ == '__main__':
             outputFile.delete()
             tempDir.delete()
 
-            // 转换为 Embedding 对象
-            return embeddings.map { Embedding(it) }
+            // 转换为 FloatArray 对象
+            return embeddings.map { floatList ->
+                FloatArray(floatList.size) { i -> floatList[i] }
+            }
         } catch (e: Exception) {
             logger.error(e) { "Error executing Python script" }
             throw e

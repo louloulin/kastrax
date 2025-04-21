@@ -45,15 +45,15 @@ class FastEmbedKotlinEmbeddingService private constructor(
      * @param text 要嵌入的文本
      * @return 嵌入向量
      */
-    override suspend fun embed(text: String): Embedding {
+    override suspend fun embed(text: String): FloatArray {
         return withContext(Dispatchers.IO) {
             try {
                 val embedding = asyncTextEmbedding.embed(text)
-                Embedding(embedding.vector.toList())
+                embedding.vector
             } catch (e: Exception) {
                 logger.error(e) { "Error generating embedding for text" }
                 // 返回零向量作为后备
-                Embedding(List(dimensions) { 0f })
+                FloatArray(dimensions) { 0f }
             }
         }
     }
@@ -65,7 +65,7 @@ class FastEmbedKotlinEmbeddingService private constructor(
      * @param texts 要嵌入的文本列表
      * @return 嵌入向量列表
      */
-    override suspend fun embedBatch(texts: List<String>): List<Embedding> {
+    override suspend fun embedBatch(texts: List<String>): List<FloatArray> {
         if (texts.isEmpty()) {
             return emptyList()
         }
@@ -74,13 +74,22 @@ class FastEmbedKotlinEmbeddingService private constructor(
             try {
                 // 使用 FastEmbed 的并行嵌入功能
                 val embeddings = asyncTextEmbedding.embedParallel(texts)
-                embeddings.map { Embedding(it.vector.toList()) }
+                embeddings.map { it.vector }
             } catch (e: Exception) {
                 logger.error(e) { "Error generating batch embeddings" }
                 // 返回零向量作为后备
-                texts.map { Embedding(List(dimensions) { 0f }) }
+                texts.map { FloatArray(dimensions) { 0f } }
             }
         }
+    }
+
+    /**
+     * 获取嵌入向量的维度。
+     *
+     * @return 嵌入向量的维度
+     */
+    override fun dimension(): Int {
+        return dimensions
     }
 
     /**
@@ -111,20 +120,20 @@ class FastEmbedKotlinEmbeddingService private constructor(
             showDownloadProgress: Boolean = false
         ): FastEmbedKotlinEmbeddingService {
             logger.info { "Creating FastEmbedKotlinEmbeddingService with model: $model" }
-            
+
             // 创建同步和异步 TextEmbedding 实例
             val textEmbedding = TextEmbedding.create(
                 model = model,
                 cacheDir = cacheDir,
                 showDownloadProgress = showDownloadProgress
             )
-            
+
             val asyncTextEmbedding = AsyncTextEmbedding.create(
                 model = model,
                 cacheDir = cacheDir,
                 showDownloadProgress = showDownloadProgress
             )
-            
+
             return FastEmbedKotlinEmbeddingService(
                 model = model,
                 cacheDir = cacheDir,
