@@ -2,10 +2,10 @@ package ai.kastrax.datasource.api
 
 import ai.kastrax.datasource.common.DataSourceType
 import ai.kastrax.datasource.common.GraphQlConnector
+import ai.kastrax.datasource.common.AuthType
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
-import ai.kastrax.datasource.api.AuthType
 import kotlinx.serialization.json.*
 import mu.KotlinLogging
 

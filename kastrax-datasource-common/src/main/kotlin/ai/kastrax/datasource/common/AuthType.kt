@@ -1,4 +1,4 @@
-package ai.kastrax.datasource.api
+package ai.kastrax.datasource.common
 
 /**
  * 认证类型枚举。

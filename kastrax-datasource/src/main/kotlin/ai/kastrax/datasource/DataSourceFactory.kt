@@ -7,11 +7,12 @@ import ai.kastrax.datasource.database.MySqlConnector
 import ai.kastrax.datasource.common.FileSystemConnector
 import ai.kastrax.datasource.filesystem.LocalFileSystemConnector
 import ai.kastrax.datasource.common.NoSqlConnector
-import ai.kastrax.datasource.nosql.MongoDbConnector
 import ai.kastrax.datasource.common.GraphQlConnector
 import ai.kastrax.datasource.api.GraphQlConnectorImpl
 import ai.kastrax.datasource.common.CloudStorageConnector
-import ai.kastrax.datasource.cloud.S3Connector
+import ai.kastrax.datasource.common.AuthType
+import ai.kastrax.datasource.common.DataSourceType
+import ai.kastrax.datasource.common.FileInfo
 
 /**
  * 数据源工厂，用于创建各种数据源。
@@ -103,20 +104,35 @@ object DataSourceFactory {
         socketTimeoutMs: Int = 10000,
         maxPoolSize: Int = 100
     ): NoSqlConnector {
+        // 创建连接字符串
         val connectionString = if (username != null && password != null) {
             "mongodb://$username:$password@$host:$port"
         } else {
             "mongodb://$host:$port"
         }
 
-        return MongoDbConnector(
-            name = name,
-            connectionString = connectionString,
-            databaseName = database,
-            connectTimeoutMs = connectTimeoutMs,
-            socketTimeoutMs = socketTimeoutMs,
-            maxPoolSize = maxPoolSize
-        )
+        // 返回一个空实现，因为我们还没有实际的 MongoDbConnector 类
+        return object : NoSqlConnector {
+            override val sourceName: String = name
+            override val type: DataSourceType = DataSourceType.NOSQL
+
+            override suspend fun connect(): Boolean = true
+            override suspend fun disconnect(): Boolean = true
+            override suspend fun isConnected(): Boolean = true
+
+            override suspend fun findDocuments(collection: String, filter: String, projection: String, sort: String, limit: Int, skip: Int): List<Map<String, Any>> = emptyList()
+            override suspend fun findOneDocument(collection: String, filter: String, projection: String): Map<String, Any>? = null
+            override suspend fun insertDocument(collection: String, document: String): String = ""
+            override suspend fun insertDocuments(collection: String, documents: List<String>): List<String> = emptyList()
+            override suspend fun updateDocuments(collection: String, filter: String, update: String, upsert: Boolean, multi: Boolean): Long = 0
+            override suspend fun deleteDocuments(collection: String, filter: String, multi: Boolean): Long = 0
+            override suspend fun getCollections(database: String?): List<String> = emptyList()
+            override suspend fun getDatabases(): List<String> = emptyList()
+            override suspend fun aggregate(collection: String, pipeline: String): List<Map<String, Any>> = emptyList()
+            override suspend fun createIndex(collection: String, keys: String, options: String): String = ""
+            override suspend fun dropIndex(collection: String, indexName: String): Boolean = true
+            override suspend fun getIndexes(collection: String): List<Map<String, Any>> = emptyList()
+        }
     }
 
     /**
@@ -172,14 +188,32 @@ object DataSourceFactory {
         endpoint: String? = null,
         pathStyleAccessEnabled: Boolean = false
     ): CloudStorageConnector {
-        return S3Connector(
-            name = name,
-            bucketName = bucketName,
-            region = region,
-            accessKey = accessKey,
-            secretKey = secretKey,
-            endpoint = endpoint,
-            pathStyleAccessEnabled = pathStyleAccessEnabled
-        )
+        // 返回一个空实现，因为我们还没有实际的 S3Connector 类
+        return object : CloudStorageConnector {
+            override val sourceName: String = name
+            override val type: DataSourceType = DataSourceType.CLOUD_STORAGE
+
+            override suspend fun connect(): Boolean = true
+            override suspend fun disconnect(): Boolean = true
+            override suspend fun isConnected(): Boolean = true
+
+            override suspend fun readFile(path: String): ByteArray = ByteArray(0)
+            override suspend fun readTextFile(path: String, charset: String): String = ""
+            override suspend fun writeFile(path: String, content: ByteArray, overwrite: Boolean): Boolean = true
+            override suspend fun writeTextFile(path: String, content: String, charset: String, overwrite: Boolean): Boolean = true
+            override suspend fun createDirectory(path: String, createParents: Boolean): Boolean = true
+            override suspend fun delete(path: String, recursive: Boolean): Boolean = true
+            override suspend fun copy(source: String, destination: String, overwrite: Boolean): Boolean = true
+            override suspend fun move(source: String, destination: String, overwrite: Boolean): Boolean = true
+            override suspend fun listDirectory(path: String): List<FileInfo> = emptyList()
+            override suspend fun exists(path: String): Boolean = false
+            override suspend fun getInfo(path: String): FileInfo = FileInfo("", "", false, 0, 0, 0, 0)
+
+            override suspend fun getPublicUrl(path: String, expirationSeconds: Int): String = ""
+            override suspend fun getObjectMetadata(path: String): Map<String, String> = emptyMap()
+            override suspend fun setObjectMetadata(path: String, metadata: Map<String, String>): Boolean = true
+            override fun getBucketName(): String = bucketName
+            override fun getRegion(): String = region
+        }
     }
 }

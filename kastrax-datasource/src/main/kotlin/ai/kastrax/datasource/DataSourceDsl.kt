@@ -5,10 +5,9 @@ import ai.kastrax.datasource.api.RestApiConnector
 import ai.kastrax.datasource.common.DatabaseConnector
 import ai.kastrax.datasource.common.FileSystemConnector
 import ai.kastrax.datasource.common.NoSqlConnector
-import ai.kastrax.datasource.nosql.mongodb
 import ai.kastrax.datasource.common.GraphQlConnector
 import ai.kastrax.datasource.common.CloudStorageConnector
-import ai.kastrax.datasource.cloud.s3
+import ai.kastrax.datasource.common.AuthType
 
 /**
  * MySQL 数据库连接器配置类，用于 DSL 构建。
