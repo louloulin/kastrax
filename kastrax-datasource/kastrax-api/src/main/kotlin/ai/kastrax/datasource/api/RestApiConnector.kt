@@ -18,7 +18,7 @@ class RestApiConnector(
     private val authToken: String = "",
     private val username: String = "",
     private val password: String = ""
-) : ApiConnectorBase(name) {
+) : ApiConnectorImpl(name) {
 
     private var isConnected = false
 
@@ -27,7 +27,7 @@ class RestApiConnector(
             // 对于 RESTful API，连接通常是无状态的，但我们可以验证 API 是否可访问
             val response = httpClient.get("$baseUrl/") {
                 headers {
-                    appendAll(defaultHeaders)
+                    defaultHeaders.forEach { (key, value) -> append(key, value) }
                     appendAuth()
                 }
             }

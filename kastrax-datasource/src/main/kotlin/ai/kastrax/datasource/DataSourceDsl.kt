@@ -1,9 +1,9 @@
 package ai.kastrax.datasource
 
-import ai.kastrax.datasource.api.ApiConnector
+import ai.kastrax.datasource.common.ApiConnector
 import ai.kastrax.datasource.api.RestApiConnector
-import ai.kastrax.datasource.database.DatabaseConnector
-import ai.kastrax.datasource.filesystem.FileSystemConnector
+import ai.kastrax.datasource.common.DatabaseConnector
+import ai.kastrax.datasource.common.FileSystemConnector
 
 /**
  * MySQL 数据库连接器配置类，用于 DSL 构建。
@@ -15,42 +15,42 @@ class MySqlConnectorConfig {
     var database: String = ""
     var username: String = ""
     var password: String = ""
-    
+
     /**
      * 设置连接器名称。
      */
     fun name(name: String) {
         this.name = name
     }
-    
+
     /**
      * 设置数据库主机。
      */
     fun host(host: String) {
         this.host = host
     }
-    
+
     /**
      * 设置数据库端口。
      */
     fun port(port: Int) {
         this.port = port
     }
-    
+
     /**
      * 设置数据库名称。
      */
     fun database(database: String) {
         this.database = database
     }
-    
+
     /**
      * 设置用户名。
      */
     fun username(username: String) {
         this.username = username
     }
-    
+
     /**
      * 设置密码。
      */
@@ -70,28 +70,28 @@ class RestApiConnectorConfig {
     var authToken: String = ""
     var username: String = ""
     var password: String = ""
-    
+
     /**
      * 设置连接器名称。
      */
     fun name(name: String) {
         this.name = name
     }
-    
+
     /**
      * 设置 API 基础 URL。
      */
     fun baseUrl(baseUrl: String) {
         this.baseUrl = baseUrl
     }
-    
+
     /**
      * 添加默认请求头。
      */
     fun header(key: String, value: String) {
         defaultHeaders[key] = value
     }
-    
+
     /**
      * 设置 Bearer 认证。
      */
@@ -99,7 +99,7 @@ class RestApiConnectorConfig {
         authType = RestApiConnector.AuthType.BEARER
         authToken = token
     }
-    
+
     /**
      * 设置 Basic 认证。
      */
@@ -108,7 +108,7 @@ class RestApiConnectorConfig {
         this.username = username
         this.password = password
     }
-    
+
     /**
      * 设置 API Key 认证。
      */
@@ -124,14 +124,14 @@ class RestApiConnectorConfig {
 class LocalFileSystemConnectorConfig {
     var name: String = "local-fs"
     var rootPath: String = ""
-    
+
     /**
      * 设置连接器名称。
      */
     fun name(name: String) {
         this.name = name
     }
-    
+
     /**
      * 设置根目录路径。
      */
@@ -148,11 +148,11 @@ class LocalFileSystemConnectorConfig {
  */
 fun mysql(init: MySqlConnectorConfig.() -> Unit): DatabaseConnector {
     val config = MySqlConnectorConfig().apply(init)
-    
+
     if (config.database.isEmpty()) {
         throw IllegalArgumentException("Database name is required")
     }
-    
+
     return DataSourceFactory.createMySqlConnector(
         name = config.name,
         host = config.host,
@@ -171,11 +171,11 @@ fun mysql(init: MySqlConnectorConfig.() -> Unit): DatabaseConnector {
  */
 fun restApi(init: RestApiConnectorConfig.() -> Unit): ApiConnector {
     val config = RestApiConnectorConfig().apply(init)
-    
+
     if (config.baseUrl.isEmpty()) {
         throw IllegalArgumentException("Base URL is required")
     }
-    
+
     return DataSourceFactory.createRestApiConnector(
         name = config.name,
         baseUrl = config.baseUrl,
@@ -195,11 +195,11 @@ fun restApi(init: RestApiConnectorConfig.() -> Unit): ApiConnector {
  */
 fun localFileSystem(init: LocalFileSystemConnectorConfig.() -> Unit): FileSystemConnector {
     val config = LocalFileSystemConnectorConfig().apply(init)
-    
+
     if (config.rootPath.isEmpty()) {
         throw IllegalArgumentException("Root path is required")
     }
-    
+
     return DataSourceFactory.createLocalFileSystemConnector(
         name = config.name,
         rootPath = config.rootPath

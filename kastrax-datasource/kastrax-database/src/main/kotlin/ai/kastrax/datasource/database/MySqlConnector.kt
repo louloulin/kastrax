@@ -15,9 +15,9 @@ class MySqlConnector(
     override val password: String,
     override val driverClassName: String = "com.mysql.cj.jdbc.Driver"
 ) : DatabaseConnectorBase(name) {
-    
+
     private var connection: Connection? = null
-    
+
     override suspend fun doConnect(): Boolean {
         return try {
             Class.forName(driverClassName)
@@ -28,7 +28,7 @@ class MySqlConnector(
             false
         }
     }
-    
+
     override suspend fun doDisconnect(): Boolean {
         return try {
             connection?.close()
@@ -40,79 +40,127 @@ class MySqlConnector(
             connection = null
         }
     }
-    
+
+    override suspend fun beginTransaction(): Boolean {
+        return try {
+            val conn = connection ?: throw IllegalStateException("Not connected to database")
+            conn.autoCommit = false
+            true
+        } catch (e: Exception) {
+            logger.error(e) { "Error beginning transaction" }
+            false
+        }
+    }
+
+    override suspend fun commitTransaction(): Boolean {
+        return try {
+            val conn = connection ?: throw IllegalStateException("Not connected to database")
+            conn.commit()
+            conn.autoCommit = true
+            true
+        } catch (e: Exception) {
+            logger.error(e) { "Error committing transaction" }
+            false
+        }
+    }
+
+    override suspend fun rollbackTransaction(): Boolean {
+        return try {
+            val conn = connection ?: throw IllegalStateException("Not connected to database")
+            conn.rollback()
+            conn.autoCommit = true
+            true
+        } catch (e: Exception) {
+            logger.error(e) { "Error rolling back transaction" }
+            false
+        }
+    }
+
+    override suspend fun executeBatch(sql: String, paramsList: List<Map<String, Any>>): IntArray {
+        val conn = connection ?: throw IllegalStateException("Not connected to database")
+
+        return conn.prepareStatement(sql).use { statement ->
+            for (params in paramsList) {
+                bindParameters(statement, params)
+                statement.addBatch()
+            }
+
+            statement.executeBatch()
+        }
+    }
+
     override fun doExecuteQuery(sql: String, params: Map<String, Any>): List<Map<String, Any>> {
         val conn = connection ?: throw IllegalStateException("Not connected to database")
-        
+
         return conn.prepareStatement(sql).use { statement ->
             bindParameters(statement, params)
-            
+
             statement.executeQuery().use { resultSet ->
                 val metadata = resultSet.metaData
                 val columnCount = metadata.columnCount
                 val result = mutableListOf<Map<String, Any>>()
-                
+
                 while (resultSet.next()) {
                     val row = mutableMapOf<String, Any>()
-                    
+
                     for (i in 1..columnCount) {
                         val columnName = metadata.getColumnName(i)
                         val value = resultSet.getObject(i)
                         row[columnName] = value ?: "null"
                     }
-                    
+
                     result.add(row)
                 }
-                
+
                 result
             }
         }
     }
-    
+
     override fun doExecuteUpdate(sql: String, params: Map<String, Any>): Int {
         val conn = connection ?: throw IllegalStateException("Not connected to database")
-        
+
         return conn.prepareStatement(sql).use { statement ->
             bindParameters(statement, params)
             statement.executeUpdate()
         }
     }
-    
+
     override fun doGetTables(): List<String> {
         val conn = connection ?: throw IllegalStateException("Not connected to database")
-        
+
         return conn.metaData.getTables(null, null, "%", arrayOf("TABLE")).use { resultSet ->
             val tables = mutableListOf<String>()
-            
+
             while (resultSet.next()) {
                 tables.add(resultSet.getString("TABLE_NAME"))
             }
-            
+
             tables
         }
     }
-    
+
     override fun doGetColumns(table: String): List<Map<String, Any>> {
         val conn = connection ?: throw IllegalStateException("Not connected to database")
-        
+
         return conn.metaData.getColumns(null, null, table, "%").use { resultSet ->
             val columns = mutableListOf<Map<String, Any>>()
-            
+
             while (resultSet.next()) {
                 val column = mutableMapOf<String, Any>()
-                
+
                 column["name"] = resultSet.getString("COLUMN_NAME")
                 column["type"] = resultSet.getString("TYPE_NAME")
                 column["size"] = resultSet.getInt("COLUMN_SIZE")
                 column["nullable"] = resultSet.getBoolean("IS_NULLABLE")
-                
+
                 columns.add(column)
             }
-            
+
             columns
         }
     }
-    
+
     /**
      * 绑定参数到 PreparedStatement。
      *
@@ -123,13 +171,13 @@ class MySqlConnector(
         // 简单实现，仅支持命名参数
         val parameterMetaData = statement.parameterMetaData
         val parameterCount = parameterMetaData.parameterCount
-        
+
         if (parameterCount > 0 && params.isNotEmpty()) {
             var index = 1
-            
+
             for ((_, value) in params) {
                 if (index > parameterCount) break
-                
+
                 when (value) {
                     is String -> statement.setString(index, value)
                     is Int -> statement.setInt(index, value)
@@ -140,7 +188,7 @@ class MySqlConnector(
                     null -> statement.setNull(index, java.sql.Types.NULL)
                     else -> statement.setObject(index, value)
                 }
-                
+
                 index++
             }
         }

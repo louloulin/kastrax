@@ -1,10 +1,10 @@
 package ai.kastrax.datasource
 
-import ai.kastrax.datasource.api.ApiConnector
+import ai.kastrax.datasource.common.ApiConnector
 import ai.kastrax.datasource.api.RestApiConnector
-import ai.kastrax.datasource.database.DatabaseConnector
+import ai.kastrax.datasource.common.DatabaseConnector
 import ai.kastrax.datasource.database.MySqlConnector
-import ai.kastrax.datasource.filesystem.FileSystemConnector
+import ai.kastrax.datasource.common.FileSystemConnector
 import ai.kastrax.datasource.filesystem.LocalFileSystemConnector
 
 /**
@@ -33,7 +33,7 @@ object DataSourceFactory {
         val url = "jdbc:mysql://$host:$port/$database?useSSL=false&serverTimezone=UTC"
         return MySqlConnector(name, url, username, password)
     }
-    
+
     /**
      * 创建 RESTful API 连接器。
      *
@@ -57,7 +57,7 @@ object DataSourceFactory {
     ): ApiConnector {
         return RestApiConnector(name, baseUrl, defaultHeaders, authType, authToken, username, password)
     }
-    
+
     /**
      * 创建本地文件系统连接器。
      *

@@ -95,7 +95,7 @@ class DataSourceManager : KastraXBase(component = "DataSourceManager", name = "D
                         successCount++
                     }
                 } catch (e: Exception) {
-                    logger.error(e) { "Error connecting to data source: ${dataSource.name}" }
+                    logger.error(e) { "Error connecting to data source: ${dataSource.sourceName}" }
                 }
             }
         }
@@ -119,7 +119,7 @@ class DataSourceManager : KastraXBase(component = "DataSourceManager", name = "D
                         successCount++
                     }
                 } catch (e: Exception) {
-                    logger.error(e) { "Error disconnecting from data source: ${dataSource.name}" }
+                    logger.error(e) { "Error disconnecting from data source: ${dataSource.sourceName}" }
                 }
             }
         }

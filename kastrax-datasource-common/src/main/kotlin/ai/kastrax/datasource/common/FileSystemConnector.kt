@@ -11,7 +11,7 @@ interface FileSystemConnector : DataSource {
      * @return 文件内容。
      */
     suspend fun readFile(path: String): ByteArray
-    
+
     /**
      * 读取文本文件内容。
      *
@@ -20,7 +20,7 @@ interface FileSystemConnector : DataSource {
      * @return 文件内容。
      */
     suspend fun readTextFile(path: String, charset: String = "UTF-8"): String
-    
+
     /**
      * 写入文件内容。
      *
@@ -30,7 +30,7 @@ interface FileSystemConnector : DataSource {
      * @return 如果写入成功，则返回 true；否则返回 false。
      */
     suspend fun writeFile(path: String, content: ByteArray, overwrite: Boolean = false): Boolean
-    
+
     /**
      * 写入文本文件内容。
      *
@@ -40,8 +40,13 @@ interface FileSystemConnector : DataSource {
      * @param overwrite 是否覆盖已存在的文件，默认为 false。
      * @return 如果写入成功，则返回 true；否则返回 false。
      */
-    suspend fun writeTextFile(path: String, content: String, charset: String = "UTF-8", overwrite: Boolean = false): Boolean
-    
+    suspend fun writeTextFile(
+        path: String,
+        content: String,
+        charset: String = "UTF-8",
+        overwrite: Boolean = false
+    ): Boolean
+
     /**
      * 创建目录。
      *
@@ -50,7 +55,7 @@ interface FileSystemConnector : DataSource {
      * @return 如果创建成功，则返回 true；否则返回 false。
      */
     suspend fun createDirectory(path: String, createParents: Boolean = true): Boolean
-    
+
     /**
      * 删除文件或目录。
      *
@@ -59,7 +64,7 @@ interface FileSystemConnector : DataSource {
      * @return 如果删除成功，则返回 true；否则返回 false。
      */
     suspend fun delete(path: String, recursive: Boolean = false): Boolean
-    
+
     /**
      * 复制文件或目录。
      *
@@ -69,7 +74,7 @@ interface FileSystemConnector : DataSource {
      * @return 如果复制成功，则返回 true；否则返回 false。
      */
     suspend fun copy(source: String, destination: String, overwrite: Boolean = false): Boolean
-    
+
     /**
      * 移动文件或目录。
      *
@@ -79,7 +84,7 @@ interface FileSystemConnector : DataSource {
      * @return 如果移动成功，则返回 true；否则返回 false。
      */
     suspend fun move(source: String, destination: String, overwrite: Boolean = false): Boolean
-    
+
     /**
      * 列出目录内容。
      *
@@ -87,7 +92,7 @@ interface FileSystemConnector : DataSource {
      * @return 目录内容列表。
      */
     suspend fun listDirectory(path: String): List<FileInfo>
-    
+
     /**
      * 检查文件或目录是否存在。
      *
@@ -95,7 +100,7 @@ interface FileSystemConnector : DataSource {
      * @return 如果存在，则返回 true；否则返回 false。
      */
     suspend fun exists(path: String): Boolean
-    
+
     /**
      * 获取文件或目录信息。
      *

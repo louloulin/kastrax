@@ -180,8 +180,8 @@ abstract class FileSystemConnectorBase(
         }
     }
 
-    override suspend fun copy(source: String, destination: String, overwrite: Boolean, recursive: Boolean): Boolean {
-        logger.debug { "Copying from $source to $destination, overwrite: $overwrite, recursive: $recursive" }
+    override suspend fun copy(source: String, destination: String, overwrite: Boolean): Boolean {
+        logger.debug { "Copying from $source to $destination, overwrite: $overwrite" }
         return withContext(Dispatchers.IO) {
             val sourcePath = getFullPath(source)
             val destinationPath = getFullPath(destination)
@@ -198,10 +198,8 @@ abstract class FileSystemConnectorBase(
 
             try {
                 if (Files.isDirectory(sourcePath)) {
-                    if (!recursive) {
-                        logger.warn { "Source is a directory but recursive is false: $source" }
-                        return@withContext false
-                    }
+                    // Always copy directories recursively
+                    logger.debug { "Source is a directory, copying recursively: $source" }
 
                     Files.createDirectories(destinationPath)
 
