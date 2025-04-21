@@ -14,6 +14,7 @@ dependencies {
     implementation(project(":kastrax-memory-impl"))
     implementation(project(":kastrax-integrations:kastrax-openai"))
     implementation(project(":kastrax-integrations:kastrax-deepseek"))
+    implementation(project(":fastembed-kotlin"))
 
     // Kotlin
     implementation(kotlin("stdlib"))

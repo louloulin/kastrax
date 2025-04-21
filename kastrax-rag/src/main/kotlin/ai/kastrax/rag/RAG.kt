@@ -125,7 +125,13 @@ class RAG(
     ): String {
         val results = search(query, limit, minScore, applyReranking)
 
+        logger.info { "Search results for query '$query': ${results.size} results with min score $minScore" }
+        results.forEachIndexed { index, result ->
+            logger.info { "Result $index: score=${result.score}, content=${result.document.content.take(50)}..." }
+        }
+
         if (results.isEmpty()) {
+            logger.info { "No results found for query '$query' with min score $minScore" }
             return ""
         }
 
@@ -161,5 +167,26 @@ class RAG(
      */
     suspend fun clear() {
         vectorStore.clear()
+    }
+
+    /**
+     * 获取查询文本与向量存储中文档的相似度分数。
+     * 这个方法主要用于调试目的，帮助理解检索过程。
+     *
+     * @param query 查询文本
+     * @param limit 返回结果的最大数量
+     * @param minScore 最小相似度分数
+     * @return 相似度分数映射，键为文档ID，值为相似度分数
+     */
+    suspend fun getSimilarityScores(
+        query: String,
+        limit: Int = 10,
+        minScore: Double = 0.0
+    ): Map<String, Double> {
+        val results = vectorStore.similaritySearch(query, embeddingService, limit, minScore)
+        return results.associate {
+            val docId = it.document.metadata["id"]?.toString() ?: it.document.content.take(20) + "..."
+            docId to it.score
+        }
     }
 }
