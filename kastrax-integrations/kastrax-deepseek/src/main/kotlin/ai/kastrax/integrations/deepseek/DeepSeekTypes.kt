@@ -40,8 +40,8 @@ data class DeepSeekChatCompletionRequest(
  */
 @Serializable
 data class DeepSeekMessage(
-    /** 消息角色 */
-    val role: String,
+    /** 消息角色（在流式响应的 delta 中可能不存在） */
+    val role: String? = null,
     /** 消息内容 */
     val content: String? = null,
     /** 消息名称 */

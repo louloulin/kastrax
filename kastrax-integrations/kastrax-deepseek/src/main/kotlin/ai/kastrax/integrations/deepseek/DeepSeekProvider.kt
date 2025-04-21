@@ -157,13 +157,15 @@ class DeepSeekProvider(
      * 将 LlmMessage 转换为 DeepSeekMessage。
      */
     private fun LlmMessage.toDeepSeekMessage(): DeepSeekMessage {
+        val roleStr = when (role) {
+            LlmMessageRole.SYSTEM -> "system"
+            LlmMessageRole.USER -> "user"
+            LlmMessageRole.ASSISTANT -> "assistant"
+            LlmMessageRole.TOOL -> "tool"
+        }
+
         return DeepSeekMessage(
-            role = when (role) {
-                LlmMessageRole.SYSTEM -> "system"
-                LlmMessageRole.USER -> "user"
-                LlmMessageRole.ASSISTANT -> "assistant"
-                LlmMessageRole.TOOL -> "tool"
-            },
+            role = roleStr,  // 现在 role 是可选的，但在这里我们总是提供它
             content = content,
             name = name,
             toolCalls = toolCalls.map { it.toDeepSeekToolCall() }.takeIf { it.isNotEmpty() },
