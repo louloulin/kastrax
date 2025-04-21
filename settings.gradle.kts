@@ -11,6 +11,7 @@ include(":kastrax-deployer")
 include(":kastrax-integrations:kastrax-openai")
 include(":kastrax-integrations:kastrax-deepseek")
 include(":kastrax-integrations:kastrax-anthropic")
+include(":kastrax-integrations:kastrax-gemini")
 
 include(":fastembed-kotlin")
 // 已修复 AdvancedWorkflowExample.kt 文件的编译错误
