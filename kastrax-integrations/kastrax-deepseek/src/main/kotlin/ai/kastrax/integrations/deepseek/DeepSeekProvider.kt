@@ -55,11 +55,19 @@ class DeepSeekProvider(
 
         val request = createChatCompletionRequest(messages, options, stream = true)
 
-        return client.streamChatCompletion(request)
-            .map { response ->
-                response.choices.firstOrNull()?.delta?.content ?: ""
+        // 使用增强的流式处理方法
+        return client.streamChatCompletionEnhanced(request)
+            .map { chunk ->
+                when (chunk) {
+                    is DeepSeekStreamChunk.Content -> chunk.text
+                    else -> ""
+                }
             }
             .filter { it.isNotEmpty() }
+            .catch { e ->
+                logger.error(e) { "Error in stream generation: ${e.message}" }
+                throw e
+            }
     }
 
 

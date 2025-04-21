@@ -9,9 +9,10 @@ import kotlinx.serialization.json.*
 import kotlin.math.sqrt
 
 /**
- * DeepSeek 流式响应示例，展示如何使用 DeepSeek 的流式响应。
- * 注意：由于 DeepSeek API 的流式响应格式与客户端期望的格式不匹配，
- * 可能会在控制台看到警告信息，但不影响功能。
+ * DeepSeek 流式响应示例，展示如何使用改进的 DeepSeek 流式响应。
+ *
+ * 该示例使用了细粒度更高的流式处理方法，可以实现真正的逐字符实时显示。
+ * 我们修复了 DeepSeekMessage 类中 role 字段的问题，并优化了 SSE 流式处理逻辑。
  */
 fun main() = runBlocking {
     // 创建一个计算器工具
@@ -64,7 +65,8 @@ fun main() = runBlocking {
         // 使用 DeepSeek 模型
         model = deepSeek {
             model("deepseek-chat")
-            apiKey("sk-85e83081df28490b9ae63188f0cb4f79")
+            // 确保 API 密钥格式正确，不包含多余的空格或特殊字符
+            apiKey("sk-85e83081df28490b9ae63188f0cb4f79".trim())
         }
 
         // 添加工具
@@ -98,6 +100,7 @@ fun main() = runBlocking {
             // 收集流式响应的内容
             response.textStream?.collect { chunk ->
                 print(chunk)
+                System.out.flush()  // 立即刷新输出缓冲区，确保实时显示
             }
         } catch (e: Exception) {
             println("\n流式响应出错: ${e.message}")

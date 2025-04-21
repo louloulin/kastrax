@@ -134,6 +134,29 @@ class DeepSeekClient(
     }
 
     /**
+     * 改进的流式聊天完成方法。
+     * 返回细粒度更高的 DeepSeekStreamChunk 对象，更适合实时显示。
+     *
+     * @param request 聊天完成请求
+     * @return 包含流式响应块的流
+     */
+    suspend fun streamChatCompletionEnhanced(
+        request: DeepSeekChatCompletionRequest
+    ): Flow<DeepSeekStreamChunk> {
+        // 创建流式客户端，使用与当前客户端相同的 HTTP 客户端
+        val streamingClient = DeepSeekStreamingClient(
+            httpClient = httpClient,  // 使用相同的 HTTP 客户端
+            baseUrl = baseUrl,
+            apiKey = apiKey
+        )
+
+        logger.debug { "Using enhanced streaming for model: ${request.model}" }
+
+        // 使用流式客户端创建流
+        return streamingClient.createChatCompletionStream(request)
+    }
+
+    /**
      * 关闭客户端。
      */
     fun close() {
