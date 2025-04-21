@@ -31,9 +31,13 @@ class DeepSeekStreamingClient(
 ) {
     /**
      * 创建一个新的 DeepSeekStreamingClient 实例，使用与 DeepSeekClient 相同的 HTTP 客户端配置。
+     *
+     * @param baseUrl DeepSeek API 的基础 URL
+     * @param apiKey DeepSeek API 密钥
+     * @param timeout 请求超时时间（毫秒），默认为 60000 毫秒（60秒）
      */
-    constructor(baseUrl: String, apiKey: String) : this(
-        httpClient = DeepSeekClient.createDefaultHttpClient(apiKey),
+    constructor(baseUrl: String, apiKey: String, timeout: Long = 60000) : this(
+        httpClient = DeepSeekClient.createDefaultHttpClient(apiKey, timeout),
         baseUrl = baseUrl,
         apiKey = apiKey
     )

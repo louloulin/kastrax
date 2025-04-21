@@ -18,83 +18,88 @@ fun runDirectStreamingExample() = runBlocking {
     val apiKey = "sk-85e83081df28490b9ae63188f0cb4f79"
     val baseUrl = "https://api.deepseek.com/v1"
 
-    // 创建流式客户端
-    val client = DeepSeekStreamingClient(baseUrl, apiKey)
+    println("创建流式客户端...")
+    try {
+        // 创建流式客户端，增加超时设置
+        val client = DeepSeekStreamingClient(baseUrl, apiKey, timeout = 120000) // 增加超时时间到120秒
 
-    println("DeepSeek 直接流式响应示例")
-    println("-------------------")
+        println("DeepSeek 直接流式响应示例")
+        println("-------------------")
 
-    // 预定义的问题列表
-    val questions = listOf(
-        "2+2等于多少？",
-        "什么是人工智能？",
-        "计算平方根 16",
-        "用中文解释量子力学的基本原理"
-    )
-
-    // 自动执行每个问题
-    for (question in questions) {
-        println("\n问题: $question")
-        println("DeepSeek 正在思考...")
-
-        // 创建请求
-        val request = DeepSeekChatCompletionRequest(
-            model = "deepseek-chat",
-            messages = listOf(
-                DeepSeekMessage(
-                    role = "system",
-                    content = "你是一个有帮助的助手，可以回答问题和执行计算。"
-                ),
-                DeepSeekMessage(
-                    role = "user",
-                    content = question
-                )
-            ),
-            stream = true
+        // 预定义的问题列表
+        val questions = listOf(
+            "2+2等于多少？",
+            "什么是人工智能？",
+            "计算平方根 16",
+            "用中文解释量子力学的基本原理"
         )
 
-        print("\n回答: ")
+        // 自动执行每个问题
+        for (question in questions) {
+            println("\n问题: $question")
+            println("DeepSeek 正在思考...")
 
-        try {
-            // 直接使用改进的 DeepSeekStreamingClient 的流式方法
-            client.createChatCompletionStream(request).collect { chunk ->
-                when (chunk) {
-                    is DeepSeekStreamChunk.Content -> {
-//                        println("ffffxxxx-=====")
-                        // 打印内容并立即刷新，确保实时显示
-                        // 使用 UTF-8 编码确保中文正确显示
-                        val text = chunk.text
-                        // 将文本转换为 UTF-8 字节数组，然后重新解析
-                        val utf8Text = String(text.toByteArray(Charsets.UTF_8), Charsets.UTF_8)
-                        print(utf8Text)
-                        System.out.flush() // 关键：立即刷新输出缓冲区
+            // 创建请求
+            val request = DeepSeekChatCompletionRequest(
+                model = "deepseek-chat",
+                messages = listOf(
+                    DeepSeekMessage(
+                        role = "system",
+                        content = "你是一个有帮助的助手，可以回答问题和执行计算。"
+                    ),
+                    DeepSeekMessage(
+                        role = "user",
+                        content = question
+                    )
+                ),
+                stream = true
+            )
 
-                        // 添加小延迟，确保字符能够被看到
-                        Thread.sleep(1) // 1毫秒延迟，可以根据需要调整
-                    }
-                    is DeepSeekStreamChunk.Finished -> {
-                        // 完成时打印换行
-                        println("\n(完成原因: ${chunk.reason})")
-                    }
-                    is DeepSeekStreamChunk.Done -> {
-                        // 流结束
-                        println("\n-------------------")
+            print("\n回答: ")
+
+            try {
+                // 直接使用改进的 DeepSeekStreamingClient 的流式方法
+                client.createChatCompletionStream(request).collect { chunk ->
+                    when (chunk) {
+                        is DeepSeekStreamChunk.Content -> {
+                            // 打印内容并立即刷新，确保实时显示
+                            // 使用 UTF-8 编码确保中文正确显示
+                            val text = chunk.text
+                            // 将文本转换为 UTF-8 字节数组，然后重新解析
+                            val utf8Text = String(text.toByteArray(Charsets.UTF_8), Charsets.UTF_8)
+                            print(utf8Text)
+                            System.out.flush() // 关键：立即刷新输出缓冲区
+
+                            // 添加小延迟，确保字符能够被看到
+                            Thread.sleep(1) // 1毫秒延迟，可以根据需要调整
+                        }
+                        is DeepSeekStreamChunk.Finished -> {
+                            // 完成时打印换行
+                            println("\n(完成原因: ${chunk.reason})")
+                        }
+                        is DeepSeekStreamChunk.Done -> {
+                            // 流结束
+                            println("\n-------------------")
+                        }
                     }
                 }
+            } catch (e: Exception) {
+                println("\n错误: ${e.message}")
+                e.printStackTrace()
             }
-        } catch (e: Exception) {
-            println("\n错误: ${e.message}")
-            e.printStackTrace()
+
+            // 添加延时，避免请求过快
+            Thread.sleep(1000)
         }
 
-        // 添加延时，避免请求过快
-        Thread.sleep(1000)
+        // 关闭客户端
+        // 注意: 在示例结束时，客户端会自动关闭
+
+        println("\n示例结束。")
+    } catch (e: Exception) {
+        println("创建流式客户端时出错: ${e.message}")
+        e.printStackTrace()
     }
-
-    // 关闭客户端
-    // 注意: 在示例结束时，客户端会自动关闭
-
-    println("\n示例结束。")
 }
 
 /**

@@ -25,7 +25,8 @@ private val logger = KotlinLogging.logger {}
 class DeepSeekClient(
     private val apiKey: String,
     private val baseUrl: String = "https://api.deepseek.com/v1",
-    private val httpClient: HttpClient = createDefaultHttpClient(apiKey)
+    private val httpClient: HttpClient = createDefaultHttpClient(apiKey),
+    private val timeout: Long = 60000
 ) {
     /**
      * 创建聊天完成。
@@ -166,8 +167,12 @@ class DeepSeekClient(
     companion object {
         /**
          * 创建默认的 HTTP 客户端。
+         *
+         * @param apiKey DeepSeek API 密钥
+         * @param timeout 请求超时时间（毫秒），默认为 60000 毫秒（60秒）
+         * @return HTTP 客户端
          */
-        fun createDefaultHttpClient(apiKey: String): HttpClient {
+        fun createDefaultHttpClient(apiKey: String, timeout: Long = 60000): HttpClient {
             return HttpClient(CIO) {
                 install(ContentNegotiation) {
                     json(Json {
@@ -178,9 +183,9 @@ class DeepSeekClient(
                 }
 
                 install(HttpTimeout) {
-                    requestTimeoutMillis = 60000
-                    connectTimeoutMillis = 10000
-                    socketTimeoutMillis = 60000
+                    requestTimeoutMillis = timeout
+                    connectTimeoutMillis = 30000  // 增加连接超时时间
+                    socketTimeoutMillis = timeout
                 }
 
                 defaultRequest {
