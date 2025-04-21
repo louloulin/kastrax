@@ -60,6 +60,7 @@ fun runDirectStreamingExample() = runBlocking {
             client.createChatCompletionStream(request).collect { chunk ->
                 when (chunk) {
                     is DeepSeekStreamChunk.Content -> {
+//                        println("ffffxxxx-=====")
                         // 打印内容并立即刷新，确保实时显示
                         print(chunk.text)
                         System.out.flush() // 关键：立即刷新输出缓冲区
