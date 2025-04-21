@@ -7,7 +7,7 @@ import ai.kastrax.rag.document.DirectoryDocumentLoader
 import ai.kastrax.rag.document.RecursiveCharacterTextSplitter
 import ai.kastrax.rag.document.WebPageDocumentLoader
 import ai.kastrax.rag.embedding.RandomEmbeddingService
-import ai.kastrax.rag.vectorstore.InMemoryVectorStore
+import ai.kastrax.rag.vectorstore.RagInMemoryVectorStore
 import ai.kastrax.integrations.openai.openAi
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.runBlocking
@@ -22,7 +22,7 @@ import java.time.format.DateTimeFormatter
  */
 fun main() = runBlocking {
     // 创建向量存储和嵌入服务
-    val vectorStore = InMemoryVectorStore()
+    val vectorStore = RagInMemoryVectorStore()
     val embeddingService = RandomEmbeddingService(dimensions = 1536)
 
     // 创建 RAG 系统

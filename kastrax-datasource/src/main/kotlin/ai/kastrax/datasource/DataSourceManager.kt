@@ -1,6 +1,8 @@
 package ai.kastrax.datasource
 
 import ai.kastrax.core.common.KastraXBase
+import ai.kastrax.datasource.common.DataSource
+import ai.kastrax.datasource.common.DataSourceType
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.util.concurrent.ConcurrentHashMap
@@ -9,9 +11,9 @@ import java.util.concurrent.ConcurrentHashMap
  * 数据源管理器，用于管理所有数据源。
  */
 class DataSourceManager : KastraXBase(component = "DataSourceManager", name = "DataSourceManager") {
-    
+
     private val dataSources = ConcurrentHashMap<String, DataSource>()
-    
+
     /**
      * 注册数据源。
      *
@@ -19,18 +21,18 @@ class DataSourceManager : KastraXBase(component = "DataSourceManager", name = "D
      * @return 如果注册成功，则返回 true；否则返回 false。
      */
     fun registerDataSource(dataSource: DataSource): Boolean {
-        val name = dataSource.name
-        
+        val name = dataSource.sourceName
+
         if (dataSources.containsKey(name)) {
             logger.warn { "Data source with name '$name' already exists" }
             return false
         }
-        
+
         dataSources[name] = dataSource
         logger.info { "Registered data source: $name (${dataSource.type})" }
         return true
     }
-    
+
     /**
      * 注销数据源。
      *
@@ -39,16 +41,16 @@ class DataSourceManager : KastraXBase(component = "DataSourceManager", name = "D
      */
     suspend fun unregisterDataSource(name: String): Boolean {
         val dataSource = dataSources[name] ?: return false
-        
+
         if (dataSource.isConnected()) {
             dataSource.disconnect()
         }
-        
+
         dataSources.remove(name)
         logger.info { "Unregistered data source: $name" }
         return true
     }
-    
+
     /**
      * 获取数据源。
      *
@@ -58,7 +60,7 @@ class DataSourceManager : KastraXBase(component = "DataSourceManager", name = "D
     fun getDataSource(name: String): DataSource? {
         return dataSources[name]
     }
-    
+
     /**
      * 获取所有数据源。
      *
@@ -67,7 +69,7 @@ class DataSourceManager : KastraXBase(component = "DataSourceManager", name = "D
     fun getAllDataSources(): Map<String, DataSource> {
         return dataSources.toMap()
     }
-    
+
     /**
      * 获取指定类型的所有数据源。
      *
@@ -77,7 +79,7 @@ class DataSourceManager : KastraXBase(component = "DataSourceManager", name = "D
     fun getDataSourcesByType(type: DataSourceType): Map<String, DataSource> {
         return dataSources.filterValues { it.type == type }
     }
-    
+
     /**
      * 连接所有数据源。
      *
@@ -85,7 +87,7 @@ class DataSourceManager : KastraXBase(component = "DataSourceManager", name = "D
      */
     suspend fun connectAll(): Int {
         var successCount = 0
-        
+
         withContext(Dispatchers.IO) {
             dataSources.values.forEach { dataSource ->
                 try {
@@ -97,11 +99,11 @@ class DataSourceManager : KastraXBase(component = "DataSourceManager", name = "D
                 }
             }
         }
-        
+
         logger.info { "Connected to $successCount/${dataSources.size} data sources" }
         return successCount
     }
-    
+
     /**
      * 断开所有数据源的连接。
      *
@@ -109,7 +111,7 @@ class DataSourceManager : KastraXBase(component = "DataSourceManager", name = "D
      */
     suspend fun disconnectAll(): Int {
         var successCount = 0
-        
+
         withContext(Dispatchers.IO) {
             dataSources.values.forEach { dataSource ->
                 try {
@@ -121,14 +123,14 @@ class DataSourceManager : KastraXBase(component = "DataSourceManager", name = "D
                 }
             }
         }
-        
+
         logger.info { "Disconnected from $successCount/${dataSources.size} data sources" }
         return successCount
     }
-    
+
     companion object {
         private val instance = DataSourceManager()
-        
+
         /**
          * 获取数据源管理器实例。
          *

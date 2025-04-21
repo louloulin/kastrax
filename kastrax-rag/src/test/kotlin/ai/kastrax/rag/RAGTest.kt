@@ -4,7 +4,7 @@ import ai.kastrax.rag.document.Document
 import ai.kastrax.rag.document.RecursiveCharacterTextSplitter
 import ai.kastrax.rag.embedding.RandomEmbeddingService
 import ai.kastrax.rag.reranker.KeywordMatchReranker
-import ai.kastrax.rag.vectorstore.InMemoryVectorStore
+import ai.kastrax.rag.vectorstore.RagInMemoryVectorStore
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeEach
@@ -14,12 +14,12 @@ import java.io.File
 class RAGTest {
 
     private lateinit var rag: RAG
-    private lateinit var vectorStore: InMemoryVectorStore
+    private lateinit var vectorStore: RagInMemoryVectorStore
     private lateinit var embeddingService: RandomEmbeddingService
 
     @BeforeEach
     fun setUp() {
-        vectorStore = InMemoryVectorStore()
+        vectorStore = RagInMemoryVectorStore()
         embeddingService = RandomEmbeddingService(dimensions = 128)
         rag = RAG(vectorStore, embeddingService)
     }

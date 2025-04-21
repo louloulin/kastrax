@@ -14,6 +14,7 @@ include(":kastrax-integrations:kastrax-anthropic")
 include(":kastrax-integrations:kastrax-gemini")
 
 // Data Source modules
+include(":kastrax-datasource-common")
 include(":kastrax-datasource")
 include(":kastrax-datasource:kastrax-database")
 include(":kastrax-datasource:kastrax-api")

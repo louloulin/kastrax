@@ -9,21 +9,24 @@ plugins {
 dependencies {
     // Project dependencies
     implementation(project(":kastrax-core"))
-    
+    implementation(project(":kastrax-datasource-common"))
+    implementation(project(":kastrax-datasource:kastrax-api"))
+    implementation(project(":kastrax-datasource:kastrax-database"))
+    implementation(project(":kastrax-datasource:kastrax-filesystem"))
     // Kotlin
     implementation(kotlin("stdlib"))
     implementation(kotlin("reflect"))
-    
+
     // Coroutines
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
-    
+
     // Serialization
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.0")
-    
+
     // Logging
     implementation("io.github.microutils:kotlin-logging-jvm:3.0.5")
     implementation("ch.qos.logback:logback-classic:1.4.11")
-    
+
     // Testing
     testImplementation("org.jetbrains.kotlin:kotlin-test")
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
@@ -54,7 +57,7 @@ publishing {
             groupId = "ai.kastrax"
             artifactId = "kastrax-datasource"
             version = "0.1.0"
-            
+
             from(components["java"])
         }
     }

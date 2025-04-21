@@ -7,7 +7,7 @@ import ai.kastrax.rag.document.DirectoryDocumentLoader
 import ai.kastrax.rag.document.RecursiveCharacterTextSplitter
 import ai.kastrax.rag.document.TextFileDocumentLoader
 import ai.kastrax.rag.embedding.FastEmbedKotlinEmbeddingService
-import ai.kastrax.rag.vectorstore.InMemoryVectorStore
+import ai.kastrax.rag.vectorstore.RagInMemoryVectorStore
 import ai.kastrax.integrations.deepseek.deepSeek
 import ai.kastrax.fastembed.EmbeddingModel
 import kotlinx.coroutines.runBlocking
@@ -44,7 +44,7 @@ fun main() = runBlocking {
 
     try {
         // 创建向量存储和 RAG 系统
-        val vectorStore = InMemoryVectorStore()
+        val vectorStore = RagInMemoryVectorStore()
         val rag = RAG(vectorStore, embeddingService)
 
         // 创建文档分割器

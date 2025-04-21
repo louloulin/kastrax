@@ -7,7 +7,7 @@ import ai.kastrax.rag.embedding.EmbeddingService
 import ai.kastrax.rag.reranker.IdentityReranker
 import ai.kastrax.rag.reranker.Reranker
 import ai.kastrax.rag.vectorstore.SearchResult
-import ai.kastrax.rag.vectorstore.VectorStore
+import ai.kastrax.rag.vectorstore.RagVectorStore
 import io.github.oshai.kotlinlogging.KotlinLogging
 
 private val logger = KotlinLogging.logger {}
@@ -20,7 +20,7 @@ private val logger = KotlinLogging.logger {}
  * @property reranker 重排序器，默认为 IdentityReranker
  */
 class RAG(
-    private val vectorStore: VectorStore,
+    private val vectorStore: RagVectorStore,
     private val embeddingService: EmbeddingService,
     private val reranker: Reranker = IdentityReranker()
 ) {

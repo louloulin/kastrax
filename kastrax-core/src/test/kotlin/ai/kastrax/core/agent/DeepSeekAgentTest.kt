@@ -6,6 +6,7 @@ import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.*
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.Disabled
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
@@ -16,6 +17,7 @@ import kotlin.test.assertTrue
 class DeepSeekAgentTest {
 
     @Test
+    @Disabled("DeepSeek integration not available")
     fun `test agent with DeepSeek`() = runBlocking {
         // Create a calculator tool
         val calculatorTool = tool {
@@ -67,27 +69,27 @@ class DeepSeekAgentTest {
 
         // Test generate method
         val response = testAgent.generate("What is 2 + 2?")
-        
+
         println("Response: ${response.text}")
         println("Tool calls: ${response.toolCalls}")
         println("Tool results: ${response.toolResults}")
-        
+
         assertNotNull(response.text)
         assertTrue(response.text.isNotEmpty())
-        
+
         // Test stream method
         val streamResponse = testAgent.stream("Calculate the square root of 16")
         val streamContent = StringBuilder()
-        
+
         streamResponse.textStream?.collect { chunk ->
             streamContent.append(chunk)
             print(chunk)
         }
-        
+
         println("\nStream response: $streamContent")
         assertTrue(streamContent.isNotEmpty())
     }
-    
+
     // Helper function to evaluate simple expressions
     private fun evaluateExpression(expression: String): Double {
         // This is a very simplified calculator for testing

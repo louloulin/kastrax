@@ -7,7 +7,7 @@ import ai.kastrax.rag.document.RecursiveCharacterTextSplitter
 import ai.kastrax.rag.document.WebPageDocumentLoader
 import ai.kastrax.rag.embedding.OpenAIEmbeddingService
 import ai.kastrax.rag.embedding.RandomEmbeddingService
-import ai.kastrax.rag.vectorstore.InMemoryVectorStore
+import ai.kastrax.rag.vectorstore.RagInMemoryVectorStore
 import ai.kastrax.integrations.openai.openAi
 import kotlinx.coroutines.runBlocking
 import java.io.File
@@ -19,7 +19,7 @@ import java.io.File
  */
 fun main() = runBlocking {
     // 创建向量存储和嵌入服务
-    val vectorStore = InMemoryVectorStore()
+    val vectorStore = RagInMemoryVectorStore()
 
     // 使用 OpenAI 嵌入服务（需要 API 密钥）
     // val embeddingService = OpenAIEmbeddingService(apiKey = System.getenv("OPENAI_API_KEY"))

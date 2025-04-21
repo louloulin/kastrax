@@ -8,19 +8,19 @@ plugins {
 dependencies {
     // Project dependencies
     implementation(project(":kastrax-core"))
-    implementation(project(":kastrax-datasource"))
-    
+    implementation(project(":kastrax-datasource-common"))
+
     // Kotlin
     implementation(kotlin("stdlib"))
     implementation(kotlin("reflect"))
-    
+
     // Coroutines
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
-    
+
     // Logging
     implementation("io.github.microutils:kotlin-logging-jvm:3.0.5")
     implementation("ch.qos.logback:logback-classic:1.4.11")
-    
+
     // Testing
     testImplementation("org.jetbrains.kotlin:kotlin-test")
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")

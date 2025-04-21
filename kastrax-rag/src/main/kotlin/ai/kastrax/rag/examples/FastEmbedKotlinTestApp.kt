@@ -4,7 +4,7 @@ import ai.kastrax.fastembed.EmbeddingModel
 import ai.kastrax.rag.RAG
 import ai.kastrax.rag.document.Document
 import ai.kastrax.rag.embedding.FastEmbedKotlinEmbeddingService
-import ai.kastrax.rag.vectorstore.InMemoryVectorStore
+import ai.kastrax.rag.vectorstore.RagInMemoryVectorStore
 import kotlinx.coroutines.runBlocking
 import kotlin.system.measureTimeMillis
 
@@ -82,7 +82,7 @@ fun main() = runBlocking {
 
         // 测试 RAG 系统
         println("\n测试 RAG 系统...")
-        val vectorStore = InMemoryVectorStore()
+        val vectorStore = RagInMemoryVectorStore()
         val rag = RAG(vectorStore, embeddingService)
 
         // 添加文档

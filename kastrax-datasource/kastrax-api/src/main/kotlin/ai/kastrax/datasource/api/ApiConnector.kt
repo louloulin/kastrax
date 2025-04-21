@@ -1,17 +1,22 @@
 package ai.kastrax.datasource.api
 
-import ai.kastrax.datasource.DataSource
-import ai.kastrax.datasource.DataSourceBase
-import ai.kastrax.datasource.DataSourceType
+import ai.kastrax.datasource.common.DataSource
+import ai.kastrax.datasource.common.DataSourceBase
+import ai.kastrax.datasource.common.DataSourceType
+import mu.KotlinLogging
 import io.ktor.client.*
 import io.ktor.client.engine.cio.*
 import io.ktor.client.plugins.*
 import io.ktor.client.plugins.contentnegotiation.*
+
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
+
 import kotlinx.serialization.json.*
+
+private val logger = KotlinLogging.logger {}
 
 /**
  * API 连接器接口，定义了 API 连接器的通用操作。
@@ -30,7 +35,7 @@ interface ApiConnector : DataSource {
         queryParams: Map<String, String> = emptyMap(),
         headers: Map<String, String> = emptyMap()
     ): ApiResponse
-    
+
     /**
      * 发送 POST 请求。
      *
@@ -44,7 +49,7 @@ interface ApiConnector : DataSource {
         body: Any,
         headers: Map<String, String> = emptyMap()
     ): ApiResponse
-    
+
     /**
      * 发送 PUT 请求。
      *
@@ -58,7 +63,7 @@ interface ApiConnector : DataSource {
         body: Any,
         headers: Map<String, String> = emptyMap()
     ): ApiResponse
-    
+
     /**
      * 发送 DELETE 请求。
      *
@@ -88,17 +93,17 @@ data class ApiResponse(
 abstract class ApiConnectorBase(
     name: String
 ) : DataSourceBase(name, DataSourceType.API), ApiConnector {
-    
+
     /**
      * API 基础 URL。
      */
     protected abstract val baseUrl: String
-    
+
     /**
      * 默认请求头。
      */
     protected abstract val defaultHeaders: Map<String, String>
-    
+
     /**
      * HTTP 客户端。
      */
@@ -110,95 +115,95 @@ abstract class ApiConnectorBase(
                 prettyPrint = true
             })
         }
-        
+
         install(HttpTimeout) {
             requestTimeoutMillis = 30000
             connectTimeoutMillis = 15000
             socketTimeoutMillis = 30000
         }
-        
+
         expectSuccess = false
     }
-    
+
     override suspend fun get(
         path: String,
         queryParams: Map<String, String>,
         headers: Map<String, String>
     ): ApiResponse {
         logger.debug { "Sending GET request to: $path with params: $queryParams" }
-        
+
         val response = httpClient.get("$baseUrl/$path") {
             headers {
                 appendAll(defaultHeaders)
                 appendAll(headers)
             }
-            
+
             url {
                 queryParams.forEach { (key, value) ->
                     parameters.append(key, value)
                 }
             }
         }
-        
+
         return processResponse(response)
     }
-    
+
     override suspend fun post(
         path: String,
         body: Any,
         headers: Map<String, String>
     ): ApiResponse {
         logger.debug { "Sending POST request to: $path" }
-        
+
         val response = httpClient.post("$baseUrl/$path") {
             headers {
                 appendAll(defaultHeaders)
                 appendAll(headers)
             }
-            
+
             contentType(ContentType.Application.Json)
             setBody(body)
         }
-        
+
         return processResponse(response)
     }
-    
+
     override suspend fun put(
         path: String,
         body: Any,
         headers: Map<String, String>
     ): ApiResponse {
         logger.debug { "Sending PUT request to: $path" }
-        
+
         val response = httpClient.put("$baseUrl/$path") {
             headers {
                 appendAll(defaultHeaders)
                 appendAll(headers)
             }
-            
+
             contentType(ContentType.Application.Json)
             setBody(body)
         }
-        
+
         return processResponse(response)
     }
-    
+
     override suspend fun delete(
         path: String,
         headers: Map<String, String>
     ): ApiResponse {
         logger.debug { "Sending DELETE request to: $path" }
-        
+
         val response = httpClient.delete("$baseUrl/$path") {
             headers {
                 appendAll(defaultHeaders)
                 appendAll(headers)
             }
         }
-        
+
         return processResponse(response)
     }
-    
+
     /**
      * 处理 HTTP 响应。
      *
@@ -212,7 +217,7 @@ abstract class ApiConnectorBase(
         } catch (e: Exception) {
             null
         }
-        
+
         return ApiResponse(
             statusCode = response.status.value,
             headers = response.headers.toMap(),
@@ -220,7 +225,7 @@ abstract class ApiConnectorBase(
             json = json
         )
     }
-    
+
     /**
      * 将 Map<String, String> 转换为 Headers.Builder。
      */

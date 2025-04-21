@@ -37,6 +37,7 @@ dependencies {
     implementation("io.ktor:ktor-client-cio:2.3.4")
     implementation("io.ktor:ktor-client-content-negotiation:2.3.4")
     implementation("io.ktor:ktor-serialization-kotlinx-json:2.3.4")
+    implementation("io.ktor:ktor-client-auth:2.3.4")
 
     // HTML Parsing
     implementation("org.jsoup:jsoup:1.16.1")
@@ -51,6 +52,11 @@ dependencies {
     // GraalVM Polyglot API
     implementation("org.graalvm.sdk:graal-sdk:24.2.0")
     implementation("org.graalvm.truffle:truffle-api:24.2.0")
+
+    // FAISS (optional, for vector search)
+    // Note: FAISS JNI bindings need to be installed separately
+    // Uncomment the following line when FAISS JNI bindings are available
+    // compileOnly(files("libs/faiss-jni.jar"))
 
     // Testing
     testImplementation(kotlin("test"))

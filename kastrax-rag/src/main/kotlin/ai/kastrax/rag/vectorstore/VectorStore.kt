@@ -25,8 +25,11 @@ data class SearchResult(
 
 /**
  * 向量存储接口，用于存储和检索嵌入文档。
+ *
+ * 注意：这个接口与 fastembed-kotlin 模块中的 VectorStore 接口不同。
+ * 这个接口专门为 KastraX RAG 系统设计，支持协程和异步操作。
  */
-interface VectorStore {
+interface RagVectorStore {
     /**
      * 添加嵌入文档到向量存储。
      *
@@ -34,7 +37,7 @@ interface VectorStore {
      * @return 添加的文档数量
      */
     suspend fun addEmbeddedDocuments(documents: List<EmbeddedDocument>): Int
-    
+
     /**
      * 添加文档到向量存储，自动生成嵌入向量。
      *
@@ -49,7 +52,7 @@ interface VectorStore {
         val embeddedDocuments = embeddingService.embedDocuments(documents)
         return addEmbeddedDocuments(embeddedDocuments)
     }
-    
+
     /**
      * 使用嵌入向量搜索相似文档。
      *
@@ -63,7 +66,7 @@ interface VectorStore {
         limit: Int = 5,
         minScore: Double = 0.0
     ): List<SearchResult>
-    
+
     /**
      * 使用文本搜索相似文档。
      *
@@ -82,14 +85,14 @@ interface VectorStore {
         val embedding = embeddingService.embed(text)
         return similaritySearch(embedding, limit, minScore)
     }
-    
+
     /**
      * 获取向量存储中的文档数量。
      *
      * @return 文档数量
      */
     suspend fun count(): Int
-    
+
     /**
      * 清空向量存储。
      */
@@ -98,31 +101,34 @@ interface VectorStore {
 
 /**
  * 内存向量存储，将嵌入文档存储在内存中。
+ *
+ * 注意：这个类与 fastembed-kotlin 模块中的 InMemoryVectorStore 类不同。
+ * 这个类专门为 KastraX RAG 系统设计，支持协程和异步操作。
  */
-class InMemoryVectorStore : VectorStore {
+class RagInMemoryVectorStore : RagVectorStore {
     private val documents = ConcurrentHashMap<String, EmbeddedDocument>()
     private var nextId = 0
-    
+
     override suspend fun addEmbeddedDocuments(documents: List<EmbeddedDocument>): Int {
         var addedCount = 0
-        
+
         for (document in documents) {
             val id = nextId++.toString()
             val metadata = document.document.metadata.toMutableMap().apply {
                 put("id", id)
             }
-            
+
             val docWithId = document.copy(
                 document = document.document.copy(metadata = metadata)
             )
-            
+
             this.documents[id] = docWithId
             addedCount++
         }
-        
+
         return addedCount
     }
-    
+
     override suspend fun similaritySearch(
         embedding: Embedding,
         limit: Int,
@@ -131,7 +137,7 @@ class InMemoryVectorStore : VectorStore {
         if (documents.isEmpty()) {
             return emptyList()
         }
-        
+
         return coroutineScope {
             documents.values.map { embeddedDoc ->
                 async {
@@ -144,11 +150,11 @@ class InMemoryVectorStore : VectorStore {
                 .take(limit)
         }
     }
-    
+
     override suspend fun count(): Int {
         return documents.size
     }
-    
+
     override suspend fun clear() {
         documents.clear()
         nextId = 0
