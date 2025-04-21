@@ -3,6 +3,7 @@ plugins {
     kotlin("plugin.serialization")
     id("org.jetbrains.dokka")
     `maven-publish`
+    application
 }
 
 // GraalPy configuration is handled manually in the code
@@ -19,6 +20,7 @@ repositories {
 dependencies {
     // Project dependencies
     implementation(project(":kastrax-core"))
+    implementation(project(":fastembed-kotlin"))
 
     // Kotlin
     implementation(kotlin("stdlib"))
@@ -77,4 +79,8 @@ publishing {
             from(components["java"])
         }
     }
+}
+
+application {
+    mainClass.set("ai.kastrax.rag.examples.FastEmbedKotlinTestAppKt")
 }

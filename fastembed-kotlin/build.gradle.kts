@@ -160,7 +160,3 @@ signing {
         sign(publishing.publications["maven"])
     }
 }
-
-application {
-    mainClass.set("ai.kastrax.fastembed.examples.SimpleTestExampleKt")
-}
