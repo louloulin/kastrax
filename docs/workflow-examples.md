@@ -140,13 +140,13 @@ val dataAnalysisWorkflow = workflow {
             val timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"))
             val fileName = "report_${timestamp}.md"
             val filePath = "reports/$fileName"
-            
+
             // 确保目录存在
             File("reports").mkdirs()
-            
+
             // 写入文件
             File(filePath).writeText(text)
-            
+
             mapOf(
                 "text" to text,
                 "filePath" to filePath
@@ -329,7 +329,7 @@ val customerSupportWorkflow = workflow {
                 text.contains("account", ignoreCase = true) -> "account"
                 else -> "general"
             }
-            
+
             mapOf(
                 "text" to text,
                 "type" to type
@@ -438,9 +438,68 @@ val input = mapOf(
 val result = customerSupportWorkflow.execute(input)
 ```
 
+## 重试机制示例：不稳定API调用工作流
+
+这个示例展示了一个处理不稳定API调用的工作流，使用重试机制来处理临时性故障：
+
+```kotlin
+val apiWorkflow = workflow {
+    name = "api-workflow"
+    description = "Handle unstable API calls with retry mechanism"
+
+    step(apiCallAgent) {
+        id = "api_call"
+        name = "API Call"
+        description = "Call an external API that might be unstable"
+        variables = mapOf(
+            "endpoint" to variable("$.input.endpoint"),
+            "parameters" to variable("$.input.parameters")
+        )
+
+        // 配置重试机制
+        retry(maxRetries = 3, initialDelay = Duration.ofSeconds(1))
+    }
+
+    step(resultProcessingAgent) {
+        id = "result_processing"
+        name = "Result Processing"
+        description = "Process the API call results"
+        after("api_call")
+        variables = mapOf(
+            "api_result" to variable("$.steps.api_call.output.text")
+        )
+
+        // 使用高级重试配置
+        config = StepConfig(
+            retryConfig = RetryConfig(
+                maxRetries = 2,
+                initialDelay = Duration.ofMillis(500),
+                maxDelay = Duration.ofSeconds(5),
+                backoffFactor = 1.5,
+                jitter = 0.2,
+                retryableExceptions = setOf(
+                    IllegalStateException::class.java,
+                    JsonParseException::class.java
+                )
+            )
+        )
+    }
+}
+
+// 执行工作流
+val input = mapOf(
+    "endpoint" to "https://api.example.com/data",
+    "parameters" to mapOf(
+        "query" to "AI workflows",
+        "limit" to 10
+    )
+)
+val result = apiWorkflow.execute(input)
+```
+
 ## 总结
 
-这些示例展示了工作流引擎的多种用法，从简单的顺序工作流到复杂的条件执行和并行步骤。通过这些示例，开发者可以了解如何使用工作流引擎构建各种 AI 应用，满足不同的业务需求。
+这些示例展示了工作流引擎的多种用法，从简单的顺序工作流到复杂的条件执行、并行步骤和错误处理机制。通过这些示例，开发者可以了解如何使用工作流引擎构建各种 AI 应用，满足不同的业务需求。
 
 工作流引擎的灵活性和可扩展性使其适用于各种场景，包括但不限于：
 
@@ -451,5 +510,7 @@ val result = customerSupportWorkflow.execute(input)
 - 新闻聚合和内容策划
 - 研究和文献综述
 - 教育和培训内容开发
+- 外部API集成和错误处理
+- 分布式系统中的异常恢复
 
 通过组合不同的 AI 代理和工具，开发者可以创建强大的工作流，自动化复杂的知识工作流程。

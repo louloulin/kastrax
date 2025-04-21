@@ -15,6 +15,7 @@ import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import java.time.Duration
 import java.util.UUID
 
 /**
@@ -95,7 +96,26 @@ data class WorkflowStepResult(
     val output: Map<String, Any?>,
     val error: String? = null,
     val executionTime: Long = 0
-)
+) {
+    companion object {
+        /**
+         * 创建失败的步骤结果。
+         *
+         * @param stepId 步骤ID
+         * @param error 错误对象
+         * @return 失败的步骤结果
+         */
+        fun Failed(stepId: String, error: Exception): WorkflowStepResult {
+            return WorkflowStepResult(
+                stepId = stepId,
+                success = false,
+                output = emptyMap(),
+                error = error.message ?: "Unknown error",
+                executionTime = 0
+            )
+        }
+    }
+}
 
 /**
  * 工作流状态更新。
@@ -152,6 +172,12 @@ interface WorkflowStep {
      * 步骤输入变量映射。
      */
     val variables: Map<String, VariableReference>
+
+    /**
+     * 步骤配置。
+     */
+    val config: StepConfig?
+        get() = null
 
     /**
      * 条件函数，决定是否执行步骤。
@@ -278,7 +304,8 @@ class AgentStep(
     override val after: List<String> = emptyList(),
     override val variables: Map<String, VariableReference> = emptyMap(),
     val outputMapping: (String) -> Map<String, Any?> = { mapOf("text" to it) },
-    override val condition: (WorkflowContext) -> Boolean = { true }
+    override val condition: (WorkflowContext) -> Boolean = { true },
+    override val config: StepConfig? = null
 ) : WorkflowStep {
 
     /**
@@ -385,6 +412,7 @@ class WorkflowBuilder {
         var variables: Map<String, VariableReference> = mutableMapOf()
         var outputMapping: (String) -> Map<String, Any?> = { mapOf("text" to it) }
         var condition: (WorkflowContext) -> Boolean = { true }
+        var config: StepConfig? = null
 
         /**
          * 设置前置步骤。
@@ -414,7 +442,32 @@ class WorkflowBuilder {
                 after = after,
                 variables = variables,
                 outputMapping = outputMapping,
-                condition = condition
+                condition = condition,
+                config = config
+            )
+        }
+
+        /**
+         * 设置重试配置。
+         *
+         * @param maxRetries 最大重试次数
+         * @param initialDelay 初始延迟时间
+         * @param maxDelay 最大延迟时间
+         * @param backoffFactor 退避因子
+         */
+        fun retry(
+            maxRetries: Int = 3,
+            initialDelay: Duration = Duration.ofMillis(100),
+            maxDelay: Duration = Duration.ofSeconds(30),
+            backoffFactor: Double = 2.0
+        ) {
+            config = StepConfig(
+                retryConfig = RetryConfig(
+                    maxRetries = maxRetries,
+                    initialDelay = initialDelay,
+                    maxDelay = maxDelay,
+                    backoffFactor = backoffFactor
+                )
             )
         }
     }
@@ -550,7 +603,23 @@ class SimpleWorkflow(
         startTime: Long
     ): WorkflowResult {
         try {
-            val stepResult = step.execute(context)
+            // 检查是否配置了重试
+            val retryConfig = step.config?.retryConfig
+
+            // 执行步骤，如果配置了重试则使用重试机制
+            val stepResult = if (retryConfig != null) {
+                try {
+                    withRetry(retryConfig) {
+                        step.execute(context)
+                    }
+                } catch (e: Exception) {
+                    // 重试失败，返回失败结果
+                    WorkflowStepResult.Failed(stepId, e)
+                }
+            } else {
+                // 直接执行步骤
+                step.execute(context)
+            }
 
             // 调用步骤完成回调
             options.onStepFinish?.invoke(stepResult)
@@ -705,7 +774,23 @@ class SimpleWorkflow(
         totalSteps: Int
     ): Boolean {
         try {
-            val stepResult = step.execute(context)
+            // 检查是否配置了重试
+            val retryConfig = step.config?.retryConfig
+
+            // 执行步骤，如果配置了重试则使用重试机制
+            val stepResult = if (retryConfig != null) {
+                try {
+                    withRetry(retryConfig) {
+                        step.execute(context)
+                    }
+                } catch (e: Exception) {
+                    // 重试失败，返回失败结果
+                    WorkflowStepResult.Failed(stepId, e)
+                }
+            } else {
+                // 直接执行步骤
+                step.execute(context)
+            }
 
             // 调用步骤完成回调
             options.onStepFinish?.invoke(stepResult)
@@ -720,7 +805,7 @@ class SimpleWorkflow(
 
             // 如果步骤失败，终止工作流
             if (!stepResult.success) {
-                emitStatus(WorkflowStatus.FAILED, "Workflow failed: Step $stepId failed")
+                emitStatus(WorkflowStatus.FAILED, "Workflow failed: Step $stepId failed: ${stepResult.error}")
                 return false
             }
 

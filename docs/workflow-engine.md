@@ -127,7 +127,7 @@ step(agent) {
         val lines = text.split("\n")
         val title = lines.firstOrNull() ?: ""
         val content = lines.drop(1).joinToString("\n")
-        
+
         mapOf(
             "title" to title,
             "content" to content
@@ -138,13 +138,52 @@ step(agent) {
 
 ## 高级功能
 
-### 错误处理
+### 错误处理与重试机制
 
 工作流引擎提供了多种错误处理机制：
 
 1. **步骤错误回调**：通过 `onStepError` 回调函数处理步骤执行错误
 2. **超时处理**：设置 `timeout` 参数处理工作流执行超时
 3. **最大步骤限制**：设置 `maxSteps` 参数限制最大执行步骤数
+4. **重试机制**：为步骤配置重试策略，自动重试失败的步骤
+
+#### 重试配置
+
+可以通过以下方式为步骤配置重试机制：
+
+```kotlin
+// 方式1：使用DSL
+agentStep(myAgent) {
+    id = "my_step"
+    retry(maxRetries = 3, initialDelay = Duration.ofMillis(100))
+}
+
+// 方式2：直接设置配置
+agentStep(myAgent) {
+    id = "my_step"
+    config = StepConfig(
+        retryConfig = RetryConfig(
+            maxRetries = 3,
+            initialDelay = Duration.ofMillis(100),
+            maxDelay = Duration.ofSeconds(30),
+            backoffFactor = 2.0,
+            jitter = 0.1,
+            retryableExceptions = setOf(IOException::class.java, TimeoutException::class.java)
+        )
+    )
+}
+```
+
+#### 重试策略
+
+重试机制使用指数退避算法，具有以下特点：
+
+- **最大重试次数**：控制最多重试多少次。
+- **初始延迟**：第一次重试前的等待时间。
+- **最大延迟**：重试延迟的上限。
+- **退避因子**：每次重试后延迟时间的增长倍数。
+- **抖动**：为延迟时间添加随机变化，避免多个重试同时发生。
+- **可重试异常**：指定哪些类型的异常可以触发重试。
 
 ```kotlin
 val options = WorkflowExecuteOptions(
