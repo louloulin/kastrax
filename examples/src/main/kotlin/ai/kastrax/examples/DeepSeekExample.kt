@@ -65,8 +65,8 @@ fun main() = runBlocking {
         // 使用 DeepSeek 模型
         model = deepSeek {
             model(DeepSeekModel.DEEPSEEK_CHAT)
-            // 从环境变量获取 API 密钥，或者在这里显式设置
-            // apiKey("your-api-key-here")
+            // 显式设置 API 密钥
+            apiKey("sk-85e83081df28490b9ae63188f0cb4f79")
         }
 
         // 添加工具
@@ -75,24 +75,30 @@ fun main() = runBlocking {
         }
     }
 
-    println("DeepSeek 代理示例")
+    println("DeepSeek 代理示例 - 自动执行模式")
     println("-------------------")
-    println("输入问题或计算请求，输入 'exit' 退出")
 
-    while (true) {
-        print("\n> ")
-        val input = readlnOrNull() ?: ""
+    // 预定义的问题列表
+    val questions = listOf(
+        "2+2等于多少？",
+        "什么是人工智能？",
+        "计算平方根 16",
+        "用中文解释量子力学的基本原理"
+    )
 
-        if (input.equals("exit", ignoreCase = true)) {
-            break
-        }
+    // 自动执行每个问题
+    for (question in questions) {
+        println("\n问题: $question")
+        println("DeepSeek 正在思考...")
 
-        // 使用流式响应
-        println("\nDeepSeek 正在思考...")
+        // 使用非流式响应（避免流式响应的反序列化问题）
+        val response = myAgent.generate(question)
+        println("\n回答:")
+        println(response.text)
+        println("\n-------------------")
 
-        myAgent.stream(input).collect { chunk ->
-            print(chunk)
-        }
+        // 添加延时，避免请求过快
+        Thread.sleep(1000)
     }
 }
 

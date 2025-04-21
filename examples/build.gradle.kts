@@ -50,7 +50,8 @@ sourceSets {
                 "**/RAGExample.kt",
                 "**/RAGWorkflowExample.kt",
                 "**/WorkflowExample.kt",
-                "**/FastEmbedRAGExample.kt"
+                "**/FastEmbedRAGExample.kt",
+                "**/DeepSeekExample.kt"
             )
         }
     }
@@ -72,7 +73,8 @@ val examples = listOf(
     "RAGExample",
     "RAGWorkflowExample",
     "WorkflowExample",
-    "FastEmbedRAGExample"
+    "FastEmbedRAGExample",
+    "DeepSeekExample"
 )
 
 // 为每个示例创建运行任务
@@ -120,6 +122,7 @@ tasks.register("compileFixedExamples") {
         println("- RAGWorkflowExample.kt")
         println("- WorkflowExample.kt")
         println("- FastEmbedRAGExample.kt")
+        println("- DeepSeekExample.kt")
     }
 }
 
