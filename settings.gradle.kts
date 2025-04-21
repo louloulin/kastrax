@@ -13,6 +13,12 @@ include(":kastrax-integrations:kastrax-deepseek")
 include(":kastrax-integrations:kastrax-anthropic")
 include(":kastrax-integrations:kastrax-gemini")
 
+// Data Source modules
+include(":kastrax-datasource")
+include(":kastrax-datasource:kastrax-database")
+include(":kastrax-datasource:kastrax-api")
+include(":kastrax-datasource:kastrax-filesystem")
+
 include(":fastembed-kotlin")
 // 已修复 AdvancedWorkflowExample.kt 文件的编译错误
 // 其他示例文件还有错误，但我们只需要编译这个文件
