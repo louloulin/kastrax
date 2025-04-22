@@ -5,10 +5,7 @@ import ai.kastrax.core.agent.agentNetwork
 import ai.kastrax.core.tools.tool
 import ai.kastrax.integrations.openai.openAi
 import kotlinx.coroutines.runBlocking
-import kotlinx.serialization.json.buildJsonObject
-import kotlinx.serialization.json.put
-import kotlinx.serialization.json.putJsonArray
-import kotlinx.serialization.json.putJsonObject
+import kotlinx.serialization.json.*
 
 /**
  * Agent网络示例

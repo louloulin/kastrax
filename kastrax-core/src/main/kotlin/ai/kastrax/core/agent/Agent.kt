@@ -91,6 +91,52 @@ interface Agent {
      * Reset the agent's state.
      */
     suspend fun reset()
+
+    /**
+     * Get the agent's current state.
+     *
+     * @return The agent's current state
+     */
+    suspend fun getState(): AgentState?
+
+    /**
+     * Update the agent's state.
+     *
+     * @param status New status
+     * @return Updated state
+     */
+    suspend fun updateState(status: AgentStatus): AgentState?
+
+    /**
+     * Create a new session.
+     *
+     * @param title Session title
+     * @param resourceId Resource ID
+     * @param metadata Session metadata
+     * @return Session info
+     */
+    suspend fun createSession(
+        title: String? = null,
+        resourceId: String? = null,
+        metadata: Map<String, String> = emptyMap()
+    ): SessionInfo?
+
+    /**
+     * Get session information.
+     *
+     * @param sessionId Session ID
+     * @return Session info
+     */
+    suspend fun getSession(sessionId: String): SessionInfo?
+
+    /**
+     * Get session messages.
+     *
+     * @param sessionId Session ID
+     * @param limit Maximum number of messages to return
+     * @return List of session messages
+     */
+    suspend fun getSessionMessages(sessionId: String, limit: Int = 100): List<SessionMessage>?
 }
 
 /**
@@ -429,6 +475,8 @@ data class StepResult(
  * @property result Structured result (if requested)
  * @property textStream Stream of text chunks (for streaming)
  * @property threadId Thread ID (if using memory)
+ * @property state Agent state (if using state management)
+ * @property sessionInfo Session information (if using session management)
  */
 data class AgentResponse(
     val text: String = "",
@@ -437,7 +485,9 @@ data class AgentResponse(
     val usage: LlmUsage? = null,
     val result: Any? = null,
     val textStream: Flow<String>? = null,
-    val threadId: String? = null
+    val threadId: String? = null,
+    val state: AgentState? = null,
+    val sessionInfo: SessionInfo? = null
 )
 
 /**
@@ -452,6 +502,8 @@ class AgentBuilder {
     var defaultGenerateOptions: AgentGenerateOptions = AgentGenerateOptions()
     var defaultStreamOptions: AgentStreamOptions = AgentStreamOptions()
     var toolsets: MutableMap<String, MutableMap<String, Tool>> = mutableMapOf()
+    var sessionManager: SessionManager? = null
+    var stateManager: StateManager? = null
 
     /**
      * Add tools to the agent.
@@ -594,6 +646,20 @@ class AgentBuilder {
     }
 
     /**
+     * 设置会话管理器
+     */
+    fun sessionManager(manager: SessionManager) {
+        sessionManager = manager
+    }
+
+    /**
+     * 设置状态管理器
+     */
+    fun stateManager(manager: StateManager) {
+        stateManager = manager
+    }
+
+    /**
      * Build the agent.
      */
     fun build(): LLMAgent {
@@ -608,7 +674,9 @@ class AgentBuilder {
             memory = memory,
             defaultGenerateOptions = defaultGenerateOptions,
             defaultStreamOptions = defaultStreamOptions,
-            toolsets = toolsets
+            toolsets = toolsets,
+            sessionManager = sessionManager,
+            stateManager = stateManager
         )
     }
 }
@@ -624,6 +692,8 @@ class AgentBuilder {
  * @property defaultGenerateOptions Default options for generation
  * @property defaultStreamOptions Default options for streaming
  * @property toolsets Additional tool sets that can be used for generation
+ * @property sessionManager Optional session manager for session control
+ * @property stateManager Optional state manager for state management
  */
 class LLMAgent(
     name: String,
@@ -633,8 +703,13 @@ class LLMAgent(
     val memory: ai.kastrax.memory.api.Memory? = null,
     val defaultGenerateOptions: AgentGenerateOptions = AgentGenerateOptions(),
     val defaultStreamOptions: AgentStreamOptions = AgentStreamOptions(),
-    val toolsets: Map<String, Map<String, Tool>> = emptyMap()
+    val toolsets: Map<String, Map<String, Tool>> = emptyMap(),
+    val sessionManager: SessionManager? = null,
+    val stateManager: StateManager? = null
 ) : KastraXBase(component = "AGENT", name = name), Agent {
+
+    // 当前状态ID
+    private var currentStateId: String? = null
 
     /**
      * Generate a response from multiple messages.
@@ -643,6 +718,8 @@ class LLMAgent(
         messages: List<LlmMessage>,
         options: AgentGenerateOptions
     ): AgentResponse {
+        // 更新状态为思考中
+        updateState(AgentStatus.THINKING)
         // Merge default options with provided options
         val mergedOptions = defaultGenerateOptions.merge(options)
 
@@ -695,10 +772,15 @@ class LLMAgent(
 
         // Handle tool calls if present and execution is enabled
         val toolResults = if (options.executeTools && response.toolCalls.isNotEmpty()) {
+            // 更新状态为执行工具
+            updateState(AgentStatus.EXECUTING)
             executeToolCalls(response.toolCalls)
         } else {
             emptyMap()
         }
+
+        // 更新状态为响应中
+        updateState(AgentStatus.RESPONDING)
 
         // Create step result for callback
         val stepResult = StepResult(
@@ -710,11 +792,24 @@ class LLMAgent(
         // Call step finish callback if provided
         options.onStepFinish?.invoke(stepResult)
 
+        // 更新状态为空闲
+        val finalState = updateState(AgentStatus.IDLE)
+
+        // 获取会话信息
+        val sessionInfo = if (options.threadId != null && sessionManager != null) {
+            sessionManager.getSession(options.threadId)
+        } else {
+            null
+        }
+
         return AgentResponse(
             text = response.content,
             toolCalls = response.toolCalls,
             toolResults = toolResults,
-            usage = response.usage
+            usage = response.usage,
+            threadId = options.threadId,
+            state = finalState,
+            sessionInfo = sessionInfo
         )
     }
 
@@ -770,6 +865,8 @@ class LLMAgent(
         prompt: String,
         options: AgentStreamOptions
     ): AgentResponse {
+        // 更新状态为思考中
+        updateState(AgentStatus.THINKING)
         // Merge default options with provided options
         val mergedOptions = defaultStreamOptions.merge(options)
 
@@ -883,6 +980,8 @@ class LLMAgent(
         llmOptions: LlmOptions,
         threadId: String
     ): AgentResponse {
+        // 更新状态为响应中
+        updateState(AgentStatus.RESPONDING)
         // 从LLM流式生成响应
         val responseStream = model.streamGenerate(messages, llmOptions)
 
@@ -894,14 +993,47 @@ class LLMAgent(
                 emit(chunk)
             }
 
-            // 当流完成后，如果有内存系统，保存助手消息
-            saveAssistantMessage(responseBuilder.toString(), threadId)
+            // 当流完成后，保存助手消息
+            val content = responseBuilder.toString()
+
+            // 如果有内存系统，保存助手消息
+            if (memory != null) {
+                val assistantMessage = LlmMessage(
+                    role = LlmMessageRole.ASSISTANT,
+                    content = content
+                )
+                memory.saveMessage(assistantMessage.toMessage(), threadId)
+            }
+
+            // 如果有会话管理器，保存助手消息
+            if (sessionManager != null && !threadId.isNullOrEmpty()) {
+                val assistantMessage = LlmMessage(
+                    role = LlmMessageRole.ASSISTANT,
+                    content = content
+                )
+                sessionManager.saveMessage(assistantMessage, threadId)
+            }
+
+            // 更新状态为空闲
+            updateState(AgentStatus.IDLE)
+        }
+
+        // 获取当前状态
+        val currentState = getState()
+
+        // 获取会话信息
+        val sessionInfo = if (sessionManager != null && !threadId.isNullOrEmpty()) {
+            sessionManager.getSession(threadId)
+        } else {
+            null
         }
 
         // 创建响应对象
         return AgentResponse(
             textStream = processedStream,
-            threadId = threadId
+            threadId = threadId,
+            state = currentState,
+            sessionInfo = sessionInfo
         )
     }
 
@@ -918,12 +1050,7 @@ class LLMAgent(
         }
     }
 
-    /**
-     * Reset the agent's state.
-     */
-    override suspend fun reset() {
-        logger.debug { "Resetting agent state" }
-    }
+    // reset方法已在下面实现
 
     /**
      * Execute tool calls.
@@ -995,6 +1122,114 @@ class LLMAgent(
             logger.warn { "Failed to parse tool arguments as JSON: $arguments" }
             JsonObject(emptyMap())
         }
+    }
+
+    /**
+     * Get the agent's current state.
+     */
+    override suspend fun getState(): AgentState? {
+        if (stateManager == null) {
+            logger.warn { "No state manager configured" }
+            return null
+        }
+
+        return if (currentStateId != null) {
+            stateManager.getState(currentStateId!!)
+        } else {
+            null
+        }
+    }
+
+    /**
+     * Update the agent's state.
+     */
+    override suspend fun updateState(status: AgentStatus): AgentState? {
+        if (stateManager == null) {
+            logger.warn { "No state manager configured" }
+            return null
+        }
+
+        val currentState = if (currentStateId != null) {
+            stateManager.getState(currentStateId!!)
+        } else {
+            AgentState()
+        }
+
+        val updatedState = currentState?.withStatus(status) ?: AgentState(status = status)
+        val savedState = stateManager.saveState(updatedState)
+        currentStateId = savedState.id
+
+        logger.debug { "Updated agent state to $status" }
+        return savedState
+    }
+
+    /**
+     * Create a new session.
+     */
+    override suspend fun createSession(
+        title: String?,
+        resourceId: String?,
+        metadata: Map<String, String>
+    ): SessionInfo? {
+        if (sessionManager == null) {
+            logger.warn { "No session manager configured" }
+            return null
+        }
+
+        val session = sessionManager.createSession(title, resourceId, metadata)
+
+        // 如果有状态管理器，更新状态中的线程ID
+        if (stateManager != null && currentStateId != null) {
+            val currentState = stateManager.getState(currentStateId!!)
+            if (currentState != null) {
+                val updatedState = currentState.withThreadId(session.id)
+                stateManager.saveState(updatedState)
+            }
+        }
+
+        logger.debug { "Created session: ${session.id}" }
+        return session
+    }
+
+    /**
+     * Get session information.
+     */
+    override suspend fun getSession(sessionId: String): SessionInfo? {
+        if (sessionManager == null) {
+            logger.warn { "No session manager configured" }
+            return null
+        }
+
+        return sessionManager.getSession(sessionId)
+    }
+
+    /**
+     * Get session messages.
+     */
+    override suspend fun getSessionMessages(sessionId: String, limit: Int): List<SessionMessage>? {
+        if (sessionManager == null) {
+            logger.warn { "No session manager configured" }
+            return null
+        }
+
+        return sessionManager.getMessages(sessionId, limit)
+    }
+
+    /**
+     * Reset the agent's state.
+     */
+    override suspend fun reset() {
+        // 重置状态
+        if (stateManager != null && currentStateId != null) {
+            val currentState = stateManager.getState(currentStateId!!)
+            if (currentState != null) {
+                val resetState = currentState.withStatus(AgentStatus.IDLE)
+                stateManager.saveState(resetState)
+            }
+        }
+
+        currentStateId = null
+        logger.debug { "Reset agent state" }
     }
 }
 

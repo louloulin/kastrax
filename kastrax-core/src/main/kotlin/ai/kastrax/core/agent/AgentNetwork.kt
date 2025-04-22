@@ -455,6 +455,45 @@ class AgentNetwork(config: AgentNetworkConfig) : KastraXBase(component = "NETWOR
         clearNetworkHistoryBeforeRun()
         routingAgent.reset()
     }
+
+    /**
+     * Get the agent's current state.
+     */
+    override suspend fun getState(): AgentState? {
+        return routingAgent.getState()
+    }
+
+    /**
+     * Update the agent's state.
+     */
+    override suspend fun updateState(status: AgentStatus): AgentState? {
+        return routingAgent.updateState(status)
+    }
+
+    /**
+     * Create a new session.
+     */
+    override suspend fun createSession(
+        title: String?,
+        resourceId: String?,
+        metadata: Map<String, String>
+    ): SessionInfo? {
+        return routingAgent.createSession(title, resourceId, metadata)
+    }
+
+    /**
+     * Get session information.
+     */
+    override suspend fun getSession(sessionId: String): SessionInfo? {
+        return routingAgent.getSession(sessionId)
+    }
+
+    /**
+     * Get session messages.
+     */
+    override suspend fun getSessionMessages(sessionId: String, limit: Int): List<SessionMessage>? {
+        return routingAgent.getSessionMessages(sessionId, limit)
+    }
 }
 
 /**
