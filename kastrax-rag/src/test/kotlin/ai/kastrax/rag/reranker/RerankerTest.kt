@@ -1,6 +1,7 @@
 package ai.kastrax.rag.reranker
 
 import ai.kastrax.rag.document.Document
+import ai.kastrax.rag.vectorstore.RagDocument
 import ai.kastrax.rag.vectorstore.SearchResult
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assertions.*
@@ -12,9 +13,9 @@ class RerankerTest {
     fun `test identity reranker`() = runBlocking {
         // 创建测试数据
         val results = listOf(
-            SearchResult(Document("文档1", mapOf("score" to 0.9)), 0.9),
-            SearchResult(Document("文档2", mapOf("score" to 0.8)), 0.8),
-            SearchResult(Document("文档3", mapOf("score" to 0.7)), 0.7)
+            SearchResult(RagDocument("1", "文档1", mapOf("score" to "0.9")), 0.9),
+            SearchResult(RagDocument("2", "文档2", mapOf("score" to "0.8")), 0.8),
+            SearchResult(RagDocument("3", "文档3", mapOf("score" to "0.7")), 0.7)
         )
 
         // 创建重排序器
@@ -34,9 +35,9 @@ class RerankerTest {
     fun `test keyword match reranker`() = runBlocking {
         // 创建测试数据
         val results = listOf(
-            SearchResult(Document("这是一个关于人工智能的文档", mapOf()), 0.8),
-            SearchResult(Document("这个文档包含人工智能和机器学习的内容", mapOf()), 0.7),
-            SearchResult(Document("这是一个关于数据库的文档", mapOf()), 0.9)
+            SearchResult(RagDocument("1", "这是一个关于人工智能的文档", mapOf()), 0.8),
+            SearchResult(RagDocument("2", "这个文档包含人工智能和机器学习的内容", mapOf()), 0.7),
+            SearchResult(RagDocument("3", "这是一个关于数据库的文档", mapOf()), 0.9)
         )
 
         // 创建重排序器
@@ -62,9 +63,9 @@ class RerankerTest {
     fun `test metadata reranker`() = runBlocking {
         // 创建测试数据
         val results = listOf(
-            SearchResult(Document("文档1", mapOf("date" to 20220101, "relevance" to 0.5)), 0.7),
-            SearchResult(Document("文档2", mapOf("date" to 20230101, "relevance" to 0.8)), 0.8),
-            SearchResult(Document("文档3", mapOf("date" to 20210101, "relevance" to 0.9)), 0.9)
+            SearchResult(RagDocument("1", "文档1", mapOf("date" to "20220101", "relevance" to "0.5")), 0.7),
+            SearchResult(RagDocument("2", "文档2", mapOf("date" to "20230101", "relevance" to "0.8")), 0.8),
+            SearchResult(RagDocument("3", "文档3", mapOf("date" to "20210101", "relevance" to "0.9")), 0.9)
         )
 
         // 创建按日期降序排序的重排序器
@@ -87,7 +88,7 @@ class RerankerTest {
 
         // 验证最新的文档排在前面
         val contents = rerankedByDate.map { it.document.content }
-        val dates = rerankedByDate.map { it.document.metadata["date"] as Int }
+        val dates = rerankedByDate.map { it.document.metadata["date"]?.toInt() ?: 0 }
 
         // 验证日期是降序排序的
         assertTrue(dates[0] >= dates[1] && dates[1] >= dates[2], "日期应该是降序排序的")
@@ -114,7 +115,7 @@ class RerankerTest {
         assertEquals(results.size, rerankedByRelevance.size)
 
         // 验证相关性最高的文档排在前面
-        val relevanceValues = rerankedByRelevance.map { it.document.metadata["relevance"] as Double }
+        val relevanceValues = rerankedByRelevance.map { it.document.metadata["relevance"]?.toDouble() ?: 0.0 }
 
         // 验证相关性是降序排序的
         assertTrue(relevanceValues[0] >= relevanceValues[1] && relevanceValues[1] >= relevanceValues[2], "相关性应该是降序排序的")
@@ -127,9 +128,9 @@ class RerankerTest {
     fun `test composite reranker`() = runBlocking {
         // 创建测试数据
         val results = listOf(
-            SearchResult(Document("这是一个关于人工智能的旧文档", mapOf("date" to 20210101)), 0.8),
-            SearchResult(Document("这个文档包含人工智能和机器学习的新内容", mapOf("date" to 20230101)), 0.7),
-            SearchResult(Document("这是一个关于数据库的新文档", mapOf("date" to 20230201)), 0.9)
+            SearchResult(RagDocument("1", "这是一个关于人工智能的旧文档", mapOf("date" to "20210101")), 0.8),
+            SearchResult(RagDocument("2", "这个文档包含人工智能和机器学习的新内容", mapOf("date" to "20230101")), 0.7),
+            SearchResult(RagDocument("3", "这是一个关于数据库的新文档", mapOf("date" to "20230201")), 0.9)
         )
 
         // 创建组合重排序器：先按关键词匹配，再按日期排序

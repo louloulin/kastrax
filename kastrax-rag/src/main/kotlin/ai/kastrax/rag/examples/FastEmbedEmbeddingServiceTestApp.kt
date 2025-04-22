@@ -29,8 +29,8 @@ fun main() = runBlocking {
 
         val time1 = measureTimeMillis {
             val embedding = embeddingService.embed(text)
-            println("嵌入维度: ${embedding.vector.size}")
-            println("前 5 个值: ${embedding.vector.take(5)}")
+            println("嵌入维度: ${embedding.size}")
+            println("前 5 个值: ${embedding.take(5).toList()}")
         }
         println("耗时: $time1 毫秒")
 
@@ -47,7 +47,7 @@ fun main() = runBlocking {
             val embeddings = embeddingService.embedBatch(texts)
             println("生成的嵌入向量数量: ${embeddings.size}")
             embeddings.forEachIndexed { index, embedding ->
-                println("嵌入 $index 维度: ${embedding.vector.size}")
+                println("嵌入 $index 维度: ${embedding.size}")
             }
         }
         println("耗时: $time2 毫秒")
@@ -67,8 +67,8 @@ fun main() = runBlocking {
             val embedding2 = embeddingService.embed(text2)
             val embedding3 = embeddingService.embed(text3)
 
-            val similarity12 = cosineSimilarity(embedding1.vector, embedding2.vector)
-            val similarity13 = cosineSimilarity(embedding1.vector, embedding3.vector)
+            val similarity12 = cosineSimilarity(embedding1, embedding2)
+            val similarity13 = cosineSimilarity(embedding1, embedding3)
 
             println("文本 1 和文本 2 的相似度: $similarity12")
             println("文本 1 和文本 3 的相似度: $similarity13")
@@ -83,7 +83,7 @@ fun main() = runBlocking {
 /**
  * 计算两个向量的余弦相似度。
  */
-private fun cosineSimilarity(vec1: List<Float>, vec2: List<Float>): Float {
+private fun cosineSimilarity(vec1: FloatArray, vec2: FloatArray): Float {
     require(vec1.size == vec2.size) { "Vectors must have the same dimension" }
 
     var dotProduct = 0.0f

@@ -41,7 +41,9 @@ class RAGTest {
         )
 
         // 添加文档到向量存储
-        vectorStore.addDocuments(documents, embeddingService)
+        val docContents = documents.map { it.content }
+        val docMetadata = documents.map { doc -> doc.metadata.mapValues { it.value.toString() } }
+        vectorStore.addDocuments(docContents, embeddingService, docMetadata)
 
         // 创建带有关键词重排序器的 RAG
         val keywordReranker = KeywordMatchReranker(keywordWeight = 0.7, originalScoreWeight = 0.3)
@@ -49,7 +51,7 @@ class RAGTest {
 
         // 使用不同的查询测试重排序
         val query1 = "机器学习和深度学习"
-        val resultsWithoutReranking = rag.search(query1, applyReranking = false)
+        val resultsWithoutReranking = rag.search(query1, options = RagProcessOptions(useReranking = false))
         val resultsWithReranking = ragWithReranker.search(query1)
 
         // 验证结果数量相同
@@ -103,9 +105,11 @@ class RAGTest {
         )
 
         // 添加文档到向量存储
-        val addedCount = vectorStore.addDocuments(documents, embeddingService)
-        assertEquals(5, addedCount)
-        assertEquals(5, vectorStore.count())
+        val docContents = documents.map { it.content }
+        val docMetadata = documents.map { doc -> doc.metadata.mapValues { it.value.toString() } }
+        val addedIds = vectorStore.addDocuments(docContents, embeddingService, docMetadata)
+        assertEquals(5, addedIds.size)
+        assertEquals(5, vectorStore.size())
 
         // 搜索相关文档
         val results = rag.search("机器学习和深度学习", limit = 5)
@@ -145,8 +149,10 @@ class RAGTest {
         assertTrue(chunks.size > 1)
 
         // 添加分割后的文档到向量存储
-        val addedCount = vectorStore.addDocuments(chunks, embeddingService)
-        assertEquals(chunks.size, addedCount)
+        val chunkContents = chunks.map { it.content }
+        val chunkMetadata = chunks.map { doc -> doc.metadata.mapValues { it.value.toString() } }
+        val addedIds = vectorStore.addDocuments(chunkContents, embeddingService, chunkMetadata)
+        assertEquals(chunks.size, addedIds.size)
 
         // 生成上下文
         val context = rag.generateContext("深度学习和神经网络", limit = 2)

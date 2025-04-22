@@ -34,8 +34,8 @@ class HuggingFaceEmbeddingServiceTest {
         val embedding = embeddingService.embed(text)
 
         // 验证嵌入向量
-        assertEquals(384, embedding.vector.size)
-        assertTrue(embedding.vector.all { !it.isNaN() })
+        assertEquals(384, embedding.size)
+        assertTrue(embedding.all { !it.isNaN() })
     }
 
     @Test
@@ -53,15 +53,15 @@ class HuggingFaceEmbeddingServiceTest {
         // 验证嵌入向量
         assertEquals(3, embeddings.size)
         embeddings.forEach { embedding ->
-            assertEquals(384, embedding.vector.size)
-            assertTrue(embedding.vector.all { !it.isNaN() })
+            assertEquals(384, embedding.size)
+            assertTrue(embedding.all { !it.isNaN() })
         }
 
         // 验证不同文本的嵌入向量不同
         val similarities = mutableListOf<Double>()
         for (i in 0 until embeddings.size) {
             for (j in i + 1 until embeddings.size) {
-                val similarity = embeddings[i].cosineSimilarity(embeddings[j])
+                val similarity = ai.kastrax.rag.util.cosineSimilarity(embeddings[i], embeddings[j])
                 similarities.add(similarity)
             }
         }

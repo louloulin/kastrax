@@ -140,10 +140,10 @@ class MetadataReranker(
         // 获取元数据值
         val metadataValues = filteredResults.map { result ->
             val value = result.document.metadata[metadataKey]
-            when (value) {
-                is Number -> value.toDouble()
-                is String -> value.toDoubleOrNull() ?: 0.0
-                else -> 0.0
+            if (value == null) {
+                0.0
+            } else {
+                value.toDoubleOrNull() ?: 0.0
             }
         }
 

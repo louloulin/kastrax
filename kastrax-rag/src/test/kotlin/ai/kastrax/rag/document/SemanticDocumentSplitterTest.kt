@@ -227,8 +227,20 @@ class SemanticDocumentSplitterTest {
 
         // 创建一个会抛出异常的嵌入服务
         val failingEmbeddingService = object : ai.kastrax.rag.embedding.EmbeddingService {
-            override suspend fun embed(text: String): ai.kastrax.rag.embedding.Embedding {
+            override suspend fun embed(text: String): FloatArray {
                 throw RuntimeException("模拟嵌入服务失败")
+            }
+
+            override suspend fun embedBatch(texts: List<String>): List<FloatArray> {
+                throw RuntimeException("模拟嵌入服务失败")
+            }
+
+            override fun dimension(): Int {
+                return 384
+            }
+
+            override fun close() {
+                // 测试实现不需要关闭任何资源
             }
         }
 

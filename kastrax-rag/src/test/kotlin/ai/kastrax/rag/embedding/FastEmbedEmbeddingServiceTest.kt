@@ -41,11 +41,11 @@ class FastEmbedEmbeddingServiceTest {
         val embedding = embeddingService.embed(text)
 
         // 验证嵌入维度
-        assertTrue(embedding.vector.isNotEmpty())
-        assertTrue(embedding.vector.size > 100)  // 应该有足够的维度
+        assertTrue(embedding.isNotEmpty())
+        assertTrue(embedding.size > 100)  // 应该有足够的维度
 
         // 验证嵌入值
-        embedding.vector.forEach { value ->
+        embedding.forEach { value ->
             assertTrue(value.isFinite())  // 值应该是有限的
         }
     }
@@ -64,9 +64,9 @@ class FastEmbedEmbeddingServiceTest {
         assertEquals(texts.size, embeddings.size)
 
         // 验证所有嵌入的维度一致
-        val dimensions = embeddings.first().vector.size
+        val dimensions = embeddings.first().size
         embeddings.forEach { embedding ->
-            assertEquals(dimensions, embedding.vector.size)
+            assertEquals(dimensions, embedding.size)
         }
     }
 
@@ -82,9 +82,9 @@ class FastEmbedEmbeddingServiceTest {
         val embedding3 = embeddingService.embed(text3)
 
         // 计算相似度
-        val similarity12 = embedding1.cosineSimilarity(embedding2)
-        val similarity13 = embedding1.cosineSimilarity(embedding3)
-        val similarity23 = embedding2.cosineSimilarity(embedding3)
+        val similarity12 = ai.kastrax.rag.util.cosineSimilarity(embedding1, embedding2)
+        val similarity13 = ai.kastrax.rag.util.cosineSimilarity(embedding1, embedding3)
+        val similarity23 = ai.kastrax.rag.util.cosineSimilarity(embedding2, embedding3)
 
         // 验证相似度
         // 注意：由于我们使用的是零向量，所以相似度可能不符合预期
