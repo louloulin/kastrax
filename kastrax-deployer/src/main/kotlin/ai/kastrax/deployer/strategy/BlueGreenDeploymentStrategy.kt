@@ -318,12 +318,13 @@ class BlueGreenDeploymentStrategy(
     private fun createStatusUpdate(
         status: DeploymentStatus,
         message: String,
-        progress: Int
+        progress: Int = 0
     ): DeploymentStatusUpdate {
         return DeploymentStatusUpdate(
             status = status,
             message = message,
-            progress = progress
+            progress = progress,
+            timestamp = System.currentTimeMillis()
         )
     }
 }
