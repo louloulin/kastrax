@@ -13,7 +13,7 @@ repositories {
 dependencies {
     // Project dependencies
     implementation(project(":kastrax-core"))
-
+    implementation(project(":kastrax-rag"))
     // Kotlin
     implementation(kotlin("stdlib"))
     implementation(kotlin("reflect"))
