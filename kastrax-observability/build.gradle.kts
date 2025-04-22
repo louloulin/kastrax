@@ -1,5 +1,6 @@
 plugins {
     kotlin("jvm")
+    application
 }
 
 dependencies {
@@ -38,4 +39,8 @@ java {
     toolchain {
         languageVersion.set(JavaLanguageVersion.of(17))
     }
+}
+
+application {
+    mainClass.set("ai.kastrax.observability.examples.HealthCheckExample")
 }
