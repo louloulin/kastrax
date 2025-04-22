@@ -91,29 +91,29 @@ class BasicBenchmark<I, O>(
     override val description: String = "",
     override val testSuites: List<TestSuite<I, O>>
 ) : Benchmark<I, O> {
-    
+
     private val batchEvaluator: BatchEvaluator<I, O> = BasicBatchEvaluator()
-    
+
     override suspend fun run(
         outputProviders: Map<String, OutputProvider<I, O>>,
         parallel: Boolean
     ): BenchmarkResult<I, O> = coroutineScope {
         logger.info { "Running benchmark: $name" }
-        
+
         val startTime = Instant.now()
-        
+
         val systemResults = mutableMapOf<String, BatchEvaluationResult<I, O>>()
-        
+
         for ((systemName, outputProvider) in outputProviders) {
             logger.info { "Evaluating system: $systemName" }
-            
+
             val result = batchEvaluator.evaluate(testSuites, outputProvider, parallel)
             systemResults[systemName] = result
         }
-        
+
         val endTime = Instant.now()
         val durationMs = endTime.toEpochMilli() - startTime.toEpochMilli()
-        
+
         BenchmarkResult(
             id = UUID.randomUUID().toString(),
             benchmarkId = id,
@@ -137,7 +137,7 @@ class BenchmarkBuilder<I, O> {
     var name: String = ""
     var description: String = ""
     private val testSuites = mutableListOf<TestSuite<I, O>>()
-    
+
     /**
      * 添加测试套件。
      *
@@ -146,7 +146,7 @@ class BenchmarkBuilder<I, O> {
     fun testSuite(testSuite: TestSuite<I, O>) {
         testSuites.add(testSuite)
     }
-    
+
     /**
      * 构建基准测试。
      *
@@ -155,7 +155,7 @@ class BenchmarkBuilder<I, O> {
     fun build(): Benchmark<I, O> {
         require(name.isNotBlank()) { "Benchmark name cannot be blank" }
         require(testSuites.isNotEmpty()) { "Benchmark must have at least one test suite" }
-        
+
         return BasicBenchmark(
             id = id,
             name = name,
@@ -186,7 +186,7 @@ fun <I, O> benchmark(block: BenchmarkBuilder<I, O>.() -> Unit): Benchmark<I, O> 
  * @param O 输出类型
  */
 class BenchmarkComparator<I, O> {
-    
+
     /**
      * 比较基准测试结果。
      *
@@ -195,30 +195,43 @@ class BenchmarkComparator<I, O> {
      */
     fun compare(result: BenchmarkResult<I, O>): BenchmarkComparisonResult {
         logger.info { "Comparing benchmark results: ${result.benchmarkName}" }
-        
+
         val systemNames = result.systemResults.keys.toList()
-        val systemPassRates = result.systemResults.mapValues { (_, batchResult) -> batchResult.passRate }
-        
+        logger.debug { "System names: $systemNames" }
+
+        val systemPassRates = result.systemResults.mapValues { (name, batchResult) ->
+            logger.debug { "System $name pass rate: ${batchResult.passRate}" }
+            batchResult.passRate
+        }
+        logger.debug { "System pass rates: $systemPassRates" }
+
         val bestSystem = systemPassRates.maxByOrNull { it.value }?.key ?: ""
         val worstSystem = systemPassRates.minByOrNull { it.value }?.key ?: ""
-        
+
+        logger.debug { "Best system: $bestSystem, Worst system: $worstSystem" }
+
         val systemComparisons = mutableListOf<SystemComparison>()
-        
+
         for (i in systemNames.indices) {
             for (j in i + 1 until systemNames.size) {
                 val system1 = systemNames[i]
                 val system2 = systemNames[j]
-                
+
                 val passRate1 = systemPassRates[system1] ?: 0.0
                 val passRate2 = systemPassRates[system2] ?: 0.0
-                
+
                 val difference = passRate1 - passRate2
+                logger.debug { "Difference between $system1 and $system2: $difference" }
+
                 val percentageDifference = if (passRate2 != 0.0) {
                     difference / passRate2 * 100
                 } else {
-                    0.0
+                    // When passRate2 is 0, we can't calculate a percentage difference
+                    // So we use a special value to indicate infinity
+                    Double.POSITIVE_INFINITY
                 }
-                
+                logger.debug { "Percentage difference between $system1 and $system2: $percentageDifference" }
+
                 systemComparisons.add(
                     SystemComparison(
                         system1 = system1,
@@ -229,7 +242,7 @@ class BenchmarkComparator<I, O> {
                 )
             }
         }
-        
+
         return BenchmarkComparisonResult(
             benchmarkId = result.benchmarkId,
             benchmarkName = result.benchmarkName,

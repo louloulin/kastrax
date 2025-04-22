@@ -143,36 +143,40 @@ class BasicTestSuite<I, O>(
     override val description: String = "",
     override val tags: Set<String> = emptySet()
 ) : TestSuite<I, O> {
-    
+
     private val _testCases = mutableListOf<TestCase<I, O>>()
-    
+
     override val testCases: List<TestCase<I, O>>
         get() = _testCases.toList()
-    
+
     override fun addTestCase(testCase: TestCase<I, O>) {
+        logger.debug { "Adding test case: ${testCase.name} to test suite: $name" }
         _testCases.add(testCase)
+        logger.debug { "Test cases count after adding: ${_testCases.size}" }
     }
-    
+
     override fun addTestCases(testCases: List<TestCase<I, O>>) {
+        logger.debug { "Adding ${testCases.size} test cases to test suite: $name" }
         _testCases.addAll(testCases)
+        logger.debug { "Test cases count after adding: ${_testCases.size}" }
     }
-    
+
     override fun getTestCasesByTag(tag: String): List<TestCase<I, O>> {
         return _testCases.filter { it.tags.contains(tag) }
     }
-    
+
     override fun getTestCasesByTags(tags: Set<String>): List<TestCase<I, O>> {
         return _testCases.filter { it.tags.intersect(tags).isNotEmpty() }
     }
-    
+
     override suspend fun execute(
         outputProvider: OutputProvider<I, O>,
         parallel: Boolean
     ): TestSuiteResult<I, O> = coroutineScope {
         logger.info { "Executing test suite: $name" }
-        
+
         val startTime = Instant.now()
-        
+
         val testCaseResults = if (parallel) {
             // 并行执行测试用例
             _testCases.map { testCase ->
@@ -220,7 +224,7 @@ class BasicTestSuite<I, O>(
                 }
             }
         }
-        
+
         val passedCount = testCaseResults.count { it.passed }
         val failedCount = testCaseResults.size - passedCount
         val passRate = if (testCaseResults.isNotEmpty()) {
@@ -228,10 +232,10 @@ class BasicTestSuite<I, O>(
         } else {
             0.0
         }
-        
+
         val endTime = Instant.now()
         val durationMs = endTime.toEpochMilli() - startTime.toEpochMilli()
-        
+
         TestSuiteResult(
             testSuiteId = id,
             testSuiteName = name,
@@ -258,7 +262,9 @@ class TestSuiteBuilder<I, O> {
     var description: String = ""
     var tags: MutableSet<String> = mutableSetOf()
     private val testCases = mutableListOf<TestCase<I, O>>()
-    
+
+    private val builderLogger = KotlinLogging.logger {}
+
     /**
      * 添加标签。
      *
@@ -267,16 +273,18 @@ class TestSuiteBuilder<I, O> {
     fun tag(tag: String) {
         tags.add(tag)
     }
-    
+
     /**
      * 添加测试用例。
      *
      * @param testCase 测试用例
      */
     fun testCase(testCase: TestCase<I, O>) {
+        builderLogger.debug { "Adding test case: ${testCase.name}" }
         testCases.add(testCase)
+        builderLogger.debug { "Test cases count after adding: ${testCases.size}" }
     }
-    
+
     /**
      * 创建并添加测试用例。
      *
@@ -284,9 +292,11 @@ class TestSuiteBuilder<I, O> {
      */
     fun testCase(block: TestCaseBuilder<I, O>.() -> Unit) {
         val testCase = ai.kastrax.evals.testsuite.testCase(block)
+        builderLogger.debug { "Creating and adding test case: ${testCase.name}" }
         testCases.add(testCase)
+        builderLogger.debug { "Test cases count after adding: ${testCases.size}" }
     }
-    
+
     /**
      * 构建测试套件。
      *
@@ -294,15 +304,25 @@ class TestSuiteBuilder<I, O> {
      */
     fun build(): TestSuite<I, O> {
         require(name.isNotBlank()) { "Test suite name cannot be blank" }
-        
-        return BasicTestSuite<I, O>(
+
+        builderLogger.debug { "Building test suite: $name with ${testCases.size} test cases" }
+
+        val testSuite = BasicTestSuite<I, O>(
             id = id,
             name = name,
             description = description,
             tags = tags
-        ).apply {
-            addTestCases(testCases)
+        )
+
+        // Add test cases to the test suite
+        builderLogger.debug { "Adding ${testCases.size} test cases to the test suite" }
+        for (testCase in testCases) {
+            builderLogger.debug { "Adding test case: ${testCase.name} to test suite" }
+            testSuite.addTestCase(testCase)
         }
+
+        builderLogger.debug { "Test suite built with ${testSuite.testCases.size} test cases" }
+        return testSuite
     }
 }
 
@@ -315,7 +335,12 @@ class TestSuiteBuilder<I, O> {
  * @return 测试套件
  */
 fun <I, O> testSuite(block: TestSuiteBuilder<I, O>.() -> Unit): TestSuite<I, O> {
+    logger.debug { "Creating test suite using builder" }
     val builder = TestSuiteBuilder<I, O>()
+    logger.debug { "Applying configuration block to builder" }
     builder.block()
-    return builder.build()
+    logger.debug { "Building test suite from builder" }
+    val testSuite = builder.build()
+    logger.debug { "Test suite created with ${testSuite.testCases.size} test cases" }
+    return testSuite
 }
