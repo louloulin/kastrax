@@ -6,10 +6,17 @@ import ai.kastrax.rag.document.Document
 import ai.kastrax.rag.document.DocumentLoader
 import ai.kastrax.rag.document.DocumentSplitter
 import ai.kastrax.rag.embedding.EmbeddingService
+import ai.kastrax.rag.query.CompositeQueryTransformer
+import ai.kastrax.rag.query.DecompositionQueryTransformer
+import ai.kastrax.rag.query.NormalizationQueryTransformer
+import ai.kastrax.rag.query.QueryTransformer
+import ai.kastrax.rag.query.SynonymQueryTransformer
 import ai.kastrax.rag.reranker.IdentityReranker
 import ai.kastrax.rag.reranker.Reranker
 import ai.kastrax.rag.retrieval.HybridRetriever
 import ai.kastrax.rag.retrieval.HybridRetrieverConfig
+import ai.kastrax.rag.retrieval.QueryEnhancedRetriever
+import ai.kastrax.rag.retrieval.QueryEnhancedRetrieverConfig
 import ai.kastrax.rag.retrieval.Retriever
 import ai.kastrax.rag.retrieval.SemanticRetriever
 import ai.kastrax.rag.retrieval.SemanticRetrieverConfig
@@ -27,18 +34,22 @@ private val logger = KotlinLogging.logger {}
  * @property useHybridSearch 是否使用混合搜索，默认为 false
  * @property useSemanticRetrieval 是否使用语义检索，默认为 false
  * @property useReranking 是否使用重排序，默认为 true
+ * @property useQueryEnhancement 是否使用查询增强，默认为 false
  * @property hybridOptions 混合搜索选项，仅当 useHybridSearch 为 true 时有效
  * @property semanticOptions 语义检索选项，仅当 useSemanticRetrieval 为 true 时有效
  * @property rerankingOptions 重排序选项，仅当 useReranking 为 true 时有效
+ * @property queryEnhancementOptions 查询增强选项，仅当 useQueryEnhancement 为 true 时有效
  * @property contextOptions 上下文构建选项
  */
 data class RagProcessOptions(
     val useHybridSearch: Boolean = false,
     val useSemanticRetrieval: Boolean = false,
     val useReranking: Boolean = true,
+    val useQueryEnhancement: Boolean = false,
     val hybridOptions: HybridRetrieverConfig = HybridRetrieverConfig(),
     val semanticOptions: SemanticRetrieverConfig = SemanticRetrieverConfig(),
     val rerankingOptions: Any? = null,
+    val queryEnhancementOptions: QueryEnhancedRetrieverConfig = QueryEnhancedRetrieverConfig(),
     val contextOptions: ContextBuilderConfig = ContextBuilderConfig()
 )
 
@@ -126,7 +137,8 @@ class RAG(
      * @return 检索器
      */
     private fun createRetriever(options: RagProcessOptions): Retriever {
-        return when {
+        // 首先创建基础检索器
+        val baseRetriever = when {
             options.useHybridSearch -> {
                 logger.debug { "Using hybrid retriever with options: ${options.hybridOptions}" }
                 HybridRetriever(
@@ -149,6 +161,56 @@ class RAG(
                 TopKRetriever(vectorStore, embeddingService)
             }
         }
+
+        // 如果启用了查询增强，则包装基础检索器
+        return if (options.useQueryEnhancement) {
+            logger.debug { "Using query enhanced retriever with options: ${options.queryEnhancementOptions}" }
+
+            // 创建查询转换器
+            val queryTransformer = createQueryTransformer()
+
+            // 创建查询增强检索器
+            QueryEnhancedRetriever(
+                baseRetriever = baseRetriever,
+                queryTransformer = queryTransformer,
+                config = options.queryEnhancementOptions
+            )
+        } else {
+            baseRetriever
+        }
+    }
+
+    /**
+     * 创建查询转换器。
+     *
+     * @return 查询转换器
+     */
+    private fun createQueryTransformer(): QueryTransformer {
+        // 创建多个查询转换器
+        val transformers = listOf(
+            NormalizationQueryTransformer(),
+            SynonymQueryTransformer(createSynonymMap()),
+            DecompositionQueryTransformer()
+        )
+
+        // 返回组合查询转换器
+        return CompositeQueryTransformer(transformers)
+    }
+
+    /**
+     * 创建同义词映射。
+     *
+     * @return 同义词映射
+     */
+    private fun createSynonymMap(): Map<String, List<String>> {
+        // 这里可以从配置文件或数据库加载同义词映射
+        // 这里使用一个简单的示例
+        return mapOf(
+            "ai" to listOf("artificial intelligence", "machine learning", "deep learning"),
+            "ml" to listOf("machine learning", "deep learning", "neural networks"),
+            "nlp" to listOf("natural language processing", "text analysis", "language understanding"),
+            "rag" to listOf("retrieval augmented generation", "retrieval-based", "document retrieval")
+        )
     }
 
     /**
