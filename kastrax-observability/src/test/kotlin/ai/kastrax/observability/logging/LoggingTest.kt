@@ -106,7 +106,7 @@ class LoggingTest {
         }
 
         // 验证输出
-        val outString = outContent.toString()
+        var outString = outContent.toString()
         // 注意：在实际测试中，我们不验证上下文信息，因为 ConsoleLogger 实现可能不会包含它们
         // 只验证消息内容
         assertTrue(outString.contains("Message within context block"))
@@ -114,7 +114,8 @@ class LoggingTest {
 
         // 验证上下文已清除
         logger.info("Message after context block")
-        // 只验证消息内容
+        // 获取更新后的输出并验证
+        outString = outContent.toString()
         assertTrue(outString.contains("Message after context block"))
     }
 }
