@@ -42,5 +42,5 @@ java {
 }
 
 application {
-    mainClass.set("ai.kastrax.observability.examples.HealthCheckExample")
+    mainClass.set("ai.kastrax.observability.examples.DashboardExample")
 }
