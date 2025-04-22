@@ -11,6 +11,8 @@ import ai.kastrax.rag.query.DecompositionQueryTransformer
 import ai.kastrax.rag.query.NormalizationQueryTransformer
 import ai.kastrax.rag.query.QueryTransformer
 import ai.kastrax.rag.query.SynonymQueryTransformer
+import ai.kastrax.rag.reranker.ContextAwareReranker
+import ai.kastrax.rag.reranker.ContextAwareRerankerConfig
 import ai.kastrax.rag.reranker.IdentityReranker
 import ai.kastrax.rag.reranker.Reranker
 import ai.kastrax.rag.retrieval.HybridRetriever
@@ -45,10 +47,12 @@ data class RagProcessOptions(
     val useHybridSearch: Boolean = false,
     val useSemanticRetrieval: Boolean = false,
     val useReranking: Boolean = true,
+    val useContextAwareReranking: Boolean = false,
     val useQueryEnhancement: Boolean = false,
     val hybridOptions: HybridRetrieverConfig = HybridRetrieverConfig(),
     val semanticOptions: SemanticRetrieverConfig = SemanticRetrieverConfig(),
     val rerankingOptions: Any? = null,
+    val contextAwareRerankingOptions: ContextAwareRerankerConfig = ContextAwareRerankerConfig(),
     val queryEnhancementOptions: QueryEnhancedRetrieverConfig = QueryEnhancedRetrieverConfig(),
     val contextOptions: ContextBuilderConfig = ContextBuilderConfig()
 )
@@ -123,8 +127,16 @@ class RAG(
         val initialResults = retriever.retrieve(query, limit, minScore)
 
         // 如果需要，应用重排序
-        return if (opts.useReranking && initialResults.isNotEmpty()) {
-            reranker.rerank(query, initialResults)
+        return if (initialResults.isNotEmpty()) {
+            if (opts.useContextAwareReranking && reranker is ContextAwareReranker) {
+                // 获取会话历史或其他上下文信息
+                val context = getContextForReranking(query, opts)
+                reranker.rerank(query, initialResults, context)
+            } else if (opts.useReranking) {
+                reranker.rerank(query, initialResults)
+            } else {
+                initialResults
+            }
         } else {
             initialResults
         }
@@ -212,6 +224,23 @@ class RAG(
             "rag" to listOf("retrieval augmented generation", "retrieval-based", "document retrieval")
         )
     }
+
+    /**
+     * 获取用于重排序的上下文信息。
+     * 在实际应用中，这可能来自会话历史、用户偏好或其他上下文信息。
+     *
+     * @param query 查询文本
+     * @param options RAG 处理选项
+     * @return 上下文信息
+     */
+    protected open fun getContextForReranking(query: String, options: RagProcessOptions): String {
+        // 这里可以从会话历史、用户偏好或其他来源获取上下文信息
+        // 在这个简单实现中，我们只返回一个空字符串
+        // 在实际应用中，你可能需要从会话管理器或用户配置中获取上下文
+        return ""
+    }
+
+
 
     /**
      * 使用查询文本生成增强的上下文。
