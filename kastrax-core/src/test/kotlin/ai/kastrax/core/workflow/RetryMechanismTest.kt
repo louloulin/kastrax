@@ -50,12 +50,12 @@ class RetryMechanismTest {
     @Test
     fun testWithRetrySuccess() = runTest {
         val config = RetryConfig(maxRetries = 3)
-        
+
         // 不需要重试的情况
         val result = withRetry(config) {
             "success"
         }
-        
+
         assertEquals("success", result)
     }
 
@@ -68,18 +68,18 @@ class RetryMechanismTest {
             maxRetries = 3,
             initialDelay = Duration.ofMillis(10) // 使用短延迟以加快测试
         )
-        
+
         var attempts = 0
-        
+
         // 前两次失败，第三次成功
         val result = withRetry(config) {
             attempts++
             if (attempts < 3) {
-                throw IllegalStateException("Simulated failure")
+                error("Simulated failure")
             }
             "success after retry"
         }
-        
+
         assertEquals(3, attempts)
         assertEquals("success after retry", result)
     }
@@ -93,16 +93,16 @@ class RetryMechanismTest {
             maxRetries = 2,
             initialDelay = Duration.ofMillis(10) // 使用短延迟以加快测试
         )
-        
+
         var attempts = 0
-        
+
         // 所有尝试都失败
         try {
             withRetry(config) {
                 attempts++
-                throw IllegalStateException("Simulated failure")
+                error("Simulated failure")
             }
-            
+
             // 如果没有抛出异常，测试失败
             assertTrue(false, "Expected exception was not thrown")
         } catch (e: IllegalStateException) {
@@ -122,16 +122,16 @@ class RetryMechanismTest {
             initialDelay = Duration.ofMillis(10),
             retryableExceptions = setOf(IllegalStateException::class.java)
         )
-        
+
         var attempts = 0
-        
+
         // 抛出不可重试的异常
         try {
             withRetry(config) {
                 attempts++
                 throw IllegalArgumentException("Non-retryable exception")
             }
-            
+
             // 如果没有抛出异常，测试失败
             assertTrue(false, "Expected exception was not thrown")
         } catch (e: IllegalArgumentException) {

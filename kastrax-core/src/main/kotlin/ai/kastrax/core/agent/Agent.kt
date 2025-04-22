@@ -26,6 +26,23 @@ import kotlinx.serialization.json.put
 import java.util.UUID
 
 /**
+ * Memory configuration options.
+ *
+ * @property enabled Whether memory is enabled
+ * @property conversationId Conversation ID for memory
+ * @property contextWindow Number of messages to include in context window
+ * @property semanticSearch Whether to use semantic search for retrieving messages
+ * @property semanticSearchTopK Number of messages to retrieve with semantic search
+ */
+data class MemoryOptions(
+    val enabled: Boolean = false,
+    val conversationId: String? = null,
+    val contextWindow: Int = 10,
+    val semanticSearch: Boolean = false,
+    val semanticSearchTopK: Int = 5
+)
+
+/**
  * Interface for AI agents.
  */
 interface Agent {
@@ -87,6 +104,15 @@ interface Agent {
  * @property onStepFinish Callback for step completion
  * @property threadId Optional thread ID for memory
  * @property threadTitle Optional title for new threads
+ * @property instructions Optional instructions to override the agent's default instructions
+ * @property toolsets Additional tool sets that can be used for this generation
+ * @property context Additional context messages to include
+ * @property memoryOptions Memory configuration options
+ * @property runId Unique ID for this generation run
+ * @property toolChoice Controls how tools are selected during generation
+ * @property topP Top-p sampling parameter (nucleus sampling)
+ * @property frequencyPenalty Frequency penalty parameter
+ * @property presencePenalty Presence penalty parameter
  */
 data class AgentGenerateOptions(
     val maxSteps: Int = 1,
@@ -96,7 +122,16 @@ data class AgentGenerateOptions(
     val output: JsonElement? = null,
     val onStepFinish: ((StepResult) -> Unit)? = null,
     val threadId: String? = null,
-    val threadTitle: String? = null
+    val threadTitle: String? = null,
+    val instructions: String? = null,
+    val toolsets: Map<String, Map<String, Tool>>? = null,
+    val context: List<LlmMessage>? = null,
+    val memoryOptions: MemoryOptions? = null,
+    val runId: String? = null,
+    val toolChoice: ToolChoice = ToolChoice.Auto,
+    val topP: Double? = null,
+    val frequencyPenalty: Double? = null,
+    val presencePenalty: Double? = null
 ) {
     /**
      * Convert to LLM options.
@@ -104,8 +139,127 @@ data class AgentGenerateOptions(
     val llmOptions: LlmOptions
         get() = LlmOptions(
             temperature = temperature,
-            maxTokens = maxTokens
+            maxTokens = maxTokens,
+            topP = topP,
+            frequencyPenalty = frequencyPenalty,
+            presencePenalty = presencePenalty
         )
+
+    /**
+     * Merge with another options object, with the other object taking precedence.
+     */
+    fun merge(other: AgentGenerateOptions): AgentGenerateOptions {
+        // 合并基本参数
+        val result = mergeBasicParams(other)
+
+        // 合并工具集
+        val mergedToolsets = mergeToolsets(other.toolsets)
+
+        // 合并上下文
+        val mergedContext = mergeContext(other.context)
+
+        // 返回合并后的选项
+        return result.copy(
+            toolsets = mergedToolsets,
+            context = mergedContext
+        )
+    }
+
+    /**
+     * 合并基本参数
+     */
+    private fun mergeBasicParams(other: AgentGenerateOptions): AgentGenerateOptions {
+        // 先合并基本执行参数
+        val result = mergeExecutionParams(other)
+
+        // 再合并线程和指令参数
+        return mergeThreadParams(other, result)
+    }
+
+    /**
+     * 合并执行参数
+     */
+    private fun mergeExecutionParams(other: AgentGenerateOptions): AgentGenerateOptions {
+        return copy(
+            maxSteps = other.maxSteps.takeIf { it != 1 } ?: maxSteps,
+            temperature = other.temperature.takeIf { it != 0.7 } ?: temperature,
+            maxTokens = other.maxTokens ?: maxTokens,
+            executeTools = other.executeTools,
+            output = other.output ?: output,
+            onStepFinish = other.onStepFinish ?: onStepFinish,
+            toolChoice = if (other.toolChoice != ToolChoice.Auto) other.toolChoice else toolChoice,
+            topP = other.topP ?: topP,
+            frequencyPenalty = other.frequencyPenalty ?: frequencyPenalty,
+            presencePenalty = other.presencePenalty ?: presencePenalty
+        )
+    }
+
+    /**
+     * 合并线程和指令参数
+     */
+    private fun mergeThreadParams(other: AgentGenerateOptions, base: AgentGenerateOptions): AgentGenerateOptions {
+        return base.copy(
+            threadId = other.threadId ?: threadId,
+            threadTitle = other.threadTitle ?: threadTitle,
+            instructions = other.instructions ?: instructions,
+            memoryOptions = other.memoryOptions ?: memoryOptions,
+            runId = other.runId ?: runId
+        )
+    }
+
+    /**
+     * 合并工具集
+     */
+    private fun mergeToolsets(otherToolsets: Map<String, Map<String, Tool>>?): Map<String, Map<String, Tool>>? {
+        return otherToolsets?.let {
+            if (toolsets == null) {
+                it
+            } else {
+                toolsets + it
+            }
+        } ?: toolsets
+    }
+
+    /**
+     * 合并上下文
+     */
+    private fun mergeContext(otherContext: List<LlmMessage>?): List<LlmMessage>? {
+        return otherContext?.let {
+            if (context == null) {
+                it
+            } else {
+                context + it
+            }
+        } ?: context
+    }
+}
+
+/**
+ * Tool choice options for controlling how tools are selected during generation.
+ */
+enum class ToolChoice {
+    /** Let the model decide whether to use tools */
+    Auto,
+    /** Do not use any tools */
+    None,
+    /** Require the model to use a tool */
+    Required,
+    /** Require the model to use a specific tool */
+    Specific;
+
+    /** Name of the specific tool to use (only relevant for Specific) */
+    var toolName: String? = null
+
+    companion object {
+        /**
+         * Create a specific tool choice
+         */
+        fun specific(toolName: String): ToolChoice {
+            val choice = Specific
+            choice.toolName = toolName
+            return choice
+        }
+    }
 }
 
 /**
@@ -116,13 +270,39 @@ data class AgentGenerateOptions(
  * @property threadTitle Optional title for new threads
  * @property temperature Controls randomness (0.0 to 1.0)
  * @property maxTokens Maximum number of tokens to generate
+ * @property instructions Optional instructions to override the agent's default instructions
+ * @property toolsets Additional tool sets that can be used for this generation
+ * @property context Additional context messages to include
+ * @property memoryOptions Memory configuration options
+ * @property runId Unique ID for this generation run
+ * @property onFinish Callback fired when streaming completes
+ * @property onStepFinish Callback fired after each generation step completes
+ * @property maxSteps Maximum number of steps allowed for generation
+ * @property output Schema for structured output
+ * @property toolChoice Controls how tools are selected during generation
+ * @property topP Top-p sampling parameter (nucleus sampling)
+ * @property frequencyPenalty Frequency penalty parameter
+ * @property presencePenalty Presence penalty parameter
  */
 data class AgentStreamOptions(
     val threadId: String? = null,
     val resourceId: String? = null,
     val threadTitle: String? = null,
     val temperature: Double = 0.7,
-    val maxTokens: Int? = null
+    val maxTokens: Int? = null,
+    val instructions: String? = null,
+    val toolsets: Map<String, Map<String, Tool>>? = null,
+    val context: List<LlmMessage>? = null,
+    val memoryOptions: MemoryOptions? = null,
+    val runId: String? = null,
+    val onFinish: ((String) -> Unit)? = null,
+    val onStepFinish: ((StepResult) -> Unit)? = null,
+    val maxSteps: Int = 1,
+    val output: JsonElement? = null,
+    val toolChoice: ToolChoice = ToolChoice.Auto,
+    val topP: Double? = null,
+    val frequencyPenalty: Double? = null,
+    val presencePenalty: Double? = null
 ) {
     /**
      * Convert to LLM options.
@@ -130,8 +310,100 @@ data class AgentStreamOptions(
     val llmOptions: LlmOptions
         get() = LlmOptions(
             temperature = temperature,
-            maxTokens = maxTokens
+            maxTokens = maxTokens,
+            topP = topP,
+            frequencyPenalty = frequencyPenalty,
+            presencePenalty = presencePenalty
         )
+
+    /**
+     * Merge with another options object, with the other object taking precedence.
+     */
+    fun merge(other: AgentStreamOptions): AgentStreamOptions {
+        // 合并基本参数
+        val result = mergeBasicParams(other)
+
+        // 合并工具集
+        val mergedToolsets = mergeToolsets(other.toolsets)
+
+        // 合并上下文
+        val mergedContext = mergeContext(other.context)
+
+        // 返回合并后的选项
+        return result.copy(
+            toolsets = mergedToolsets,
+            context = mergedContext
+        )
+    }
+
+    /**
+     * 合并基本参数
+     */
+    private fun mergeBasicParams(other: AgentStreamOptions): AgentStreamOptions {
+        // 先合并基本执行参数
+        val result = mergeExecutionParams(other)
+
+        // 再合并线程和回调参数
+        return mergeThreadAndCallbackParams(other, result)
+    }
+
+    /**
+     * 合并执行参数
+     */
+    private fun mergeExecutionParams(other: AgentStreamOptions): AgentStreamOptions {
+        return copy(
+            temperature = other.temperature.takeIf { it != 0.7 } ?: temperature,
+            maxTokens = other.maxTokens ?: maxTokens,
+            maxSteps = other.maxSteps.takeIf { it != 1 } ?: maxSteps,
+            output = other.output ?: output,
+            toolChoice = if (other.toolChoice != ToolChoice.Auto) other.toolChoice else toolChoice,
+            topP = other.topP ?: topP,
+            frequencyPenalty = other.frequencyPenalty ?: frequencyPenalty,
+            presencePenalty = other.presencePenalty ?: presencePenalty
+        )
+    }
+
+    /**
+     * 合并线程和回调参数
+     */
+    private fun mergeThreadAndCallbackParams(other: AgentStreamOptions, base: AgentStreamOptions): AgentStreamOptions {
+        return base.copy(
+            threadId = other.threadId ?: threadId,
+            resourceId = other.resourceId ?: resourceId,
+            threadTitle = other.threadTitle ?: threadTitle,
+            instructions = other.instructions ?: instructions,
+            memoryOptions = other.memoryOptions ?: memoryOptions,
+            runId = other.runId ?: runId,
+            onFinish = other.onFinish ?: onFinish,
+            onStepFinish = other.onStepFinish ?: onStepFinish
+        )
+    }
+
+    /**
+     * 合并工具集
+     */
+    private fun mergeToolsets(otherToolsets: Map<String, Map<String, Tool>>?): Map<String, Map<String, Tool>>? {
+        return otherToolsets?.let {
+            if (toolsets == null) {
+                it
+            } else {
+                toolsets + it
+            }
+        } ?: toolsets
+    }
+
+    /**
+     * 合并上下文
+     */
+    private fun mergeContext(otherContext: List<LlmMessage>?): List<LlmMessage>? {
+        return otherContext?.let {
+            if (context == null) {
+                it
+            } else {
+                context + it
+            }
+        } ?: context
+    }
 }
 
 /**
@@ -177,6 +449,9 @@ class AgentBuilder {
     lateinit var model: LlmProvider
     var tools: MutableMap<String, Tool> = mutableMapOf()
     var memory: ai.kastrax.memory.api.Memory? = null
+    var defaultGenerateOptions: AgentGenerateOptions = AgentGenerateOptions()
+    var defaultStreamOptions: AgentStreamOptions = AgentStreamOptions()
+    var toolsets: MutableMap<String, MutableMap<String, Tool>> = mutableMapOf()
 
     /**
      * Add tools to the agent.
@@ -192,6 +467,33 @@ class AgentBuilder {
      */
     fun memory(memory: Memory) {
         this.memory = memory
+    }
+
+    /**
+     * Configure default generate options.
+     */
+    fun defaultGenerateOptions(init: DefaultGenerateOptionsBuilder.() -> Unit) {
+        val builder = DefaultGenerateOptionsBuilder(defaultGenerateOptions)
+        builder.init()
+        defaultGenerateOptions = builder.options
+    }
+
+    /**
+     * Configure default stream options.
+     */
+    fun defaultStreamOptions(init: DefaultStreamOptionsBuilder.() -> Unit) {
+        val builder = DefaultStreamOptionsBuilder(defaultStreamOptions)
+        builder.init()
+        defaultStreamOptions = builder.options
+    }
+
+    /**
+     * Add a toolset.
+     */
+    fun toolset(name: String, init: ToolsBuilder.() -> Unit) {
+        val builder = ToolsBuilder()
+        builder.init()
+        toolsets[name] = builder.tools
     }
 
     /**
@@ -216,6 +518,82 @@ class AgentBuilder {
     }
 
     /**
+     * Builder for default generate options.
+     */
+    class DefaultGenerateOptionsBuilder(options: AgentGenerateOptions) {
+        var options: AgentGenerateOptions = options
+            private set
+
+        fun temperature(value: Double) {
+            options = options.copy(temperature = value)
+        }
+
+        fun maxTokens(value: Int?) {
+            options = options.copy(maxTokens = value)
+        }
+
+        fun maxSteps(value: Int) {
+            options = options.copy(maxSteps = value)
+        }
+
+        fun executeTools(value: Boolean) {
+            options = options.copy(executeTools = value)
+        }
+
+        fun toolChoice(value: ToolChoice) {
+            options = options.copy(toolChoice = value)
+        }
+
+        fun topP(value: Double?) {
+            options = options.copy(topP = value)
+        }
+
+        fun frequencyPenalty(value: Double?) {
+            options = options.copy(frequencyPenalty = value)
+        }
+
+        fun presencePenalty(value: Double?) {
+            options = options.copy(presencePenalty = value)
+        }
+    }
+
+    /**
+     * Builder for default stream options.
+     */
+    class DefaultStreamOptionsBuilder(options: AgentStreamOptions) {
+        var options: AgentStreamOptions = options
+            private set
+
+        fun temperature(value: Double) {
+            options = options.copy(temperature = value)
+        }
+
+        fun maxTokens(value: Int?) {
+            options = options.copy(maxTokens = value)
+        }
+
+        fun maxSteps(value: Int) {
+            options = options.copy(maxSteps = value)
+        }
+
+        fun toolChoice(value: ToolChoice) {
+            options = options.copy(toolChoice = value)
+        }
+
+        fun topP(value: Double?) {
+            options = options.copy(topP = value)
+        }
+
+        fun frequencyPenalty(value: Double?) {
+            options = options.copy(frequencyPenalty = value)
+        }
+
+        fun presencePenalty(value: Double?) {
+            options = options.copy(presencePenalty = value)
+        }
+    }
+
+    /**
      * Build the agent.
      */
     fun build(): LLMAgent {
@@ -227,7 +605,10 @@ class AgentBuilder {
             instructions = instructions,
             model = model,
             tools = tools,
-            memory = memory
+            memory = memory,
+            defaultGenerateOptions = defaultGenerateOptions,
+            defaultStreamOptions = defaultStreamOptions,
+            toolsets = toolsets
         )
     }
 }
@@ -240,13 +621,19 @@ class AgentBuilder {
  * @property model LLM provider
  * @property tools Available tools
  * @property memory Optional memory system for conversation history
+ * @property defaultGenerateOptions Default options for generation
+ * @property defaultStreamOptions Default options for streaming
+ * @property toolsets Additional tool sets that can be used for generation
  */
 class LLMAgent(
     name: String,
     val instructions: String,
     val model: LlmProvider,
     val tools: Map<String, Tool> = emptyMap(),
-    val memory: ai.kastrax.memory.api.Memory? = null
+    val memory: ai.kastrax.memory.api.Memory? = null,
+    val defaultGenerateOptions: AgentGenerateOptions = AgentGenerateOptions(),
+    val defaultStreamOptions: AgentStreamOptions = AgentStreamOptions(),
+    val toolsets: Map<String, Map<String, Tool>> = emptyMap()
 ) : KastraXBase(component = "AGENT", name = name), Agent {
 
     /**
@@ -256,22 +643,49 @@ class LLMAgent(
         messages: List<LlmMessage>,
         options: AgentGenerateOptions
     ): AgentResponse {
-        // Prepare messages with system instructions
+        // Merge default options with provided options
+        val mergedOptions = defaultGenerateOptions.merge(options)
+
+        // Use override instructions if provided
+        val effectiveInstructions = mergedOptions.instructions ?: instructions
+
+        // Prepare messages with system instructions and context
+        val contextMessages = mergedOptions.context ?: emptyList()
         val allMessages = if (messages.isNotEmpty() && messages[0].role == LlmMessageRole.SYSTEM) {
-            messages
+            contextMessages + messages
         } else {
-            listOf(LlmMessage(role = LlmMessageRole.SYSTEM, content = instructions)) + messages
+            listOf(LlmMessage(role = LlmMessageRole.SYSTEM, content = effectiveInstructions)) +
+                contextMessages + messages
+        }
+
+        // Collect all tools: base tools + toolsets
+        val allTools = mutableMapOf<String, Tool>().apply {
+            putAll(tools)
+            mergedOptions.toolsets?.forEach { (_, toolset) ->
+                putAll(toolset)
+            }
         }
 
         // Generate response from LLM
-        val llmOptions = options.llmOptions.copy(
-            tools = tools.values.map { tool ->
+        val llmOptions = mergedOptions.llmOptions.copy(
+            tools = allTools.values.map { tool ->
                 buildJsonObject {
                     put("type", JsonPrimitive("function"))
                     put("function", buildJsonObject {
                         put("name", JsonPrimitive(tool.id))
                         put("description", JsonPrimitive(tool.description))
                         put("parameters", tool.inputSchema)
+                    })
+                }
+            },
+            toolChoice = when (mergedOptions.toolChoice) {
+                ToolChoice.Auto -> "auto"
+                ToolChoice.None -> "none"
+                ToolChoice.Required -> "required"
+                ToolChoice.Specific -> buildJsonObject {
+                    put("type", JsonPrimitive("function"))
+                    put("function", buildJsonObject {
+                        put("name", JsonPrimitive(mergedOptions.toolChoice.toolName ?: ""))
                     })
                 }
             }
@@ -356,38 +770,121 @@ class LLMAgent(
         prompt: String,
         options: AgentStreamOptions
     ): AgentResponse {
-        // 使用提供的线程ID或创建新的线程ID
-        val threadId = options.threadId ?: if (memory != null) {
+        // Merge default options with provided options
+        val mergedOptions = defaultStreamOptions.merge(options)
+
+        // Use override instructions if provided
+        val effectiveInstructions = mergedOptions.instructions ?: instructions
+
+        // 准备流式生成
+        val threadId = prepareThreadId(mergedOptions)
+        val userMessage = LlmMessage(role = LlmMessageRole.USER, content = prompt)
+        saveUserMessage(userMessage, threadId)
+
+        // 准备消息和工具
+        val allMessages = prepareMessages(userMessage, effectiveInstructions, mergedOptions, threadId)
+        val llmOptions = prepareLlmOptions(mergedOptions)
+
+        // 流式生成响应
+        return streamResponse(allMessages, llmOptions, threadId)
+    }
+
+    /**
+     * 准备线程ID
+     */
+    private suspend fun prepareThreadId(options: AgentStreamOptions): String {
+        return options.threadId ?: if (memory != null) {
             // 如果有内存系统，创建新线程
             memory.createThread(options.threadTitle)
         } else {
             // 否则生成随机ID
-            UUID.randomUUID().toString()
+            options.runId ?: UUID.randomUUID().toString()
         }
+    }
 
-        // 准备消息
-        val userMessage = LlmMessage(role = LlmMessageRole.USER, content = prompt)
-
-        // 如果有内存系统，保存用户消息
+    /**
+     * 保存用户消息
+     */
+    private suspend fun saveUserMessage(userMessage: LlmMessage, threadId: String) {
         if (memory != null) {
             memory.saveMessage(userMessage.toMessage(), threadId)
         }
+    }
 
+    /**
+     * 准备消息
+     */
+    private suspend fun prepareMessages(
+        userMessage: LlmMessage,
+        effectiveInstructions: String,
+        options: AgentStreamOptions,
+        threadId: String
+    ): List<LlmMessage> {
         // 获取历史消息（如果有内存系统）
         val historyMessages = if (memory != null) {
             memory.getMessages(threadId).map { it.message.toLlmMessage() }
         } else emptyList()
 
-        // 合并系统指令和历史消息
-        val allMessages = if (historyMessages.isNotEmpty() && historyMessages[0].role == LlmMessageRole.SYSTEM) {
-            historyMessages.toList() + userMessage
+        // 添加上下文消息
+        val contextMessages = options.context ?: emptyList()
+
+        // 合并系统指令、上下文和历史消息
+        return if (historyMessages.isNotEmpty() && historyMessages[0].role == LlmMessageRole.SYSTEM) {
+            contextMessages + historyMessages.toList() + userMessage
         } else {
-            listOf(LlmMessage(role = LlmMessageRole.SYSTEM, content = instructions)) +
-            historyMessages.toList() + userMessage
+            listOf(LlmMessage(role = LlmMessageRole.SYSTEM, content = effectiveInstructions)) +
+            contextMessages + historyMessages.toList() + userMessage
+        }
+    }
+
+    /**
+     * 准备LLM选项
+     */
+    private fun prepareLlmOptions(options: AgentStreamOptions): LlmOptions {
+        // Collect all tools: base tools + toolsets
+        val allTools = mutableMapOf<String, Tool>().apply {
+            putAll(tools)
+            options.toolsets?.forEach { (_, toolset) ->
+                putAll(toolset)
+            }
         }
 
+        // 准备LLM选项
+        return options.llmOptions.copy(
+            tools = allTools.values.map { tool ->
+                buildJsonObject {
+                    put("type", JsonPrimitive("function"))
+                    put("function", buildJsonObject {
+                        put("name", JsonPrimitive(tool.id))
+                        put("description", JsonPrimitive(tool.description))
+                        put("parameters", tool.inputSchema)
+                    })
+                }
+            },
+            toolChoice = when (options.toolChoice) {
+                ToolChoice.Auto -> "auto"
+                ToolChoice.None -> "none"
+                ToolChoice.Required -> "required"
+                ToolChoice.Specific -> buildJsonObject {
+                    put("type", JsonPrimitive("function"))
+                    put("function", buildJsonObject {
+                        put("name", JsonPrimitive(options.toolChoice.toolName ?: ""))
+                    })
+                }
+            }
+        )
+    }
+
+    /**
+     * 流式生成响应
+     */
+    private suspend fun streamResponse(
+        messages: List<LlmMessage>,
+        llmOptions: LlmOptions,
+        threadId: String
+    ): AgentResponse {
         // 从LLM流式生成响应
-        val responseStream = model.streamGenerate(allMessages, options.llmOptions)
+        val responseStream = model.streamGenerate(messages, llmOptions)
 
         // 创建响应流，收集完整文本
         val responseBuilder = StringBuilder()
@@ -398,13 +895,7 @@ class LLMAgent(
             }
 
             // 当流完成后，如果有内存系统，保存助手消息
-            if (memory != null) {
-                val assistantMessage = LlmMessage(
-                    role = LlmMessageRole.ASSISTANT,
-                    content = responseBuilder.toString()
-                )
-                memory.saveMessage(assistantMessage.toMessage(), threadId)
-            }
+            saveAssistantMessage(responseBuilder.toString(), threadId)
         }
 
         // 创建响应对象
@@ -412,6 +903,19 @@ class LLMAgent(
             textStream = processedStream,
             threadId = threadId
         )
+    }
+
+    /**
+     * 保存助手消息
+     */
+    private suspend fun saveAssistantMessage(content: String, threadId: String) {
+        if (memory != null) {
+            val assistantMessage = LlmMessage(
+                role = LlmMessageRole.ASSISTANT,
+                content = content
+            )
+            memory.saveMessage(assistantMessage.toMessage(), threadId)
+        }
     }
 
     /**

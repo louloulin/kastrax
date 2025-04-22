@@ -105,7 +105,7 @@ data class WorkflowStepResult(
          * @param error 错误对象
          * @return 失败的步骤结果
          */
-        fun Failed(stepId: String, error: Exception): WorkflowStepResult {
+        fun failed(stepId: String, error: Exception): WorkflowStepResult {
             return WorkflowStepResult(
                 stepId = stepId,
                 success = false,
@@ -250,13 +250,31 @@ data class WorkflowContext(
      * 解析步骤引用。
      */
     private fun resolveStepReference(path: String): Any? {
+        // 验证路径格式
+        val result = validateAndParsePath(path) ?: return null
+        val (stepId, outputKey) = result
+
+        // 获取步骤结果
+        val stepResult = steps[stepId] ?: return null
+
+        // 返回输出
+        return getStepOutput(stepResult, outputKey)
+    }
+
+    /**
+     * 验证和解析路径
+     */
+    private fun validateAndParsePath(path: String): Pair<String, String>? {
         val parts = path.removePrefix("$.steps.").split(".")
         if (parts.size < 2) return null
 
-        val stepId = parts[0]
-        val outputKey = parts[1]
-        val stepResult = steps[stepId] ?: return null
+        return parts[0] to parts[1]
+    }
 
+    /**
+     * 获取步骤输出
+     */
+    private fun getStepOutput(stepResult: WorkflowStepResult, outputKey: String): Any? {
         return if (outputKey == "output") {
             stepResult.output
         } else {
@@ -614,7 +632,7 @@ class SimpleWorkflow(
                     }
                 } catch (e: Exception) {
                     // 重试失败，返回失败结果
-                    WorkflowStepResult.Failed(stepId, e)
+                    WorkflowStepResult.failed(stepId, e)
                 }
             } else {
                 // 直接执行步骤
@@ -785,7 +803,7 @@ class SimpleWorkflow(
                     }
                 } catch (e: Exception) {
                     // 重试失败，返回失败结果
-                    WorkflowStepResult.Failed(stepId, e)
+                    WorkflowStepResult.failed(stepId, e)
                 }
             } else {
                 // 直接执行步骤

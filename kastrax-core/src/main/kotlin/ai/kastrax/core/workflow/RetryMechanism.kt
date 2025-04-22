@@ -58,11 +58,11 @@ data class RetryConfig(
     fun calculateDelay(attempt: Int): Long {
         // 指数退避算法
         val baseDelay = initialDelay.toMillis() * backoffFactor.pow(attempt - 1)
-        
+
         // 添加抖动
         val jitterAmount = baseDelay * jitter
         val jitteredDelay = baseDelay + Random.nextDouble(-jitterAmount, jitterAmount)
-        
+
         // 确保延迟在合理范围内
         return min(maxDelay.toMillis(), max(initialDelay.toMillis(), jitteredDelay.toLong()))
     }
@@ -92,23 +92,23 @@ suspend fun <T> withRetry(
             return operation()
         } catch (e: Throwable) {
             lastException = e
-            
+
             // 检查是否可以重试
             if (!config.isRetryable(e) || attempt > config.maxRetries) {
                 throw e
             }
-            
+
             // 计算延迟时间
             val delayMillis = config.calculateDelay(attempt)
-            
+
             // 延迟后重试
             delay(delayMillis)
             attempt++
         }
     }
-    
+
     // 这里理论上不会执行到，因为如果所有重试都失败，会在循环中抛出异常
-    throw lastException ?: IllegalStateException("Retry failed for unknown reason")
+    throw lastException ?: error("Retry failed for unknown reason")
 }
 
 /**

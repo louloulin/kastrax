@@ -8,10 +8,10 @@ import ai.kastrax.core.llm.LlmProvider
 class DeepSeekConfig {
     /** DeepSeek 模型 */
     var model: String = DeepSeekModel.DEEPSEEK_CHAT.id
-    
+
     /** DeepSeek API 密钥 */
     var apiKey: String = ""
-    
+
     /**
      * 设置模型。
      *
@@ -20,7 +20,7 @@ class DeepSeekConfig {
     fun model(model: DeepSeekModel) {
         this.model = model.id
     }
-    
+
     /**
      * 设置自定义模型 ID。
      *
@@ -29,7 +29,7 @@ class DeepSeekConfig {
     fun model(modelId: String) {
         this.model = modelId
     }
-    
+
     /**
      * 设置 API 密钥。
      *
@@ -62,15 +62,16 @@ fun deepSeek(
  */
 fun deepSeek(init: DeepSeekConfig.() -> Unit): LlmProvider {
     val config = DeepSeekConfig().apply(init)
-    
+
     // 如果 API 密钥为空，尝试从环境变量获取
     val apiKey = if (config.apiKey.isBlank()) {
         System.getenv("DEEPSEEK_API_KEY") ?: throw IllegalArgumentException(
-            "DeepSeek API key is required. Either provide it explicitly or set the DEEPSEEK_API_KEY environment variable."
+            "DeepSeek API key is required. " +
+            "Either provide it explicitly or set the DEEPSEEK_API_KEY environment variable."
         )
     } else {
         config.apiKey
     }
-    
+
     return DeepSeekProvider(config.model, apiKey)
 }

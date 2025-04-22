@@ -12,7 +12,7 @@ interface LlmProvider {
      * The model identifier.
      */
     val model: String
-    
+
     /**
      * Generate a response from the LLM.
      *
@@ -24,7 +24,7 @@ interface LlmProvider {
         messages: List<LlmMessage>,
         options: LlmOptions = LlmOptions()
     ): LlmResponse
-    
+
     /**
      * Generate a streaming response from the LLM.
      *
@@ -36,7 +36,7 @@ interface LlmProvider {
         messages: List<LlmMessage>,
         options: LlmOptions = LlmOptions()
     ): Flow<String>
-    
+
     /**
      * Generate embeddings for a text.
      *
@@ -96,17 +96,21 @@ data class LlmToolCall(
  * @property presencePenalty Penalizes repeated tokens
  * @property stop List of sequences where the LLM should stop generating
  * @property tools List of tools available to the LLM
- * @property toolChoice How the model should use tools
+ * @property toolChoice How the model should use tools (can be a string or a JSON object)
+ * @property responseFormat Controls the format of the response
+ * @property seed Random seed for deterministic results
  */
 data class LlmOptions(
     val temperature: Double = 0.7,
     val maxTokens: Int? = null,
-    val topP: Double = 1.0,
-    val frequencyPenalty: Double = 0.0,
-    val presencePenalty: Double = 0.0,
+    val topP: Double? = null,
+    val frequencyPenalty: Double? = null,
+    val presencePenalty: Double? = null,
     val stop: List<String> = emptyList(),
     val tools: List<JsonElement> = emptyList(),
-    val toolChoice: String = "auto"
+    val toolChoice: Any = "auto",
+    val responseFormat: JsonElement? = null,
+    val seed: Long? = null
 )
 
 /**

@@ -156,7 +156,7 @@ class DeepSeekProvider(
             frequencyPenalty = options.frequencyPenalty,
             presencePenalty = options.presencePenalty,
             tools = tools,
-            toolChoice = toolChoice,
+            toolChoice = toolChoice as? String,
             user = null
         )
     }

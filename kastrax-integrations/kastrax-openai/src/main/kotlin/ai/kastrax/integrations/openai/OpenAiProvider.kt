@@ -209,7 +209,11 @@ class OpenAiProvider(
                 }
 
                 if (options.toolChoice != "auto") {
-                    put("tool_choice", options.toolChoice)
+                    when (val toolChoice = options.toolChoice) {
+                        is String -> put("tool_choice", toolChoice)
+                        is JsonElement -> put("tool_choice", toolChoice)
+                        else -> put("tool_choice", JsonPrimitive(toolChoice.toString()))
+                    }
                 }
             }
         }

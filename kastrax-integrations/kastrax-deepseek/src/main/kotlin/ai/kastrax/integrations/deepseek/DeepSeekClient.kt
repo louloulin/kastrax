@@ -80,7 +80,7 @@ class DeepSeekClient(
                 val jsonParser = Json { ignoreUnknownKeys = true; isLenient = true }
 
                 response.bodyAsChannel().apply {
-                    val buffer = StringBuilder()
+                    // 不需要buffer，直接处理每一行
 
                     while (!isClosedForRead) {
                         val line = readUTF8Line(limit = 8192) ?: continue

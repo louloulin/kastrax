@@ -136,11 +136,12 @@ class AnthropicProvider(
         } else null
 
         // 处理工具选择
-        val toolChoice = when {
-            options.toolChoice == "auto" -> "auto"
-            options.toolChoice == "none" -> "none"
-            options.toolChoice != null -> options.toolChoice
-            else -> null
+        val toolChoice = when (val choice = options.toolChoice) {
+            "auto" -> "auto"
+            "none" -> "none"
+            is String -> choice
+            is JsonElement -> choice.toString()
+            else -> if (choice != null) choice.toString() else null
         }
 
         return AnthropicChatRequest(
