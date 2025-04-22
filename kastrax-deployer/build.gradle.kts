@@ -41,6 +41,9 @@ dependencies {
     implementation("io.github.oshai:kotlin-logging-jvm:5.1.0")
     implementation("ch.qos.logback:logback-classic:1.4.11")
 
+    // Redis
+    implementation("io.lettuce:lettuce-core:6.2.4.RELEASE")
+
     // Testing
     testImplementation(kotlin("test"))
     testImplementation(kotlin("test-junit5"))
