@@ -14,16 +14,17 @@ interface Memory {
      * @return 保存的消息ID
      */
     suspend fun saveMessage(message: Message, threadId: String): String
-    
+
     /**
      * 获取指定线程的消息。
      *
      * @param threadId 线程ID
      * @param limit 返回的最大消息数量
+     * @param processors 要应用的处理器列表
      * @return 消息列表
      */
-    suspend fun getMessages(threadId: String, limit: Int = 10): List<MemoryMessage>
-    
+    suspend fun getMessages(threadId: String, limit: Int = 10, processors: List<MemoryProcessor>? = null): List<MemoryMessage>
+
     /**
      * 搜索指定线程中与查询相关的消息。
      *
@@ -33,7 +34,17 @@ interface Memory {
      * @return 相关消息列表
      */
     suspend fun searchMessages(query: String, threadId: String, limit: Int = 5): List<MemoryMessage>
-    
+
+    /**
+     * 语义搜索指定线程中与查询相关的消息。
+     *
+     * @param query 搜索查询
+     * @param threadId 线程ID
+     * @param config 语义召回配置
+     * @return 相关消息列表
+     */
+    suspend fun semanticSearch(query: String, threadId: String, config: SemanticRecallConfig = SemanticRecallConfig()): List<SemanticSearchResult>
+
     /**
      * 创建新的线程。
      *
@@ -41,7 +52,7 @@ interface Memory {
      * @return 新线程的ID
      */
     suspend fun createThread(title: String? = null): String
-    
+
     /**
      * 删除指定的线程。
      *
@@ -49,7 +60,7 @@ interface Memory {
      * @return 是否成功删除
      */
     suspend fun deleteThread(threadId: String): Boolean
-    
+
     /**
      * 获取线程信息。
      *
@@ -57,7 +68,7 @@ interface Memory {
      * @return 线程信息
      */
     suspend fun getThread(threadId: String): MemoryThread?
-    
+
     /**
      * 列出所有线程。
      *
@@ -86,22 +97,22 @@ interface Message {
      * 消息角色。
      */
     val role: MessageRole
-    
+
     /**
      * 消息内容。
      */
     val content: String
-    
+
     /**
      * 消息发送者的名称（可选）。
      */
     val name: String?
-    
+
     /**
      * 消息中的工具调用（可选）。
      */
     val toolCalls: List<ToolCall>
-    
+
     /**
      * 如果这是工具响应，则为工具调用ID（可选）。
      */
@@ -116,12 +127,12 @@ interface ToolCall {
      * 工具调用ID。
      */
     val id: String
-    
+
     /**
      * 工具名称。
      */
     val name: String
-    
+
     /**
      * 工具参数（JSON字符串）。
      */
@@ -168,17 +179,37 @@ interface MemoryBuilder {
      * 设置存储实现。
      */
     fun storage(storage: Any): MemoryBuilder
-    
+
     /**
      * 设置最近消息数量。
      */
     fun lastMessages(count: Int): MemoryBuilder
-    
+
     /**
      * 启用或禁用语义召回。
      */
     fun semanticRecall(enabled: Boolean): MemoryBuilder
-    
+
+    /**
+     * 设置嵌入生成器。
+     */
+    fun embeddingGenerator(generator: EmbeddingGenerator): MemoryBuilder
+
+    /**
+     * 设置向量存储。
+     */
+    fun vectorStorage(storage: VectorStorage): MemoryBuilder
+
+    /**
+     * 添加内存处理器。
+     */
+    fun processor(processor: MemoryProcessor): MemoryBuilder
+
+    /**
+     * 启用或禁用工作内存。
+     */
+    fun workingMemory(config: WorkingMemoryConfig): MemoryBuilder
+
     /**
      * 构建内存实例。
      */
