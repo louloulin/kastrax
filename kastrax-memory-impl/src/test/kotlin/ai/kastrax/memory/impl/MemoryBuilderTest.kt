@@ -75,16 +75,8 @@ class MemoryBuilderTest {
 
     @Test
     fun `test TestEnhancedMemoryBuilder creates EnhancedMemory with all options`() {
-        // 使用反射检查TestEnhancedMemoryBuilder类是否有memoryCompressor方法
-        val hasMemoryCompressorMethod = try {
-            TestEnhancedMemoryBuilder::class.java.getDeclaredMethod(
-                "memoryCompressor",
-                ai.kastrax.memory.api.MemoryCompressor::class.java
-            )
-            true
-        } catch (e: NoSuchMethodException) {
-            false
-        }
+        // 检查TestEnhancedMemoryBuilder类的方法
+        // 注意：这里不再需要使用反射检查，因为我们知道该方法存在
 
         val builder = TestEnhancedMemoryBuilder()
 

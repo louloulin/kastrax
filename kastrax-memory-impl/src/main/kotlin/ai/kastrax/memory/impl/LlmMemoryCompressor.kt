@@ -121,17 +121,11 @@ class LlmMemoryCompressor(
         messages: List<MemoryMessage>,
         config: MemoryCompressionConfig
     ): Boolean {
-        // 如果压缩功能未启用，不压缩
-        if (!config.enabled) {
-            return false
-        }
+        // 检查是否需要压缩
+        val isEnabled = config.enabled
+        val hasEnoughMessages = messages.size >= config.threshold
 
-        // 如果消息数量小于阈值，不压缩
-        if (messages.size < config.threshold) {
-            return false
-        }
-
-        return true
+        return isEnabled && hasEnoughMessages
     }
 
     override suspend fun summarize(messages: List<MemoryMessage>, maxLength: Int): String {

@@ -126,7 +126,8 @@ class HybridSearchMemoryTest {
         hybridMemory.saveMessage(
             SimpleMessage(
                 role = MessageRole.ASSISTANT,
-                content = "Deep learning is a subset of machine learning that uses neural networks with multiple layers."
+                content = "Deep learning is a subset of machine learning that uses " +
+                    "neural networks with multiple layers."
             ),
             threadId
         )

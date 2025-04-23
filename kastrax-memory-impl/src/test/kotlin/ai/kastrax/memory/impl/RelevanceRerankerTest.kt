@@ -87,11 +87,8 @@ class RelevanceRerankerTest {
             )
         )
 
-        // 创建上下文
-        val context = listOf(
-            createTestMessage("Let's talk about machine learning."),
-            createTestMessage("What's the difference between deep learning and traditional ML?")
-        )
+        // 上下文信息（当前测试中未使用）
+        // 注意：这里的上下文将在未来版本中使用，目前保留作为注释
 
         // 重排序
         val reranked = reranker.rerank("What's the difference between deep learning and traditional ML?", results)

@@ -70,7 +70,10 @@ class EnhancedMemoryTest {
         // 保存多条消息，触发压缩
         for (i in 1..20) {
             memory.saveMessage(
-                SimpleMessage(role = if (i % 2 == 0) MessageRole.ASSISTANT else MessageRole.USER, content = "Message $i with some additional text to increase token count"),
+                SimpleMessage(
+                    role = if (i % 2 == 0) MessageRole.ASSISTANT else MessageRole.USER,
+                    content = "Message $i with some additional text to increase token count"
+                ),
                 threadId
             )
         }

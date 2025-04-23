@@ -16,7 +16,11 @@ fun createTestMemory(init: TestEnhancedMemoryBuilder.() -> Unit): Memory {
     val builder = TestEnhancedMemoryBuilder()
     builder.init()
     val memory = builder.build()
-    println("Created test memory: $memory with storage: ${builder.getStorage()}, processors: ${builder.getProcessors().size}, workingMemory: ${builder.getWorkingMemoryConfig() != null}")
+    println(
+        "Created test memory: $memory with storage: ${builder.getStorage()}, " +
+        "processors: ${builder.getProcessors().size}, " +
+        "workingMemory: ${builder.getWorkingMemoryConfig() != null}"
+    )
     return memory
 }
 
@@ -90,7 +94,7 @@ class TestEnhancedMemoryBuilder : MemoryBuilder {
         return this
     }
 
-    fun compressionConfig(config: ai.kastrax.memory.api.MemoryCompressionConfig): TestEnhancedMemoryBuilder {
+    fun compressionConfig(@Suppress("UNUSED_PARAMETER") config: ai.kastrax.memory.api.MemoryCompressionConfig): TestEnhancedMemoryBuilder {
         // 在测试中，我们只需要设置 memoryCompressor，不需要单独设置 compressionConfig
         // 因为 MockMemoryCompressor 会使用传入的 config
         return this
@@ -114,7 +118,10 @@ class TestEnhancedMemoryBuilder : MemoryBuilder {
     }
 
     override fun build(): Memory {
-        println("Building EnhancedMemory with tagManagerEnabled: $tagManagerEnabled, threadSharingEnabled: $threadSharingEnabled")
+        println(
+            "Building EnhancedMemory with tagManagerEnabled: $tagManagerEnabled, " +
+            "threadSharingEnabled: $threadSharingEnabled"
+        )
         return EnhancedMemory(
             storage = storage ?: InMemoryStorage(),
             lastMessagesCount = lastMessagesCount,

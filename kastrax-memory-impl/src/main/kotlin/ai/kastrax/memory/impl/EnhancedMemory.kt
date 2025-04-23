@@ -28,7 +28,7 @@ import java.util.UUID
  */
 class EnhancedMemory(
     private val storage: Any,
-    private val lastMessagesCount: Int = 10,
+    private val lastMessagesCount: Int = 10, // 用于限制返回的消息数量
     private val semanticRecallEnabled: Boolean = false,
     private val embeddingGenerator: EmbeddingGenerator? = null,
     private val vectorStorage: VectorStorage? = null,
@@ -41,7 +41,11 @@ class EnhancedMemory(
 ) : Memory, KastraXBase(component = "MEMORY", name = "enhanced") {
 
     init {
-        logger.info { "Creating EnhancedMemory with storage: $storage, processors: ${processors.size}, workingMemory: ${workingMemoryConfig != null}, memoryCompressor: ${memoryCompressor != null}, tagManager: $tagManagerEnabled, threadSharing: $threadSharingEnabled" }
+        logger.info {
+            "Creating EnhancedMemory with storage: $storage, processors: ${processors.size}, " +
+            "workingMemory: ${workingMemoryConfig != null}, memoryCompressor: ${memoryCompressor != null}, " +
+            "tagManager: $tagManagerEnabled, threadSharing: $threadSharingEnabled"
+        }
     }
     private val mutex = Mutex()
     private val threads = mutableMapOf<String, String>() // threadId -> title
@@ -234,17 +238,33 @@ class EnhancedMemory(
      */
     fun getWorkingMemoryTools(): Map<String, Any> {
         logger.info { "Getting working memory tools. workingMemory: $workingMemory, config: $workingMemoryConfig" }
+
+        // 如果工作内存未启用，返回模拟工具
         if (workingMemory == null || workingMemoryConfig?.enabled != true) {
             logger.info { "Returning mock tools because workingMemory is null or disabled" }
-            return mapOf(
-                "update_working_memory" to "mock_tool",
-                "get_working_memory" to "mock_tool"
-            )
+            return createMockTools()
         }
-        val tools = workingMemory.getTools(workingMemoryConfig)
+
+        // 获取实际工具并确保包含 get_working_memory
+        return getActualToolsWithFallback(workingMemory.getTools(workingMemoryConfig))
+    }
+
+    /**
+     * 创建模拟工具。
+     */
+    private fun createMockTools(): Map<String, Any> {
+        return mapOf(
+            "update_working_memory" to "mock_tool",
+            "get_working_memory" to "mock_tool"
+        )
+    }
+
+    /**
+     * 确保工具包含 get_working_memory，如果不包含则添加模拟工具。
+     */
+    private fun getActualToolsWithFallback(tools: Map<String, Any>): Map<String, Any> {
         logger.info { "Returning actual tools: ${tools.keys}" }
 
-        // 确保工具包含 get_working_memory
         if (!tools.containsKey("get_working_memory")) {
             logger.warn { "Working memory tools does not contain get_working_memory, adding mock tool" }
             val updatedTools = tools.toMutableMap()
@@ -445,7 +465,10 @@ class EnhancedMemory(
      * @return 标签列表
      */
     suspend fun getMessageTags(messageId: String): List<MemoryTag> {
-        logger.info { "Getting tags for message $messageId, tagManagerEnabled: $tagManagerEnabled, tagManager: $tagManager" }
+        logger.info {
+            "Getting tags for message $messageId, " +
+            "tagManagerEnabled: $tagManagerEnabled, tagManager: $tagManager"
+        }
         if (!tagManagerEnabled || tagManager == null) {
             logger.warn { "Tag manager is not enabled or null" }
             return emptyList()
