@@ -126,6 +126,9 @@ class DataFlowDebuggerTest {
 
         // 使用mock方式创建工作流
         return object : Workflow {
+            // 添加steps字段，使其可以通过反射访问
+            val steps: List<WorkflowStep> = steps
+
             override suspend fun execute(input: Map<String, Any?>, options: WorkflowExecuteOptions): WorkflowResult {
                 val stepResults = mutableMapOf<String, WorkflowStepResult>()
                 steps.forEach { step ->
