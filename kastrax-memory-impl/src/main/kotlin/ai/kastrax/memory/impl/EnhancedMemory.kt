@@ -70,6 +70,9 @@ class EnhancedMemory(
         null
     }
 
+    // 内存统计
+    private val memoryStats = MemoryStats()
+
     // 线程共享映射：共享线程ID -> 原始线程ID列表
     private val sharedThreads = mutableMapOf<String, MutableList<String>>()
 
@@ -94,6 +97,9 @@ class EnhancedMemory(
         mutex.withLock {
             val threadMessages = messages.getOrPut(threadId) { mutableListOf() }
             threadMessages.add(memoryMessage)
+
+            // 记录消息统计
+            memoryStats.recordMessage(memoryMessage)
 
             // 如果是共享线程，也保存到原始线程
             if (threadSharingEnabled) {
@@ -477,6 +483,19 @@ class EnhancedMemory(
         val tags = tagManager.getMessageTags(messageId)
         logger.info { "Tags for message $messageId: $tags" }
         return tags
+    }
+
+    /**
+     * 获取内存统计信息。
+     */
+    fun getMemoryStats(): Map<String, Any> {
+        return mapOf(
+            "totalMessages" to memoryStats.getTotalMessages(),
+            "uptime" to memoryStats.getUptime(),
+            "threadCounts" to memoryStats.getAllThreadMessageCounts(),
+            "roleCounts" to memoryStats.getAllRoleMessageCounts(),
+            "hourlyCounts" to memoryStats.getAllHourlyMessageCounts()
+        )
     }
 
     /**
