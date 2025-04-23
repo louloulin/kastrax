@@ -90,21 +90,10 @@ class ErrorHandlingWorkflowEngine(
         emit(WorkflowStatusUpdate.Started(workflowId, runId))
 
         // 执行工作流
-        // 由于我们不能直接访问工作流的步骤，我们将使用空步骤列表
-        val workflowSteps = emptyList<WorkflowStep>()
-        if (true) {
-            emit(WorkflowStatusUpdate.Completed(
-                workflowId = workflowId,
-                runId = runId,
-                result = WorkflowResult(
-                    success = true,
-                    output = emptyMap(),
-                    steps = emptyMap(),
-                    executionTime = System.currentTimeMillis() - startTime,
-                    runId = runId
-                )
-            ))
-            return@flow
+        // 获取工作流的所有步骤
+        val workflowSteps = when (workflow) {
+            is ai.kastrax.core.workflow.SimpleWorkflow -> workflow.steps
+            else -> emptyMap() // 如果不是SimpleWorkflow，则使用空Map
         }
 
         // 执行步骤
@@ -113,9 +102,10 @@ class ErrorHandlingWorkflowEngine(
         val totalSteps = workflowSteps.size
 
         // 执行每个步骤
-        for ((index, step) in workflowSteps.withIndex()) {
+        for ((index, entry) in workflowSteps.entries.withIndex()) {
             currentStepIndex = index
-            val stepId = step.id
+            val stepId = entry.key
+            val step = entry.value
 
             // 发送步骤开始状态
             emit(WorkflowStatusUpdate.StepStarted(
@@ -209,24 +199,17 @@ class ErrorHandlingWorkflowEngine(
         startTime: Long
     ): WorkflowResult {
         // 执行工作流
-        // 由于我们不能直接访问工作流的步骤，我们将使用空步骤列表
-        val workflowSteps = emptyList<WorkflowStep>()
-        if (true) {
-            return WorkflowResult(
-                success = true,
-                output = emptyMap(),
-                steps = emptyMap(),
-                executionTime = System.currentTimeMillis() - startTime,
-                runId = context.runId
-            )
+        // 获取工作流的所有步骤
+        val workflowSteps = when (workflow) {
+            is ai.kastrax.core.workflow.SimpleWorkflow -> workflow.steps
+            else -> emptyMap() // 如果不是SimpleWorkflow，则使用空Map
         }
 
         // 执行步骤
         val executedSteps = mutableMapOf<String, WorkflowStepResult>()
 
         // 执行每个步骤
-        for (step in workflowSteps) {
-            val stepId = step.id
+        for ((stepId, step) in workflowSteps) {
 
             // 检查步骤的前置条件
             val canExecute = checkStepPreconditions(step, context, executedSteps)

@@ -248,7 +248,16 @@ class VariableResolver(
             val subPath = outputPath.removePrefix("output.")
             resolveNestedPath(stepResult.output, subPath)
         } else {
-            stepResult.output[outputPath]
+            // 处理嵌套路径，例如 step1.nested.value
+            if (outputPath.contains(".")) {
+                val nestedParts = outputPath.split(".", limit = 2)
+                val key = nestedParts[0]
+                val subPath = nestedParts[1]
+                val value = stepResult.output[key]
+                resolveNestedPath(value, subPath)
+            } else {
+                stepResult.output[outputPath]
+            }
         }
     }
 
