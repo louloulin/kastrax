@@ -98,6 +98,16 @@ class TemplateParameter<T : Any>(
      * @return 类型是否有效
      */
     fun validateType(value: Any): Boolean {
+        // 处理原始类型和包装类型之间的兼容性
+        if (type == Int::class.java && value is Int) return true
+        if (type == Long::class.java && value is Long) return true
+        if (type == Double::class.java && value is Double) return true
+        if (type == Float::class.java && value is Float) return true
+        if (type == Boolean::class.java && value is Boolean) return true
+        if (type == Char::class.java && value is Char) return true
+        if (type == Byte::class.java && value is Byte) return true
+        if (type == Short::class.java && value is Short) return true
+
         return type.isInstance(value)
     }
 
