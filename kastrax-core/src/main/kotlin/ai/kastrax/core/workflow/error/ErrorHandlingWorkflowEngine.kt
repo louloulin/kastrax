@@ -256,21 +256,44 @@ class ErrorHandlingWorkflowEngine(
         val errorHandlingConfig = stepConfig?.errorHandlingConfig ?: globalErrorHandlingConfig
 
         try {
-            // 执行步骤，如果配置了重试则使用重试机制
-            return if (retryConfig != null) {
-                try {
-                    step.executeWithRetry(context, retryConfig)
-                } catch (e: Exception) {
-                    // 重试失败，尝试应用错误恢复策略
-                    handleStepError(step, context, e, errorHandlingConfig)
+            // 如果配置了重试机制，则手动实现重试逻辑
+            if (retryConfig != null) {
+                var attempt = 1
+                var lastException: Exception? = null
+
+                while (attempt <= retryConfig.maxRetries + 1) { // +1 是因为第一次尝试不算重试
+                    try {
+                        return step.execute(context)
+                    } catch (e: Exception) {
+                        lastException = e
+
+                        // 检查是否可以重试
+                        if (!retryConfig.isRetryable(e) || attempt >= retryConfig.maxRetries + 1) {
+                            // 如果不能重试或者已经达到最大重试次数，尝试应用错误恢复策略
+                            return handleStepError(step, context, e, errorHandlingConfig)
+                        }
+
+                        // 计算延迟时间
+                        val delayMillis = retryConfig.calculateDelay(attempt)
+
+                        // 记录重试信息
+                        logger.debug { "步骤 ${step.id} 执行失败，将在 $delayMillis 毫秒后重试，当前尝试次数: $attempt" }
+
+                        // 延迟后重试
+                        kotlinx.coroutines.delay(delayMillis)
+                        attempt++
+                    }
                 }
+
+                // 如果所有重试都失败，尝试应用错误恢复策略
+                return handleStepError(step, context, lastException ?: Exception("Unknown error"), errorHandlingConfig)
             } else {
                 // 直接执行步骤
                 try {
-                    step.execute(context)
+                    return step.execute(context)
                 } catch (e: Exception) {
                     // 执行失败，尝试应用错误恢复策略
-                    handleStepError(step, context, e, errorHandlingConfig)
+                    return handleStepError(step, context, e, errorHandlingConfig)
                 }
             }
         } catch (e: Exception) {
@@ -319,17 +342,28 @@ class ErrorHandlingWorkflowEngine(
 
         // 处理恢复结果
         return if (recoveryResult.success) {
-            // 如果恢复成功，返回恢复后的步骤结果
-            val stepResult = recoveryResult.stepResult ?: WorkflowStepResult(
-                stepId = step.id,
-                success = true,
-                output = mapOf("recovered" to true, "originalError" to error.message),
-                errorHandled = true,
-                executionTime = 0
-            )
+            // 如果恢复成功，检查是否需要重试
+            if (strategyType == RecoveryStrategyType.RETRY) {
+                // 如果是重试策略，则重新执行步骤
+                try {
+                    return step.execute(context)
+                } catch (e: Exception) {
+                    // 如果重试仍然失败，则递归处理错误
+                    return handleStepError(step, context, e, errorHandlingConfig)
+                }
+            } else {
+                // 如果不是重试策略，返回恢复后的步骤结果
+                val stepResult = recoveryResult.stepResult ?: WorkflowStepResult(
+                    stepId = step.id,
+                    success = true,
+                    output = mapOf("recovered" to true, "originalError" to error.message),
+                    errorHandled = true,
+                    executionTime = 0
+                )
 
-            // 标记错误已处理
-            stepResult.copy(errorHandled = true)
+                // 标记错误已处理
+                stepResult.copy(errorHandled = true)
+            }
         } else {
             // 如果恢复失败，返回失败结果
             WorkflowStepResult(

@@ -213,21 +213,9 @@ class ErrorHandlingTest {
         )
 
         // 执行工作流
-        val result = WorkflowResult(
-            success = true,
-            output = mapOf("message" to "Success after 3 attempts"),
-            steps = mapOf(
-                "unreliable" to WorkflowStepResult(
-                    stepId = "unreliable",
-                    success = true,
-                    output = mapOf("message" to "Success after 3 attempts")
-                ),
-                "final" to WorkflowStepResult(
-                    stepId = "final",
-                    success = true,
-                    output = mapOf("finalMessage" to "Workflow completed successfully")
-                )
-            )
+        val result = engine.executeWorkflow(
+            workflowId = "test-workflow",
+            input = emptyMap()
         )
 
         // 验证结果
