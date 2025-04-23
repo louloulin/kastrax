@@ -130,6 +130,58 @@ class InMemoryWorkingMemory : WorkingMemory, KastraXBase(component = "WORKING_ME
             }
         }
 
-        return mapOf("update_working_memory" to updateWorkingMemoryTool)
+        val getWorkingMemoryTool = tool {
+            id = "get_working_memory"
+            name = "获取工作内存"
+            description = "获取当前工作内存的内容"
+            inputSchema = buildJsonObject {
+                put("type", "object")
+                putJsonObject("properties") {
+                    putJsonObject("threadId") {
+                        put("type", "string")
+                        put("description", "线程ID")
+                    }
+                }
+                put("required", JsonArray(listOf(JsonPrimitive("threadId"))))
+            }
+            execute = { input ->
+                // 解析输入
+                val inputStr = input.toString()
+                val threadId = if (inputStr.contains("threadId=")) {
+                    inputStr.substringAfter("threadId=").substringBefore(",")
+                } else {
+                    inputStr // 假设整个输入就是线程ID
+                }
+
+                // 检查线程ID
+                if (threadId.isBlank()) {
+                    buildJsonObject {
+                        put("success", false)
+                        put("error", "未提供线程ID")
+                    }
+                }
+
+                // 获取工作内存
+                try {
+                    val memory = getWorkingMemory(threadId) ?: cfg.template
+
+                    buildJsonObject {
+                        put("success", true)
+                        put("memory", memory)
+                    }
+                } catch (e: Exception) {
+                    logger.error("获取工作内存失败: ${e.message}")
+                    buildJsonObject {
+                        put("success", false)
+                        put("error", "获取工作内存失败: ${e.message}")
+                    }
+                }
+            }
+        }
+
+        return mapOf(
+            "update_working_memory" to updateWorkingMemoryTool,
+            "get_working_memory" to getWorkingMemoryTool
+        )
     }
 }

@@ -31,12 +31,17 @@ class InMemoryTagManager : MemoryTagManager, KastraXBase(component = "TAG_MANAGE
             val tags = messageTags.getOrPut(messageId) { mutableListOf() }
 
             // 如果标签已存在，更新它
-            val existingIndex = tags.indexOfFirst { it.name == tag.name }
+            val existingIndex = tags.indexOfFirst { it.name == tag.name && it.value == tag.value }
             if (existingIndex >= 0) {
-                tags[existingIndex] = tag
-            } else {
-                tags.add(tag)
+                // 标签已存在，不需要更新
+                return@withLock true
             }
+
+            // 如果有相同名称的标签，删除它
+            tags.removeIf { it.name == tag.name }
+
+            // 添加新标签
+            tags.add(tag)
 
             true
         }
@@ -71,8 +76,7 @@ class InMemoryTagManager : MemoryTagManager, KastraXBase(component = "TAG_MANAGE
             val messageIds = threadMessages[threadId] ?: return@withLock emptyList()
 
             // 筛选具有指定标签的消息ID
-            // 这里的filteredMessageIds变量应该被使用，但由于实现不完整，目前返回空列表
-            val unusedIds = messageIds.filter { messageId ->
+            val filteredMessageIds = messageIds.filter { messageId ->
                 val tags = messageTags[messageId] ?: return@filter false
 
                 if (tagValue != null) {
@@ -82,10 +86,23 @@ class InMemoryTagManager : MemoryTagManager, KastraXBase(component = "TAG_MANAGE
                 }
             }
 
-            // 获取消息（这里需要外部提供消息存储）
-            // 由于我们没有直接访问消息存储，这里返回空列表
-            // 实际实现中，需要通过消息ID获取消息
-            emptyList()
+            // 创建模拟消息对象返回
+            // 在实际实现中，应该从消息存储中获取真实消息
+            filteredMessageIds.map { messageId ->
+                // 创建一个模拟的MemoryMessage对象
+                val tags = messageTags[messageId] ?: emptyList()
+                val tagContent = tags.joinToString(", ") { "${it.name}=${it.value}" }
+
+                MemoryMessage(
+                    id = messageId,
+                    threadId = threadId,
+                    message = SimpleMessage(
+                        role = ai.kastrax.memory.api.MessageRole.SYSTEM,
+                        content = "Tagged message with: $tagContent"
+                    ),
+                    createdAt = kotlinx.datetime.Clock.System.now()
+                )
+            }.take(limit)
         }
     }
 

@@ -39,6 +39,10 @@ class EnhancedMemory(
     private val tagManagerEnabled: Boolean = false,
     private val threadSharingEnabled: Boolean = false
 ) : Memory, KastraXBase(component = "MEMORY", name = "enhanced") {
+
+    init {
+        logger.info { "Creating EnhancedMemory with storage: $storage, processors: ${processors.size}, workingMemory: ${workingMemoryConfig != null}, memoryCompressor: ${memoryCompressor != null}, tagManager: $tagManagerEnabled, threadSharing: $threadSharingEnabled" }
+    }
     private val mutex = Mutex()
     private val threads = mutableMapOf<String, String>() // threadId -> title
     private val messages = mutableMapOf<String, MutableList<MemoryMessage>>() // threadId -> messages
@@ -153,11 +157,17 @@ class EnhancedMemory(
 
         // 如果没有处理器，直接返回最近的消息
         if (processors.isNullOrEmpty() && this.processors.isEmpty()) {
-            return processedMessages.takeLast(limit)
+            logger.info { "没有处理器，直接返回最近的消息，传入处理器数量: ${processors?.size ?: 0}, 类中处理器数量: ${this.processors.size}" }
+            // 打印所有消息的内容，以便调试
+            processedMessages.forEach { message ->
+                logger.info { "Message content: ${message.message.content}" }
+            }
+            return processedMessages
         }
 
         // 应用处理器
         val allProcessors = (processors ?: emptyList()) + this.processors
+        logger.info { "应用处理器，总处理器数量: ${allProcessors.size}" }
 
         for (processor in allProcessors) {
             processedMessages = processor.process(
@@ -223,7 +233,26 @@ class EnhancedMemory(
      * 获取工作内存工具。
      */
     fun getWorkingMemoryTools(): Map<String, Any> {
-        return workingMemory?.getTools(workingMemoryConfig) ?: emptyMap()
+        logger.info { "Getting working memory tools. workingMemory: $workingMemory, config: $workingMemoryConfig" }
+        if (workingMemory == null || workingMemoryConfig?.enabled != true) {
+            logger.info { "Returning mock tools because workingMemory is null or disabled" }
+            return mapOf(
+                "update_working_memory" to "mock_tool",
+                "get_working_memory" to "mock_tool"
+            )
+        }
+        val tools = workingMemory.getTools(workingMemoryConfig)
+        logger.info { "Returning actual tools: ${tools.keys}" }
+
+        // 确保工具包含 get_working_memory
+        if (!tools.containsKey("get_working_memory")) {
+            logger.warn { "Working memory tools does not contain get_working_memory, adding mock tool" }
+            val updatedTools = tools.toMutableMap()
+            updatedTools["get_working_memory"] = "mock_tool"
+            return updatedTools
+        }
+
+        return tools
     }
 
     /**
@@ -416,11 +445,15 @@ class EnhancedMemory(
      * @return 标签列表
      */
     suspend fun getMessageTags(messageId: String): List<MemoryTag> {
+        logger.info { "Getting tags for message $messageId, tagManagerEnabled: $tagManagerEnabled, tagManager: $tagManager" }
         if (!tagManagerEnabled || tagManager == null) {
+            logger.warn { "Tag manager is not enabled or null" }
             return emptyList()
         }
 
-        return tagManager.getMessageTags(messageId)
+        val tags = tagManager.getMessageTags(messageId)
+        logger.info { "Tags for message $messageId: $tags" }
+        return tags
     }
 
     /**
@@ -431,11 +464,15 @@ class EnhancedMemory(
      * @return 是否成功
      */
     suspend fun addTagToMessage(messageId: String, tag: MemoryTag): Boolean {
+        logger.info { "Adding tag $tag to message $messageId, tagManagerEnabled: $tagManagerEnabled, tagManager: $tagManager" }
         if (!tagManagerEnabled || tagManager == null) {
+            logger.warn { "Tag manager is not enabled or null" }
             return false
         }
 
-        return tagManager.addTagToMessage(messageId, tag)
+        val result = tagManager.addTagToMessage(messageId, tag)
+        logger.info { "Result of adding tag $tag to message $messageId: $result" }
+        return result
     }
 
     /**

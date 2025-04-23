@@ -11,19 +11,19 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 class HybridSearchMemoryTest {
-    
+
     // 模拟基础内存
-    private val baseMemory = enhancedMemory {
+    private val baseMemory = createTestMemory {
         storage(MemoryFactory.createInMemoryStorage())
         lastMessages(10)
     }
-    
+
     // 模拟嵌入生成器
     private val embeddingGenerator = MockEmbeddingGenerator()
-    
+
     // 模拟向量存储
     private val vectorStorage = InMemoryVectorStorage()
-    
+
     // 创建混合搜索内存
     private val hybridMemory = HybridSearchMemoryImpl(
         baseMemory = baseMemory,
@@ -32,12 +32,12 @@ class HybridSearchMemoryTest {
         keywordWeight = 0.3f,
         semanticWeight = 0.7f
     )
-    
+
     @Test
     fun `test hybrid search with Python and Java messages`() = runTest {
         // 创建线程
         val threadId = hybridMemory.createThread("Test Thread")
-        
+
         // 保存消息
         hybridMemory.saveMessage(
             SimpleMessage(
@@ -46,7 +46,7 @@ class HybridSearchMemoryTest {
             ),
             threadId
         )
-        
+
         hybridMemory.saveMessage(
             SimpleMessage(
                 role = MessageRole.ASSISTANT,
@@ -55,7 +55,7 @@ class HybridSearchMemoryTest {
             ),
             threadId
         )
-        
+
         hybridMemory.saveMessage(
             SimpleMessage(
                 role = MessageRole.USER,
@@ -63,7 +63,7 @@ class HybridSearchMemoryTest {
             ),
             threadId
         )
-        
+
         hybridMemory.saveMessage(
             SimpleMessage(
                 role = MessageRole.ASSISTANT,
@@ -72,7 +72,7 @@ class HybridSearchMemoryTest {
             ),
             threadId
         )
-        
+
         hybridMemory.saveMessage(
             SimpleMessage(
                 role = MessageRole.USER,
@@ -80,7 +80,7 @@ class HybridSearchMemoryTest {
             ),
             threadId
         )
-        
+
         hybridMemory.saveMessage(
             SimpleMessage(
                 role = MessageRole.ASSISTANT,
@@ -89,31 +89,31 @@ class HybridSearchMemoryTest {
             ),
             threadId
         )
-        
+
         // 执行混合搜索
         val results = hybridMemory.semanticSearch(
             query = "Tell me about Python and AI",
             threadId = threadId,
             config = SemanticRecallConfig(topK = 3)
         )
-        
+
         // 验证结果
         assertEquals(3, results.size)
-        
+
         // 检查结果是否包含Python相关消息
         val pythonMessages = results.filter { result ->
             result.message.message.content.contains("Python")
         }
-        
+
         assertTrue(pythonMessages.isNotEmpty())
         assertTrue(pythonMessages.all { it.score > 0.5f })
     }
-    
+
     @Test
     fun `test hybrid search with deep learning messages`() = runTest {
         // 创建线程
         val threadId = hybridMemory.createThread("Deep Learning Thread")
-        
+
         // 保存消息
         hybridMemory.saveMessage(
             SimpleMessage(
@@ -122,7 +122,7 @@ class HybridSearchMemoryTest {
             ),
             threadId
         )
-        
+
         hybridMemory.saveMessage(
             SimpleMessage(
                 role = MessageRole.ASSISTANT,
@@ -130,7 +130,7 @@ class HybridSearchMemoryTest {
             ),
             threadId
         )
-        
+
         hybridMemory.saveMessage(
             SimpleMessage(
                 role = MessageRole.USER,
@@ -138,7 +138,7 @@ class HybridSearchMemoryTest {
             ),
             threadId
         )
-        
+
         hybridMemory.saveMessage(
             SimpleMessage(
                 role = MessageRole.ASSISTANT,
@@ -147,7 +147,7 @@ class HybridSearchMemoryTest {
             ),
             threadId
         )
-        
+
         hybridMemory.saveMessage(
             SimpleMessage(
                 role = MessageRole.USER,
@@ -155,7 +155,7 @@ class HybridSearchMemoryTest {
             ),
             threadId
         )
-        
+
         hybridMemory.saveMessage(
             SimpleMessage(
                 role = MessageRole.ASSISTANT,
@@ -164,22 +164,22 @@ class HybridSearchMemoryTest {
             ),
             threadId
         )
-        
+
         // 执行混合搜索
         val results = hybridMemory.semanticSearch(
             query = "neural networks and deep learning",
             threadId = threadId,
             config = SemanticRecallConfig(topK = 2)
         )
-        
+
         // 验证结果
         assertEquals(2, results.size)
-        
+
         // 检查结果是否包含神经网络相关消息
         val neuralNetworkMessages = results.filter { result ->
             result.message.message.content.contains("neural networks")
         }
-        
+
         assertTrue(neuralNetworkMessages.isNotEmpty())
     }
 }

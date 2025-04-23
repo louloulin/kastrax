@@ -17,7 +17,7 @@ object WorkingMemoryFactory {
     fun createInMemoryWorkingMemory(): WorkingMemory {
         return InMemoryWorkingMemory()
     }
-    
+
     /**
      * 创建Redis工作内存实现。
      *
@@ -33,7 +33,7 @@ object WorkingMemoryFactory {
     ): WorkingMemory {
         return RedisWorkingMemory(jedisPool, keyPrefix, expireTime)
     }
-    
+
     /**
      * 创建PostgreSQL工作内存实现。
      *
@@ -47,7 +47,7 @@ object WorkingMemoryFactory {
     ): WorkingMemory {
         return PostgresWorkingMemory(dataSource, tableName)
     }
-    
+
     /**
      * 根据配置创建工作内存实现。
      *
@@ -59,14 +59,27 @@ object WorkingMemoryFactory {
         config: WorkingMemoryConfig,
         storage: Any? = null
     ): WorkingMemory? {
+        println("Creating working memory with config: $config, storage: $storage")
         if (!config.enabled) {
+            println("Working memory disabled, returning null")
             return null
         }
-        
-        return when (storage) {
-            is JedisPool -> createRedisWorkingMemory(storage)
-            is DataSource -> createPostgresWorkingMemory(storage)
-            else -> createInMemoryWorkingMemory()
+
+        val workingMemory = when (storage) {
+            is JedisPool -> {
+                println("Creating Redis working memory")
+                createRedisWorkingMemory(storage)
+            }
+            is DataSource -> {
+                println("Creating Postgres working memory")
+                createPostgresWorkingMemory(storage)
+            }
+            else -> {
+                println("Creating in-memory working memory")
+                createInMemoryWorkingMemory()
+            }
         }
+        println("Created working memory: $workingMemory")
+        return workingMemory
     }
 }

@@ -3,6 +3,8 @@ package ai.kastrax.memory.impl
 import ai.kastrax.memory.api.EmbeddingGenerator
 import ai.kastrax.memory.api.Memory
 import ai.kastrax.memory.api.MemoryBuilder
+import ai.kastrax.memory.api.MemoryCompressor
+import ai.kastrax.memory.api.MemoryCompressionConfig
 import ai.kastrax.memory.api.MemoryProcessor
 import ai.kastrax.memory.api.VectorStorage
 import ai.kastrax.memory.api.WorkingMemoryConfig
@@ -18,6 +20,10 @@ class MemoryBuilderImpl : MemoryBuilder {
     private var vectorStorage: VectorStorage? = null
     private val processors = mutableListOf<MemoryProcessor>()
     private var workingMemoryConfig: WorkingMemoryConfig? = null
+    private var memoryCompressor: MemoryCompressor? = null
+    private var compressionConfig: MemoryCompressionConfig = MemoryCompressionConfig()
+    private var tagManagerEnabled: Boolean = false
+    private var threadSharingEnabled: Boolean = false
 
     override fun storage(storage: Any): MemoryBuilder {
         if (storage is MemoryStorage) {
@@ -56,11 +62,45 @@ class MemoryBuilderImpl : MemoryBuilder {
         return this
     }
 
+    /**
+     * 设置内存压缩器。
+     */
+    fun memoryCompressor(compressor: MemoryCompressor): MemoryBuilderImpl {
+        this.memoryCompressor = compressor
+        return this
+    }
+
+    /**
+     * 设置内存压缩配置。
+     */
+    fun compressionConfig(config: MemoryCompressionConfig): MemoryBuilderImpl {
+        this.compressionConfig = config
+        return this
+    }
+
+    /**
+     * 启用标签管理器。
+     */
+    fun tagManager(enabled: Boolean): MemoryBuilderImpl {
+        this.tagManagerEnabled = enabled
+        return this
+    }
+
+    /**
+     * 启用线程共享。
+     */
+    fun threadSharing(enabled: Boolean): MemoryBuilderImpl {
+        this.threadSharingEnabled = enabled
+        return this
+    }
+
     override fun build(): Memory {
         val finalStorage = storage ?: InMemoryStorage()
 
         // 如果启用了增强功能，使用EnhancedMemory
-        if (embeddingGenerator != null || vectorStorage != null || processors.isNotEmpty() || workingMemoryConfig != null) {
+        if (embeddingGenerator != null || vectorStorage != null || processors.isNotEmpty() ||
+            workingMemoryConfig != null || memoryCompressor != null ||
+            tagManagerEnabled || threadSharingEnabled) {
             return EnhancedMemory(
                 storage = finalStorage,
                 lastMessagesCount = lastMessages,
@@ -68,7 +108,11 @@ class MemoryBuilderImpl : MemoryBuilder {
                 embeddingGenerator = embeddingGenerator,
                 vectorStorage = vectorStorage,
                 processors = processors,
-                workingMemoryConfig = workingMemoryConfig
+                workingMemoryConfig = workingMemoryConfig,
+                memoryCompressor = memoryCompressor,
+                compressionConfig = compressionConfig,
+                tagManagerEnabled = tagManagerEnabled,
+                threadSharingEnabled = threadSharingEnabled
             )
         }
 
