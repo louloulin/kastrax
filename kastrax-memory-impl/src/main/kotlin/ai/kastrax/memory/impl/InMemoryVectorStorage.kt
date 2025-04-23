@@ -12,14 +12,14 @@ import kotlin.math.sqrt
 class InMemoryVectorStorage : VectorStorage, KastraXBase(component = "VECTOR_STORAGE", name = "in-memory") {
     private val mutex = Mutex()
     private val vectors = mutableMapOf<String, Pair<List<Float>, Map<String, String>>>()
-    
+
     override suspend fun saveVector(id: String, vector: List<Float>, metadata: Map<String, String>): Boolean {
         return mutex.withLock {
             vectors[id] = vector to metadata
             true
         }
     }
-    
+
     override suspend fun saveVectors(vectors: List<Triple<String, List<Float>, Map<String, String>>>): Int {
         return mutex.withLock {
             var count = 0
@@ -30,7 +30,7 @@ class InMemoryVectorStorage : VectorStorage, KastraXBase(component = "VECTOR_STO
             count
         }
     }
-    
+
     override suspend fun searchVectors(
         vector: List<Float>,
         limit: Int,
@@ -43,7 +43,7 @@ class InMemoryVectorStorage : VectorStorage, KastraXBase(component = "VECTOR_STO
                 val metadata = pair.second
                 filter.all { (key, value) -> metadata[key] == value }
             }
-            
+
             // 计算相似度并排序
             val results = filteredVectors.map { (id, pair) ->
                 val storedVector = pair.first
@@ -55,17 +55,17 @@ class InMemoryVectorStorage : VectorStorage, KastraXBase(component = "VECTOR_STO
             }.sortedByDescending { (_, similarity, _) ->
                 similarity
             }.take(limit)
-            
+
             results
         }
     }
-    
+
     override suspend fun deleteVector(id: String): Boolean {
         return mutex.withLock {
             vectors.remove(id) != null
         }
     }
-    
+
     override suspend fun deleteVectors(ids: List<String>): Int {
         return mutex.withLock {
             var count = 0
@@ -77,40 +77,38 @@ class InMemoryVectorStorage : VectorStorage, KastraXBase(component = "VECTOR_STO
             count
         }
     }
-    
+
     override suspend fun deleteVectorsByFilter(filter: Map<String, String>): Int {
         return mutex.withLock {
             val idsToDelete = vectors.filter { (_, pair) ->
                 val metadata = pair.second
                 filter.all { (key, value) -> metadata[key] == value }
             }.keys.toList()
-            
+
             deleteVectors(idsToDelete)
         }
     }
-    
+
     /**
      * 计算两个向量的余弦相似度。
      */
     private fun cosineSimilarity(a: List<Float>, b: List<Float>): Float {
-        if (a.size != b.size) {
-            throw IllegalArgumentException("向量维度不匹配")
-        }
-        
+        require(a.size == b.size) { "向量维度不匹配" }
+
         var dotProduct = 0f
         var normA = 0f
         var normB = 0f
-        
+
         for (i in a.indices) {
             dotProduct += a[i] * b[i]
             normA += a[i] * a[i]
             normB += b[i] * b[i]
         }
-        
+
         if (normA == 0f || normB == 0f) {
             return 0f
         }
-        
+
         return dotProduct / (sqrt(normA) * sqrt(normB))
     }
 }

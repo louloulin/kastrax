@@ -14,38 +14,93 @@ import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import kotlinx.serialization.json.putJsonObject
-import redis.clients.jedis.JedisPool
-import java.util.concurrent.TimeUnit
+import java.sql.Connection
+import java.sql.PreparedStatement
+import java.sql.ResultSet
+import java.sql.SQLException
+import javax.sql.DataSource
 
 /**
- * Redis实现的工作内存。
+ * PostgreSQL实现的工作内存。
  *
- * @property jedisPool Redis连接池
- * @property keyPrefix Redis键前缀
- * @property expireTime 过期时间（秒）
+ * @property dataSource 数据源
+ * @property tableName 表名
  */
-class RedisWorkingMemory(
-    private val jedisPool: JedisPool,
-    private val keyPrefix: String = "kastrax:working_memory:",
-    private val expireTime: Long = TimeUnit.DAYS.toSeconds(30) // 默认30天过期
-) : WorkingMemory, KastraXBase(component = "WORKING_MEMORY", name = "redis") {
+class PostgresWorkingMemory(
+    private val dataSource: DataSource,
+    private val tableName: String = "working_memory"
+) : WorkingMemory, KastraXBase(component = "WORKING_MEMORY", name = "postgres") {
+
+    init {
+        // 初始化表结构
+        initTable()
+    }
 
     /**
-     * 构建Redis键。
+     * 初始化表结构。
      */
-    private fun buildKey(threadId: String): String {
-        return "$keyPrefix$threadId"
+    private fun initTable() {
+        try {
+            dataSource.connection.use { connection ->
+                val createTableSql = """
+                    CREATE TABLE IF NOT EXISTS $tableName (
+                        thread_id VARCHAR(255) PRIMARY KEY,
+                        content TEXT NOT NULL,
+                        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+                        updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+                    )
+                """.trimIndent()
+
+                connection.createStatement().use { statement ->
+                    statement.execute(createTableSql)
+                }
+
+                // 创建更新触发器，自动更新updated_at字段
+                val triggerSql = """
+                    CREATE OR REPLACE FUNCTION update_updated_at_column()
+                    RETURNS TRIGGER AS $$
+                    BEGIN
+                        NEW.updated_at = CURRENT_TIMESTAMP;
+                        RETURN NEW;
+                    END;
+                    $$ LANGUAGE plpgsql;
+
+                    DROP TRIGGER IF EXISTS update_${tableName}_updated_at ON $tableName;
+
+                    CREATE TRIGGER update_${tableName}_updated_at
+                    BEFORE UPDATE ON $tableName
+                    FOR EACH ROW
+                    EXECUTE FUNCTION update_updated_at_column();
+                """.trimIndent()
+
+                connection.createStatement().use { statement ->
+                    statement.execute(triggerSql)
+                }
+            }
+        } catch (e: SQLException) {
+            logger.error("初始化PostgreSQL工作内存表失败: ${e.message}")
+            throw IllegalStateException("初始化PostgreSQL工作内存表失败", e)
+        }
     }
 
     override suspend fun getWorkingMemory(threadId: String): String? {
         return withContext(Dispatchers.IO) {
             try {
-                jedisPool.resource.use { jedis ->
-                    val key = buildKey(threadId)
-                    jedis.get(key)
+                dataSource.connection.use { connection ->
+                    val sql = "SELECT content FROM $tableName WHERE thread_id = ?"
+                    connection.prepareStatement(sql).use { statement ->
+                        statement.setString(1, threadId)
+                        statement.executeQuery().use { resultSet ->
+                            if (resultSet.next()) {
+                                resultSet.getString("content")
+                            } else {
+                                null
+                            }
+                        }
+                    }
                 }
-            } catch (e: Exception) {
-                logger.error("从Redis获取工作内存失败: ${e.message}")
+            } catch (e: SQLException) {
+                logger.error("从PostgreSQL获取工作内存失败: ${e.message}")
                 null
             }
         }
@@ -54,13 +109,24 @@ class RedisWorkingMemory(
     override suspend fun updateWorkingMemory(threadId: String, content: String): Boolean {
         return withContext(Dispatchers.IO) {
             try {
-                jedisPool.resource.use { jedis ->
-                    val key = buildKey(threadId)
-                    jedis.setex(key, expireTime, content)
+                dataSource.connection.use { connection ->
+                    // 使用UPSERT语法（INSERT ... ON CONFLICT DO UPDATE）
+                    val sql = """
+                        INSERT INTO $tableName (thread_id, content)
+                        VALUES (?, ?)
+                        ON CONFLICT (thread_id)
+                        DO UPDATE SET content = EXCLUDED.content
+                    """.trimIndent()
+
+                    connection.prepareStatement(sql).use { statement ->
+                        statement.setString(1, threadId)
+                        statement.setString(2, content)
+                        statement.executeUpdate()
+                    }
                     true
                 }
-            } catch (e: Exception) {
-                logger.error("更新Redis工作内存失败: ${e.message}")
+            } catch (e: SQLException) {
+                logger.error("更新PostgreSQL工作内存失败: ${e.message}")
                 false
             }
         }
@@ -161,5 +227,27 @@ class RedisWorkingMemory(
         }
 
         return mapOf("update_working_memory" to updateWorkingMemoryTool)
+    }
+
+    /**
+     * 清理过期的工作内存。
+     *
+     * @param days 过期天数
+     * @return 清理的记录数
+     */
+    suspend fun cleanupExpiredMemories(days: Int): Int {
+        return withContext(Dispatchers.IO) {
+            try {
+                dataSource.connection.use { connection ->
+                    val sql = "DELETE FROM $tableName WHERE updated_at < NOW() - INTERVAL '$days days'"
+                    connection.prepareStatement(sql).use { statement ->
+                        statement.executeUpdate()
+                    }
+                }
+            } catch (e: SQLException) {
+                logger.error("清理过期工作内存失败: ${e.message}")
+                0
+            }
+        }
     }
 }

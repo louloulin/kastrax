@@ -23,7 +23,11 @@ interface Memory {
      * @param processors 要应用的处理器列表
      * @return 消息列表
      */
-    suspend fun getMessages(threadId: String, limit: Int = 10, processors: List<MemoryProcessor>? = null): List<MemoryMessage>
+    suspend fun getMessages(
+        threadId: String,
+        limit: Int = 10,
+        processors: List<MemoryProcessor>? = null
+    ): List<MemoryMessage>
 
     /**
      * 搜索指定线程中与查询相关的消息。
@@ -43,7 +47,11 @@ interface Memory {
      * @param config 语义召回配置
      * @return 相关消息列表
      */
-    suspend fun semanticSearch(query: String, threadId: String, config: SemanticRecallConfig = SemanticRecallConfig()): List<SemanticSearchResult>
+    suspend fun semanticSearch(
+        query: String,
+        threadId: String,
+        config: SemanticRecallConfig = SemanticRecallConfig()
+    ): List<SemanticSearchResult>
 
     /**
      * 创建新的线程。

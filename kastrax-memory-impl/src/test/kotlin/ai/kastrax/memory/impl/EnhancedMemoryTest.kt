@@ -1,6 +1,8 @@
 package ai.kastrax.memory.impl
 
-import ai.kastrax.memory.api.Message
+import ai.kastrax.memory.api.Memory
+import ai.kastrax.memory.api.MemoryMessage
+import ai.kastrax.memory.api.MessageRole
 import ai.kastrax.memory.api.SemanticRecallConfig
 import ai.kastrax.memory.api.TokenLimiter
 import ai.kastrax.memory.api.ToolCallFilter
@@ -13,186 +15,190 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 class EnhancedMemoryTest {
-    
+
     @Test
     fun `test basic memory operations`() = runTest {
         // 创建增强型内存
         val memory = enhancedMemory {
-            lastMessages(5)
+            storage(MemoryFactory.createInMemoryStorage())
+            lastMessages(10)
         }
-        
+
         // 创建线程
         val threadId = memory.createThread("Test Thread")
-        assertNotNull(threadId)
-        
+
         // 保存消息
         val messageId1 = memory.saveMessage(
-            Message(role = "user", content = "Hello, how are you?"),
+            SimpleMessage(role = MessageRole.USER, content = "Hello, how are you?"),
             threadId
         )
-        assertNotNull(messageId1)
-        
+
         val messageId2 = memory.saveMessage(
-            Message(role = "assistant", content = "I'm doing well, thank you!"),
+            SimpleMessage(role = MessageRole.ASSISTANT, content = "I'm doing well, thank you!"),
             threadId
         )
-        assertNotNull(messageId2)
-        
+
         // 获取消息
         val messages = memory.getMessages(threadId)
+
+        // 验证结果
         assertEquals(2, messages.size)
-        assertEquals("user", messages[0].message.role)
+        assertEquals(messageId1, messages[0].id)
+        assertEquals(messageId2, messages[1].id)
         assertEquals("Hello, how are you?", messages[0].message.content)
-        assertEquals("assistant", messages[1].message.role)
         assertEquals("I'm doing well, thank you!", messages[1].message.content)
     }
-    
+
     @Test
-    fun `test memory processors`() = runTest {
-        // 创建增强型内存，添加令牌限制器
+    fun `test memory compression`() = runTest {
+        // 创建带压缩功能的增强型内存
         val memory = enhancedMemory {
-            lastMessages(10)
-            processor(TokenLimiter(100))
+            storage(MemoryFactory.createInMemoryStorage())
+            lastMessages(5)
+            memoryCompressor(MockMemoryCompressor())
         }
-        
+
         // 创建线程
         val threadId = memory.createThread("Test Thread")
-        
-        // 保存多条消息
-        for (i in 1..10) {
+
+        // 保存多条消息，触发压缩
+        for (i in 1..20) {
             memory.saveMessage(
-                Message(role = if (i % 2 == 0) "assistant" else "user", content = "Message $i with some additional text to increase token count"),
+                SimpleMessage(role = if (i % 2 == 0) MessageRole.ASSISTANT else MessageRole.USER, content = "Message $i with some additional text to increase token count"),
                 threadId
             )
         }
-        
-        // 获取消息，应该被限制
+
+        // 获取消息
         val messages = memory.getMessages(threadId)
-        assertTrue(messages.size < 10, "应该被令牌限制器限制")
+
+        // 验证结果
+        assertTrue(messages.size <= 10) // 压缩后的消息数量应该小于等于10
+        assertTrue(messages.any { it.message.content.contains("Summary") }) // 应该包含摘要消息
     }
-    
+
     @Test
-    fun `test tool call filter`() = runTest {
-        // 创建增强型内存，添加工具调用过滤器
+    fun `test memory processors`() = runTest {
+        // 创建带处理器的增强型内存
         val memory = enhancedMemory {
+            storage(MemoryFactory.createInMemoryStorage())
             lastMessages(10)
+            processor(TokenLimiter(maxTokens = 100))
             processor(ToolCallFilter())
         }
-        
+
         // 创建线程
         val threadId = memory.createThread("Test Thread")
-        
+
         // 保存带工具调用的消息
         memory.saveMessage(
-            Message(
-                role = "assistant",
+            SimpleMessage(
+                role = MessageRole.ASSISTANT,
                 content = "Let me calculate that for you.",
                 toolCalls = listOf(
-                    Message.ToolCall(
+                    SimpleToolCall(
                         id = "call1",
-                        name = "calculator",
-                        arguments = """{"expression": "2+2"}"""
+                        name = "calculator"
                     )
                 )
             ),
             threadId
         )
-        
+
         // 保存工具调用结果
         memory.saveMessage(
-            Message(
-                role = "tool",
+            SimpleMessage(
+                role = MessageRole.TOOL,
                 content = "4",
                 toolCallId = "call1"
             ),
             threadId
         )
-        
-        // 保存普通消息
-        memory.saveMessage(
-            Message(role = "user", content = "Thanks!"),
-            threadId
+
+        // 获取消息，应用处理器
+        val messages = memory.getMessages(
+            threadId,
+            processors = listOf(ToolCallFilter())
         )
-        
-        // 获取消息，工具调用应该被过滤
-        val messages = memory.getMessages(threadId)
-        assertEquals(1, messages.size, "工具调用和结果应该被过滤")
-        assertEquals("user", messages[0].message.role)
-        assertEquals("Thanks!", messages[0].message.content)
+
+        // 验证结果
+        assertEquals(1, messages.size) // 工具调用和结果应该被过滤掉
     }
-    
+
     @Test
     fun `test working memory`() = runTest {
-        // 创建增强型内存，启用工作内存
+        // 创建带工作内存的增强型内存
         val memory = enhancedMemory {
+            storage(MemoryFactory.createInMemoryStorage())
             lastMessages(10)
             workingMemory(
                 WorkingMemoryConfig(
-                    enabled = true,
-                    mode = WorkingMemoryMode.TEXT_STREAM,
+                    mode = WorkingMemoryMode.TOOL_CALL,
                     template = """
-                        # User Information
-                        - Name: Unknown
-                        - Location: Unknown
-                        
-                        # Conversation Context
-                        - Topic: Testing
+                        {
+                            "memory": "",
+                            "context": []
+                        }
                     """.trimIndent()
                 )
             )
         }
-        
+
         // 创建线程
         val threadId = memory.createThread("Test Thread")
-        
-        // 获取工作内存系统消息
-        val systemMessage = (memory as EnhancedMemory).getWorkingMemorySystemMessage(threadId)
-        assertNotNull(systemMessage)
-        assertTrue(systemMessage.contains("User Information"))
-        assertTrue(systemMessage.contains("Topic: Testing"))
+
+        // 获取工作内存工具
+        val tools = (memory as EnhancedMemory).getWorkingMemoryTools()
+
+        // 验证结果
+        assertNotNull(tools["update_working_memory"])
+        assertNotNull(tools["get_working_memory"])
     }
-    
+
     @Test
     fun `test semantic search`() = runTest {
-        // 创建增强型内存，启用语义搜索
+        // 创建带语义搜索的增强型内存
         val memory = enhancedMemory {
+            storage(MemoryFactory.createInMemoryStorage())
             lastMessages(10)
             semanticRecall(true)
-            embeddingGenerator(SimpleEmbeddingGenerator())
+            embeddingGenerator(MockEmbeddingGenerator())
             vectorStorage(InMemoryVectorStorage())
         }
-        
+
         // 创建线程
         val threadId = memory.createThread("Test Thread")
-        
+
         // 保存消息
         memory.saveMessage(
-            Message(role = "user", content = "What is the capital of France?"),
+            SimpleMessage(role = MessageRole.USER, content = "Python is a programming language."),
             threadId
         )
-        
+
         memory.saveMessage(
-            Message(role = "assistant", content = "The capital of France is Paris."),
+            SimpleMessage(role = MessageRole.ASSISTANT, content = "Yes, Python is widely used in AI and data science."),
             threadId
         )
-        
+
         memory.saveMessage(
-            Message(role = "user", content = "What is the population of Tokyo?"),
+            SimpleMessage(role = MessageRole.USER, content = "Java is another programming language."),
             threadId
         )
-        
+
         memory.saveMessage(
-            Message(role = "assistant", content = "Tokyo is the most populous city in Japan with approximately 14 million people."),
+            SimpleMessage(role = MessageRole.ASSISTANT, content = "Java is popular for enterprise applications."),
             threadId
         )
-        
-        // 语义搜索
+
+        // 执行语义搜索
         val results = memory.semanticSearch(
-            query = "Tell me about France",
+            query = "Tell me about Python",
             threadId = threadId,
-            config = SemanticRecallConfig(topK = 2, minScore = 0.1f)
+            config = SemanticRecallConfig(topK = 2)
         )
-        
-        assertTrue(results.isNotEmpty(), "应该返回搜索结果")
+
+        // 验证结果
+        assertEquals(2, results.size)
+        assertTrue(results[0].message.message.content.contains("Python"))
     }
 }

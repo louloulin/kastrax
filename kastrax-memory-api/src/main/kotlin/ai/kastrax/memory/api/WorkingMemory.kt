@@ -10,7 +10,7 @@ enum class WorkingMemoryMode {
      * 文本流模式：工作内存作为系统消息的一部分发送给模型。
      */
     TEXT_STREAM,
-    
+
     /**
      * 工具调用模式：提供一个工具让模型更新工作内存。
      */
@@ -34,18 +34,18 @@ data class WorkingMemoryConfig(
         /**
          * 默认工作内存模板。
          */
-        const val DEFAULT_WORKING_MEMORY_TEMPLATE = """
+        val DEFAULT_WORKING_MEMORY_TEMPLATE = """
             # 用户信息
             - 姓名: 未知
             - 位置: 未知
             - 偏好: 未知
-            
+
             # 对话上下文
             - 主题: 未知
             - 目标: 未知
-            
+
             # 重要信息
-            - 
+            -
         """.trimIndent()
     }
 }
@@ -61,7 +61,7 @@ interface WorkingMemory {
      * @return 工作内存内容
      */
     suspend fun getWorkingMemory(threadId: String): String?
-    
+
     /**
      * 更新工作内存内容。
      *
@@ -70,7 +70,7 @@ interface WorkingMemory {
      * @return 是否成功更新
      */
     suspend fun updateWorkingMemory(threadId: String, content: String): Boolean
-    
+
     /**
      * 获取工作内存系统消息。
      *
@@ -79,7 +79,7 @@ interface WorkingMemory {
      * @return 系统消息
      */
     suspend fun getSystemMessage(threadId: String, config: WorkingMemoryConfig? = null): String?
-    
+
     /**
      * 获取工作内存工具。
      *
