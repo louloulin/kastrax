@@ -72,13 +72,15 @@ data class WorkflowExecuteOptions(
  * @property steps 执行的步骤结果
  * @property error 错误信息（如果失败）
  * @property executionTime 执行时间（毫秒）
+ * @property runId 运行ID
  */
 data class WorkflowResult(
     val success: Boolean,
     val output: Map<String, Any?>,
     val steps: Map<String, WorkflowStepResult>,
     val error: String? = null,
-    val executionTime: Long = 0
+    val executionTime: Long = 0,
+    val runId: String? = null
 )
 
 /**
@@ -89,29 +91,88 @@ data class WorkflowResult(
  * @property output 输出数据
  * @property error 错误信息（如果失败）
  * @property executionTime 执行时间（毫秒）
+ * @property errorHandled 错误是否已处理
+ * @property skipped 是否跳过
+ * @property suspendPayload 暂停时的附加数据
  */
 data class WorkflowStepResult(
     val stepId: String,
     val success: Boolean,
     val output: Map<String, Any?>,
     val error: String? = null,
-    val executionTime: Long = 0
+    val executionTime: Long = 0,
+    val errorHandled: Boolean = false,
+    val skipped: Boolean = false,
+    val suspendPayload: Any? = null
 ) {
     companion object {
+        /**
+         * 创建成功的步骤结果。
+         *
+         * @param stepId 步骤ID
+         * @param output 输出数据
+         * @param executionTime 执行时间
+         * @return 成功的步骤结果
+         */
+        fun success(stepId: String, output: Map<String, Any?>, executionTime: Long = 0): WorkflowStepResult {
+            return WorkflowStepResult(
+                stepId = stepId,
+                success = true,
+                output = output,
+                executionTime = executionTime
+            )
+        }
+
         /**
          * 创建失败的步骤结果。
          *
          * @param stepId 步骤ID
          * @param error 错误对象
+         * @param errorMessage 错误消息
          * @return 失败的步骤结果
          */
-        fun failed(stepId: String, error: Exception): WorkflowStepResult {
+        fun failed(stepId: String, error: Exception, errorMessage: String? = null): WorkflowStepResult {
             return WorkflowStepResult(
                 stepId = stepId,
                 success = false,
                 output = emptyMap(),
-                error = error.message ?: "Unknown error",
+                error = errorMessage ?: error.message ?: "Unknown error",
                 executionTime = 0
+            )
+        }
+
+        /**
+         * 创建已处理错误的步骤结果。
+         *
+         * @param stepId 步骤ID
+         * @param error 错误消息
+         * @param output 输出数据
+         * @return 已处理错误的步骤结果
+         */
+        fun handledError(stepId: String, error: String, output: Map<String, Any?> = emptyMap()): WorkflowStepResult {
+            return WorkflowStepResult(
+                stepId = stepId,
+                success = true,
+                output = output,
+                error = error,
+                errorHandled = true
+            )
+        }
+
+        /**
+         * 创建跳过的步骤结果。
+         *
+         * @param stepId 步骤ID
+         * @param reason 跳过原因
+         * @return 跳过的步骤结果
+         */
+        fun skipped(stepId: String, reason: String? = null): WorkflowStepResult {
+            return WorkflowStepResult(
+                stepId = stepId,
+                success = true,
+                output = emptyMap(),
+                error = reason,
+                skipped = true
             )
         }
     }
@@ -210,11 +271,13 @@ data class VariableReference(
  * @property input 工作流输入
  * @property steps 已执行步骤的结果
  * @property variables 全局变量
+ * @property runId 运行ID
  */
 data class WorkflowContext(
     val input: Map<String, Any?>,
     val steps: MutableMap<String, WorkflowStepResult> = mutableMapOf(),
-    val variables: MutableMap<String, Any?> = mutableMapOf()
+    val variables: MutableMap<String, Any?> = mutableMapOf(),
+    val runId: String? = null
 ) {
     /**
      * 解析变量引用。

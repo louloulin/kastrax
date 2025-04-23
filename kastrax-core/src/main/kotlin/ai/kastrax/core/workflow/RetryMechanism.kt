@@ -1,5 +1,6 @@
 package ai.kastrax.core.workflow
 
+import ai.kastrax.core.workflow.error.ErrorHandlingConfig
 import kotlinx.coroutines.delay
 import java.time.Duration
 import kotlin.math.max
@@ -7,18 +8,22 @@ import kotlin.math.min
 import kotlin.random.Random
 
 /**
- * 工作流步骤配置，包含重试机制的配置。
+ * 工作流步骤配置，包含重试机制和错误处理的配置。
  *
  * @property timeout 超时时间
  * @property maxTokens 最大令牌数
  * @property onError 错误处理回调
  * @property retryConfig 重试配置
+ * @property errorHandlingConfig 错误处理配置
+ * @property tags 标签
  */
 data class StepConfig(
     val timeout: Duration = Duration.ofMinutes(5),
     val maxTokens: Int? = null,
     val onError: ((Throwable) -> Any?)? = null,
-    val retryConfig: RetryConfig? = null
+    val retryConfig: RetryConfig? = null,
+    val errorHandlingConfig: ErrorHandlingConfig? = null,
+    val tags: Set<String> = emptySet()
 )
 
 /**

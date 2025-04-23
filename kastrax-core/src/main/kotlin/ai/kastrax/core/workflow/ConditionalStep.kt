@@ -61,17 +61,21 @@ class ConditionalStep(
 
             // 评估条件
             val conditionResult = conditionFn(enrichedContext)
-            logger.debug { "条件评估结果: $conditionResult" }
+            // 评估条件结果
+            println("条件评估结果: $conditionResult")
 
             // 根据条件执行相应步骤
             val stepResult = if (conditionResult) {
-                logger.debug { "执行thenStep: ${thenStep.id}" }
+                // 执行条件为真的分支
+                println("执行thenStep: ${thenStep.id}")
                 thenStep.execute(enrichedContext)
             } else if (elseStep != null) {
-                logger.debug { "执行elseStep: ${elseStep.id}" }
+                // 执行条件为假的分支
+                println("执行elseStep: ${elseStep.id}")
                 elseStep.execute(enrichedContext)
             } else {
-                logger.debug { "条件为假且没有elseStep，返回空结果" }
+                // 条件为假且没有elseStep
+                println("条件为假且没有elseStep，返回空结果")
                 // 如果条件为假且没有elseStep，返回空结果
                 WorkflowStepResult(
                     stepId = id,
@@ -90,7 +94,8 @@ class ConditionalStep(
                 executionTime = System.currentTimeMillis() - startTime
             )
         } catch (e: Exception) {
-            logger.error(e) { "条件步骤执行失败" }
+            // 条件步骤执行失败
+            println("条件步骤执行失败: ${e.message}")
             return WorkflowStepResult(
                 stepId = id,
                 success = false,

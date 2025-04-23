@@ -58,15 +58,18 @@ class ParallelStepGroup(
             )
 
             // 并行执行所有步骤
-            logger.debug { "开始并行执行 ${steps.size} 个步骤" }
+            // 开始并行执行步骤
+            println("开始并行执行 ${steps.size} 个步骤")
 
             val stepResults = steps.map { step ->
                 async {
                     try {
-                        logger.debug { "执行并行步骤: ${step.id}" }
+                        // 执行并行步骤
+                        println("执行并行步骤: ${step.id}")
                         step.execute(enrichedContext)
                     } catch (e: Exception) {
-                        logger.error(e) { "并行步骤 ${step.id} 执行失败" }
+                        // 并行步骤执行失败
+                        println("并行步骤 ${step.id} 执行失败: ${e.message}")
                         WorkflowStepResult(
                             stepId = step.id,
                             success = false,
@@ -102,7 +105,8 @@ class ParallelStepGroup(
 
             )
         } catch (e: Exception) {
-            logger.error(e) { "并行步骤组执行失败" }
+            // 并行步骤组执行失败
+            println("并行步骤组执行失败: ${e.message}")
             return@coroutineScope WorkflowStepResult(
                 stepId = id,
                 success = false,

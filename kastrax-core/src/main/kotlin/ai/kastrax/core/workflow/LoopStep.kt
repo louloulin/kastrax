@@ -64,7 +64,8 @@ class LoopStep(
             var success = true
 
             while (loopCondition(currentContext, iteration) && iteration < maxIterations) {
-                logger.debug { "执行循环迭代 $iteration" }
+                // 执行循环迭代
+                println("执行循环迭代 $iteration")
 
                 // 添加当前迭代次数到上下文
                 currentContext = currentContext.copy(
@@ -77,7 +78,8 @@ class LoopStep(
 
                 // 如果循环体执行失败，终止循环
                 if (!stepResult.success) {
-                    logger.debug { "循环体执行失败，终止循环" }
+                    // 循环体执行失败，终止循环
+                    println("循环体执行失败，终止循环")
                     success = false
                     break
                 }
@@ -112,7 +114,8 @@ class LoopStep(
 
             )
         } catch (e: Exception) {
-            logger.error(e) { "循环步骤执行失败" }
+            // 循环步骤执行失败
+            println("循环步骤执行失败: ${e.message}")
             return WorkflowStepResult(
                 stepId = id,
                 success = false,
