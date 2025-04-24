@@ -27,7 +27,15 @@ class InMemoryMetricsStorage : MetricsStorage {
 
     override fun saveStepMetrics(metrics: StepMetrics) {
         val key = getStepKey(metrics.workflowId, metrics.runId)
-        stepMetrics.computeIfAbsent(key) { mutableListOf() }.add(metrics)
+        val existingMetrics = stepMetrics.computeIfAbsent(key) { mutableListOf() }
+
+        // 检查是否已存在相同stepId的指标，如果存在则替换
+        val index = existingMetrics.indexOfFirst { it.stepId == metrics.stepId }
+        if (index >= 0) {
+            existingMetrics[index] = metrics
+        } else {
+            existingMetrics.add(metrics)
+        }
     }
 
     override fun getExecutionMetrics(workflowId: String, runId: String): ExecutionMetrics? {
@@ -84,20 +92,20 @@ class InMemoryMetricsStorage : MetricsStorage {
     override fun deleteExecutionMetrics(workflowId: String, runId: String): Boolean {
         val key = getExecutionKey(workflowId, runId)
         val stepKey = getStepKey(workflowId, runId)
-        
+
         val removed = executionMetrics.remove(key) != null
         stepMetrics.remove(stepKey)
-        
+
         return removed
     }
 
     override fun deleteExecutionMetricsForWorkflow(workflowId: String): Int {
         val keysToRemove = executionMetrics.keys.filter { it.startsWith("$workflowId:") }
         val stepKeysToRemove = stepMetrics.keys.filter { it.startsWith("$workflowId:") }
-        
+
         keysToRemove.forEach { executionMetrics.remove(it) }
         stepKeysToRemove.forEach { stepMetrics.remove(it) }
-        
+
         return keysToRemove.size
     }
 
@@ -105,7 +113,7 @@ class InMemoryMetricsStorage : MetricsStorage {
         val keysToRemove = executionMetrics.entries
             .filter { it.value.startTime < time }
             .map { it.key }
-        
+
         val stepKeysToRemove = mutableSetOf<String>()
         keysToRemove.forEach { key ->
             val parts = key.split(":")
@@ -115,10 +123,10 @@ class InMemoryMetricsStorage : MetricsStorage {
                 stepKeysToRemove.add(getStepKey(workflowId, runId))
             }
         }
-        
+
         keysToRemove.forEach { executionMetrics.remove(it) }
         stepKeysToRemove.forEach { stepMetrics.remove(it) }
-        
+
         return keysToRemove.size
     }
 }

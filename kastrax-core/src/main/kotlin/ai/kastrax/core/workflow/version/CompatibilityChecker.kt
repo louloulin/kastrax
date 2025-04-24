@@ -25,7 +25,7 @@ class CompatibilityChecker {
                 ))
             )
         }
-        
+
         // Check if the versions are compatible
         if (!source.version.isCompatibleWith(target.version)) {
             return CompatibilityResult(
@@ -36,9 +36,9 @@ class CompatibilityChecker {
                 ))
             )
         }
-        
+
         val issues = mutableListOf<CompatibilityIssue>()
-        
+
         // Check for removed steps
         val removedSteps = source.steps.filter { sourceStep ->
             target.steps.none { it.id == sourceStep.id }
@@ -50,7 +50,7 @@ class CompatibilityChecker {
                 details = removedSteps.map { it.id }
             ))
         }
-        
+
         // Check for added steps
         val addedSteps = target.steps.filter { targetStep ->
             source.steps.none { it.id == targetStep.id }
@@ -62,7 +62,7 @@ class CompatibilityChecker {
                 details = addedSteps.map { it.id }
             ))
         }
-        
+
         // Check for modified steps
         val modifiedSteps = source.steps.filter { sourceStep ->
             target.steps.any { it.id == sourceStep.id && it.type != sourceStep.type }
@@ -74,7 +74,7 @@ class CompatibilityChecker {
                 details = modifiedSteps.map { it.id }
             ))
         }
-        
+
         // Check for removed connections
         val removedConnections = source.connections.filter { sourceConn ->
             target.connections.none { it.sourceId == sourceConn.sourceId && it.targetId == sourceConn.targetId }
@@ -86,7 +86,7 @@ class CompatibilityChecker {
                 details = removedConnections.map { "${it.sourceId} -> ${it.targetId}" }
             ))
         }
-        
+
         // Check for added connections
         val addedConnections = target.connections.filter { targetConn ->
             source.connections.none { it.sourceId == targetConn.sourceId && it.targetId == targetConn.targetId }
@@ -98,13 +98,13 @@ class CompatibilityChecker {
                 details = addedConnections.map { "${it.sourceId} -> ${it.targetId}" }
             ))
         }
-        
+
         // Check for modified connections (changed conditions)
         val modifiedConnections = source.connections.filter { sourceConn ->
-            target.connections.any { 
-                it.sourceId == sourceConn.sourceId && 
-                it.targetId == sourceConn.targetId && 
-                it.condition != sourceConn.condition 
+            target.connections.any {
+                it.sourceId == sourceConn.sourceId &&
+                it.targetId == sourceConn.targetId &&
+                it.condition != sourceConn.condition
             }
         }
         if (modifiedConnections.isNotEmpty()) {
@@ -114,21 +114,21 @@ class CompatibilityChecker {
                 details = modifiedConnections.map { "${it.sourceId} -> ${it.targetId}" }
             ))
         }
-        
+
         // Determine overall compatibility
-        val isCompatible = issues.none { 
-            it.type == CompatibilityIssueType.DIFFERENT_WORKFLOW || 
+        val isCompatible = issues.none {
+            it.type == CompatibilityIssueType.DIFFERENT_WORKFLOW ||
             it.type == CompatibilityIssueType.INCOMPATIBLE_VERSIONS ||
             it.type == CompatibilityIssueType.REMOVED_STEPS ||
             it.type == CompatibilityIssueType.MODIFIED_STEPS
         }
-        
+
         return CompatibilityResult(
             isCompatible = isCompatible,
             issues = issues
         )
     }
-    
+
     /**
      * Generates a migration plan to migrate from one workflow version to another.
      *
@@ -138,20 +138,20 @@ class CompatibilityChecker {
      */
     fun generateMigrationPlan(source: VersionedWorkflow, target: VersionedWorkflow): MigrationPlan? {
         val compatibilityResult = checkCompatibility(source, target)
-        
+
         if (!compatibilityResult.isCompatible) {
             // If the workflows are not compatible, check if we can still generate a migration plan
-            if (compatibilityResult.issues.any { 
-                it.type == CompatibilityIssueType.DIFFERENT_WORKFLOW || 
-                it.type == CompatibilityIssueType.INCOMPATIBLE_VERSIONS 
+            if (compatibilityResult.issues.any {
+                it.type == CompatibilityIssueType.DIFFERENT_WORKFLOW ||
+                it.type == CompatibilityIssueType.INCOMPATIBLE_VERSIONS
             }) {
                 // If the workflows are different or the versions are incompatible, we can't generate a migration plan
                 return null
             }
         }
-        
+
         val migrations = mutableListOf<WorkflowMigration>()
-        
+
         // Handle removed steps
         val removedStepIds = source.steps.map { it.id }.toSet() - target.steps.map { it.id }.toSet()
         for (stepId in removedStepIds) {
@@ -161,7 +161,7 @@ class CompatibilityChecker {
                 stepId = stepId
             ))
         }
-        
+
         // Handle added steps
         val addedSteps = target.steps.filter { targetStep ->
             source.steps.none { it.id == targetStep.id }
@@ -175,7 +175,7 @@ class CompatibilityChecker {
                 connections = connections
             ))
         }
-        
+
         // Handle modified steps
         val modifiedSteps = source.steps.filter { sourceStep ->
             target.steps.any { it.id == sourceStep.id && (it.type != sourceStep.type || it.name != sourceStep.name || it.description != sourceStep.description) }
@@ -186,10 +186,10 @@ class CompatibilityChecker {
                 sourceVersion = source.version.version,
                 targetVersion = target.version.version,
                 stepId = sourceStep.id,
-                newStep = targetStep
+                newStep = targetStep.copy() // 创建一个副本以避免引用问题
             ))
         }
-        
+
         // Handle removed connections
         val removedConnections = source.connections.filter { sourceConn ->
             target.connections.none { it.sourceId == sourceConn.sourceId && it.targetId == sourceConn.targetId }
@@ -202,7 +202,7 @@ class CompatibilityChecker {
                 targetId = connection.targetId
             ))
         }
-        
+
         // Handle added connections
         val addedConnections = target.connections.filter { targetConn ->
             source.connections.none { it.sourceId == targetConn.sourceId && it.targetId == targetConn.targetId }
@@ -214,19 +214,19 @@ class CompatibilityChecker {
                 connection = connection
             ))
         }
-        
+
         // If there are no migrations, return null
         if (migrations.isEmpty()) {
             return null
         }
-        
+
         // Create a composite migration
         val compositeMigration = CompositeMigration(
             sourceVersion = source.version.version,
             targetVersion = target.version.version,
             migrations = migrations
         )
-        
+
         return MigrationPlan(
             sourceWorkflow = source,
             targetWorkflow = target,

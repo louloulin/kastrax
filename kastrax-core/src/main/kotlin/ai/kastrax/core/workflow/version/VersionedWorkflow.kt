@@ -42,16 +42,18 @@ data class VersionedWorkflow(
         isActive: Boolean = false,
         steps: List<WorkflowStep>? = null,
         connections: List<StepConnection>? = null,
-        metadata: Map<String, Any>? = null
+        metadata: Map<String, Any>? = null,
+        tags: Map<String, String> = emptyMap()
     ): VersionedWorkflow {
         val newWorkflowVersion = WorkflowVersion.createNewVersion(
             existing = this.version,
             newVersion = newVersion,
             description = description,
             createdBy = createdBy,
-            isActive = isActive
+            isActive = isActive,
+            tags = tags
         )
-        
+
         return VersionedWorkflow(
             id = this.id,
             name = this.name,
@@ -62,7 +64,7 @@ data class VersionedWorkflow(
             metadata = metadata ?: this.metadata
         )
     }
-    
+
     /**
      * Checks if this workflow is compatible with another workflow.
      *
@@ -74,12 +76,12 @@ data class VersionedWorkflow(
         if (this.id != other.id) {
             return false
         }
-        
+
         // Check if the versions are compatible
         if (!this.version.isCompatibleWith(other.version)) {
             return false
         }
-        
+
         // In a real implementation, we would check for compatibility of steps and connections
         // For now, we'll just return true
         return true

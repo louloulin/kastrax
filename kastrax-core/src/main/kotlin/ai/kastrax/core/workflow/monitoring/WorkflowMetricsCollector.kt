@@ -33,7 +33,7 @@ class WorkflowMetricsCollector(
             totalSteps = totalSteps,
             tags = tags
         )
-        
+
         metricsStorage.saveExecutionMetrics(metrics)
         return metrics
     }
@@ -52,10 +52,10 @@ class WorkflowMetricsCollector(
         status: ExecutionStatus
     ): ExecutionMetrics? {
         val metrics = metricsStorage.getExecutionMetrics(workflowId, runId) ?: return null
-        
+
         metrics.complete(status)
         metricsStorage.saveExecutionMetrics(metrics)
-        
+
         return metrics
     }
 
@@ -84,7 +84,7 @@ class WorkflowMetricsCollector(
             stepType = stepType,
             startTime = Instant.now()
         )
-        
+
         metricsStorage.saveStepMetrics(metrics)
         return metrics
     }
@@ -116,22 +116,22 @@ class WorkflowMetricsCollector(
     ): StepMetrics? {
         val stepMetrics = metricsStorage.getStepMetricsForExecution(workflowId, runId)
             .find { it.stepId == stepId } ?: return null
-        
+
         stepMetrics.complete(status, Instant.now(), errorMessage)
         stepMetrics.outputSize = outputSize
         stepMetrics.memoryUsage = memoryUsage
         stepMetrics.cpuTime = cpuTime
         customMetrics.forEach { (key, value) -> stepMetrics.addCustomMetric(key, value) }
-        
+
         metricsStorage.saveStepMetrics(stepMetrics)
-        
+
         // Update execution metrics
         val executionMetrics = metricsStorage.getExecutionMetrics(workflowId, runId)
         if (executionMetrics != null) {
             executionMetrics.addStepMetric(stepMetrics)
             metricsStorage.saveExecutionMetrics(executionMetrics)
         }
-        
+
         return stepMetrics
     }
 
@@ -150,10 +150,17 @@ class WorkflowMetricsCollector(
     ): StepMetrics? {
         val stepMetrics = metricsStorage.getStepMetricsForExecution(workflowId, runId)
             .find { it.stepId == stepId } ?: return null
-        
+
         stepMetrics.incrementRetryCount()
         metricsStorage.saveStepMetrics(stepMetrics)
-        
+
+        // 更新执行指标中的步骤指标
+        val executionMetrics = metricsStorage.getExecutionMetrics(workflowId, runId)
+        if (executionMetrics != null) {
+            executionMetrics.stepMetrics[stepId] = stepMetrics
+            metricsStorage.saveExecutionMetrics(executionMetrics)
+        }
+
         return stepMetrics
     }
 

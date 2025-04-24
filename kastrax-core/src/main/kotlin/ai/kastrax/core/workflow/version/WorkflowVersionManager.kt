@@ -36,7 +36,7 @@ class WorkflowVersionManager(
     ): VersionedWorkflow {
         val workflowId = UUID.randomUUID().toString()
         val initialVersion = "1.0.0"
-        
+
         val workflowVersion = WorkflowVersion(
             workflowId = workflowId,
             version = initialVersion,
@@ -46,7 +46,7 @@ class WorkflowVersionManager(
             isActive = true,
             tags = tags
         )
-        
+
         val workflow = VersionedWorkflow(
             id = workflowId,
             name = name,
@@ -56,11 +56,11 @@ class WorkflowVersionManager(
             connections = connections,
             metadata = metadata
         )
-        
+
         versionStorage.saveWorkflow(workflow)
         return workflow
     }
-    
+
     /**
      * Creates a new version of a workflow.
      *
@@ -91,7 +91,7 @@ class WorkflowVersionManager(
         incrementMinor: Boolean = false
     ): VersionedWorkflow? {
         val currentWorkflow = versionStorage.getWorkflow(workflowId) ?: return null
-        
+
         val version = if (newVersion != null) {
             newVersion
         } else {
@@ -102,7 +102,8 @@ class WorkflowVersionManager(
                 incrementPatch = !(incrementMajor || incrementMinor)
             )
         }
-        
+
+        // 创建新版本的工作流
         val newWorkflow = currentWorkflow.createNewVersion(
             newVersion = version,
             description = description,
@@ -110,18 +111,19 @@ class WorkflowVersionManager(
             isActive = setActive,
             steps = steps,
             connections = connections,
-            metadata = metadata
+            metadata = metadata,
+            tags = tags
         )
-        
+
         versionStorage.saveWorkflow(newWorkflow)
-        
+
         if (setActive) {
             versionStorage.setActiveWorkflowVersion(workflowId, version)
         }
-        
+
         return newWorkflow
     }
-    
+
     /**
      * Gets a workflow by ID and version.
      *
@@ -132,7 +134,7 @@ class WorkflowVersionManager(
     fun getWorkflow(workflowId: String, version: String? = null): VersionedWorkflow? {
         return versionStorage.getWorkflow(workflowId, version)
     }
-    
+
     /**
      * Gets all versions of a workflow.
      *
@@ -144,7 +146,7 @@ class WorkflowVersionManager(
     fun getWorkflowVersions(workflowId: String, limit: Int = 100, offset: Int = 0): List<WorkflowVersion> {
         return versionStorage.getWorkflowVersions(workflowId, limit, offset)
     }
-    
+
     /**
      * Gets the active version of a workflow.
      *
@@ -154,7 +156,7 @@ class WorkflowVersionManager(
     fun getActiveWorkflowVersion(workflowId: String): WorkflowVersion? {
         return versionStorage.getActiveWorkflowVersion(workflowId)
     }
-    
+
     /**
      * Sets the active version of a workflow.
      *
@@ -165,7 +167,7 @@ class WorkflowVersionManager(
     fun setActiveWorkflowVersion(workflowId: String, version: String): Boolean {
         return versionStorage.setActiveWorkflowVersion(workflowId, version)
     }
-    
+
     /**
      * Gets all workflows.
      *
@@ -176,7 +178,7 @@ class WorkflowVersionManager(
     fun getAllWorkflows(limit: Int = 100, offset: Int = 0): List<VersionedWorkflow> {
         return versionStorage.getAllWorkflows(limit, offset)
     }
-    
+
     /**
      * Deletes a workflow version.
      *
@@ -187,7 +189,7 @@ class WorkflowVersionManager(
     fun deleteWorkflowVersion(workflowId: String, version: String): Boolean {
         return versionStorage.deleteWorkflowVersion(workflowId, version)
     }
-    
+
     /**
      * Deletes all versions of a workflow.
      *

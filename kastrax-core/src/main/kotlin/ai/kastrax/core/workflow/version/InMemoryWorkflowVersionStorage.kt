@@ -11,22 +11,22 @@ import java.util.concurrent.ConcurrentHashMap
 class InMemoryWorkflowVersionStorage : WorkflowVersionStorage {
     private val workflows = ConcurrentHashMap<String, MutableMap<String, VersionedWorkflow>>()
     private val activeVersions = ConcurrentHashMap<String, String>()
-    
+
     override fun saveWorkflow(workflow: VersionedWorkflow): Boolean {
         val workflowVersions = workflows.computeIfAbsent(workflow.id) { mutableMapOf() }
         workflowVersions[workflow.version.version] = workflow
-        
+
         // If this is the first version or it's marked as active, set it as the active version
         if (workflowVersions.size == 1 || workflow.version.isActive) {
             activeVersions[workflow.id] = workflow.version.version
         }
-        
+
         return true
     }
-    
+
     override fun getWorkflow(workflowId: String, version: String?): VersionedWorkflow? {
         val workflowVersions = workflows[workflowId] ?: return null
-        
+
         return if (version != null) {
             workflowVersions[version]
         } else {
@@ -39,32 +39,32 @@ class InMemoryWorkflowVersionStorage : WorkflowVersionStorage {
             }
         }
     }
-    
+
     override fun getWorkflowVersions(workflowId: String, limit: Int, offset: Int): List<WorkflowVersion> {
         val workflowVersions = workflows[workflowId] ?: return emptyList()
-        
+
         return workflowVersions.values
             .map { it.version }
-            .sortedByDescending { it.createdAt }
+            .sortedWith(compareByDescending<WorkflowVersion> { it.createdAt }.thenByDescending { it.version })
             .drop(offset)
             .take(limit)
     }
-    
+
     override fun getActiveWorkflowVersion(workflowId: String): WorkflowVersion? {
         val activeVersion = activeVersions[workflowId] ?: return null
         return workflows[workflowId]?.get(activeVersion)?.version
     }
-    
+
     override fun setActiveWorkflowVersion(workflowId: String, version: String): Boolean {
         val workflowVersions = workflows[workflowId] ?: return false
-        
+
         if (!workflowVersions.containsKey(version)) {
             return false
         }
-        
+
         // Update the active version
         activeVersions[workflowId] = version
-        
+
         // Update the isActive flag in all versions
         workflowVersions.forEach { (ver, workflow) ->
             val isActive = ver == version
@@ -73,10 +73,10 @@ class InMemoryWorkflowVersionStorage : WorkflowVersionStorage {
                 workflowVersions[ver] = workflow.copy(version = updatedVersion)
             }
         }
-        
+
         return true
     }
-    
+
     override fun getAllWorkflows(limit: Int, offset: Int): List<VersionedWorkflow> {
         return workflows.values
             .flatMap { it.values }
@@ -84,7 +84,7 @@ class InMemoryWorkflowVersionStorage : WorkflowVersionStorage {
             .drop(offset)
             .take(limit)
     }
-    
+
     override fun getWorkflowsCreatedAfter(time: Instant, limit: Int, offset: Int): List<VersionedWorkflow> {
         return workflows.values
             .flatMap { it.values }
@@ -93,7 +93,7 @@ class InMemoryWorkflowVersionStorage : WorkflowVersionStorage {
             .drop(offset)
             .take(limit)
     }
-    
+
     override fun getWorkflowsByTags(tags: Map<String, String>, limit: Int, offset: Int): List<VersionedWorkflow> {
         return workflows.values
             .flatMap { it.values }
@@ -104,12 +104,12 @@ class InMemoryWorkflowVersionStorage : WorkflowVersionStorage {
             .drop(offset)
             .take(limit)
     }
-    
+
     override fun deleteWorkflowVersion(workflowId: String, version: String): Boolean {
         val workflowVersions = workflows[workflowId] ?: return false
-        
+
         val removed = workflowVersions.remove(version) != null
-        
+
         // If the active version was deleted, set a new active version
         if (removed && activeVersions[workflowId] == version) {
             if (workflowVersions.isEmpty()) {
@@ -119,7 +119,7 @@ class InMemoryWorkflowVersionStorage : WorkflowVersionStorage {
                 val latestVersion = workflowVersions.values.maxByOrNull { it.version.createdAt }
                 if (latestVersion != null) {
                     activeVersions[workflowId] = latestVersion.version.version
-                    
+
                     // Update the isActive flag
                     workflowVersions[latestVersion.version.version] = latestVersion.copy(
                         version = latestVersion.version.copy(isActive = true)
@@ -127,10 +127,10 @@ class InMemoryWorkflowVersionStorage : WorkflowVersionStorage {
                 }
             }
         }
-        
+
         return removed
     }
-    
+
     override fun deleteWorkflow(workflowId: String): Int {
         val workflowVersions = workflows.remove(workflowId) ?: return 0
         activeVersions.remove(workflowId)

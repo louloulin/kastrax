@@ -13,14 +13,14 @@ interface WorkflowMigration {
      * @return The source version.
      */
     fun getSourceVersion(): String
-    
+
     /**
      * Gets the target version of this migration.
      *
      * @return The target version.
      */
     fun getTargetVersion(): String
-    
+
     /**
      * Checks if this migration can be applied to a workflow.
      *
@@ -28,7 +28,7 @@ interface WorkflowMigration {
      * @return True if the migration can be applied, false otherwise.
      */
     fun canApply(workflow: VersionedWorkflow): Boolean
-    
+
     /**
      * Applies the migration to a workflow.
      *
@@ -51,11 +51,11 @@ abstract class BaseWorkflowMigration(
     override fun getSourceVersion(): String {
         return sourceVersion
     }
-    
+
     override fun getTargetVersion(): String {
         return targetVersion
     }
-    
+
     override fun canApply(workflow: VersionedWorkflow): Boolean {
         return workflow.version.version == sourceVersion
     }
@@ -80,11 +80,11 @@ class AddStepMigration(
         if (workflow.steps.any { it.id == step.id }) {
             throw IllegalStateException("Step with ID ${step.id} already exists in workflow ${workflow.id}")
         }
-        
+
         // Add the step and connections
         val newSteps = workflow.steps + step
         val newConnections = workflow.connections + connections
-        
+
         // Create a new version of the workflow
         return workflow.createNewVersion(
             newVersion = getTargetVersion(),
@@ -112,11 +112,11 @@ class RemoveStepMigration(
         if (workflow.steps.none { it.id == stepId }) {
             throw IllegalStateException("Step with ID $stepId does not exist in workflow ${workflow.id}")
         }
-        
+
         // Remove the step and its connections
         val newSteps = workflow.steps.filter { it.id != stepId }
         val newConnections = workflow.connections.filter { it.sourceId != stepId && it.targetId != stepId }
-        
+
         // Create a new version of the workflow
         return workflow.createNewVersion(
             newVersion = getTargetVersion(),
@@ -146,10 +146,21 @@ class ModifyStepMigration(
         if (workflow.steps.none { it.id == stepId }) {
             throw IllegalStateException("Step with ID $stepId does not exist in workflow ${workflow.id}")
         }
-        
+
         // Replace the step
-        val newSteps = workflow.steps.map { if (it.id == stepId) newStep else it }
-        
+        val newSteps = workflow.steps.map {
+            if (it.id == stepId) {
+                // 确保新步骤使用相同的ID
+                if (newStep.id != stepId) {
+                    newStep.copy(id = stepId)
+                } else {
+                    newStep
+                }
+            } else {
+                it
+            }
+        }
+
         // Create a new version of the workflow
         return workflow.createNewVersion(
             newVersion = getTargetVersion(),
@@ -179,10 +190,10 @@ class AddConnectionMigration(
         if (workflow.steps.none { it.id == connection.targetId }) {
             throw IllegalStateException("Target step with ID ${connection.targetId} does not exist in workflow ${workflow.id}")
         }
-        
+
         // Add the connection
         val newConnections = workflow.connections + connection
-        
+
         // Create a new version of the workflow
         return workflow.createNewVersion(
             newVersion = getTargetVersion(),
@@ -211,10 +222,10 @@ class RemoveConnectionMigration(
         if (workflow.connections.none { it.sourceId == sourceId && it.targetId == targetId }) {
             throw IllegalStateException("Connection from $sourceId to $targetId does not exist in workflow ${workflow.id}")
         }
-        
+
         // Remove the connection
         val newConnections = workflow.connections.filter { !(it.sourceId == sourceId && it.targetId == targetId) }
-        
+
         // Create a new version of the workflow
         return workflow.createNewVersion(
             newVersion = getTargetVersion(),
@@ -238,21 +249,33 @@ class CompositeMigration(
 ) : BaseWorkflowMigration(sourceVersion, targetVersion) {
     override fun apply(workflow: VersionedWorkflow): VersionedWorkflow {
         var currentWorkflow = workflow
-        
+
+        // 如果没有迁移，直接创建新版本
+        if (migrations.isEmpty()) {
+            return currentWorkflow.createNewVersion(
+                newVersion = getTargetVersion(),
+                description = "Applied empty migration from ${getSourceVersion()} to ${getTargetVersion()}"
+            )
+        }
+
+        // 应用所有迁移
         for (migration in migrations) {
             if (migration.canApply(currentWorkflow)) {
                 currentWorkflow = migration.apply(currentWorkflow)
+            } else {
+                // 如果无法应用迁移，则跳过并继续
+                continue
             }
         }
-        
-        // Ensure the final version is correct
+
+        // 确保最终版本正确
         if (currentWorkflow.version.version != getTargetVersion()) {
             return currentWorkflow.createNewVersion(
                 newVersion = getTargetVersion(),
                 description = "Applied composite migration from ${getSourceVersion()} to ${getTargetVersion()}"
             )
         }
-        
+
         return currentWorkflow
     }
 }
