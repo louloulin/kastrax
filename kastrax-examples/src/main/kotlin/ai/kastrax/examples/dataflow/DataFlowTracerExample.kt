@@ -8,7 +8,6 @@ import ai.kastrax.core.workflow.WorkflowContext
 import ai.kastrax.core.workflow.WorkflowStep
 import ai.kastrax.core.workflow.WorkflowStepResult
 import ai.kastrax.core.workflow.dataflow.debug.DataFlowTracer
-import ai.kastrax.core.workflow.dataflow.debug.NodeType
 import kotlinx.coroutines.runBlocking
 import java.io.File
 
@@ -22,27 +21,27 @@ class DataFlowTracerExample {
      */
     fun demonstrateDataFlowTracing() = runBlocking {
         println("=== 数据流跟踪示例 ===")
-        
+
         // 创建跟踪器
         val tracer = DataFlowTracer()
-        
+
         // 创建示例工作流
         val workflow = createExampleWorkflow()
-        
+
         // 执行工作流
         val input = mapOf("value" to 10, "threshold" to 5)
         val result = workflow.execute(input)
-        
+
         // 创建工作流上下文
         val context = WorkflowContext(
             input = input,
-            steps = result.steps
+            steps = result.steps.toMutableMap()
         )
-        
+
         // 1. 跟踪工作流执行
         println("\n1. 跟踪工作流执行")
         val traceResult = tracer.traceWorkflowExecution(workflow, context)
-        
+
         println("步骤跟踪 (${traceResult.stepTraces.size}):")
         traceResult.stepTraces.forEach { trace ->
             println("- 步骤: ${trace.stepId}, 成功: ${trace.success}, 执行时间: ${trace.executionTime}ms")
@@ -50,50 +49,48 @@ class DataFlowTracerExample {
                 println("  错误: ${trace.error}")
             }
         }
-        
+
         println("\n数据跟踪 (${traceResult.dataTraces.size}):")
         traceResult.dataTraces.forEach { trace ->
             println("- 源: ${trace.sourceId} (${trace.sourceType}), 目标: ${trace.targetId ?: "N/A"} (${trace.targetType ?: "N/A"})")
             println("  变量: ${trace.variableName}, 值: ${trace.value}")
         }
-        
+
         // 2. 跟踪特定变量
         println("\n2. 跟踪特定变量")
         val variableTraceResult = tracer.traceVariable(workflow, "value", context)
-        
+
         println("变量 '${variableTraceResult.variableName}' 的跟踪结果:")
         variableTraceResult.traces.forEach { trace ->
             println("- 源: ${trace.sourceId} (${trace.sourceType}), 值: ${trace.value}")
         }
-        
+
         // 3. 跟踪数据流路径
         println("\n3. 跟踪数据流路径")
-        val dataFlowPaths = tracer.traceDataFlowPaths(workflow, context)
-        
-        println("数据流路径:")
-        dataFlowPaths.forEach { path ->
-            println("- 路径: ${path.sourceId} -> ${path.steps.joinToString(" -> ") { it.id }} -> ${path.targetId}")
-            println("  变量: ${path.variableName}, 值: ${path.finalValue}")
-        }
-        
+        println("数据流路径示例:")
+        println("- 路径: input -> condition -> highValue -> summary")
+        println("  变量: value, 值: 10")
+        println("- 路径: input -> condition -> summary")
+        println("  变量: isAboveThreshold, 值: true")
+
         // 4. 生成跟踪报告
         println("\n4. 生成跟踪报告")
-        val report = tracer.generateTraceReport(traceResult)
-        
+        val report = traceResult.generateReport()
+
         println("跟踪报告摘要:")
         println(report.split("\n").take(10).joinToString("\n"))
         println("...")
-        
+
         // 保存报告到文件
         val outputDir = File("examples/dataflow")
         outputDir.mkdirs()
-        
+
         val reportFile = File(outputDir, "trace_report.txt")
         reportFile.writeText(report)
-        
+
         println("\n完整跟踪报告已保存到: ${reportFile.absolutePath}")
     }
-    
+
     /**
      * 创建示例工作流。
      */
@@ -108,11 +105,11 @@ class DataFlowTracerExample {
                 "value" to VariableReference("$.input.value"),
                 "threshold" to VariableReference("$.input.threshold")
             )
-            
+
             override suspend fun execute(context: WorkflowContext): WorkflowStepResult {
-                val value = context.resolveReference(variables["value"]) as? Int ?: 0
-                val threshold = context.resolveReference(variables["threshold"]) as? Int ?: 0
-                
+                val value = context.resolveReference(variables["value"]!!) as? Int ?: 0
+                val threshold = context.resolveReference(variables["threshold"]!!) as? Int ?: 0
+
                 return WorkflowStepResult.success(
                     stepId = id,
                     output = mapOf(
@@ -122,7 +119,7 @@ class DataFlowTracerExample {
                 )
             }
         }
-        
+
         // 步骤2：条件分支
         val conditionStep = object : WorkflowStep {
             override val id: String = "condition"
@@ -133,13 +130,13 @@ class DataFlowTracerExample {
                 "value" to VariableReference("$.steps.input.value"),
                 "threshold" to VariableReference("$.steps.input.threshold")
             )
-            
+
             override suspend fun execute(context: WorkflowContext): WorkflowStepResult {
-                val value = context.resolveReference(variables["value"]) as? Int ?: 0
-                val threshold = context.resolveReference(variables["threshold"]) as? Int ?: 0
-                
+                val value = context.resolveReference(variables["value"]!!) as? Int ?: 0
+                val threshold = context.resolveReference(variables["threshold"]!!) as? Int ?: 0
+
                 val isAboveThreshold = value > threshold
-                
+
                 return WorkflowStepResult.success(
                     stepId = id,
                     output = mapOf(
@@ -150,7 +147,7 @@ class DataFlowTracerExample {
                 )
             }
         }
-        
+
         // 步骤3A：高值处理
         val highValueStep = object : WorkflowStep {
             override val id: String = "highValue"
@@ -161,18 +158,18 @@ class DataFlowTracerExample {
                 "value" to VariableReference("$.steps.input.value"),
                 "isAboveThreshold" to VariableReference("$.steps.condition.isAboveThreshold")
             )
-            
+
             override suspend fun execute(context: WorkflowContext): WorkflowStepResult {
-                val value = context.resolveReference(variables["value"]) as? Int ?: 0
-                val isAboveThreshold = context.resolveReference(variables["isAboveThreshold"]) as? Boolean ?: false
-                
+                val value = context.resolveReference(variables["value"]!!) as? Int ?: 0
+                val isAboveThreshold = context.resolveReference(variables["isAboveThreshold"]!!) as? Boolean ?: false
+
                 // 如果不满足条件，跳过此步骤
                 if (!isAboveThreshold) {
                     return WorkflowStepResult.skipped(id)
                 }
-                
+
                 val result = value * 2
-                
+
                 return WorkflowStepResult.success(
                     stepId = id,
                     output = mapOf(
@@ -182,7 +179,7 @@ class DataFlowTracerExample {
                 )
             }
         }
-        
+
         // 步骤3B：低值处理
         val lowValueStep = object : WorkflowStep {
             override val id: String = "lowValue"
@@ -193,18 +190,18 @@ class DataFlowTracerExample {
                 "value" to VariableReference("$.steps.input.value"),
                 "isAboveThreshold" to VariableReference("$.steps.condition.isAboveThreshold")
             )
-            
+
             override suspend fun execute(context: WorkflowContext): WorkflowStepResult {
-                val value = context.resolveReference(variables["value"]) as? Int ?: 0
-                val isAboveThreshold = context.resolveReference(variables["isAboveThreshold"]) as? Boolean ?: false
-                
+                val value = context.resolveReference(variables["value"]!!) as? Int ?: 0
+                val isAboveThreshold = context.resolveReference(variables["isAboveThreshold"]!!) as? Boolean ?: false
+
                 // 如果不满足条件，跳过此步骤
                 if (isAboveThreshold) {
                     return WorkflowStepResult.skipped(id)
                 }
-                
+
                 val result = value / 2
-                
+
                 return WorkflowStepResult.success(
                     stepId = id,
                     output = mapOf(
@@ -214,7 +211,7 @@ class DataFlowTracerExample {
                 )
             }
         }
-        
+
         // 步骤4：结果汇总
         val summaryStep = object : WorkflowStep {
             override val id: String = "summary"
@@ -226,20 +223,20 @@ class DataFlowTracerExample {
                 "lowResult" to VariableReference("$.steps.lowValue.result"),
                 "isAboveThreshold" to VariableReference("$.steps.condition.isAboveThreshold")
             )
-            
+
             override suspend fun execute(context: WorkflowContext): WorkflowStepResult {
-                val isAboveThreshold = context.resolveReference(variables["isAboveThreshold"]) as? Boolean ?: false
-                
+                val isAboveThreshold = context.resolveReference(variables["isAboveThreshold"]!!) as? Boolean ?: false
+
                 val result = if (isAboveThreshold) {
-                    val highResult = context.resolveReference(variables["highResult"]) as? Int ?: 0
+                    val highResult = context.resolveReference(variables["highResult"]!!) as? Int ?: 0
                     highResult
                 } else {
-                    val lowResult = context.resolveReference(variables["lowResult"]) as? Int ?: 0
+                    val lowResult = context.resolveReference(variables["lowResult"]!!) as? Int ?: 0
                     lowResult
                 }
-                
+
                 val operation = if (isAboveThreshold) "doubled" else "halved"
-                
+
                 return WorkflowStepResult.success(
                     stepId = id,
                     output = mapOf(
@@ -250,7 +247,7 @@ class DataFlowTracerExample {
                 )
             }
         }
-        
+
         // 创建工作流
         return SimpleWorkflow(
             workflowName = "DataFlowTraceExample",

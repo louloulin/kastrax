@@ -8,7 +8,7 @@ import ai.kastrax.core.workflow.WorkflowContext
 import ai.kastrax.core.workflow.WorkflowStep
 import ai.kastrax.core.workflow.WorkflowStepResult
 import ai.kastrax.core.workflow.dataflow.debug.DataFlowInspector
-import ai.kastrax.core.workflow.dataflow.debug.IssueType
+import ai.kastrax.core.workflow.dataflow.debug.DataFlowInspector.IssueType
 import kotlinx.coroutines.runBlocking
 import java.io.File
 
@@ -22,68 +22,63 @@ class DataFlowInspectorExample {
      */
     fun demonstrateDataFlowInspection() = runBlocking {
         println("=== 数据流检查示例 ===")
-        
+
         // 创建检查器
         val inspector = DataFlowInspector()
-        
+
         // 1. 检查正常工作流
         println("\n1. 检查正常工作流")
         val normalWorkflow = createNormalWorkflow()
         val normalResult = inspector.inspectWorkflow(normalWorkflow)
-        
+
         println("正常工作流检查结果:")
         println("发现 ${normalResult.issues.size} 个问题")
         normalResult.issues.forEach { issue ->
-            println("- ${issue.type}: ${issue.description} (${issue.stepId ?: "全局"})")
+            println("- ${issue.type}: ${issue.message} (${issue.stepId ?: "全局"})")
         }
-        
+
         // 2. 检查有问题的工作流
         println("\n2. 检查有问题的工作流")
         val problematicWorkflow = createProblematicWorkflow()
         val problematicResult = inspector.inspectWorkflow(problematicWorkflow)
-        
+
         println("有问题的工作流检查结果:")
         println("发现 ${problematicResult.issues.size} 个问题")
         problematicResult.issues.forEach { issue ->
-            println("- ${issue.type}: ${issue.description} (${issue.stepId ?: "全局"})")
+            println("- ${issue.type}: ${issue.message} (${issue.stepId ?: "全局"})")
         }
-        
+
         // 3. 检查工作流执行结果
         println("\n3. 检查工作流执行结果")
         val workflow = createNormalWorkflow()
         val input = mapOf("value" to 10, "threshold" to 5)
         val result = workflow.execute(input)
-        
+
         val context = WorkflowContext(
             input = input,
-            steps = result.steps
+            steps = result.steps.toMutableMap()
         )
-        
+
         val executionResult = inspector.inspectWorkflowExecution(workflow, context)
-        
+
         println("工作流执行检查结果:")
         println("发现 ${executionResult.issues.size} 个问题")
         executionResult.issues.forEach { issue ->
-            println("- ${issue.type}: ${issue.description} (${issue.stepId ?: "全局"})")
+            println("- ${issue.type}: ${issue.message} (${issue.stepId ?: "全局"})")
         }
-        
+
         // 4. 生成数据流图
         println("\n4. 生成数据流图")
-        val dataFlowGraph = inspector.buildDataFlowGraph(workflow)
-        
-        println("数据流图:")
-        println("节点数: ${dataFlowGraph.nodes.size}")
-        println("边数: ${dataFlowGraph.edges.size}")
-        
-        dataFlowGraph.nodes.forEach { node ->
-            println("节点: ${node.id} (${node.name}) - 类型: ${node.type}")
-        }
-        
-        dataFlowGraph.edges.forEach { edge ->
-            println("边: ${edge.source} -> ${edge.target} (${edge.type})")
-        }
+        // 注意：buildDataFlowGraph 是私有方法，实际应用中应使用公共 API
+        // 这里仅作为示例，展示数据流图的概念
+        // 模拟数据流图结构
+
+        println("数据流图概念:")
+        println("- 节点：表示工作流中的步骤或变量")
+        println("- 边：表示数据流动的路径")
+        println("- 类型：节点和边的类型，如步骤、变量、输入、输出等")
     }
-    
+
     /**
      * 创建正常工作流。
      */
@@ -98,11 +93,11 @@ class DataFlowInspectorExample {
                 "value" to VariableReference("$.input.value"),
                 "threshold" to VariableReference("$.input.threshold")
             )
-            
+
             override suspend fun execute(context: WorkflowContext): WorkflowStepResult {
-                val value = context.resolveReference(variables["value"]) as? Int ?: 0
-                val threshold = context.resolveReference(variables["threshold"]) as? Int ?: 0
-                
+                val value = context.resolveReference(variables["value"]!!) as? Int ?: 0
+                val threshold = context.resolveReference(variables["threshold"]!!) as? Int ?: 0
+
                 return WorkflowStepResult.success(
                     stepId = id,
                     output = mapOf(
@@ -112,7 +107,7 @@ class DataFlowInspectorExample {
                 )
             }
         }
-        
+
         // 步骤2：条件分支
         val conditionStep = object : WorkflowStep {
             override val id: String = "condition"
@@ -123,13 +118,13 @@ class DataFlowInspectorExample {
                 "value" to VariableReference("$.steps.input.value"),
                 "threshold" to VariableReference("$.steps.input.threshold")
             )
-            
+
             override suspend fun execute(context: WorkflowContext): WorkflowStepResult {
-                val value = context.resolveReference(variables["value"]) as? Int ?: 0
-                val threshold = context.resolveReference(variables["threshold"]) as? Int ?: 0
-                
+                val value = context.resolveReference(variables["value"]!!) as? Int ?: 0
+                val threshold = context.resolveReference(variables["threshold"]!!) as? Int ?: 0
+
                 val isAboveThreshold = value > threshold
-                
+
                 return WorkflowStepResult.success(
                     stepId = id,
                     output = mapOf(
@@ -140,7 +135,7 @@ class DataFlowInspectorExample {
                 )
             }
         }
-        
+
         // 步骤3A：高值处理
         val highValueStep = object : WorkflowStep {
             override val id: String = "highValue"
@@ -151,18 +146,18 @@ class DataFlowInspectorExample {
                 "value" to VariableReference("$.steps.input.value"),
                 "isAboveThreshold" to VariableReference("$.steps.condition.isAboveThreshold")
             )
-            
+
             override suspend fun execute(context: WorkflowContext): WorkflowStepResult {
-                val value = context.resolveReference(variables["value"]) as? Int ?: 0
-                val isAboveThreshold = context.resolveReference(variables["isAboveThreshold"]) as? Boolean ?: false
-                
+                val value = context.resolveReference(variables["value"]!!) as? Int ?: 0
+                val isAboveThreshold = context.resolveReference(variables["isAboveThreshold"]!!) as? Boolean ?: false
+
                 // 如果不满足条件，跳过此步骤
                 if (!isAboveThreshold) {
                     return WorkflowStepResult.skipped(id)
                 }
-                
+
                 val result = value * 2
-                
+
                 return WorkflowStepResult.success(
                     stepId = id,
                     output = mapOf(
@@ -172,7 +167,7 @@ class DataFlowInspectorExample {
                 )
             }
         }
-        
+
         // 步骤3B：低值处理
         val lowValueStep = object : WorkflowStep {
             override val id: String = "lowValue"
@@ -183,18 +178,18 @@ class DataFlowInspectorExample {
                 "value" to VariableReference("$.steps.input.value"),
                 "isAboveThreshold" to VariableReference("$.steps.condition.isAboveThreshold")
             )
-            
+
             override suspend fun execute(context: WorkflowContext): WorkflowStepResult {
-                val value = context.resolveReference(variables["value"]) as? Int ?: 0
-                val isAboveThreshold = context.resolveReference(variables["isAboveThreshold"]) as? Boolean ?: false
-                
+                val value = context.resolveReference(variables["value"]!!) as? Int ?: 0
+                val isAboveThreshold = context.resolveReference(variables["isAboveThreshold"]!!) as? Boolean ?: false
+
                 // 如果不满足条件，跳过此步骤
                 if (isAboveThreshold) {
                     return WorkflowStepResult.skipped(id)
                 }
-                
+
                 val result = value / 2
-                
+
                 return WorkflowStepResult.success(
                     stepId = id,
                     output = mapOf(
@@ -204,7 +199,7 @@ class DataFlowInspectorExample {
                 )
             }
         }
-        
+
         // 步骤4：结果汇总
         val summaryStep = object : WorkflowStep {
             override val id: String = "summary"
@@ -216,20 +211,20 @@ class DataFlowInspectorExample {
                 "lowResult" to VariableReference("$.steps.lowValue.result"),
                 "isAboveThreshold" to VariableReference("$.steps.condition.isAboveThreshold")
             )
-            
+
             override suspend fun execute(context: WorkflowContext): WorkflowStepResult {
-                val isAboveThreshold = context.resolveReference(variables["isAboveThreshold"]) as? Boolean ?: false
-                
+                val isAboveThreshold = context.resolveReference(variables["isAboveThreshold"]!!) as? Boolean ?: false
+
                 val result = if (isAboveThreshold) {
-                    val highResult = context.resolveReference(variables["highResult"]) as? Int ?: 0
+                    val highResult = context.resolveReference(variables["highResult"]!!) as? Int ?: 0
                     highResult
                 } else {
-                    val lowResult = context.resolveReference(variables["lowResult"]) as? Int ?: 0
+                    val lowResult = context.resolveReference(variables["lowResult"]!!) as? Int ?: 0
                     lowResult
                 }
-                
+
                 val operation = if (isAboveThreshold) "doubled" else "halved"
-                
+
                 return WorkflowStepResult.success(
                     stepId = id,
                     output = mapOf(
@@ -240,7 +235,7 @@ class DataFlowInspectorExample {
                 )
             }
         }
-        
+
         // 创建工作流
         return SimpleWorkflow(
             workflowName = "NormalDataFlowExample",
@@ -254,7 +249,7 @@ class DataFlowInspectorExample {
             )
         )
     }
-    
+
     /**
      * 创建有问题的工作流。
      */
@@ -269,11 +264,11 @@ class DataFlowInspectorExample {
                 "value" to VariableReference("$.input.value"),
                 "threshold" to VariableReference("$.input.threshold")
             )
-            
+
             override suspend fun execute(context: WorkflowContext): WorkflowStepResult {
-                val value = context.resolveReference(variables["value"]) as? Int ?: 0
-                val threshold = context.resolveReference(variables["threshold"]) as? Int ?: 0
-                
+                val value = context.resolveReference(variables["value"]!!) as? Int ?: 0
+                val threshold = context.resolveReference(variables["threshold"]!!) as? Int ?: 0
+
                 return WorkflowStepResult.success(
                     stepId = id,
                     output = mapOf(
@@ -283,7 +278,7 @@ class DataFlowInspectorExample {
                 )
             }
         }
-        
+
         // 步骤2：条件分支（有问题的变量引用）
         val conditionStep = object : WorkflowStep {
             override val id: String = "condition"
@@ -297,13 +292,13 @@ class DataFlowInspectorExample {
                 // 未使用的变量引用
                 "unused" to VariableReference("$.input.unused")
             )
-            
+
             override suspend fun execute(context: WorkflowContext): WorkflowStepResult {
-                val value = context.resolveReference(variables["value"]) as? Int ?: 0
-                val threshold = context.resolveReference(variables["threshold"]) as? Int ?: 0
-                
+                val value = context.resolveReference(variables["value"]!!) as? Int ?: 0
+                val threshold = context.resolveReference(variables["threshold"]!!) as? Int ?: 0
+
                 val isAboveThreshold = value > threshold
-                
+
                 return WorkflowStepResult.success(
                     stepId = id,
                     output = mapOf(
@@ -314,7 +309,7 @@ class DataFlowInspectorExample {
                 )
             }
         }
-        
+
         // 步骤3：处理步骤（循环依赖）
         val processStep = object : WorkflowStep {
             override val id: String = "process"
@@ -327,13 +322,13 @@ class DataFlowInspectorExample {
                 // 引用不存在的步骤
                 "outputValue" to VariableReference("$.steps.output.result")
             )
-            
+
             override suspend fun execute(context: WorkflowContext): WorkflowStepResult {
-                val value = context.resolveReference(variables["value"]) as? Int ?: 0
-                val isAboveThreshold = context.resolveReference(variables["isAboveThreshold"]) as? Boolean ?: false
-                
+                val value = context.resolveReference(variables["value"]!!) as? Int ?: 0
+                val isAboveThreshold = context.resolveReference(variables["isAboveThreshold"]!!) as? Boolean ?: false
+
                 val result = if (isAboveThreshold) value * 2 else value / 2
-                
+
                 return WorkflowStepResult.success(
                     stepId = id,
                     output = mapOf(
@@ -343,7 +338,7 @@ class DataFlowInspectorExample {
                 )
             }
         }
-        
+
         // 步骤4：输出步骤（未使用的输出）
         val outputStep = object : WorkflowStep {
             override val id: String = "output"
@@ -353,10 +348,10 @@ class DataFlowInspectorExample {
             override val variables: Map<String, VariableReference> = mapOf(
                 "result" to VariableReference("$.steps.process.result")
             )
-            
+
             override suspend fun execute(context: WorkflowContext): WorkflowStepResult {
-                val result = context.resolveReference(variables["result"]) as? Int ?: 0
-                
+                val result = context.resolveReference(variables["result"]!!) as? Int ?: 0
+
                 return WorkflowStepResult.success(
                     stepId = id,
                     output = mapOf(
@@ -367,7 +362,7 @@ class DataFlowInspectorExample {
                 )
             }
         }
-        
+
         // 创建工作流
         return SimpleWorkflow(
             workflowName = "ProblematicDataFlowExample",
