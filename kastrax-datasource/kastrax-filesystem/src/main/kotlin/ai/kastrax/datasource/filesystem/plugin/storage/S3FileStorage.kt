@@ -1,9 +1,10 @@
 package ai.kastrax.datasource.filesystem.plugin.storage
 
 import ai.kastrax.core.common.KastraXBase
-import ai.kastrax.core.event.Event
 import ai.kastrax.core.plugin.DataStorage
+import ai.kastrax.core.plugin.Event
 import ai.kastrax.core.plugin.EventStorage
+import ai.kastrax.core.workflow.state.WorkflowRunInfo
 import ai.kastrax.core.workflow.state.WorkflowState
 import ai.kastrax.core.workflow.state.WorkflowStateStorage
 import kotlinx.coroutines.Dispatchers
@@ -27,7 +28,7 @@ import java.util.concurrent.ConcurrentHashMap
  * S3文件存储工厂，用于创建基于S3的存储实现。
  */
 object S3FileStorage {
-    private val json = Json {
+    val json = Json {
         prettyPrint = true
         ignoreUnknownKeys = true
         encodeDefaults = true
@@ -225,6 +226,8 @@ class S3WorkflowStateStorage(
         }
     }
 
+
+
     override suspend fun getWorkflowRuns(workflowId: String, limit: Int, offset: Int): List<WorkflowRunInfo> {
         logger.debug { "获取工作流运行信息: $workflowId, 限制: $limit, 偏移: $offset" }
 
@@ -285,48 +288,7 @@ class S3WorkflowStateStorage(
         }
     }
 
-    override suspend fun getAllWorkflowStates(): Flow<WorkflowState> = flow {
-        logger.debug { "获取所有工作流状态" }
 
-        try {
-            val basePath = if (prefix.isNotEmpty()) "$prefix/" else ""
-            val prefix = "${basePath}states/"
-
-            val listObjectsRequest = ListObjectsV2Request.builder()
-                .bucket(bucket)
-                .prefix(prefix)
-                .build()
-
-            val response = withContext(Dispatchers.IO) {
-                s3Client.listObjectsV2(listObjectsRequest)
-            }
-
-            val states = response.contents().map { s3Object ->
-                val objectKey = s3Object.key()
-
-                val stateJson = withContext(Dispatchers.IO) {
-                    val getResponse = s3Client.getObject { builder ->
-                        builder.bucket(bucket).key(objectKey)
-                    }
-
-                    getResponse.use { s3ObjectContent ->
-                        s3ObjectContent.readAllBytes().toString(Charsets.UTF_8)
-                    }
-                }
-
-                S3FileStorage.json.decodeFromString<WorkflowState>(stateJson)
-            }
-
-            // 按更新时间排序
-            val sortedStates = states.sortedByDescending { it.updatedAt }
-
-            for (state in sortedStates) {
-                emit(state)
-            }
-        } catch (e: Exception) {
-            logger.error(e) { "获取所有工作流状态失败" }
-        }
-    }
 }
 
 /**
@@ -355,17 +317,17 @@ class S3EventStorage(
             .build()
     }
 
-    private fun getEventObjectKey(event: Event): String {
+    private fun getEventObjectKey(eventId: String, eventType: String): String {
         val basePath = if (prefix.isNotEmpty()) "$prefix/" else ""
-        return "${basePath}events/${event.type}/${event.id}.json"
+        return "${basePath}events/$eventType/$eventId.json"
     }
 
     override suspend fun storeEvent(event: Event): Boolean {
         logger.debug { "存储事件: ${event.id}, 类型: ${event.type}" }
 
         return try {
-            val eventJson = S3FileStorage.json.encodeToString(EventWrapper(event))
-            val objectKey = getEventObjectKey(event)
+            val eventJson = S3FileStorage.json.encodeToString(event)
+            val objectKey = getEventObjectKey(event.id, event.type)
 
             withContext(Dispatchers.IO) {
                 s3Client.putObject(
@@ -400,16 +362,96 @@ class S3EventStorage(
         return success
     }
 
-    override suspend fun getEvents(type: String?, from: Instant?, to: Instant?, limit: Int): Flow<Event> = flow {
-        logger.debug { "获取事件: 类型: $type, 从: $from, 到: $to, 限制: $limit" }
+    override suspend fun getEvent(eventId: String): Event? {
+        logger.debug { "获取事件: $eventId" }
 
-        try {
+        // 由于我们需要知道事件类型才能找到文件，所以需要遍历所有类型目录
+        return try {
             val basePath = if (prefix.isNotEmpty()) "$prefix/" else ""
-            val prefix = if (type != null) "${basePath}events/$type/" else "${basePath}events/"
+            val eventsPrefix = "${basePath}events/"
 
             val listObjectsRequest = ListObjectsV2Request.builder()
                 .bucket(bucket)
-                .prefix(prefix)
+                .prefix(eventsPrefix)
+                .build()
+
+            val response = withContext(Dispatchers.IO) {
+                s3Client.listObjectsV2(listObjectsRequest)
+            }
+
+            for (s3Object in response.contents()) {
+                val objectKey = s3Object.key()
+                if (objectKey.endsWith("$eventId.json")) {
+                    val eventJson = withContext(Dispatchers.IO) {
+                        val getResponse = s3Client.getObject { builder ->
+                            builder.bucket(bucket).key(objectKey)
+                        }
+
+                        getResponse.use { s3ObjectContent ->
+                            s3ObjectContent.readAllBytes().toString(Charsets.UTF_8)
+                        }
+                    }
+
+                    return S3FileStorage.json.decodeFromString<Event>(eventJson)
+                }
+            }
+
+            null
+        } catch (e: Exception) {
+            logger.error(e) { "获取事件失败: $eventId" }
+            null
+        }
+    }
+
+    override suspend fun deleteEvent(eventId: String): Boolean {
+        logger.debug { "删除事件: $eventId" }
+
+        // 由于我们需要知道事件类型才能找到文件，所以需要遍历所有类型目录
+        return try {
+            val basePath = if (prefix.isNotEmpty()) "$prefix/" else ""
+            val eventsPrefix = "${basePath}events/"
+
+            val listObjectsRequest = ListObjectsV2Request.builder()
+                .bucket(bucket)
+                .prefix(eventsPrefix)
+                .build()
+
+            val response = withContext(Dispatchers.IO) {
+                s3Client.listObjectsV2(listObjectsRequest)
+            }
+
+            var deleted = false
+
+            for (s3Object in response.contents()) {
+                val objectKey = s3Object.key()
+                if (objectKey.endsWith("$eventId.json")) {
+                    withContext(Dispatchers.IO) {
+                        s3Client.deleteObject { builder ->
+                            builder.bucket(bucket).key(objectKey)
+                        }
+                    }
+                    deleted = true
+                    break
+                }
+            }
+
+            deleted
+        } catch (e: Exception) {
+            logger.error(e) { "删除事件失败: $eventId" }
+            false
+        }
+    }
+
+    override suspend fun getEventsByType(eventType: String, limit: Int, offset: Int): List<Event> {
+        logger.debug { "获取指定类型的事件: 类型: $eventType, 限制: $limit, 偏移: $offset" }
+
+        return try {
+            val basePath = if (prefix.isNotEmpty()) "$prefix/" else ""
+            val typePrefix = "${basePath}events/$eventType/"
+
+            val listObjectsRequest = ListObjectsV2Request.builder()
+                .bucket(bucket)
+                .prefix(typePrefix)
                 .build()
 
             val response = withContext(Dispatchers.IO) {
@@ -419,35 +461,271 @@ class S3EventStorage(
             val events = response.contents().map { s3Object ->
                 val objectKey = s3Object.key()
 
-                val eventJson = withContext(Dispatchers.IO) {
-                    val getResponse = s3Client.getObject { builder ->
-                        builder.bucket(bucket).key(objectKey)
+                try {
+                    val eventJson = withContext(Dispatchers.IO) {
+                        val getResponse = s3Client.getObject { builder ->
+                            builder.bucket(bucket).key(objectKey)
+                        }
+
+                        getResponse.use { s3ObjectContent ->
+                            s3ObjectContent.readAllBytes().toString(Charsets.UTF_8)
+                        }
                     }
 
-                    getResponse.use { s3ObjectContent ->
-                        s3ObjectContent.readAllBytes().toString(Charsets.UTF_8)
-                    }
+                    S3FileStorage.json.decodeFromString<Event>(eventJson)
+                } catch (e: Exception) {
+                    logger.error(e) { "解析事件文件失败: $objectKey" }
+                    null
                 }
+            }.filterNotNull()
 
-                S3FileStorage.json.decodeFromString<EventWrapper>(eventJson).event
-            }
+            // 按时间戳排序
+            val sortedEvents = events.sortedByDescending { it.timestamp }
 
-            // 过滤和排序事件
-            val filteredEvents = events
-                .filter { event ->
-                    (from == null || event.timestamp.isAfter(from)) &&
-                    (to == null || event.timestamp.isBefore(to))
-                }
-                .sortedByDescending { it.timestamp }
-                .take(limit)
+            // 应用分页
+            val startIndex = offset.coerceAtMost(sortedEvents.size)
+            val endIndex = (offset + limit).coerceAtMost(sortedEvents.size)
 
-            for (event in filteredEvents) {
-                emit(event)
-            }
+            sortedEvents.subList(startIndex, endIndex)
         } catch (e: Exception) {
-            logger.error(e) { "获取事件失败: 类型: $type" }
+            logger.error(e) { "获取指定类型的事件失败: 类型: $eventType" }
+            emptyList()
         }
     }
+
+    override suspend fun getEventsByWorkflow(workflowId: String, limit: Int, offset: Int): List<Event> {
+        logger.debug { "获取指定工作流的事件: 工作流: $workflowId, 限制: $limit, 偏移: $offset" }
+
+        return try {
+            val basePath = if (prefix.isNotEmpty()) "$prefix/" else ""
+            val eventsPrefix = "${basePath}events/"
+
+            val listObjectsRequest = ListObjectsV2Request.builder()
+                .bucket(bucket)
+                .prefix(eventsPrefix)
+                .build()
+
+            val response = withContext(Dispatchers.IO) {
+                s3Client.listObjectsV2(listObjectsRequest)
+            }
+
+            val allEvents = mutableListOf<Event>()
+
+            for (s3Object in response.contents()) {
+                val objectKey = s3Object.key()
+
+                try {
+                    val eventJson = withContext(Dispatchers.IO) {
+                        val getResponse = s3Client.getObject { builder ->
+                            builder.bucket(bucket).key(objectKey)
+                        }
+
+                        getResponse.use { s3ObjectContent ->
+                            s3ObjectContent.readAllBytes().toString(Charsets.UTF_8)
+                        }
+                    }
+
+                    val event = S3FileStorage.json.decodeFromString<Event>(eventJson)
+
+                    // 检查事件是否属于指定工作流
+                    if (event.metadata["workflowId"] == workflowId) {
+                        allEvents.add(event)
+                    }
+                } catch (e: Exception) {
+                    logger.error(e) { "解析事件文件失败: $objectKey" }
+                }
+            }
+
+            // 按时间戳排序
+            val sortedEvents = allEvents.sortedByDescending { it.timestamp }
+
+            // 应用分页
+            val startIndex = offset.coerceAtMost(sortedEvents.size)
+            val endIndex = (offset + limit).coerceAtMost(sortedEvents.size)
+
+            sortedEvents.subList(startIndex, endIndex)
+        } catch (e: Exception) {
+            logger.error(e) { "获取指定工作流的事件失败: 工作流: $workflowId" }
+            emptyList()
+        }
+    }
+
+    override suspend fun getEventsByWorkflowRun(workflowId: String, runId: String, limit: Int, offset: Int): List<Event> {
+        logger.debug { "获取指定工作流运行的事件: 工作流: $workflowId, 运行ID: $runId, 限制: $limit, 偏移: $offset" }
+
+        return try {
+            val basePath = if (prefix.isNotEmpty()) "$prefix/" else ""
+            val eventsPrefix = "${basePath}events/"
+
+            val listObjectsRequest = ListObjectsV2Request.builder()
+                .bucket(bucket)
+                .prefix(eventsPrefix)
+                .build()
+
+            val response = withContext(Dispatchers.IO) {
+                s3Client.listObjectsV2(listObjectsRequest)
+            }
+
+            val allEvents = mutableListOf<Event>()
+
+            for (s3Object in response.contents()) {
+                val objectKey = s3Object.key()
+
+                try {
+                    val eventJson = withContext(Dispatchers.IO) {
+                        val getResponse = s3Client.getObject { builder ->
+                            builder.bucket(bucket).key(objectKey)
+                        }
+
+                        getResponse.use { s3ObjectContent ->
+                            s3ObjectContent.readAllBytes().toString(Charsets.UTF_8)
+                        }
+                    }
+
+                    val event = S3FileStorage.json.decodeFromString<Event>(eventJson)
+
+                    // 检查事件是否属于指定工作流运行
+                    if (event.metadata["workflowId"] == workflowId && event.metadata["runId"] == runId) {
+                        allEvents.add(event)
+                    }
+                } catch (e: Exception) {
+                    logger.error(e) { "解析事件文件失败: $objectKey" }
+                }
+            }
+
+            // 按时间戳排序
+            val sortedEvents = allEvents.sortedByDescending { it.timestamp }
+
+            // 应用分页
+            val startIndex = offset.coerceAtMost(sortedEvents.size)
+            val endIndex = (offset + limit).coerceAtMost(sortedEvents.size)
+
+            sortedEvents.subList(startIndex, endIndex)
+        } catch (e: Exception) {
+            logger.error(e) { "获取指定工作流运行的事件失败: 工作流: $workflowId, 运行ID: $runId" }
+            emptyList()
+        }
+    }
+
+    override suspend fun deleteEventsByWorkflow(workflowId: String): Boolean {
+        logger.debug { "删除指定工作流的所有事件: 工作流: $workflowId" }
+
+        return try {
+            val basePath = if (prefix.isNotEmpty()) "$prefix/" else ""
+            val eventsPrefix = "${basePath}events/"
+
+            val listObjectsRequest = ListObjectsV2Request.builder()
+                .bucket(bucket)
+                .prefix(eventsPrefix)
+                .build()
+
+            val response = withContext(Dispatchers.IO) {
+                s3Client.listObjectsV2(listObjectsRequest)
+            }
+
+            val objectsToDelete = mutableListOf<String>()
+
+            for (s3Object in response.contents()) {
+                val objectKey = s3Object.key()
+
+                try {
+                    val eventJson = withContext(Dispatchers.IO) {
+                        val getResponse = s3Client.getObject { builder ->
+                            builder.bucket(bucket).key(objectKey)
+                        }
+
+                        getResponse.use { s3ObjectContent ->
+                            s3ObjectContent.readAllBytes().toString(Charsets.UTF_8)
+                        }
+                    }
+
+                    val event = S3FileStorage.json.decodeFromString<Event>(eventJson)
+
+                    // 检查事件是否属于指定工作流
+                    if (event.metadata["workflowId"] == workflowId) {
+                        objectsToDelete.add(objectKey)
+                    }
+                } catch (e: Exception) {
+                    logger.error(e) { "解析事件文件失败: $objectKey" }
+                }
+            }
+
+            // 删除所有匹配的事件
+            for (objectKey in objectsToDelete) {
+                withContext(Dispatchers.IO) {
+                    s3Client.deleteObject { builder ->
+                        builder.bucket(bucket).key(objectKey)
+                    }
+                }
+            }
+
+            true
+        } catch (e: Exception) {
+            logger.error(e) { "删除指定工作流的所有事件失败: 工作流: $workflowId" }
+            false
+        }
+    }
+
+    override suspend fun deleteEventsByWorkflowRun(workflowId: String, runId: String): Boolean {
+        logger.debug { "删除指定工作流运行的所有事件: 工作流: $workflowId, 运行ID: $runId" }
+
+        return try {
+            val basePath = if (prefix.isNotEmpty()) "$prefix/" else ""
+            val eventsPrefix = "${basePath}events/"
+
+            val listObjectsRequest = ListObjectsV2Request.builder()
+                .bucket(bucket)
+                .prefix(eventsPrefix)
+                .build()
+
+            val response = withContext(Dispatchers.IO) {
+                s3Client.listObjectsV2(listObjectsRequest)
+            }
+
+            val objectsToDelete = mutableListOf<String>()
+
+            for (s3Object in response.contents()) {
+                val objectKey = s3Object.key()
+
+                try {
+                    val eventJson = withContext(Dispatchers.IO) {
+                        val getResponse = s3Client.getObject { builder ->
+                            builder.bucket(bucket).key(objectKey)
+                        }
+
+                        getResponse.use { s3ObjectContent ->
+                            s3ObjectContent.readAllBytes().toString(Charsets.UTF_8)
+                        }
+                    }
+
+                    val event = S3FileStorage.json.decodeFromString<Event>(eventJson)
+
+                    // 检查事件是否属于指定工作流运行
+                    if (event.metadata["workflowId"] == workflowId && event.metadata["runId"] == runId) {
+                        objectsToDelete.add(objectKey)
+                    }
+                } catch (e: Exception) {
+                    logger.error(e) { "解析事件文件失败: $objectKey" }
+                }
+            }
+
+            // 删除所有匹配的事件
+            for (objectKey in objectsToDelete) {
+                withContext(Dispatchers.IO) {
+                    s3Client.deleteObject { builder ->
+                        builder.bucket(bucket).key(objectKey)
+                    }
+                }
+            }
+
+            true
+        } catch (e: Exception) {
+            logger.error(e) { "删除指定工作流运行的所有事件失败: 工作流: $workflowId, 运行ID: $runId" }
+            false
+        }
+    }
+
+
 }
 
 /**
@@ -506,6 +784,83 @@ class S3DataStorage(
         }
     }
 
+    override suspend fun updateData(collection: String, id: String, data: Map<String, Any?>): Boolean {
+        logger.debug { "更新数据: 集合: $collection, ID: $id" }
+
+        return try {
+            val objectKey = getDataObjectKey(collection, id)
+
+            // 检查对象是否存在
+            val exists = withContext(Dispatchers.IO) {
+                try {
+                    s3Client.headObject { builder ->
+                        builder.bucket(bucket).key(objectKey)
+                    }
+                    true
+                } catch (e: NoSuchKeyException) {
+                    false
+                }
+            }
+
+            if (!exists) {
+                logger.debug { "数据不存在，无法更新: 集合: $collection, ID: $id" }
+                return false
+            }
+
+            val dataJson = S3FileStorage.json.encodeToString(data)
+
+            withContext(Dispatchers.IO) {
+                s3Client.putObject(
+                    PutObjectRequest.builder()
+                        .bucket(bucket)
+                        .key(objectKey)
+                        .contentType("application/json")
+                        .build(),
+                    RequestBody.fromString(dataJson)
+                )
+            }
+
+            true
+        } catch (e: Exception) {
+            logger.error(e) { "更新数据失败: 集合: $collection, ID: $id" }
+            false
+        }
+    }
+
+    override suspend fun storeDataBatch(collection: String, dataList: List<Pair<String, Map<String, Any?>>>): Boolean {
+        logger.debug { "批量存储数据: 集合: $collection, 数量: ${dataList.size}" }
+
+        return try {
+            var success = true
+
+            for ((id, data) in dataList) {
+                val dataJson = S3FileStorage.json.encodeToString(data)
+                val objectKey = getDataObjectKey(collection, id)
+
+                try {
+                    withContext(Dispatchers.IO) {
+                        s3Client.putObject(
+                            PutObjectRequest.builder()
+                                .bucket(bucket)
+                                .key(objectKey)
+                                .contentType("application/json")
+                                .build(),
+                            RequestBody.fromString(dataJson)
+                        )
+                    }
+                } catch (e: Exception) {
+                    logger.error(e) { "存储数据失败: 集合: $collection, ID: $id" }
+                    success = false
+                }
+            }
+
+            success
+        } catch (e: Exception) {
+            logger.error(e) { "批量存储数据失败: 集合: $collection" }
+            false
+        }
+    }
+
     override suspend fun getData(collection: String, id: String): Map<String, Any?>? {
         logger.debug { "获取数据: 集合: $collection, ID: $id" }
 
@@ -552,8 +907,94 @@ class S3DataStorage(
         }
     }
 
-    override suspend fun queryData(collection: String, query: Map<String, Any?>, limit: Int): Flow<Map<String, Any?>> = flow {
-        logger.debug { "查询数据: 集合: $collection, 查询: $query, 限制: $limit" }
+    override suspend fun deleteAllData(collection: String): Boolean {
+        logger.debug { "删除集合中的所有数据: 集合: $collection" }
+
+        return try {
+            val basePath = if (prefix.isNotEmpty()) "$prefix/" else ""
+            val collectionPrefix = "${basePath}data/$collection/"
+
+            val listObjectsRequest = ListObjectsV2Request.builder()
+                .bucket(bucket)
+                .prefix(collectionPrefix)
+                .build()
+
+            val response = withContext(Dispatchers.IO) {
+                s3Client.listObjectsV2(listObjectsRequest)
+            }
+
+            // 删除所有匹配的对象
+            for (s3Object in response.contents()) {
+                val objectKey = s3Object.key()
+
+                withContext(Dispatchers.IO) {
+                    s3Client.deleteObject { builder ->
+                        builder.bucket(bucket).key(objectKey)
+                    }
+                }
+            }
+
+            true
+        } catch (e: Exception) {
+            logger.error(e) { "删除集合中的所有数据失败: 集合: $collection" }
+            false
+        }
+    }
+
+    override suspend fun getAllData(collection: String, limit: Int, offset: Int): List<Pair<String, Map<String, Any?>>> {
+        logger.debug { "获取集合中的所有数据: 集合: $collection, 限制: $limit, 偏移: $offset" }
+
+        return try {
+            val basePath = if (prefix.isNotEmpty()) "$prefix/" else ""
+            val collectionPrefix = "${basePath}data/$collection/"
+
+            val listObjectsRequest = ListObjectsV2Request.builder()
+                .bucket(bucket)
+                .prefix(collectionPrefix)
+                .build()
+
+            val response = withContext(Dispatchers.IO) {
+                s3Client.listObjectsV2(listObjectsRequest)
+            }
+
+            val results = mutableListOf<Pair<String, Map<String, Any?>>>()
+
+            for (s3Object in response.contents()) {
+                val objectKey = s3Object.key()
+                val id = objectKey.substringAfterLast('/').removeSuffix(".json")
+
+                try {
+                    val dataJson = withContext(Dispatchers.IO) {
+                        val getResponse = s3Client.getObject { builder ->
+                            builder.bucket(bucket).key(objectKey)
+                        }
+
+                        getResponse.use { s3ObjectContent ->
+                            s3ObjectContent.readAllBytes().toString(Charsets.UTF_8)
+                        }
+                    }
+
+                    @Suppress("UNCHECKED_CAST")
+                    val data = S3FileStorage.json.decodeFromString<Map<String, Any?>>(dataJson)
+                    results.add(Pair(id, data))
+                } catch (e: Exception) {
+                    logger.error(e) { "解析数据文件失败: $objectKey" }
+                }
+            }
+
+            // 应用分页
+            val startIndex = offset.coerceAtMost(results.size)
+            val endIndex = (offset + limit).coerceAtMost(results.size)
+
+            results.subList(startIndex, endIndex)
+        } catch (e: Exception) {
+            logger.error(e) { "获取集合中的所有数据失败: 集合: $collection" }
+            emptyList()
+        }
+    }
+
+    override suspend fun queryData(collection: String, query: Map<String, Any?>, limit: Int, offset: Int): List<Pair<String, Map<String, Any?>>> {
+        logger.debug { "查询数据: 集合: $collection, 查询: $query, 限制: $limit, 偏移: $offset" }
 
         try {
             val basePath = if (prefix.isNotEmpty()) "$prefix/" else ""
@@ -568,12 +1009,11 @@ class S3DataStorage(
                 s3Client.listObjectsV2(listObjectsRequest)
             }
 
-            var count = 0
+            val results = mutableListOf<Pair<String, Map<String, Any?>>>()
 
             for (s3Object in response.contents()) {
-                if (count >= limit) break
-
                 val objectKey = s3Object.key()
+                val id = objectKey.substringAfterLast('/').removeSuffix(".json")
 
                 val dataJson = withContext(Dispatchers.IO) {
                     val getResponse = s3Client.getObject { builder ->
@@ -598,20 +1038,20 @@ class S3DataStorage(
                 }
 
                 if (matches) {
-                    emit(data)
-                    count++
+                    results.add(Pair(id, data))
                 }
             }
+
+            // 应用分页
+            val startIndex = offset.coerceAtMost(results.size)
+            val endIndex = (offset + limit).coerceAtMost(results.size)
+
+            return results.subList(startIndex, endIndex)
         } catch (e: Exception) {
             logger.error(e) { "查询数据失败: 集合: $collection" }
+            return emptyList()
         }
     }
 }
 
-/**
- * 事件包装器，用于序列化和反序列化事件。
- */
-@kotlinx.serialization.Serializable
-data class EventWrapper(
-    val event: Event
-)
+// 事件包装器已移除，直接使用Event类
