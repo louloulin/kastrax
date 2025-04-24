@@ -5,6 +5,8 @@ import com.github.ajalt.clikt.core.subcommands
 import ai.kastrax.cli.commands.NewCommand
 import ai.kastrax.cli.commands.PlaygroundCommand
 import ai.kastrax.cli.commands.DeployCommand
+import ai.kastrax.cli.commands.DevCommand
+import ai.kastrax.cli.commands.CreateCommand
 import com.github.ajalt.mordant.rendering.TextColors
 import com.github.ajalt.mordant.terminal.Terminal
 import io.github.oshai.kotlinlogging.KotlinLogging
@@ -24,7 +26,9 @@ class KastraXCli : CliktCommand(
         subcommands(
             NewCommand(),
             PlaygroundCommand(),
-            DeployCommand()
+            DeployCommand(),
+            DevCommand(),
+            CreateCommand()
         )
     }
 
