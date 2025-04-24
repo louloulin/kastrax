@@ -11,6 +11,11 @@ plugins {
 group = "ai.kastrax.server"
 version = "0.1.0-SNAPSHOT"
 
+java {
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+}
+
 application {
     mainClass.set("ai.kastrax.server.ktor.ApplicationKt")
 
@@ -49,4 +54,11 @@ dependencies {
     // Testing
     testImplementation("io.ktor:ktor-server-tests-jvm:$ktorVersion")
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit:1.8.22")
+}
+
+tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
+    kotlinOptions {
+        jvmTarget = "17"
+        freeCompilerArgs = listOf("-Xjsr305=strict")
+    }
 }

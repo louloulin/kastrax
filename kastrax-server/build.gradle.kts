@@ -21,6 +21,11 @@ allprojects {
 subprojects {
     apply(plugin = "org.jetbrains.kotlin.jvm")
 
+    tasks.withType<JavaCompile> {
+        sourceCompatibility = JavaVersion.VERSION_17.toString()
+        targetCompatibility = JavaVersion.VERSION_17.toString()
+    }
+
     dependencies {
         // 所有子项目共享的依赖
         "implementation"(kotlin("stdlib-jdk8"))
