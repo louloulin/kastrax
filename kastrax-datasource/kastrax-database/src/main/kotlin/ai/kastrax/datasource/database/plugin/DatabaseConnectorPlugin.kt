@@ -211,9 +211,25 @@ class DatabaseConnectorPlugin : AbstractConnectorPlugin(
                     name = "查找单个文档",
                     description = "查找匹配条件的单个文档",
                     parameterSchema = mapOf(
-                        "collection" to ConfigField("collection", "集合名称", "string", true),
-                        "filter" to ConfigField("filter", "过滤条件", "object", false, "{}"),
-                        "projection" to ConfigField("projection", "投影", "object", false)
+                        "collection" to ConfigField(
+                            name = "collection",
+                            type = ConfigFieldType.STRING,
+                            description = "集合名称",
+                            required = true
+                        ),
+                        "filter" to ConfigField(
+                            name = "filter",
+                            type = ConfigFieldType.OBJECT,
+                            description = "过滤条件",
+                            required = false,
+                            defaultValue = "{}"
+                        ),
+                        "projection" to ConfigField(
+                            name = "projection",
+                            type = ConfigFieldType.OBJECT,
+                            description = "投影",
+                            required = false
+                        )
                     )
                 ),
                 ConnectorOperation(
@@ -328,8 +344,18 @@ class DatabaseConnectorPlugin : AbstractConnectorPlugin(
                     name = "批量删除文档",
                     description = "删除多个文档",
                     parameterSchema = mapOf(
-                        "collection" to ConfigField("collection", "集合名称", "string", true),
-                        "filter" to ConfigField("filter", "过滤条件", "object", true)
+                        "collection" to ConfigField(
+                            name = "collection",
+                            type = ConfigFieldType.STRING,
+                            description = "集合名称",
+                            required = true
+                        ),
+                        "filter" to ConfigField(
+                            name = "filter",
+                            type = ConfigFieldType.OBJECT,
+                            description = "过滤条件",
+                            required = true
+                        )
                     )
                 ),
                 ConnectorOperation(
@@ -372,7 +398,7 @@ class DatabaseConnectorPlugin : AbstractConnectorPlugin(
 
         return PostgresConnector(
             id = id,
-            name = name,
+            connectorName = name,
             description = "PostgreSQL数据库连接器",
             config = config,
             host = host,
@@ -393,7 +419,7 @@ class DatabaseConnectorPlugin : AbstractConnectorPlugin(
 
         return MongoConnector(
             id = id,
-            name = name,
+            connectorName = name,
             description = "MongoDB数据库连接器",
             config = config,
             connectionString = connectionString,

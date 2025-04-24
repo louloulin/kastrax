@@ -5,6 +5,8 @@ import ai.kastrax.core.plugin.ConnectorMetadata
 import ai.kastrax.core.plugin.ConnectorOperation
 import ai.kastrax.core.plugin.ConnectorStatus
 import ai.kastrax.core.plugin.ConnectorTestResult
+import ai.kastrax.core.plugin.ConfigField
+import ai.kastrax.core.plugin.ConfigFieldType
 import ai.kastrax.core.common.KastraXBase
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -24,7 +26,7 @@ import java.util.concurrent.atomic.AtomicReference
  */
 class PostgresConnector(
     override val id: String,
-    override val name: String,
+    connectorName: String,
     override val description: String,
     override val config: Map<String, Any?>,
     val host: String,
@@ -33,29 +35,31 @@ class PostgresConnector(
     val username: String,
     val password: String,
     val schema: String
-) : Connector, KastraXBase(component = "CONNECTOR", name = "PostgreSQL-$id") {
-    
+) : Connector, KastraXBase(component = "CONNECTOR", name = connectorName) {
+
+    // 使用KastraXBase中的name属性
+
     override val type: String = "postgres"
     private val connectionRef = AtomicReference<Connection?>(null)
     private val statusRef = AtomicReference(ConnectorStatus.CREATED)
     private val createdAt = System.currentTimeMillis()
     private var lastConnectedAt: Long? = null
-    
+
     override val status: ConnectorStatus
         get() = statusRef.get()
-    
+
     override suspend fun connect(): Boolean {
         logger.info { "连接到PostgreSQL数据库: $host:$port/$database" }
-        
+
         return try {
             val url = "jdbc:postgresql://$host:$port/$database?currentSchema=$schema"
-            
+
             withContext(Dispatchers.IO) {
                 Class.forName("org.postgresql.Driver")
                 val connection = DriverManager.getConnection(url, username, password)
                 connectionRef.set(connection)
             }
-            
+
             statusRef.set(ConnectorStatus.CONNECTED)
             lastConnectedAt = System.currentTimeMillis()
             true
@@ -65,15 +69,15 @@ class PostgresConnector(
             false
         }
     }
-    
+
     override suspend fun disconnect(): Boolean {
         logger.info { "断开PostgreSQL数据库连接" }
-        
+
         return try {
             withContext(Dispatchers.IO) {
                 connectionRef.getAndSet(null)?.close()
             }
-            
+
             statusRef.set(ConnectorStatus.DISCONNECTED)
             true
         } catch (e: Exception) {
@@ -82,24 +86,24 @@ class PostgresConnector(
             false
         }
     }
-    
+
     override suspend fun testConnection(): ConnectorTestResult {
         logger.info { "测试PostgreSQL数据库连接" }
-        
+
         return try {
             val connection = withContext(Dispatchers.IO) {
                 val url = "jdbc:postgresql://$host:$port/$database?currentSchema=$schema"
                 Class.forName("org.postgresql.Driver")
                 DriverManager.getConnection(url, username, password)
             }
-            
+
             withContext(Dispatchers.IO) {
                 connection.use { conn ->
                     conn.createStatement().use { stmt ->
                         stmt.executeQuery("SELECT 1").use { rs ->
                             rs.next()
                             val result = rs.getInt(1)
-                            
+
                             if (result == 1) {
                                 ConnectorTestResult(
                                     success = true,
@@ -123,7 +127,7 @@ class PostgresConnector(
             }
         } catch (e: Exception) {
             logger.error(e) { "测试PostgreSQL数据库连接失败: ${e.message}" }
-            
+
             ConnectorTestResult(
                 success = false,
                 message = "连接失败: ${e.message}",
@@ -131,12 +135,12 @@ class PostgresConnector(
             )
         }
     }
-    
+
     override suspend fun execute(operation: String, parameters: Map<String, Any?>): JsonElement {
         logger.debug { "执行操作: $operation, 参数: $parameters" }
-        
+
         val connection = connectionRef.get() ?: throw IllegalStateException("未连接到数据库")
-        
+
         return when (operation) {
             "query" -> executeQuery(connection, parameters)
             "update" -> executeUpdate(connection, parameters)
@@ -146,31 +150,31 @@ class PostgresConnector(
             else -> throw IllegalArgumentException("不支持的操作: $operation")
         }
     }
-    
+
     override suspend fun executeStream(operation: String, parameters: Map<String, Any?>): Flow<JsonElement> = flow {
         logger.debug { "执行流式操作: $operation, 参数: $parameters" }
-        
+
         val connection = connectionRef.get() ?: throw IllegalStateException("未连接到数据库")
-        
+
         when (operation) {
             "query" -> {
                 val sql = parameters["sql"] as String
                 val params = parameters["params"] as? Map<String, Any?> ?: emptyMap()
-                
+
                 withContext(Dispatchers.IO) {
                     connection.prepareStatement(sql).use { statement ->
                         bindParameters(statement, params)
-                        
+
                         statement.executeQuery().use { resultSet ->
                             val metadata = resultSet.metaData
                             val columnCount = metadata.columnCount
-                            
+
                             while (resultSet.next()) {
                                 val row = buildJsonObject {
                                     for (i in 1..columnCount) {
                                         val columnName = metadata.getColumnName(i)
                                         val value = resultSet.getObject(i)
-                                        
+
                                         when (value) {
                                             null -> put(columnName, JsonNull)
                                             is String -> put(columnName, value)
@@ -180,7 +184,7 @@ class PostgresConnector(
                                         }
                                     }
                                 }
-                                
+
                                 emit(row)
                             }
                         }
@@ -194,7 +198,7 @@ class PostgresConnector(
             }
         }
     }
-    
+
     override fun getOperations(): List<ConnectorOperation> {
         return listOf(
             ConnectorOperation(
@@ -202,15 +206,17 @@ class PostgresConnector(
                 name = "执行查询",
                 description = "执行SQL查询",
                 parameterSchema = mapOf(
-                    "sql" to mapOf(
-                        "type" to "string",
-                        "description" to "SQL查询",
-                        "required" to true
+                    "sql" to ConfigField(
+                        name = "sql",
+                        type = ConfigFieldType.STRING,
+                        description = "SQL查询",
+                        required = true
                     ),
-                    "params" to mapOf(
-                        "type" to "object",
-                        "description" to "查询参数",
-                        "required" to false
+                    "params" to ConfigField(
+                        name = "params",
+                        type = ConfigFieldType.OBJECT,
+                        description = "查询参数",
+                        required = false
                     )
                 ),
                 supportsStreaming = true
@@ -220,15 +226,17 @@ class PostgresConnector(
                 name = "执行更新",
                 description = "执行SQL更新",
                 parameterSchema = mapOf(
-                    "sql" to mapOf(
-                        "type" to "string",
-                        "description" to "SQL更新",
-                        "required" to true
+                    "sql" to ConfigField(
+                        name = "sql",
+                        type = ConfigFieldType.STRING,
+                        description = "SQL更新",
+                        required = true
                     ),
-                    "params" to mapOf(
-                        "type" to "object",
-                        "description" to "更新参数",
-                        "required" to false
+                    "params" to ConfigField(
+                        name = "params",
+                        type = ConfigFieldType.OBJECT,
+                        description = "更新参数",
+                        required = false
                     )
                 )
             ),
@@ -237,15 +245,17 @@ class PostgresConnector(
                 name = "执行批处理",
                 description = "执行SQL批处理",
                 parameterSchema = mapOf(
-                    "sql" to mapOf(
-                        "type" to "string",
-                        "description" to "SQL语句",
-                        "required" to true
+                    "sql" to ConfigField(
+                        name = "sql",
+                        type = ConfigFieldType.STRING,
+                        description = "SQL语句",
+                        required = true
                     ),
-                    "paramsList" to mapOf(
-                        "type" to "array",
-                        "description" to "参数列表",
-                        "required" to true
+                    "paramsList" to ConfigField(
+                        name = "paramsList",
+                        type = ConfigFieldType.ARRAY,
+                        description = "参数列表",
+                        required = true
                     )
                 )
             ),
@@ -260,16 +270,17 @@ class PostgresConnector(
                 name = "获取列信息",
                 description = "获取表的列信息",
                 parameterSchema = mapOf(
-                    "table" to mapOf(
-                        "type" to "string",
-                        "description" to "表名",
-                        "required" to true
+                    "table" to ConfigField(
+                        name = "table",
+                        type = ConfigFieldType.STRING,
+                        description = "表名",
+                        required = true
                     )
                 )
             )
         )
     }
-    
+
     override fun getMetadata(): ConnectorMetadata {
         return ConnectorMetadata(
             id = id,
@@ -283,52 +294,52 @@ class PostgresConnector(
             operations = getOperations()
         )
     }
-    
+
     private suspend fun executeQuery(connection: Connection, parameters: Map<String, Any?>): JsonElement {
         val sql = parameters["sql"] as String
         val params = parameters["params"] as? Map<String, Any?> ?: emptyMap()
-        
+
         return withContext(Dispatchers.IO) {
             connection.prepareStatement(sql).use { statement ->
                 bindParameters(statement, params)
-                
+
                 statement.executeQuery().use { resultSet ->
                     resultSetToJson(resultSet)
                 }
             }
         }
     }
-    
+
     private suspend fun executeUpdate(connection: Connection, parameters: Map<String, Any?>): JsonElement {
         val sql = parameters["sql"] as String
         val params = parameters["params"] as? Map<String, Any?> ?: emptyMap()
-        
+
         return withContext(Dispatchers.IO) {
             connection.prepareStatement(sql).use { statement ->
                 bindParameters(statement, params)
-                
+
                 val updateCount = statement.executeUpdate()
-                
+
                 buildJsonObject {
                     put("affectedRows", updateCount)
                 }
             }
         }
     }
-    
+
     private suspend fun executeBatch(connection: Connection, parameters: Map<String, Any?>): JsonElement {
         val sql = parameters["sql"] as String
         val paramsList = parameters["paramsList"] as? List<Map<String, Any?>> ?: emptyList()
-        
+
         return withContext(Dispatchers.IO) {
             connection.prepareStatement(sql).use { statement ->
                 for (params in paramsList) {
                     bindParameters(statement, params)
                     statement.addBatch()
                 }
-                
+
                 val updateCounts = statement.executeBatch()
-                
+
                 buildJsonObject {
                     put("batchResults", buildJsonArray {
                         updateCounts.forEach { add(it) }
@@ -337,7 +348,7 @@ class PostgresConnector(
             }
         }
     }
-    
+
     private suspend fun getTables(connection: Connection): JsonElement {
         return withContext(Dispatchers.IO) {
             connection.metaData.getTables(null, schema, "%", arrayOf("TABLE")).use { resultSet ->
@@ -345,17 +356,17 @@ class PostgresConnector(
             }
         }
     }
-    
+
     private suspend fun getColumns(connection: Connection, parameters: Map<String, Any?>): JsonElement {
         val table = parameters["table"] as String
-        
+
         return withContext(Dispatchers.IO) {
             connection.metaData.getColumns(null, schema, table, "%").use { resultSet ->
                 resultSetToJson(resultSet)
             }
         }
     }
-    
+
     private fun resultSetToJson(resultSet: ResultSet): JsonElement {
         val metadata = resultSet.metaData
         val columnCount = metadata.columnCount
@@ -365,7 +376,7 @@ class PostgresConnector(
                     for (i in 1..columnCount) {
                         val columnName = metadata.getColumnName(i)
                         val value = resultSet.getObject(i)
-                        
+
                         when (value) {
                             null -> put(columnName, JsonNull)
                             is String -> put(columnName, value)
@@ -377,16 +388,16 @@ class PostgresConnector(
                 })
             }
         }
-        
+
         return buildJsonObject {
             put("rows", rows)
             put("rowCount", rows.size)
         }
     }
-    
+
     private fun bindParameters(statement: PreparedStatement, params: Map<String, Any?>) {
         var index = 1
-        
+
         for ((_, value) in params) {
             when (value) {
                 null -> statement.setNull(index, Types.NULL)
@@ -398,7 +409,7 @@ class PostgresConnector(
                 is ByteArray -> statement.setBytes(index, value)
                 else -> statement.setObject(index, value)
             }
-            
+
             index++
         }
     }
