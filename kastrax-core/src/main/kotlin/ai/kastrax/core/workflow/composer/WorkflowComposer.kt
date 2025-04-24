@@ -1,6 +1,7 @@
 package ai.kastrax.core.workflow.composer
 
 import ai.kastrax.core.common.KastraXBase
+import ai.kastrax.core.workflow.ConditionalStep
 import ai.kastrax.core.workflow.SimpleWorkflow
 import ai.kastrax.core.workflow.StepConfig
 import ai.kastrax.core.workflow.SubWorkflowStep
@@ -9,13 +10,23 @@ import ai.kastrax.core.workflow.VariableReference
 import ai.kastrax.core.workflow.Workflow
 import ai.kastrax.core.workflow.WorkflowBuilder
 import ai.kastrax.core.workflow.WorkflowContext
+import ai.kastrax.core.workflow.WorkflowResult
 import ai.kastrax.core.workflow.WorkflowStep
 import ai.kastrax.core.workflow.WorkflowStepResult
 import ai.kastrax.core.workflow.engine.WorkflowEngine
+import kotlinx.coroutines.runBlocking
 import mu.KotlinLogging
 
 /**
  * 工作流组合器，支持将多个工作流组合成一个新的工作流。
+ *
+ * 工作流组合器提供了多种组合模式：
+ * 1. 顺序组合：将多个工作流按顺序执行
+ * 2. 并行组合：将多个工作流并行执行
+ * 3. 条件组合：根据条件执行不同的工作流
+ * 4. 循环组合：重复执行工作流直到满足条件
+ * 5. 嵌套组合：将工作流嵌套在另一个工作流中
+ * 6. DSL组合：使用DSL语法灵活组合工作流
  */
 class WorkflowComposer(
     composerName: String,
