@@ -1,6 +1,15 @@
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import io.gitlab.arturbosch.detekt.extensions.DetektExtension
 
+buildscript {
+    repositories {
+        gradlePluginPortal()
+        mavenCentral()
+        maven { url = uri("https://maven.pkg.jetbrains.space/public/p/ktor/eap") }
+        maven { url = uri("https://plugins.gradle.org/m2/") }
+    }
+}
+
 plugins {
     kotlin("jvm") version "1.9.20" apply false
     kotlin("plugin.serialization") version "1.9.20" apply false
@@ -13,16 +22,6 @@ plugins {
     id("io.quarkus") version "3.5.0" apply false
     id("io.ktor.plugin") version "2.3.5" apply false
 }
-
-// 定义Quarkus平台版本
-extra["quarkusPlatformGroupId"] = "io.quarkus.platform"
-extra["quarkusPlatformArtifactId"] = "quarkus-bom"
-extra["quarkusPlatformVersion"] = "3.5.0"
-
-// 定义Ktor版本
-extra["ktorVersion"] = "2.3.5"
-extra["logbackVersion"] = "1.4.11"
-extra["koinVersion"] = "3.5.0"
 
 allprojects {
     group = "ai.kastrax"

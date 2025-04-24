@@ -1,11 +1,10 @@
-val ktor_version: String = "2.3.5"
-val kotlin_version: String = "1.8.22"
-val logback_version: String = "1.4.11"
-val koin_version: String = "3.5.0"
+val ktorVersion: String by project
+val logbackVersion: String by project
+val koinVersion: String by project
 
 plugins {
     kotlin("jvm")
-    id("io.ktor.plugin")
+    id("io.ktor.plugin") version "2.3.5"
     id("org.jetbrains.kotlin.plugin.serialization")
 }
 
@@ -25,14 +24,14 @@ repositories {
 }
 
 dependencies {
-    implementation("io.ktor:ktor-server-core-jvm")
-    implementation("io.ktor:ktor-server-netty-jvm")
-    implementation("io.ktor:ktor-server-content-negotiation-jvm")
-    implementation("io.ktor:ktor-serialization-kotlinx-json-jvm")
-    implementation("io.ktor:ktor-server-cors-jvm")
-    implementation("io.ktor:ktor-server-swagger-jvm")
-    implementation("io.ktor:ktor-server-status-pages-jvm")
-    implementation("io.ktor:ktor-server-call-logging-jvm")
+    implementation("io.ktor:ktor-server-core-jvm:$ktorVersion")
+    implementation("io.ktor:ktor-server-netty-jvm:$ktorVersion")
+    implementation("io.ktor:ktor-server-content-negotiation-jvm:$ktorVersion")
+    implementation("io.ktor:ktor-serialization-kotlinx-json-jvm:$ktorVersion")
+    implementation("io.ktor:ktor-server-cors-jvm:$ktorVersion")
+    implementation("io.ktor:ktor-server-swagger-jvm:$ktorVersion")
+    implementation("io.ktor:ktor-server-status-pages-jvm:$ktorVersion")
+    implementation("io.ktor:ktor-server-call-logging-jvm:$ktorVersion")
 
     // KastraX Core
     implementation(project(":kastrax-core"))
@@ -41,13 +40,13 @@ dependencies {
     implementation(project(":kastrax-server:common"))
 
     // Koin
-    implementation("io.insert-koin:koin-ktor:$koin_version")
-    implementation("io.insert-koin:koin-logger-slf4j:$koin_version")
+    implementation("io.insert-koin:koin-ktor:$koinVersion")
+    implementation("io.insert-koin:koin-logger-slf4j:$koinVersion")
 
     // Logging
-    implementation("ch.qos.logback:logback-classic:$logback_version")
+    implementation("ch.qos.logback:logback-classic:$logbackVersion")
 
     // Testing
-    testImplementation("io.ktor:ktor-server-tests-jvm")
-    testImplementation("org.jetbrains.kotlin:kotlin-test-junit:$kotlin_version")
+    testImplementation("io.ktor:ktor-server-tests-jvm:$ktorVersion")
+    testImplementation("org.jetbrains.kotlin:kotlin-test-junit:1.8.22")
 }

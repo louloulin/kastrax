@@ -1,3 +1,12 @@
+pluginManagement {
+    repositories {
+        gradlePluginPortal()
+        mavenCentral()
+        maven { url = uri("https://maven.pkg.jetbrains.space/public/p/ktor/eap") }
+        maven { url = uri("https://plugins.gradle.org/m2/") }
+    }
+}
+
 rootProject.name = "kastrax"
 
 include(":kastrax-core")
@@ -35,9 +44,3 @@ include(":examples")
 include(":zod-test")
 include(":kastrax-examples")
 
-pluginManagement {
-    repositories {
-        gradlePluginPortal()
-        mavenCentral()
-    }
-}
