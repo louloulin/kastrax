@@ -1,7 +1,8 @@
 package ai.kastrax.core.plugin
 
-import ai.kastrax.core.common.KastraXBase
+// import ai.kastrax.core.common.KastraXBase
 import kotlinx.serialization.Serializable
+import mu.KotlinLogging
 
 /**
  * 插件接口，定义了KastraX插件系统的基本功能。
@@ -12,37 +13,37 @@ interface Plugin {
      * 插件的唯一标识符。
      */
     val id: String
-    
+
     /**
      * 插件的名称。
      */
     val name: String
-    
+
     /**
      * 插件的描述。
      */
     val description: String
-    
+
     /**
      * 插件的版本。
      */
     val version: String
-    
+
     /**
      * 插件的作者。
      */
     val author: String
-    
+
     /**
      * 插件的类型。
      */
     val type: PluginType
-    
+
     /**
      * 插件的配置。
      */
     val config: PluginConfig
-    
+
     /**
      * 初始化插件。
      * 在插件加载时调用。
@@ -51,7 +52,7 @@ interface Plugin {
      * @return 初始化是否成功
      */
     fun initialize(context: PluginContext): Boolean
-    
+
     /**
      * 启动插件。
      * 在插件初始化成功后调用。
@@ -60,7 +61,7 @@ interface Plugin {
      * @return 启动是否成功
      */
     fun start(context: PluginContext): Boolean
-    
+
     /**
      * 停止插件。
      * 在系统关闭或插件被禁用时调用。
@@ -69,7 +70,7 @@ interface Plugin {
      * @return 停止是否成功
      */
     fun stop(context: PluginContext): Boolean
-    
+
     /**
      * 获取插件的元数据。
      *
@@ -95,27 +96,27 @@ enum class PluginType {
      * 工作流步骤插件。
      */
     WORKFLOW_STEP,
-    
+
     /**
      * 工具插件。
      */
     TOOL,
-    
+
     /**
      * 连接器插件。
      */
     CONNECTOR,
-    
+
     /**
      * 存储插件。
      */
     STORAGE,
-    
+
     /**
      * UI扩展插件。
      */
     UI_EXTENSION,
-    
+
     /**
      * 其他类型插件。
      */
@@ -133,7 +134,7 @@ interface PluginConfig {
      * @return 属性值，如果不存在则返回null
      */
     fun getProperty(key: String): Any?
-    
+
     /**
      * 设置配置属性。
      *
@@ -141,7 +142,7 @@ interface PluginConfig {
      * @param value 属性值
      */
     fun setProperty(key: String, value: Any?)
-    
+
     /**
      * 获取所有配置属性。
      *
@@ -155,15 +156,15 @@ interface PluginConfig {
  */
 class DefaultPluginConfig : PluginConfig {
     private val properties = mutableMapOf<String, Any?>()
-    
+
     override fun getProperty(key: String): Any? {
         return properties[key]
     }
-    
+
     override fun setProperty(key: String, value: Any?) {
         properties[key] = value
     }
-    
+
     override fun getAllProperties(): Map<String, Any?> {
         return properties.toMap()
     }
@@ -179,7 +180,7 @@ interface PluginContext {
      * @return 插件管理器
      */
     fun getPluginManager(): PluginManager
-    
+
     /**
      * 获取插件的配置。
      *
@@ -187,7 +188,7 @@ interface PluginContext {
      * @return 插件配置
      */
     fun getPluginConfig(pluginId: String): PluginConfig?
-    
+
     /**
      * 获取系统服务。
      *
@@ -195,7 +196,7 @@ interface PluginContext {
      * @return 服务实例
      */
     fun <T : Any> getService(serviceClass: Class<T>): T?
-    
+
     /**
      * 注册服务。
      *
@@ -226,22 +227,22 @@ enum class PluginStatus {
      * 插件已注册但未初始化。
      */
     REGISTERED,
-    
+
     /**
      * 插件已初始化但未启动。
      */
     INITIALIZED,
-    
+
     /**
      * 插件已启动并正在运行。
      */
     RUNNING,
-    
+
     /**
      * 插件已停止。
      */
     STOPPED,
-    
+
     /**
      * 插件发生错误。
      */
@@ -268,18 +269,20 @@ abstract class AbstractPlugin(
     override val author: String,
     override val type: PluginType,
     override val config: PluginConfig = DefaultPluginConfig()
-) : Plugin, KastraXBase(component = "PLUGIN", name = id) {
-    
+) : Plugin {
+
+    protected val logger = KotlinLogging.logger("PLUGIN:$id")
+
     override fun initialize(context: PluginContext): Boolean {
         logger.info { "初始化插件: $name ($id)" }
         return true
     }
-    
+
     override fun start(context: PluginContext): Boolean {
         logger.info { "启动插件: $name ($id)" }
         return true
     }
-    
+
     override fun stop(context: PluginContext): Boolean {
         logger.info { "停止插件: $name ($id)" }
         return true

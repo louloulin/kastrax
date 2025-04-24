@@ -108,7 +108,8 @@ class BottleneckDetector {
 
         // Find steps with high memory usage
         val highMemorySteps = metrics.stepMetrics.values.filter {
-            it.memoryUsage != null && it.memoryUsage > threshold
+            val memUsage = it.memoryUsage
+            memUsage != null && memUsage > threshold
         }
 
         highMemorySteps.forEach { step ->
@@ -144,7 +145,8 @@ class BottleneckDetector {
 
         // Find steps with high CPU usage
         val highCpuSteps = metrics.stepMetrics.values.filter {
-            it.cpuTime != null && it.cpuTime > threshold
+            val cpuT = it.cpuTime
+            cpuT != null && cpuT > threshold
         }
 
         highCpuSteps.forEach { step ->

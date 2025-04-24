@@ -16,7 +16,7 @@ import java.util.concurrent.ConcurrentHashMap
 class StepRegistry : KastraXBase(component = "STEP_REGISTRY", name = "StepRegistry"), StepProvider {
     private val stepTypes = ConcurrentHashMap<String, StepType>()
     private val stepPlugins = ConcurrentHashMap<String, StepPlugin>()
-    
+
     /**
      * 注册步骤类型。
      *
@@ -29,14 +29,14 @@ class StepRegistry : KastraXBase(component = "STEP_REGISTRY", name = "StepRegist
             logger.warn { "步骤类型已存在: ${stepType.id}" }
             return false
         }
-        
+
         stepTypes[stepType.id] = stepType
         stepPlugins[stepType.id] = plugin
-        
+
         logger.info { "注册步骤类型: ${stepType.name} (${stepType.id})" }
         return true
     }
-    
+
     /**
      * 注销步骤类型。
      *
@@ -46,15 +46,15 @@ class StepRegistry : KastraXBase(component = "STEP_REGISTRY", name = "StepRegist
     fun unregisterStepType(stepTypeId: String): Boolean {
         val stepType = stepTypes.remove(stepTypeId)
         stepPlugins.remove(stepTypeId)
-        
+
         if (stepType != null) {
             logger.info { "注销步骤类型: ${stepType.name} (${stepType.id})" }
             return true
         }
-        
+
         return false
     }
-    
+
     /**
      * 获取所有步骤类型。
      *
@@ -63,7 +63,7 @@ class StepRegistry : KastraXBase(component = "STEP_REGISTRY", name = "StepRegist
     fun getAllStepTypes(): List<StepType> {
         return stepTypes.values.toList()
     }
-    
+
     /**
      * 获取步骤类型。
      *
@@ -73,7 +73,7 @@ class StepRegistry : KastraXBase(component = "STEP_REGISTRY", name = "StepRegist
     fun getStepType(stepTypeId: String): StepType? {
         return stepTypes[stepTypeId]
     }
-    
+
     /**
      * 获取指定分类的步骤类型。
      *
@@ -83,7 +83,7 @@ class StepRegistry : KastraXBase(component = "STEP_REGISTRY", name = "StepRegist
     fun getStepTypesByCategory(category: String): List<StepType> {
         return stepTypes.values.filter { it.category == category }
     }
-    
+
     /**
      * 获取具有指定标签的步骤类型。
      *
@@ -93,7 +93,7 @@ class StepRegistry : KastraXBase(component = "STEP_REGISTRY", name = "StepRegist
     fun getStepTypesByTag(tag: String): List<StepType> {
         return stepTypes.values.filter { it.tags.contains(tag) }
     }
-    
+
     /**
      * 创建步骤实例。
      *
@@ -121,25 +121,25 @@ class StepRegistry : KastraXBase(component = "STEP_REGISTRY", name = "StepRegist
             val idField = this.javaClass.getDeclaredField("id")
             idField.isAccessible = true
             idField.set(this, id)
-            
+
             val nameField = this.javaClass.getDeclaredField("name")
             nameField.isAccessible = true
             nameField.set(this, name)
-            
+
             val descriptionField = this.javaClass.getDeclaredField("description")
             descriptionField.isAccessible = true
             descriptionField.set(this, description)
-            
+
             val afterField = this.javaClass.getDeclaredField("after")
             afterField.isAccessible = true
             afterField.set(this, after)
-            
+
             val variablesField = this.javaClass.getDeclaredField("variables")
             variablesField.isAccessible = true
             variablesField.set(this, variables)
         }
     }
-    
+
     /**
      * 验证步骤配置。
      *
@@ -149,16 +149,16 @@ class StepRegistry : KastraXBase(component = "STEP_REGISTRY", name = "StepRegist
      */
     fun validateStepConfig(stepTypeId: String, config: Map<String, Any?>): ValidationResult {
         val stepType = stepTypes[stepTypeId] ?: return ValidationResult(false, "步骤类型不存在: $stepTypeId")
-        
+
         val errors = mutableListOf<String>()
-        
+
         // 验证必需字段
         for ((fieldName, field) in stepType.configSchema) {
             if (field.required && !config.containsKey(fieldName)) {
                 errors.add("缺少必需字段: $fieldName")
             }
         }
-        
+
         // 验证字段类型和值
         for ((fieldName, value) in config) {
             val field = stepType.configSchema[fieldName]
@@ -166,23 +166,23 @@ class StepRegistry : KastraXBase(component = "STEP_REGISTRY", name = "StepRegist
                 errors.add("未知字段: $fieldName")
                 continue
             }
-            
+
             if (value != null && !validateFieldType(field, value)) {
                 errors.add("字段类型无效: $fieldName, 期望类型: ${field.type}, 实际类型: ${value::class.simpleName}")
             }
-            
+
             if (value != null && field.validation != null && !validateFieldValue(field, value)) {
                 errors.add("字段值无效: $fieldName, 值: $value")
             }
         }
-        
+
         return if (errors.isEmpty()) {
             ValidationResult(true)
         } else {
             ValidationResult(false, errors.joinToString("; "))
         }
     }
-    
+
     /**
      * 验证字段类型。
      *
@@ -210,7 +210,7 @@ class StepRegistry : KastraXBase(component = "STEP_REGISTRY", name = "StepRegist
             ai.kastrax.core.plugin.ConfigFieldType.REFERENCE -> value is String
         }
     }
-    
+
     /**
      * 验证字段值。
      *
@@ -220,11 +220,11 @@ class StepRegistry : KastraXBase(component = "STEP_REGISTRY", name = "StepRegist
      */
     private fun validateFieldValue(field: ConfigField, value: Any): Boolean {
         val validation = field.validation ?: return true
-        
+
         return when (field.type) {
             ai.kastrax.core.plugin.ConfigFieldType.STRING -> {
                 if (value !is String) return false
-                
+
                 var valid = true
                 if (validation.minLength != null && value.length < validation.minLength) {
                     valid = false
@@ -235,12 +235,12 @@ class StepRegistry : KastraXBase(component = "STEP_REGISTRY", name = "StepRegist
                 if (validation.pattern != null && !value.matches(Regex(validation.pattern))) {
                     valid = false
                 }
-                
+
                 valid
             }
             ai.kastrax.core.plugin.ConfigFieldType.NUMBER -> {
                 if (value !is Number) return false
-                
+
                 var valid = true
                 if (validation.min != null && value.toDouble() < validation.min.toDouble()) {
                     valid = false
@@ -248,13 +248,13 @@ class StepRegistry : KastraXBase(component = "STEP_REGISTRY", name = "StepRegist
                 if (validation.max != null && value.toDouble() > validation.max.toDouble()) {
                     valid = false
                 }
-                
+
                 valid
             }
             else -> true
         }
     }
-    
+
     /**
      * 实现StepProvider接口，用于创建步骤。
      */
@@ -267,12 +267,12 @@ class StepRegistry : KastraXBase(component = "STEP_REGISTRY", name = "StepRegist
         config: StepConfig?
     ): WorkflowStep {
         // 从配置中获取步骤类型
-        val stepTypeId = config?.getProperty("stepType") as? String
+        val stepTypeId = (config as? Map<String, Any>)?.get("stepType") as? String
             ?: throw IllegalArgumentException("步骤配置中缺少stepType字段")
-        
+
         // 从配置中获取步骤配置
-        val stepConfig = config.getAllProperties().filterKeys { it != "stepType" }
-        
+        val stepConfig = (config as? Map<String, Any>)?.filterKeys { it != "stepType" } ?: emptyMap()
+
         // 创建步骤
         return createStep(stepTypeId, id, name, description, after, variables, stepConfig)
             ?: throw IllegalArgumentException("无法创建步骤: $stepTypeId")

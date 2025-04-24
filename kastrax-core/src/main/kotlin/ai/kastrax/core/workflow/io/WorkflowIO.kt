@@ -3,6 +3,8 @@ package ai.kastrax.core.workflow.io
 import ai.kastrax.core.common.KastraXBase
 import ai.kastrax.core.workflow.SimpleWorkflow
 import ai.kastrax.core.workflow.StepConfig
+import java.time.Duration
+import kotlinx.serialization.json.*
 import ai.kastrax.core.workflow.VariableReference
 import ai.kastrax.core.workflow.Workflow
 import ai.kastrax.core.workflow.WorkflowStep
@@ -13,6 +15,7 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.encodeToJsonElement
 import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.Contextual
 import java.io.File
 import java.io.FileReader
 import java.io.FileWriter
@@ -27,7 +30,7 @@ class WorkflowIO : KastraXBase(component = "WORKFLOW_IO", name = "WorkflowIO") {
         ignoreUnknownKeys = true
         isLenient = true
     }
-    
+
     /**
      * 将工作流导出为JSON字符串。
      *
@@ -38,7 +41,7 @@ class WorkflowIO : KastraXBase(component = "WORKFLOW_IO", name = "WorkflowIO") {
         val workflowData = serializeWorkflow(workflow)
         return json.encodeToString(WorkflowData.serializer(), workflowData)
     }
-    
+
     /**
      * 将工作流导出为JSON元素。
      *
@@ -49,7 +52,7 @@ class WorkflowIO : KastraXBase(component = "WORKFLOW_IO", name = "WorkflowIO") {
         val workflowData = serializeWorkflow(workflow)
         return json.encodeToJsonElement(workflowData)
     }
-    
+
     /**
      * 将工作流导出到文件。
      *
@@ -62,14 +65,14 @@ class WorkflowIO : KastraXBase(component = "WORKFLOW_IO", name = "WorkflowIO") {
             ExportFormat.JSON -> exportToJson(workflow)
             ExportFormat.YAML -> exportToYaml(workflow)
         }
-        
+
         FileWriter(file).use { writer ->
             writer.write(content)
         }
-        
+
         logger.info { "工作流已导出到文件: ${file.absolutePath}" }
     }
-    
+
     /**
      * 将工作流导出为YAML字符串。
      *
@@ -82,7 +85,7 @@ class WorkflowIO : KastraXBase(component = "WORKFLOW_IO", name = "WorkflowIO") {
         val jsonStr = exportToJson(workflow)
         return jsonToYaml(jsonStr)
     }
-    
+
     /**
      * 从JSON字符串导入工作流。
      *
@@ -94,7 +97,7 @@ class WorkflowIO : KastraXBase(component = "WORKFLOW_IO", name = "WorkflowIO") {
         val workflowData = json.decodeFromString(WorkflowData.serializer(), jsonStr)
         return deserializeWorkflow(workflowData, stepProviders)
     }
-    
+
     /**
      * 从JSON元素导入工作流。
      *
@@ -106,7 +109,7 @@ class WorkflowIO : KastraXBase(component = "WORKFLOW_IO", name = "WorkflowIO") {
         val workflowData = json.decodeFromJsonElement(WorkflowData.serializer(), jsonElement)
         return deserializeWorkflow(workflowData, stepProviders)
     }
-    
+
     /**
      * 从文件导入工作流。
      *
@@ -119,13 +122,13 @@ class WorkflowIO : KastraXBase(component = "WORKFLOW_IO", name = "WorkflowIO") {
         val content = FileReader(file).use { reader ->
             reader.readText()
         }
-        
+
         return when (format) {
             ExportFormat.JSON -> importFromJson(content, stepProviders)
             ExportFormat.YAML -> importFromYaml(content, stepProviders)
         }
     }
-    
+
     /**
      * 从YAML字符串导入工作流。
      *
@@ -139,7 +142,7 @@ class WorkflowIO : KastraXBase(component = "WORKFLOW_IO", name = "WorkflowIO") {
         val jsonStr = yamlToJson(yamlStr)
         return importFromJson(jsonStr, stepProviders)
     }
-    
+
     /**
      * 将工作流序列化为WorkflowData。
      *
@@ -148,10 +151,10 @@ class WorkflowIO : KastraXBase(component = "WORKFLOW_IO", name = "WorkflowIO") {
      */
     private fun serializeWorkflow(workflow: Workflow): WorkflowData {
         val steps = mutableListOf<StepData>()
-        
+
         // 获取工作流步骤
         val workflowSteps = getWorkflowSteps(workflow)
-        
+
         // 序列化每个步骤
         for (step in workflowSteps) {
             val stepData = StepData(
@@ -166,19 +169,19 @@ class WorkflowIO : KastraXBase(component = "WORKFLOW_IO", name = "WorkflowIO") {
             )
             steps.add(stepData)
         }
-        
+
         return WorkflowData(
             id = UUID.randomUUID().toString(), // 生成新的ID
             name = workflow.javaClass.getField("name").get(workflow) as String,
             description = workflow.javaClass.getField("description").get(workflow) as String,
             steps = steps,
             metadata = mapOf(
-                "exportTime" to System.currentTimeMillis(),
+                "exportTime" to System.currentTimeMillis().toString(),
                 "exportVersion" to "1.0"
             )
         )
     }
-    
+
     /**
      * 将WorkflowData反序列化为Workflow。
      *
@@ -188,20 +191,20 @@ class WorkflowIO : KastraXBase(component = "WORKFLOW_IO", name = "WorkflowIO") {
      */
     private fun deserializeWorkflow(workflowData: WorkflowData, stepProviders: Map<String, StepProvider>): Workflow {
         val steps = mutableMapOf<String, WorkflowStep>()
-        
+
         // 反序列化每个步骤
         for (stepData in workflowData.steps) {
             val step = deserializeStep(stepData, stepProviders)
             steps[step.id] = step
         }
-        
+
         return SimpleWorkflow(
             workflowName = workflowData.name,
             description = workflowData.description,
             steps = steps
         )
     }
-    
+
     /**
      * 将StepData反序列化为WorkflowStep。
      *
@@ -213,12 +216,12 @@ class WorkflowIO : KastraXBase(component = "WORKFLOW_IO", name = "WorkflowIO") {
         // 尝试使用步骤提供者创建步骤
         val stepType = stepData.type
         val stepProvider = stepProviders[stepType]
-        
+
         if (stepProvider != null) {
             // 使用步骤提供者创建步骤
             val config = deserializeStepConfig(stepData.config)
             val variables = deserializeVariables(stepData.variables)
-            
+
             return stepProvider.createStep(
                 id = stepData.id,
                 name = stepData.name,
@@ -230,7 +233,7 @@ class WorkflowIO : KastraXBase(component = "WORKFLOW_IO", name = "WorkflowIO") {
         } else {
             // 如果没有找到步骤提供者，创建一个通用步骤
             logger.warn { "未找到步骤提供者: $stepType，创建通用步骤" }
-            
+
             return object : WorkflowStep {
                 override val id: String = stepData.id
                 override val name: String = stepData.name
@@ -238,14 +241,14 @@ class WorkflowIO : KastraXBase(component = "WORKFLOW_IO", name = "WorkflowIO") {
                 override val after: List<String> = stepData.after
                 override val variables: Map<String, VariableReference> = deserializeVariables(stepData.variables)
                 override val config: StepConfig? = deserializeStepConfig(stepData.config)
-                
+
                 override suspend fun execute(context: ai.kastrax.core.workflow.WorkflowContext): ai.kastrax.core.workflow.WorkflowStepResult {
                     throw UnsupportedOperationException("通用步骤不支持执行")
                 }
             }
         }
     }
-    
+
     /**
      * 序列化变量引用映射。
      *
@@ -255,12 +258,12 @@ class WorkflowIO : KastraXBase(component = "WORKFLOW_IO", name = "WorkflowIO") {
     private fun serializeVariables(variables: Map<String, VariableReference>): Map<String, VariableData> {
         return variables.mapValues { (_, variable) ->
             VariableData(
-                source = variable.source,
+                source = variable.path,
                 path = variable.path
             )
         }
     }
-    
+
     /**
      * 反序列化变量引用映射。
      *
@@ -270,12 +273,11 @@ class WorkflowIO : KastraXBase(component = "WORKFLOW_IO", name = "WorkflowIO") {
     private fun deserializeVariables(variables: Map<String, VariableData>): Map<String, VariableReference> {
         return variables.mapValues { (_, variable) ->
             VariableReference(
-                source = variable.source,
                 path = variable.path
             )
         }
     }
-    
+
     /**
      * 序列化步骤配置。
      *
@@ -284,9 +286,9 @@ class WorkflowIO : KastraXBase(component = "WORKFLOW_IO", name = "WorkflowIO") {
      */
     private fun serializeStepConfig(config: StepConfig?): Map<String, JsonElement>? {
         if (config == null) return null
-        
+
         val result = mutableMapOf<String, JsonElement>()
-        
+
         // 使用反射获取配置属性
         val fields = config.javaClass.declaredFields
         for (field in fields) {
@@ -302,10 +304,10 @@ class WorkflowIO : KastraXBase(component = "WORKFLOW_IO", name = "WorkflowIO") {
                 }
             }
         }
-        
+
         return result
     }
-    
+
     /**
      * 反序列化步骤配置。
      *
@@ -314,46 +316,61 @@ class WorkflowIO : KastraXBase(component = "WORKFLOW_IO", name = "WorkflowIO") {
      */
     private fun deserializeStepConfig(config: Map<String, JsonElement>?): StepConfig? {
         if (config == null) return null
-        
-        // 创建一个通用的StepConfig实现
-        return object : StepConfig {
-            val properties = config
-            
-            override fun getProperty(key: String): Any? {
-                val value = properties[key] ?: return null
-                return when (value) {
-                    is JsonPrimitive -> {
-                        when {
-                            value.isString -> value.content
-                            value.isBoolean -> value.boolean
-                            value.isNumber -> value.double
-                            else -> value.toString()
-                        }
-                    }
-                    is JsonObject -> value
-                    else -> value.toString()
-                }
+
+        val timeout = config["timeout"]?.let {
+            when (val value = deserializeJsonElement(it)) {
+                is Long -> Duration.ofMillis(value)
+                is Int -> Duration.ofMillis(value.toLong())
+                else -> Duration.ofMinutes(5)
             }
-            
-            override fun getAllProperties(): Map<String, Any?> {
-                return properties.mapValues { (_, value) ->
-                    when (value) {
-                        is JsonPrimitive -> {
-                            when {
-                                value.isString -> value.content
-                                value.isBoolean -> value.boolean
-                                value.isNumber -> value.double
-                                else -> value.toString()
-                            }
-                        }
-                        is JsonObject -> value
-                        else -> value.toString()
-                    }
-                }
+        } ?: Duration.ofMinutes(5)
+
+        val maxTokens = config["maxTokens"]?.let {
+            when (val value = deserializeJsonElement(it)) {
+                is Int -> value
+                is Long -> value.toInt()
+                else -> null
             }
         }
+
+        val tags = config["tags"]?.let {
+            when (val value = deserializeJsonElement(it)) {
+                is List<*> -> value.filterIsInstance<String>().toSet()
+                else -> emptySet<String>()
+            }
+        } ?: emptySet()
+
+        return StepConfig(
+            timeout = timeout,
+            maxTokens = maxTokens,
+            tags = tags
+        )
     }
-    
+
+    /**
+     * 将JsonElement反序列化为Kotlin对象。
+     *
+     * @param element JSON元素
+     * @return 反序列化后的对象
+     */
+    private fun deserializeJsonElement(element: JsonElement): Any {
+        return when (element) {
+            is JsonPrimitive -> {
+                when {
+                    element.isString -> element.content
+                    element.booleanOrNull != null -> element.boolean
+                    element.intOrNull != null -> element.int
+                    element.longOrNull != null -> element.long
+                    element.doubleOrNull != null -> element.double
+                    else -> element.toString()
+                }
+            }
+            is JsonObject -> deserializeStepConfig(element.jsonObject.toMap()) ?: StepConfig()
+            is JsonArray -> element.jsonArray.map { deserializeJsonElement(it) }
+            else -> element.toString()
+        }
+    }
+
     /**
      * 获取工作流的所有步骤。
      *
@@ -364,12 +381,12 @@ class WorkflowIO : KastraXBase(component = "WORKFLOW_IO", name = "WorkflowIO") {
         // 使用反射获取步骤
         val stepsField = workflow.javaClass.getDeclaredField("steps")
         stepsField.isAccessible = true
-        
+
         @Suppress("UNCHECKED_CAST")
         val stepsMap = stepsField.get(workflow) as Map<String, WorkflowStep>
         return stepsMap.values.toList()
     }
-    
+
     /**
      * 将JSON转换为YAML。
      *
@@ -381,7 +398,7 @@ class WorkflowIO : KastraXBase(component = "WORKFLOW_IO", name = "WorkflowIO") {
         // 这里简单地返回JSON字符串，实际实现需要转换
         return jsonStr
     }
-    
+
     /**
      * 将YAML转换为JSON。
      *
@@ -403,7 +420,7 @@ enum class ExportFormat {
      * JSON格式。
      */
     JSON,
-    
+
     /**
      * YAML格式。
      */
@@ -419,7 +436,7 @@ data class WorkflowData(
     val name: String,
     val description: String,
     val steps: List<StepData>,
-    val metadata: Map<String, Any> = emptyMap()
+    val metadata: Map<String, String> = emptyMap()
 )
 
 /**
@@ -432,7 +449,9 @@ data class StepData(
     val description: String,
     val type: String,
     val after: List<String>,
+    @Contextual
     val variables: Map<String, VariableData>,
+    @Contextual
     val config: Map<String, JsonElement>? = null,
     val condition: String? = null
 )
