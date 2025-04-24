@@ -91,20 +91,92 @@ class DataFlowVisualizer {
      * @param filePath 文件路径
      * @param format 可视化格式
      */
+    /**
+     * 将可视化表示保存到文件。
+     *
+     * @param visualization 可视化表示
+     * @param filePath 文件路径
+     * @param format 可视化格式
+     * @param overwrite 是否覆盖已存在的文件
+     * @return 保存的文件对象
+     */
     fun saveToFile(
         visualization: String,
         filePath: String,
-        format: VisualizationFormat = VisualizationFormat.MERMAID
-    ) {
+        format: VisualizationFormat = VisualizationFormat.MERMAID,
+        overwrite: Boolean = true
+    ): File {
         val extension = when (format) {
             VisualizationFormat.DOT -> "dot"
             VisualizationFormat.MERMAID -> "mmd"
             VisualizationFormat.JSON -> "json"
             VisualizationFormat.TEXT -> "txt"
         }
-        val file = File("$filePath.$extension")
+
+        val file = if (filePath.endsWith(".$extension")) {
+            File(filePath)
+        } else {
+            File("$filePath.$extension")
+        }
+
+        // 检查文件是否存在
+        if (file.exists() && !overwrite) {
+            logger.warn { "文件已存在，未覆盖: ${file.absolutePath}" }
+            return file
+        }
+
+        // 确保目录存在
+        file.parentFile?.mkdirs()
+
+        // 写入文件
         file.writeText(visualization)
         logger.info { "数据流可视化已保存到: ${file.absolutePath}" }
+
+        return file
+    }
+
+    /**
+     * 直接将工作流可视化结果保存到文件。
+     *
+     * @param workflow 工作流
+     * @param filePath 文件路径
+     * @param format 可视化格式
+     * @param includeValues 是否包含变量值
+     * @param overwrite 是否覆盖已存在的文件
+     * @return 保存的文件对象
+     */
+    fun saveWorkflowVisualization(
+        workflow: Workflow,
+        filePath: String,
+        format: VisualizationFormat = VisualizationFormat.MERMAID,
+        includeValues: Boolean = false,
+        overwrite: Boolean = true
+    ): File {
+        val visualization = visualize(workflow, format, includeValues)
+        return saveToFile(visualization, filePath, format, overwrite)
+    }
+
+    /**
+     * 直接将工作流执行可视化结果保存到文件。
+     *
+     * @param workflow 工作流
+     * @param context 工作流上下文
+     * @param filePath 文件路径
+     * @param format 可视化格式
+     * @param includeValues 是否包含变量值
+     * @param overwrite 是否覆盖已存在的文件
+     * @return 保存的文件对象
+     */
+    fun saveExecutionVisualization(
+        workflow: Workflow,
+        context: WorkflowContext,
+        filePath: String,
+        format: VisualizationFormat = VisualizationFormat.MERMAID,
+        includeValues: Boolean = true,
+        overwrite: Boolean = true
+    ): File {
+        val visualization = visualizeExecution(workflow, context, format, includeValues)
+        return saveToFile(visualization, filePath, format, overwrite)
     }
 
     /**

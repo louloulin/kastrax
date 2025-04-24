@@ -48,12 +48,16 @@ class DataFlowDebuggerTest {
 
         // 调试工作流
         val outputDir = tempDir.resolve("debug_output").toString()
+        val options = DataFlowDebugger.DebugOptions(
+            mode = DataFlowDebugger.DebugMode.REPORT,
+            outputDir = outputDir,
+            generateHtmlReport = true,
+            generateVisualizations = true
+        )
         val result = debugger.debugWorkflow(
             workflow = workflow,
             input = input,
-            mode = DataFlowDebugger.DebugMode.REPORT,
-            breakpoints = emptyList(),
-            outputDir = outputDir
+            options = options
         )
 
         // 验证结果
@@ -98,12 +102,17 @@ class DataFlowDebuggerTest {
 
         // 调试工作流（使用LOG_ONLY模式，避免交互式断点）
         val outputDir = tempDir.resolve("debug_output_breakpoints").toString()
+        val options = DataFlowDebugger.DebugOptions(
+            mode = DataFlowDebugger.DebugMode.LOG_ONLY,
+            breakpoints = listOf("step2"),
+            outputDir = outputDir,
+            showVariablesAfterStep = true,
+            showDataFlowAfterStep = true
+        )
         val result = debugger.debugWorkflow(
             workflow = workflow,
             input = input,
-            mode = DataFlowDebugger.DebugMode.LOG_ONLY,
-            breakpoints = listOf("step2"),
-            outputDir = outputDir
+            options = options
         )
 
         // 验证结果
@@ -243,5 +252,71 @@ class DataFlowDebuggerTest {
         }
 
         return WorkflowResult(success = true, output = mapOf(), steps = steps)
+    }
+
+    @Test
+    fun `test debug workflow with HTML report generation`() = runBlocking {
+        // 创建测试工作流
+        val workflow = createTestWorkflow()
+
+        // 创建输入数据
+        val input = mapOf(
+            "param1" to "value1",
+            "param2" to 42
+        )
+
+        // 创建调试器
+        val debugger = DataFlowDebugger()
+
+        // 调试工作流，启用HTML报告生成
+        val outputDir = tempDir.resolve("debug_output_html").toString()
+        val options = DataFlowDebugger.DebugOptions(
+            mode = DataFlowDebugger.DebugMode.REPORT,
+            outputDir = outputDir,
+            generateHtmlReport = true,
+            generateVisualizations = true,
+            traceVariables = true,
+            traceDataFlow = true,
+            showVariablesAfterStep = true
+        )
+        val result = debugger.debugWorkflow(
+            workflow = workflow,
+            input = input,
+            options = options
+        )
+
+        // 验证结果
+        assertNotNull(result)
+        assertEquals(3, result.steps.size)
+        assertTrue(result.steps.all { it.value.success })
+
+        // 验证调试输出目录
+        val outputDirFile = File(outputDir)
+        assertTrue(outputDirFile.exists())
+        assertTrue(outputDirFile.isDirectory)
+
+        // 验证调试会话目录
+        val sessionDirs = outputDirFile.listFiles { file -> file.isDirectory && file.name.startsWith("debug_session_") }
+        assertNotNull(sessionDirs)
+        assertTrue(sessionDirs!!.isNotEmpty())
+
+        // 验证HTML报告文件
+        val sessionDir = sessionDirs.first()
+        val htmlReportFile = File(sessionDir, "report.html")
+        assertTrue(htmlReportFile.exists())
+
+        // 验证HTML报告内容
+        val htmlContent = htmlReportFile.readText()
+        assertTrue(htmlContent.contains("<!DOCTYPE html>"))
+        assertTrue(htmlContent.contains("<title>工作流调试报告</title>"))
+        assertTrue(htmlContent.contains("<h1>工作流调试报告</h1>"))
+        assertTrue(htmlContent.contains("<div id=\"summary\" class=\"tabcontent active\">"))
+        assertTrue(htmlContent.contains("<div id=\"detail\" class=\"tabcontent\">"))
+        assertTrue(htmlContent.contains("<div id=\"variables\" class=\"tabcontent\">"))
+        assertTrue(htmlContent.contains("<div id=\"dataflow\" class=\"tabcontent\">"))
+
+        // 验证可视化文件
+        assertTrue(File(sessionDir, "workflow_visualization.mmd").exists())
+        assertTrue(File(sessionDir, "data_flow_visualization.mmd").exists())
     }
 }

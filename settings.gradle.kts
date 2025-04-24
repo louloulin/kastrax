@@ -28,6 +28,7 @@ include(":fastembed-kotlin")
 // 其他示例文件还有错误，但我们只需要编译这个文件
 include(":examples")
 include(":zod-test")
+include(":kastrax-examples")
 
 pluginManagement {
     repositories {

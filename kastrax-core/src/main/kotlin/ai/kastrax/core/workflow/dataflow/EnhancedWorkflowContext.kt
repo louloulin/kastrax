@@ -279,18 +279,38 @@ class EnhancedWorkflowContext(
      * 调试工作流执行。
      *
      * @param workflow 工作流
+     * @param options 调试选项
+     * @return 工作流执行结果
+     */
+    suspend fun debugWorkflow(
+        workflow: Workflow,
+        options: DataFlowDebugger.DebugOptions = DataFlowDebugger.DebugOptions()
+    ): ai.kastrax.core.workflow.WorkflowResult {
+        return debugger.debugWorkflow(workflow, input, options)
+    }
+
+    /**
+     * 调试工作流执行（兼容旧版本）。
+     *
+     * @param workflow 工作流
      * @param mode 调试模式
      * @param breakpoints 断点列表
      * @param outputDir 输出目录
      * @return 工作流执行结果
      */
+    @Deprecated("使用新的debugWorkflow方法，它支持更多调试选项")
     suspend fun debugWorkflow(
         workflow: Workflow,
         mode: DataFlowDebugger.DebugMode = DataFlowDebugger.DebugMode.REPORT,
         breakpoints: List<String> = emptyList(),
         outputDir: String = "debug_output"
     ): ai.kastrax.core.workflow.WorkflowResult {
-        return debugger.debugWorkflow(workflow, input, mode, breakpoints, outputDir)
+        val options = DataFlowDebugger.DebugOptions(
+            mode = mode,
+            breakpoints = breakpoints,
+            outputDir = outputDir
+        )
+        return debugWorkflow(workflow, options)
     }
 
     /**

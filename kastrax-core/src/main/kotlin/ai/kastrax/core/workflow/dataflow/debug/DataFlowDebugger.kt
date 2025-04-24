@@ -10,6 +10,7 @@ import ai.kastrax.core.workflow.dataflow.EnhancedWorkflowContext
 import ai.kastrax.core.workflow.dataflow.SourceType
 import ai.kastrax.core.workflow.dataflow.VariableResolver
 import ai.kastrax.core.workflow.dataflow.VariableScopeManager
+import ai.kastrax.core.workflow.dataflow.visualization.DataFlowVisualizer
 import ai.kastrax.core.workflow.dataflow.visualization.EnhancedVariableReferenceProvider
 import ai.kastrax.core.workflow.dataflow.visualization.getWorkflowSteps
 import mu.KotlinLogging
@@ -48,29 +49,93 @@ class DataFlowDebugger {
     }
 
     /**
+     * 调试选项类，用于配置调试行为。
+     */
+    data class DebugOptions(
+        /**
+         * 调试模式。
+         */
+        val mode: DebugMode = DebugMode.REPORT,
+
+        /**
+         * 断点列表，包含步骤ID。
+         */
+        val breakpoints: List<String> = emptyList(),
+
+        /**
+         * 输出目录。
+         */
+        val outputDir: String = "debug_output",
+
+        /**
+         * 是否跟踪变量值变化。
+         */
+        val traceVariables: Boolean = true,
+
+        /**
+         * 是否跟踪数据流。
+         */
+        val traceDataFlow: Boolean = true,
+
+        /**
+         * 是否生成可视化图表。
+         */
+        val generateVisualizations: Boolean = true,
+
+        /**
+         * 是否检查数据流问题。
+         */
+        val inspectDataFlow: Boolean = true,
+
+        /**
+         * 是否在每个步骤执行后暂停。
+         */
+        val stepByStep: Boolean = false,
+
+        /**
+         * 是否在每个步骤执行前显示变量值。
+         */
+        val showVariablesBeforeStep: Boolean = false,
+
+        /**
+         * 是否在每个步骤执行后显示变量值。
+         */
+        val showVariablesAfterStep: Boolean = false,
+
+        /**
+         * 是否在每个步骤执行后显示数据流。
+         */
+        val showDataFlowAfterStep: Boolean = false,
+
+        /**
+         * 是否在每个步骤执行后生成报告。
+         */
+        val generateReportAfterStep: Boolean = false,
+
+        /**
+         * 是否在工作流执行完成后生成HTML报告。
+         */
+        val generateHtmlReport: Boolean = true
+    )
+
+    /**
      * 调试工作流执行。
      *
      * @param workflow 工作流
      * @param input 输入数据
-     * @param mode 调试模式
-     * @param breakpoints 断点列表，包含步骤ID
-     * @param outputDir 输出目录
+     * @param options 调试选项
      * @return 工作流执行结果
      */
     suspend fun debugWorkflow(
         workflow: Workflow,
         input: Map<String, Any?>,
-        mode: DebugMode = DebugMode.REPORT,
-        breakpoints: List<String> = emptyList(),
-        outputDir: String = "debug_output"
+        options: DebugOptions = DebugOptions()
     ): ai.kastrax.core.workflow.WorkflowResult {
         // 创建调试上下文
         val debugContext = DebugContext(
             workflow = workflow,
             input = input,
-            mode = mode,
-            breakpoints = breakpoints,
-            outputDir = outputDir
+            options = options
         )
 
         // 初始化调试环境
@@ -80,7 +145,7 @@ class DataFlowDebugger {
         val result = executeDebugWorkflow(workflow, input, debugContext)
 
         // 生成调试报告
-        if (mode == DebugMode.REPORT) {
+        if (options.mode == DebugMode.REPORT) {
             generateDebugReport(debugContext, result)
         }
 
@@ -92,8 +157,8 @@ class DataFlowDebugger {
      */
     private fun initializeDebugEnvironment(context: DebugContext) {
         // 创建输出目录
-        if (context.mode == DebugMode.REPORT) {
-            val outputDir = File(context.outputDir)
+        if (context.options.mode == DebugMode.REPORT) {
+            val outputDir = File(context.options.outputDir)
             if (!outputDir.exists()) {
                 outputDir.mkdirs()
             }
@@ -116,21 +181,182 @@ class DataFlowDebugger {
 
         // 生成摘要报告
         val summaryFile = File(sessionDir, "summary.txt")
-        summaryFile.writeText(generateSummaryReport(context, result))
+        val summaryReport = generateSummaryReport(context, result)
+        summaryFile.writeText(summaryReport)
 
         // 生成详细报告
         val detailFile = File(sessionDir, "detail.txt")
-        detailFile.writeText(generateDetailReport(context, result))
+        val detailReport = generateDetailReport(context, result)
+        detailFile.writeText(detailReport)
 
         // 生成变量报告
         val variablesFile = File(sessionDir, "variables.txt")
-        variablesFile.writeText(generateVariablesReport(context, result))
+        val variablesReport = generateVariablesReport(context, result)
+        variablesFile.writeText(variablesReport)
 
         // 生成数据流报告
         val dataFlowFile = File(sessionDir, "data_flow.txt")
-        dataFlowFile.writeText(generateDataFlowReport(context, result))
+        val dataFlowReport = generateDataFlowReport(context, result)
+        dataFlowFile.writeText(dataFlowReport)
+
+        // 生成可视化图表
+        if (context.options.generateVisualizations) {
+            val visualizer = DataFlowVisualizer()
+
+            // 生成工作流可视化
+            val workflowVisualization = visualizer.visualize(context.workflow)
+            val workflowVisFile = File(sessionDir, "workflow_visualization.mmd")
+            workflowVisFile.writeText(workflowVisualization)
+
+            // 生成数据流可视化
+            val workflowContext = WorkflowContext(
+                input = context.input,
+                steps = result.steps.mapValues { (_, value) -> value as WorkflowStepResult }.toMutableMap()
+            )
+            val enhancedContext = EnhancedWorkflowContext.fromStandardContext(workflowContext, "default")
+            val dataFlowVisualization = visualizer.visualizeExecution(context.workflow, workflowContext, includeValues = true)
+            val dataFlowVisFile = File(sessionDir, "data_flow_visualization.mmd")
+            dataFlowVisFile.writeText(dataFlowVisualization)
+        }
+
+        // 生成HTML报告
+        if (context.options.generateHtmlReport) {
+            generateHtmlReport(context, result, sessionDir, summaryReport, detailReport, variablesReport, dataFlowReport)
+        }
 
         logger.info { "调试报告已生成: $sessionDir" }
+    }
+
+    /**
+     * 生成HTML报告。
+     */
+    private fun generateHtmlReport(
+        context: DebugContext,
+        result: ai.kastrax.core.workflow.WorkflowResult,
+        sessionDir: String,
+        summaryReport: String,
+        detailReport: String,
+        variablesReport: String,
+        dataFlowReport: String
+    ) {
+        val htmlFile = File(sessionDir, "report.html")
+        val html = StringBuilder()
+
+        // HTML头部
+        html.appendLine("<!DOCTYPE html>")
+        html.appendLine("<html lang=\"zh-CN\">")
+        html.appendLine("<head>")
+        html.appendLine("  <meta charset=\"UTF-8\">")
+        html.appendLine("  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">")
+        html.appendLine("  <title>工作流调试报告</title>")
+        html.appendLine("  <style>")
+        html.appendLine("    body { font-family: Arial, sans-serif; line-height: 1.6; margin: 0; padding: 20px; color: #333; }")
+        html.appendLine("    h1, h2, h3 { color: #2c3e50; }")
+        html.appendLine("    h1 { border-bottom: 2px solid #eee; padding-bottom: 10px; }")
+        html.appendLine("    h2 { margin-top: 30px; border-bottom: 1px solid #eee; padding-bottom: 5px; }")
+        html.appendLine("    pre { background-color: #f8f9fa; padding: 15px; border-radius: 5px; overflow-x: auto; }")
+        html.appendLine("    .success { color: green; }")
+        html.appendLine("    .failure { color: red; }")
+        html.appendLine("    .tab { overflow: hidden; border: 1px solid #ccc; background-color: #f1f1f1; }")
+        html.appendLine("    .tab button { background-color: inherit; float: left; border: none; outline: none; cursor: pointer; padding: 14px 16px; transition: 0.3s; }")
+        html.appendLine("    .tab button:hover { background-color: #ddd; }")
+        html.appendLine("    .tab button.active { background-color: #ccc; }")
+        html.appendLine("    .tabcontent { display: none; padding: 6px 12px; border: 1px solid #ccc; border-top: none; }")
+        html.appendLine("    .tabcontent.active { display: block; }")
+        html.appendLine("    table { border-collapse: collapse; width: 100%; }")
+        html.appendLine("    th, td { text-align: left; padding: 8px; border-bottom: 1px solid #ddd; }")
+        html.appendLine("    tr:hover { background-color: #f5f5f5; }")
+        html.appendLine("    th { background-color: #4CAF50; color: white; }")
+        html.appendLine("  </style>")
+        html.appendLine("</head>")
+        html.appendLine("<body>")
+
+        // 报告标题
+        html.appendLine("  <h1>工作流调试报告</h1>")
+        html.appendLine("  <p>工作流: ${context.workflow.javaClass.simpleName}</p>")
+        html.appendLine("  <p>执行时间: ${context.startTime} - ${context.endTime ?: LocalDateTime.now()}</p>")
+        html.appendLine("  <p>总执行时间: ${context.getTotalExecutionTime()}ms</p>")
+
+        // 选项卡
+        html.appendLine("  <div class=\"tab\">")
+        html.appendLine("    <button class=\"tablinks active\" onclick=\"openTab(event, 'summary')\">\u6458\u8981</button>")
+        html.appendLine("    <button class=\"tablinks\" onclick=\"openTab(event, 'detail')\">\u8be6\u7ec6</button>")
+        html.appendLine("    <button class=\"tablinks\" onclick=\"openTab(event, 'variables')\">\u53d8\u91cf</button>")
+        html.appendLine("    <button class=\"tablinks\" onclick=\"openTab(event, 'dataflow')\">\u6570\u636e\u6d41</button>")
+        if (context.options.generateVisualizations) {
+            html.appendLine("    <button class=\"tablinks\" onclick=\"openTab(event, 'visualization')\">\u53ef\u89c6\u5316</button>")
+        }
+        html.appendLine("  </div>")
+
+        // 摘要选项卡
+        html.appendLine("  <div id=\"summary\" class=\"tabcontent active\">")
+        html.appendLine("    <h2>摘要报告</h2>")
+        html.appendLine("    <pre>${escapeHtml(summaryReport)}</pre>")
+        html.appendLine("  </div>")
+
+        // 详细选项卡
+        html.appendLine("  <div id=\"detail\" class=\"tabcontent\">")
+        html.appendLine("    <h2>详细报告</h2>")
+        html.appendLine("    <pre>${escapeHtml(detailReport)}</pre>")
+        html.appendLine("  </div>")
+
+        // 变量选项卡
+        html.appendLine("  <div id=\"variables\" class=\"tabcontent\">")
+        html.appendLine("    <h2>变量报告</h2>")
+        html.appendLine("    <pre>${escapeHtml(variablesReport)}</pre>")
+        html.appendLine("  </div>")
+
+        // 数据流选项卡
+        html.appendLine("  <div id=\"dataflow\" class=\"tabcontent\">")
+        html.appendLine("    <h2>数据流报告</h2>")
+        html.appendLine("    <pre>${escapeHtml(dataFlowReport)}</pre>")
+        html.appendLine("  </div>")
+
+        // 可视化选项卡
+        if (context.options.generateVisualizations) {
+            html.appendLine("  <div id=\"visualization\" class=\"tabcontent\">")
+            html.appendLine("    <h2>可视化</h2>")
+            html.appendLine("    <h3>工作流可视化</h3>")
+            html.appendLine("    <p>查看 <a href=\"workflow_visualization.mmd\" target=\"_blank\">工作流可视化</a></p>")
+            html.appendLine("    <h3>数据流可视化</h3>")
+            html.appendLine("    <p>查看 <a href=\"data_flow_visualization.mmd\" target=\"_blank\">数据流可视化</a></p>")
+            html.appendLine("  </div>")
+        }
+
+        // JavaScript
+        html.appendLine("  <script>")
+        html.appendLine("    function openTab(evt, tabName) {")
+        html.appendLine("      var i, tabcontent, tablinks;")
+        html.appendLine("      tabcontent = document.getElementsByClassName(\"tabcontent\");")
+        html.appendLine("      for (i = 0; i < tabcontent.length; i++) {")
+        html.appendLine("        tabcontent[i].className = tabcontent[i].className.replace(\" active\", \"\");")
+        html.appendLine("      }")
+        html.appendLine("      tablinks = document.getElementsByClassName(\"tablinks\");")
+        html.appendLine("      for (i = 0; i < tablinks.length; i++) {")
+        html.appendLine("        tablinks[i].className = tablinks[i].className.replace(\" active\", \"\");")
+        html.appendLine("      }")
+        html.appendLine("      document.getElementById(tabName).className += \" active\";")
+        html.appendLine("      evt.currentTarget.className += \" active\";")
+        html.appendLine("    }")
+        html.appendLine("  </script>")
+
+        // HTML尾部
+        html.appendLine("</body>")
+        html.appendLine("</html>")
+
+        htmlFile.writeText(html.toString())
+        logger.info { "HTML报告已生成: ${htmlFile.absolutePath}" }
+    }
+
+    /**
+     * 转义HTML特殊字符。
+     */
+    private fun escapeHtml(text: String): String {
+        return text.replace("&", "&amp;")
+                   .replace("<", "&lt;")
+                   .replace(">", "&gt;")
+                   .replace("\"", "&quot;")
+                   .replace("'", "&#39;")
     }
 
     /**
@@ -376,8 +602,17 @@ class DataFlowDebugger {
         logger.debug { "步骤输入变量: $inputVariables" }
 
         // 检查断点
-        if (debugContext.breakpoints.contains(stepId) && debugContext.mode == DebugMode.INTERACTIVE) {
+        if (debugContext.options.breakpoints.contains(stepId) && debugContext.options.mode == DebugMode.INTERACTIVE) {
             handleBreakpoint(step, context, debugContext)
+        }
+
+        // 如果启用了每步执行前显示变量值
+        if (debugContext.options.showVariablesBeforeStep) {
+            logger.info { "步骤执行前的变量值: ${step.id}" }
+            val stepScope = scopeManager.getStepScope("default", stepId)
+            stepScope.getAll().forEach { (key, value) ->
+                logger.info { "  $key = $value" }
+            }
         }
     }
 
@@ -411,16 +646,78 @@ class DataFlowDebugger {
         logger.debug { "步骤输出: ${result.output}" }
 
         // 记录数据流
-        result.output.forEach { (key, value) ->
-            val dataFlowTrace = DataFlowTrace(
-                sourceDescription = "${step.id}",
-                targetDescription = "输出",
-                variableName = key,
-                value = value,
-                timestamp = LocalDateTime.now()
-            )
+        if (debugContext.options.traceDataFlow) {
+            result.output.forEach { (key, value) ->
+                val dataFlowTrace = DataFlowTrace(
+                    sourceDescription = "${step.id}",
+                    targetDescription = "输出",
+                    variableName = key,
+                    value = value,
+                    timestamp = LocalDateTime.now()
+                )
 
-            debugContext.dataFlowTraces.add(dataFlowTrace)
+                debugContext.dataFlowTraces.add(dataFlowTrace)
+            }
+        }
+
+        // 如果启用了每步执行后显示变量值
+        if (debugContext.options.showVariablesAfterStep) {
+            logger.info { "步骤执行后的变量值: ${step.id}" }
+            val stepScope = scopeManager.getStepScope("default", stepId)
+            stepScope.getAll().forEach { (key, value) ->
+                logger.info { "  $key = $value" }
+            }
+        }
+
+        // 如果启用了每步执行后显示数据流
+        if (debugContext.options.showDataFlowAfterStep) {
+            logger.info { "步骤执行后的数据流: ${step.id}" }
+            val dataFlowTraces = debugContext.dataFlowTraces.filter { it.targetDescription == step.id || it.sourceDescription == step.id }
+            dataFlowTraces.forEach { trace ->
+                logger.info { "  源: ${trace.sourceDescription}, 目标: ${trace.targetDescription}, 变量: ${trace.variableName}, 值: ${trace.value}" }
+            }
+        }
+
+        // 如果启用了每步执行后生成报告
+        if (debugContext.options.generateReportAfterStep) {
+            val sessionDir = debugContext.sessionDir
+            if (sessionDir != null) {
+                val stepReportDir = File(sessionDir, "steps/${step.id}")
+                stepReportDir.mkdirs()
+
+                // 生成步骤报告
+                val reportFile = File(stepReportDir, "report.txt")
+                val sb = StringBuilder()
+                sb.appendLine("=== 步骤执行报告 ===")
+                sb.appendLine("步骤: ${step.id}")
+                sb.appendLine("开始时间: ${trace.startTime}")
+                sb.appendLine("结束时间: ${trace.endTime}")
+                sb.appendLine("执行时间: ${trace.executionTime}ms")
+                sb.appendLine("状态: ${if (trace.success) "成功" else "失败"}")
+
+                if (trace.error != null) {
+                    sb.appendLine("错误: ${trace.error}")
+                }
+
+                sb.appendLine("输入变量:")
+                trace.inputVariables.forEach { (key, value) ->
+                    sb.appendLine("  $key = $value")
+                }
+
+                sb.appendLine("输出:")
+                trace.output.forEach { (key, value) ->
+                    sb.appendLine("  $key = $value")
+                }
+
+                reportFile.writeText(sb.toString())
+                logger.info { "步骤报告已生成: ${reportFile.absolutePath}" }
+            }
+        }
+
+        // 如果启用了每步执行后暂停
+        if (debugContext.options.stepByStep && debugContext.options.mode == DebugMode.INTERACTIVE) {
+            logger.info { "步骤执行完成: ${step.id}, 按Enter键继续..." }
+            readLine()
         }
     }
 
@@ -448,9 +745,7 @@ class DataFlowDebugger {
     class DebugContext(
         val workflow: Workflow,
         val input: Map<String, Any?>,
-        val mode: DebugMode,
-        val breakpoints: List<String>,
-        val outputDir: String
+        val options: DebugOptions
     ) {
         val startTime: LocalDateTime = LocalDateTime.now()
         var endTime: LocalDateTime? = null
