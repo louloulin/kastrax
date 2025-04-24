@@ -4,9 +4,9 @@ val logback_version: String = "1.4.11"
 val koin_version: String = "3.5.0"
 
 plugins {
-    kotlin("jvm") version "1.8.22"
-    id("io.ktor.plugin") version "2.3.5"
-    id("org.jetbrains.kotlin.plugin.serialization") version "1.8.22"
+    kotlin("jvm")
+    id("io.ktor.plugin")
+    id("org.jetbrains.kotlin.plugin.serialization")
 }
 
 group = "ai.kastrax.server"
@@ -33,20 +33,20 @@ dependencies {
     implementation("io.ktor:ktor-server-swagger-jvm")
     implementation("io.ktor:ktor-server-status-pages-jvm")
     implementation("io.ktor:ktor-server-call-logging-jvm")
-    
+
     // KastraX Core
     implementation(project(":kastrax-core"))
-    
+
     // Common
     implementation(project(":kastrax-server:common"))
-    
+
     // Koin
     implementation("io.insert-koin:koin-ktor:$koin_version")
     implementation("io.insert-koin:koin-logger-slf4j:$koin_version")
-    
+
     // Logging
     implementation("ch.qos.logback:logback-classic:$logback_version")
-    
+
     // Testing
     testImplementation("io.ktor:ktor-server-tests-jvm")
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit:$kotlin_version")

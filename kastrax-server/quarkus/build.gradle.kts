@@ -1,7 +1,7 @@
 plugins {
-    kotlin("jvm") version "1.8.22"
-    kotlin("plugin.allopen") version "1.8.22"
-    id("io.quarkus") version "3.5.0"
+    kotlin("jvm")
+    kotlin("plugin.allopen")
+    id("io.quarkus")
 }
 
 repositories {
@@ -21,13 +21,13 @@ dependencies {
     implementation("io.quarkus:quarkus-smallrye-openapi")
     implementation("io.quarkus:quarkus-arc")
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
-    
+
     // KastraX Core
     implementation(project(":kastrax-core"))
-    
+
     // Common
     implementation(project(":kastrax-server:common"))
-    
+
     testImplementation("io.quarkus:quarkus-junit5")
     testImplementation("io.rest-assured:rest-assured")
 }
