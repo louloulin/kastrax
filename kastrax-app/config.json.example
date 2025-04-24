@@ -1,0 +1,23 @@
+{
+  "appName": "KastraX App",
+  "apiKeys": {
+    "openai": "your-openai-api-key",
+    "anthropic": "your-anthropic-api-key",
+    "google": "your-google-api-key",
+    "azure_openai": "your-azure-openai-api-key"
+  },
+  "serverConfig": {
+    "port": 8080,
+    "host": "localhost",
+    "enableCors": true
+  },
+  "agentConfig": {
+    "defaultModel": "gpt-4",
+    "temperature": 0.7,
+    "maxTokens": 1000
+  },
+  "toolConfig": {
+    "enabledTools": ["calculator", "weather", "search"],
+    "toolTimeout": 30000
+  }
+}
