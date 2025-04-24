@@ -6,6 +6,7 @@ import ai.kastrax.core.workflow.state.WorkflowStateStorage
 import ai.kastrax.datasource.filesystem.plugin.storage.LocalFileStorage
 import ai.kastrax.datasource.filesystem.plugin.storage.S3FileStorage
 import java.util.UUID
+import ai.kastrax.core.plugin.ConfigField
 
 /**
  * 文件存储插件，提供基于文件系统的存储实现。
@@ -23,8 +24,19 @@ class FileStoragePlugin : AbstractStoragePlugin(
             name = "本地文件存储",
             description = "基于本地文件系统的存储实现",
             configSchema = mapOf(
-                "rootPath" to ConfigField("rootPath", "根目录路径", "string", true),
-                "createIfNotExists" to ConfigField("createIfNotExists", "如果目录不存在则创建", "boolean", false, "true")
+                "rootPath" to ConfigField(
+                    name = "rootPath",
+                    type = ConfigFieldType.STRING,
+                    description = "根目录路径",
+                    required = true
+                ),
+                "createIfNotExists" to ConfigField(
+                    name = "createIfNotExists",
+                    type = ConfigFieldType.BOOLEAN,
+                    description = "如果目录不存在则创建",
+                    required = false,
+                    defaultValue = true
+                )
             ),
             capabilities = setOf(
                 StorageCapability.WORKFLOW_STATE,
@@ -39,12 +51,43 @@ class FileStoragePlugin : AbstractStoragePlugin(
             name = "S3兼容存储",
             description = "基于S3兼容存储的实现",
             configSchema = mapOf(
-                "endpoint" to ConfigField("endpoint", "S3端点", "string", true),
-                "region" to ConfigField("region", "区域", "string", true),
-                "bucket" to ConfigField("bucket", "存储桶", "string", true),
-                "accessKey" to ConfigField("accessKey", "访问密钥", "string", true),
-                "secretKey" to ConfigField("secretKey", "秘密密钥", "string", true, null, true),
-                "prefix" to ConfigField("prefix", "对象前缀", "string", false, "")
+                "endpoint" to ConfigField(
+                    name = "endpoint",
+                    type = ConfigFieldType.STRING,
+                    description = "S3端点",
+                    required = true
+                ),
+                "region" to ConfigField(
+                    name = "region",
+                    type = ConfigFieldType.STRING,
+                    description = "区域",
+                    required = true
+                ),
+                "bucket" to ConfigField(
+                    name = "bucket",
+                    type = ConfigFieldType.STRING,
+                    description = "存储桶",
+                    required = true
+                ),
+                "accessKey" to ConfigField(
+                    name = "accessKey",
+                    type = ConfigFieldType.STRING,
+                    description = "访问密钥",
+                    required = true
+                ),
+                "secretKey" to ConfigField(
+                    name = "secretKey",
+                    type = ConfigFieldType.STRING,
+                    description = "秘密密钥",
+                    required = true
+                ),
+                "prefix" to ConfigField(
+                    name = "prefix",
+                    type = ConfigFieldType.STRING,
+                    description = "对象前缀",
+                    required = false,
+                    defaultValue = ""
+                )
             ),
             capabilities = setOf(
                 StorageCapability.WORKFLOW_STATE,
@@ -96,10 +139,10 @@ class FileStoragePlugin : AbstractStoragePlugin(
     private fun createLocalFileStateStorage(config: Map<String, Any?>): WorkflowStateStorage {
         val rootPath = config["rootPath"] as String
         val createIfNotExists = config["createIfNotExists"] as? Boolean ?: true
-        
+
         val id = config["id"] as? String ?: "local-file-state-${UUID.randomUUID()}"
         val name = config["name"] as? String ?: "Local File State Storage"
-        
+
         return LocalFileStorage.createStateStorage(
             id = id,
             name = name,
@@ -115,10 +158,10 @@ class FileStoragePlugin : AbstractStoragePlugin(
         val accessKey = config["accessKey"] as String
         val secretKey = config["secretKey"] as String
         val prefix = config["prefix"] as? String ?: ""
-        
+
         val id = config["id"] as? String ?: "s3-state-${UUID.randomUUID()}"
         val name = config["name"] as? String ?: "S3 State Storage"
-        
+
         return S3FileStorage.createStateStorage(
             id = id,
             name = name,
@@ -134,10 +177,10 @@ class FileStoragePlugin : AbstractStoragePlugin(
     private fun createLocalFileEventStorage(config: Map<String, Any?>): EventStorage {
         val rootPath = config["rootPath"] as String
         val createIfNotExists = config["createIfNotExists"] as? Boolean ?: true
-        
+
         val id = config["id"] as? String ?: "local-file-event-${UUID.randomUUID()}"
         val name = config["name"] as? String ?: "Local File Event Storage"
-        
+
         return LocalFileStorage.createEventStorage(
             id = id,
             name = name,
@@ -153,10 +196,10 @@ class FileStoragePlugin : AbstractStoragePlugin(
         val accessKey = config["accessKey"] as String
         val secretKey = config["secretKey"] as String
         val prefix = config["prefix"] as? String ?: ""
-        
+
         val id = config["id"] as? String ?: "s3-event-${UUID.randomUUID()}"
         val name = config["name"] as? String ?: "S3 Event Storage"
-        
+
         return S3FileStorage.createEventStorage(
             id = id,
             name = name,
@@ -172,10 +215,10 @@ class FileStoragePlugin : AbstractStoragePlugin(
     private fun createLocalFileDataStorage(config: Map<String, Any?>): DataStorage {
         val rootPath = config["rootPath"] as String
         val createIfNotExists = config["createIfNotExists"] as? Boolean ?: true
-        
+
         val id = config["id"] as? String ?: "local-file-data-${UUID.randomUUID()}"
         val name = config["name"] as? String ?: "Local File Data Storage"
-        
+
         return LocalFileStorage.createDataStorage(
             id = id,
             name = name,
@@ -191,10 +234,10 @@ class FileStoragePlugin : AbstractStoragePlugin(
         val accessKey = config["accessKey"] as String
         val secretKey = config["secretKey"] as String
         val prefix = config["prefix"] as? String ?: ""
-        
+
         val id = config["id"] as? String ?: "s3-data-${UUID.randomUUID()}"
         val name = config["name"] as? String ?: "S3 Data Storage"
-        
+
         return S3FileStorage.createDataStorage(
             id = id,
             name = name,
@@ -208,14 +251,3 @@ class FileStoragePlugin : AbstractStoragePlugin(
     }
 }
 
-/**
- * 配置字段，描述了存储配置中的一个字段。
- */
-data class ConfigField(
-    val name: String,
-    val description: String,
-    val type: String,
-    val required: Boolean = false,
-    val defaultValue: String? = null,
-    val sensitive: Boolean = false
-)

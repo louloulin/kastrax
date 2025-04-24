@@ -6,6 +6,8 @@ import ai.kastrax.datasource.database.plugin.connectors.MongoConnector
 import kotlinx.coroutines.flow.Flow
 import kotlinx.serialization.json.JsonElement
 import java.util.UUID
+import ai.kastrax.core.plugin.ConfigField
+import ai.kastrax.core.plugin.ConfigFieldType
 
 /**
  * 数据库连接器插件，提供与各种数据库系统的集成。
@@ -24,12 +26,44 @@ class DatabaseConnectorPlugin : AbstractConnectorPlugin(
             description = "PostgreSQL数据库连接器",
             icon = "database",
             configSchema = mapOf(
-                "host" to ConfigField("host", "数据库主机", "string", true),
-                "port" to ConfigField("port", "数据库端口", "integer", true, "5432"),
-                "database" to ConfigField("database", "数据库名称", "string", true),
-                "username" to ConfigField("username", "用户名", "string", true),
-                "password" to ConfigField("password", "密码", "string", true, null, true),
-                "schema" to ConfigField("schema", "模式", "string", false, "public")
+                "host" to ConfigField(
+                    name = "host",
+                    type = ConfigFieldType.STRING,
+                    description = "数据库主机",
+                    required = true
+                ),
+                "port" to ConfigField(
+                    name = "port",
+                    type = ConfigFieldType.NUMBER,
+                    description = "数据库端口",
+                    required = true,
+                    defaultValue = 5432
+                ),
+                "database" to ConfigField(
+                    name = "database",
+                    type = ConfigFieldType.STRING,
+                    description = "数据库名称",
+                    required = true
+                ),
+                "username" to ConfigField(
+                    name = "username",
+                    type = ConfigFieldType.STRING,
+                    description = "用户名",
+                    required = true
+                ),
+                "password" to ConfigField(
+                    name = "password",
+                    type = ConfigFieldType.STRING,
+                    description = "密码",
+                    required = true
+                ),
+                "schema" to ConfigField(
+                    name = "schema",
+                    type = ConfigFieldType.STRING,
+                    description = "模式",
+                    required = false,
+                    defaultValue = "public"
+                )
             ),
             operations = listOf(
                 ConnectorOperation(
@@ -37,8 +71,18 @@ class DatabaseConnectorPlugin : AbstractConnectorPlugin(
                     name = "执行查询",
                     description = "执行SQL查询",
                     parameterSchema = mapOf(
-                        "sql" to ConfigField("sql", "SQL查询", "string", true),
-                        "params" to ConfigField("params", "查询参数", "object", false)
+                        "sql" to ConfigField(
+                            name = "sql",
+                            type = ConfigFieldType.STRING,
+                            description = "SQL查询",
+                            required = true
+                        ),
+                        "params" to ConfigField(
+                            name = "params",
+                            type = ConfigFieldType.OBJECT,
+                            description = "查询参数",
+                            required = false
+                        )
                     )
                 ),
                 ConnectorOperation(
@@ -46,8 +90,18 @@ class DatabaseConnectorPlugin : AbstractConnectorPlugin(
                     name = "执行更新",
                     description = "执行SQL更新",
                     parameterSchema = mapOf(
-                        "sql" to ConfigField("sql", "SQL更新", "string", true),
-                        "params" to ConfigField("params", "更新参数", "object", false)
+                        "sql" to ConfigField(
+                            name = "sql",
+                            type = ConfigFieldType.STRING,
+                            description = "SQL更新",
+                            required = true
+                        ),
+                        "params" to ConfigField(
+                            name = "params",
+                            type = ConfigFieldType.OBJECT,
+                            description = "更新参数",
+                            required = false
+                        )
                     )
                 ),
                 ConnectorOperation(
@@ -55,8 +109,18 @@ class DatabaseConnectorPlugin : AbstractConnectorPlugin(
                     name = "执行批处理",
                     description = "执行SQL批处理",
                     parameterSchema = mapOf(
-                        "sql" to ConfigField("sql", "SQL语句", "string", true),
-                        "paramsList" to ConfigField("paramsList", "参数列表", "array", true)
+                        "sql" to ConfigField(
+                            name = "sql",
+                            type = ConfigFieldType.STRING,
+                            description = "SQL语句",
+                            required = true
+                        ),
+                        "paramsList" to ConfigField(
+                            name = "paramsList",
+                            type = ConfigFieldType.ARRAY,
+                            description = "参数列表",
+                            required = true
+                        )
                     )
                 ),
                 ConnectorOperation(
@@ -70,7 +134,12 @@ class DatabaseConnectorPlugin : AbstractConnectorPlugin(
                     name = "获取列信息",
                     description = "获取表的列信息",
                     parameterSchema = mapOf(
-                        "table" to ConfigField("table", "表名", "string", true)
+                        "table" to ConfigField(
+                            name = "table",
+                            type = ConfigFieldType.STRING,
+                            description = "表名",
+                            required = true
+                        )
                     )
                 )
             ),
@@ -83,8 +152,18 @@ class DatabaseConnectorPlugin : AbstractConnectorPlugin(
             description = "MongoDB数据库连接器",
             icon = "database",
             configSchema = mapOf(
-                "connectionString" to ConfigField("connectionString", "连接字符串", "string", true),
-                "database" to ConfigField("database", "数据库名称", "string", true)
+                "connectionString" to ConfigField(
+                    name = "connectionString",
+                    type = ConfigFieldType.STRING,
+                    description = "连接字符串",
+                    required = true
+                ),
+                "database" to ConfigField(
+                    name = "database",
+                    type = ConfigFieldType.STRING,
+                    description = "数据库名称",
+                    required = true
+                )
             ),
             operations = listOf(
                 ConnectorOperation(
@@ -92,11 +171,39 @@ class DatabaseConnectorPlugin : AbstractConnectorPlugin(
                     name = "查找文档",
                     description = "查找匹配条件的文档",
                     parameterSchema = mapOf(
-                        "collection" to ConfigField("collection", "集合名称", "string", true),
-                        "filter" to ConfigField("filter", "过滤条件", "object", false, "{}"),
-                        "projection" to ConfigField("projection", "投影", "object", false),
-                        "limit" to ConfigField("limit", "限制数量", "integer", false, "100"),
-                        "skip" to ConfigField("skip", "跳过数量", "integer", false, "0")
+                        "collection" to ConfigField(
+                            name = "collection",
+                            type = ConfigFieldType.STRING,
+                            description = "集合名称",
+                            required = true
+                        ),
+                        "filter" to ConfigField(
+                            name = "filter",
+                            type = ConfigFieldType.OBJECT,
+                            description = "过滤条件",
+                            required = false,
+                            defaultValue = "{}"
+                        ),
+                        "projection" to ConfigField(
+                            name = "projection",
+                            type = ConfigFieldType.OBJECT,
+                            description = "投影",
+                            required = false
+                        ),
+                        "limit" to ConfigField(
+                            name = "limit",
+                            type = ConfigFieldType.NUMBER,
+                            description = "限制数量",
+                            required = false,
+                            defaultValue = 100
+                        ),
+                        "skip" to ConfigField(
+                            name = "skip",
+                            type = ConfigFieldType.NUMBER,
+                            description = "跳过数量",
+                            required = false,
+                            defaultValue = 0
+                        )
                     )
                 ),
                 ConnectorOperation(
@@ -114,8 +221,18 @@ class DatabaseConnectorPlugin : AbstractConnectorPlugin(
                     name = "插入文档",
                     description = "插入单个文档",
                     parameterSchema = mapOf(
-                        "collection" to ConfigField("collection", "集合名称", "string", true),
-                        "document" to ConfigField("document", "文档", "object", true)
+                        "collection" to ConfigField(
+                            name = "collection",
+                            type = ConfigFieldType.STRING,
+                            description = "集合名称",
+                            required = true
+                        ),
+                        "document" to ConfigField(
+                            name = "document",
+                            type = ConfigFieldType.OBJECT,
+                            description = "文档",
+                            required = true
+                        )
                     )
                 ),
                 ConnectorOperation(
@@ -123,8 +240,18 @@ class DatabaseConnectorPlugin : AbstractConnectorPlugin(
                     name = "批量插入文档",
                     description = "插入多个文档",
                     parameterSchema = mapOf(
-                        "collection" to ConfigField("collection", "集合名称", "string", true),
-                        "documents" to ConfigField("documents", "文档列表", "array", true)
+                        "collection" to ConfigField(
+                            name = "collection",
+                            type = ConfigFieldType.STRING,
+                            description = "集合名称",
+                            required = true
+                        ),
+                        "documents" to ConfigField(
+                            name = "documents",
+                            type = ConfigFieldType.ARRAY,
+                            description = "文档列表",
+                            required = true
+                        )
                     )
                 ),
                 ConnectorOperation(
@@ -132,9 +259,24 @@ class DatabaseConnectorPlugin : AbstractConnectorPlugin(
                     name = "更新文档",
                     description = "更新单个文档",
                     parameterSchema = mapOf(
-                        "collection" to ConfigField("collection", "集合名称", "string", true),
-                        "filter" to ConfigField("filter", "过滤条件", "object", true),
-                        "update" to ConfigField("update", "更新操作", "object", true)
+                        "collection" to ConfigField(
+                            name = "collection",
+                            type = ConfigFieldType.STRING,
+                            description = "集合名称",
+                            required = true
+                        ),
+                        "filter" to ConfigField(
+                            name = "filter",
+                            type = ConfigFieldType.OBJECT,
+                            description = "过滤条件",
+                            required = true
+                        ),
+                        "update" to ConfigField(
+                            name = "update",
+                            type = ConfigFieldType.OBJECT,
+                            description = "更新操作",
+                            required = true
+                        )
                     )
                 ),
                 ConnectorOperation(
@@ -142,9 +284,24 @@ class DatabaseConnectorPlugin : AbstractConnectorPlugin(
                     name = "批量更新文档",
                     description = "更新多个文档",
                     parameterSchema = mapOf(
-                        "collection" to ConfigField("collection", "集合名称", "string", true),
-                        "filter" to ConfigField("filter", "过滤条件", "object", true),
-                        "update" to ConfigField("update", "更新操作", "object", true)
+                        "collection" to ConfigField(
+                            name = "collection",
+                            type = ConfigFieldType.STRING,
+                            description = "集合名称",
+                            required = true
+                        ),
+                        "filter" to ConfigField(
+                            name = "filter",
+                            type = ConfigFieldType.OBJECT,
+                            description = "过滤条件",
+                            required = true
+                        ),
+                        "update" to ConfigField(
+                            name = "update",
+                            type = ConfigFieldType.OBJECT,
+                            description = "更新操作",
+                            required = true
+                        )
                     )
                 ),
                 ConnectorOperation(
@@ -152,8 +309,18 @@ class DatabaseConnectorPlugin : AbstractConnectorPlugin(
                     name = "删除文档",
                     description = "删除单个文档",
                     parameterSchema = mapOf(
-                        "collection" to ConfigField("collection", "集合名称", "string", true),
-                        "filter" to ConfigField("filter", "过滤条件", "object", true)
+                        "collection" to ConfigField(
+                            name = "collection",
+                            type = ConfigFieldType.STRING,
+                            description = "集合名称",
+                            required = true
+                        ),
+                        "filter" to ConfigField(
+                            name = "filter",
+                            type = ConfigFieldType.OBJECT,
+                            description = "过滤条件",
+                            required = true
+                        )
                     )
                 ),
                 ConnectorOperation(
@@ -199,10 +366,10 @@ class DatabaseConnectorPlugin : AbstractConnectorPlugin(
         val username = config["username"] as String
         val password = config["password"] as String
         val schema = config["schema"] as? String ?: "public"
-        
+
         val id = config["id"] as? String ?: "postgres-${UUID.randomUUID()}"
         val name = config["name"] as? String ?: "PostgreSQL Connector"
-        
+
         return PostgresConnector(
             id = id,
             name = name,
@@ -220,10 +387,10 @@ class DatabaseConnectorPlugin : AbstractConnectorPlugin(
     private fun createMongoConnector(config: Map<String, Any?>): Connector {
         val connectionString = config["connectionString"] as String
         val database = config["database"] as String
-        
+
         val id = config["id"] as? String ?: "mongodb-${UUID.randomUUID()}"
         val name = config["name"] as? String ?: "MongoDB Connector"
-        
+
         return MongoConnector(
             id = id,
             name = name,
@@ -235,14 +402,4 @@ class DatabaseConnectorPlugin : AbstractConnectorPlugin(
     }
 }
 
-/**
- * 配置字段，描述了连接器配置中的一个字段。
- */
-data class ConfigField(
-    val name: String,
-    val description: String,
-    val type: String,
-    val required: Boolean = false,
-    val defaultValue: String? = null,
-    val sensitive: Boolean = false
-)
+// Using ConfigField from core module

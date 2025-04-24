@@ -19,6 +19,11 @@ dependencies {
 
     // Database
     implementation("mysql:mysql-connector-java:8.0.33")
+    implementation("org.postgresql:postgresql:42.6.0")
+    implementation("org.mongodb:mongodb-driver-sync:4.9.1")
+
+    // Serialization
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.0")
 
     // Logging
     implementation("io.github.microutils:kotlin-logging-jvm:3.0.5")

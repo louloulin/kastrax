@@ -6,9 +6,14 @@ import ai.kastrax.core.plugin.Event
 import ai.kastrax.core.plugin.EventStorage
 import ai.kastrax.core.workflow.state.WorkflowState
 import ai.kastrax.core.workflow.state.WorkflowStateStorage
+import ai.kastrax.core.workflow.state.WorkflowRunInfo
+import ai.kastrax.core.workflow.state.WorkflowStateStatus
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.encodeToString
+import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
 import java.io.File
 import java.nio.file.Files
@@ -86,27 +91,35 @@ class LocalFileWorkflowStateStorage(
         }
     }
     
-    override suspend fun saveState(state: WorkflowState): Boolean {
-        logger.debug { "保存工作流状态: ${state.workflowId}, 运行ID: ${state.runId}" }
+    private fun getStateKey(workflowId: String, runId: String): String {
+        return "$workflowId:$runId"
+    }
+    
+    private fun getStateFilePath(workflowId: String, runId: String): Path {
+        return statesDir.resolve(workflowId).resolve("$runId.json")
+    }
+    
+    override suspend fun saveWorkflowState(workflowId: String, runId: String, state: WorkflowState): Boolean {
+        logger.debug { "保存工作流状态: $workflowId, 运行ID: $runId" }
         
         return try {
-            val stateJson = json.encodeToString(state)
-            val filePath = getStateFilePath(state.workflowId, state.runId)
+            val stateJson = LocalFileStorage.json.encodeToString(state)
+            val filePath = getStateFilePath(workflowId, runId)
             
             withContext(Dispatchers.IO) {
                 Files.createDirectories(filePath.parent)
                 Files.writeString(filePath, stateJson)
             }
             
-            cache[getStateKey(state.workflowId, state.runId)] = state
+            cache[getStateKey(workflowId, runId)] = state
             true
         } catch (e: Exception) {
-            logger.error(e) { "保存工作流状态失败: ${state.workflowId}, 运行ID: ${state.runId}" }
+            logger.error(e) { "保存工作流状态失败: $workflowId, 运行ID: $runId" }
             false
         }
     }
     
-    override suspend fun getState(workflowId: String, runId: String): WorkflowState? {
+    override suspend fun getWorkflowState(workflowId: String, runId: String): WorkflowState? {
         logger.debug { "获取工作流状态: $workflowId, 运行ID: $runId" }
         
         val key = getStateKey(workflowId, runId)
@@ -128,7 +141,7 @@ class LocalFileWorkflowStateStorage(
                 Files.readString(filePath)
             }
             
-            val state = json.decodeFromString<WorkflowState>(stateJson)
+            val state = LocalFileStorage.json.decodeFromString<WorkflowState>(stateJson)
             cache[key] = state
             state
         } catch (e: Exception) {
@@ -137,7 +150,7 @@ class LocalFileWorkflowStateStorage(
         }
     }
     
-    override suspend fun deleteState(workflowId: String, runId: String): Boolean {
+    override suspend fun deleteWorkflowState(workflowId: String, runId: String): Boolean {
         logger.debug { "删除工作流状态: $workflowId, 运行ID: $runId" }
         
         return try {
@@ -158,8 +171,8 @@ class LocalFileWorkflowStateStorage(
         }
     }
     
-    override suspend fun getStates(workflowId: String, limit: Int, offset: Int): List<WorkflowState> {
-        logger.debug { "获取工作流状态列表: $workflowId, 限制: $limit, 偏移: $offset" }
+    override suspend fun getWorkflowRuns(workflowId: String, limit: Int, offset: Int): List<WorkflowRunInfo> {
+        logger.debug { "获取工作流运行信息: $workflowId, 限制: $limit, 偏移: $offset" }
         
         return try {
             val workflowDir = statesDir.resolve(workflowId)
@@ -170,68 +183,36 @@ class LocalFileWorkflowStateStorage(
             
             withContext(Dispatchers.IO) {
                 Files.list(workflowDir)
-                    .filter { Files.isRegularFile(it) }
-                    .map { 
+                    .filter { Files.isRegularFile(it) && it.toString().endsWith(".json") }
+                    .map { path ->
                         try {
-                            val stateJson = Files.readString(it)
-                            json.decodeFromString<WorkflowState>(stateJson)
+                            val runId = path.fileName.toString().removeSuffix(".json")
+                            val stateJson = Files.readString(path)
+                            val state = LocalFileStorage.json.decodeFromString<WorkflowState>(stateJson)
+                            
+                            WorkflowRunInfo(
+                                runId = state.runId,
+                                workflowId = state.workflowId,
+                                status = state.status,
+                                createdAt = state.createdAt,
+                                updatedAt = state.updatedAt
+                            )
                         } catch (e: Exception) {
-                            logger.error(e) { "解析工作流状态文件失败: $it" }
+                            logger.error(e) { "解析工作流状态文件失败: $path" }
                             null
                         }
                     }
                     .filter { it != null }
                     .map { it!! }
-                    .sorted(compareByDescending { it.timestamp })
+                    .sorted(compareByDescending { it.updatedAt })
                     .skip(offset.toLong())
                     .limit(limit.toLong())
                     .toList()
             }
         } catch (e: Exception) {
-            logger.error(e) { "获取工作流状态列表失败: $workflowId" }
+            logger.error(e) { "获取工作流运行信息失败: $workflowId" }
             emptyList()
         }
-    }
-    
-    override suspend fun getAllStates(limit: Int, offset: Int): List<WorkflowState> {
-        logger.debug { "获取所有工作流状态: 限制: $limit, 偏移: $offset" }
-        
-        return try {
-            if (!Files.exists(statesDir)) {
-                return emptyList()
-            }
-            
-            withContext(Dispatchers.IO) {
-                Files.walk(statesDir)
-                    .filter { Files.isRegularFile(it) }
-                    .map { 
-                        try {
-                            val stateJson = Files.readString(it)
-                            json.decodeFromString<WorkflowState>(stateJson)
-                        } catch (e: Exception) {
-                            logger.error(e) { "解析工作流状态文件失败: $it" }
-                            null
-                        }
-                    }
-                    .filter { it != null }
-                    .map { it!! }
-                    .sorted(compareByDescending { it.timestamp })
-                    .skip(offset.toLong())
-                    .limit(limit.toLong())
-                    .toList()
-            }
-        } catch (e: Exception) {
-            logger.error(e) { "获取所有工作流状态失败" }
-            emptyList()
-        }
-    }
-    
-    private fun getStateKey(workflowId: String, runId: String): String {
-        return "$workflowId:$runId"
-    }
-    
-    private fun getStateFilePath(workflowId: String, runId: String): Path {
-        return statesDir.resolve(workflowId).resolve("$runId.json")
     }
 }
 
@@ -255,11 +236,15 @@ class LocalFileEventStorage(
         }
     }
     
+    private fun getEventFilePath(event: Event): Path {
+        return eventsDir.resolve(event.type).resolve("${event.id}.json")
+    }
+    
     override suspend fun storeEvent(event: Event): Boolean {
         logger.debug { "存储事件: ${event.id}, 类型: ${event.type}" }
         
         return try {
-            val eventJson = json.encodeToString(EventWrapper(event))
+            val eventJson = LocalFileStorage.json.encodeToString(EventWrapper(event))
             val filePath = getEventFilePath(event)
             
             withContext(Dispatchers.IO) {
@@ -289,246 +274,65 @@ class LocalFileEventStorage(
         return success
     }
     
-    override suspend fun getEvent(eventId: String): Event? {
-        logger.debug { "获取事件: $eventId" }
+    override suspend fun getEvents(type: String?, from: Instant?, to: Instant?, limit: Int): Flow<Event> = flow {
+        logger.debug { "获取事件: 类型: $type, 从: $from, 到: $to, 限制: $limit" }
         
-        return try {
-            // 由于我们不知道事件的类型，需要搜索所有可能的位置
-            val eventFiles = withContext(Dispatchers.IO) {
-                Files.walk(eventsDir)
-                    .filter { Files.isRegularFile(it) && it.fileName.toString() == "$eventId.json" }
-                    .toList()
-            }
-            
-            if (eventFiles.isEmpty()) {
-                logger.debug { "事件文件不存在: $eventId" }
-                return null
-            }
-            
-            val eventFile = eventFiles.first()
-            val eventJson = withContext(Dispatchers.IO) {
-                Files.readString(eventFile)
-            }
-            
-            val eventWrapper = json.decodeFromString<EventWrapper>(eventJson)
-            eventWrapper.event
-        } catch (e: Exception) {
-            logger.error(e) { "获取事件失败: $eventId" }
-            null
-        }
-    }
-    
-    override suspend fun getEventsByType(eventType: String, limit: Int, offset: Int): List<Event> {
-        logger.debug { "获取指定类型的事件: $eventType, 限制: $limit, 偏移: $offset" }
-        
-        return try {
-            val typeDir = eventsDir.resolve("type").resolve(eventType)
+        try {
+            val typeDir = if (type != null) eventsDir.resolve(type) else eventsDir
             
             if (!Files.exists(typeDir)) {
-                return emptyList()
+                return@flow
             }
             
-            withContext(Dispatchers.IO) {
-                Files.list(typeDir)
-                    .filter { Files.isRegularFile(it) }
-                    .map { 
-                        try {
-                            val eventJson = Files.readString(it)
-                            json.decodeFromString<EventWrapper>(eventJson).event
-                        } catch (e: Exception) {
-                            logger.error(e) { "解析事件文件失败: $it" }
-                            null
+            val events = withContext(Dispatchers.IO) {
+                if (type != null) {
+                    Files.list(typeDir)
+                        .filter { Files.isRegularFile(it) && it.toString().endsWith(".json") }
+                        .map {
+                            try {
+                                val eventJson = Files.readString(it)
+                                LocalFileStorage.json.decodeFromString<EventWrapper>(eventJson).event
+                            } catch (e: Exception) {
+                                logger.error(e) { "解析事件文件失败: $it" }
+                                null
+                            }
                         }
-                    }
-                    .filter { it != null }
-                    .map { it!! }
-                    .sorted(compareByDescending { it.timestamp })
-                    .skip(offset.toLong())
-                    .limit(limit.toLong())
-                    .toList()
-            }
-        } catch (e: Exception) {
-            logger.error(e) { "获取指定类型的事件失败: $eventType" }
-            emptyList()
-        }
-    }
-    
-    override suspend fun getEventsByWorkflow(workflowId: String, limit: Int, offset: Int): List<Event> {
-        logger.debug { "获取指定工作流的事件: $workflowId, 限制: $limit, 偏移: $offset" }
-        
-        return try {
-            val workflowDir = eventsDir.resolve("workflow").resolve(workflowId)
-            
-            if (!Files.exists(workflowDir)) {
-                return emptyList()
-            }
-            
-            withContext(Dispatchers.IO) {
-                Files.list(workflowDir)
-                    .filter { Files.isRegularFile(it) }
-                    .map { 
-                        try {
-                            val eventJson = Files.readString(it)
-                            json.decodeFromString<EventWrapper>(eventJson).event
-                        } catch (e: Exception) {
-                            logger.error(e) { "解析事件文件失败: $it" }
-                            null
+                        .filter { it != null }
+                        .map { it!! }
+                        .toList()
+                } else {
+                    Files.walk(eventsDir)
+                        .filter { Files.isRegularFile(it) && it.toString().endsWith(".json") }
+                        .map {
+                            try {
+                                val eventJson = Files.readString(it)
+                                LocalFileStorage.json.decodeFromString<EventWrapper>(eventJson).event
+                            } catch (e: Exception) {
+                                logger.error(e) { "解析事件文件失败: $it" }
+                                null
+                            }
                         }
-                    }
-                    .filter { it != null }
-                    .map { it!! }
-                    .sorted(compareByDescending { it.timestamp })
-                    .skip(offset.toLong())
-                    .limit(limit.toLong())
-                    .toList()
-            }
-        } catch (e: Exception) {
-            logger.error(e) { "获取指定工作流的事件失败: $workflowId" }
-            emptyList()
-        }
-    }
-    
-    override suspend fun getEventsByWorkflowRun(workflowId: String, runId: String, limit: Int, offset: Int): List<Event> {
-        logger.debug { "获取指定工作流运行的事件: $workflowId, 运行ID: $runId, 限制: $limit, 偏移: $offset" }
-        
-        return try {
-            val runDir = eventsDir.resolve("workflow").resolve(workflowId).resolve(runId)
-            
-            if (!Files.exists(runDir)) {
-                return emptyList()
-            }
-            
-            withContext(Dispatchers.IO) {
-                Files.list(runDir)
-                    .filter { Files.isRegularFile(it) }
-                    .map { 
-                        try {
-                            val eventJson = Files.readString(it)
-                            json.decodeFromString<EventWrapper>(eventJson).event
-                        } catch (e: Exception) {
-                            logger.error(e) { "解析事件文件失败: $it" }
-                            null
-                        }
-                    }
-                    .filter { it != null }
-                    .map { it!! }
-                    .sorted(compareByDescending { it.timestamp })
-                    .skip(offset.toLong())
-                    .limit(limit.toLong())
-                    .toList()
-            }
-        } catch (e: Exception) {
-            logger.error(e) { "获取指定工作流运行的事件失败: $workflowId, 运行ID: $runId" }
-            emptyList()
-        }
-    }
-    
-    override suspend fun deleteEvent(eventId: String): Boolean {
-        logger.debug { "删除事件: $eventId" }
-        
-        return try {
-            // 由于我们不知道事件的类型，需要搜索所有可能的位置
-            val eventFiles = withContext(Dispatchers.IO) {
-                Files.walk(eventsDir)
-                    .filter { Files.isRegularFile(it) && it.fileName.toString() == "$eventId.json" }
-                    .toList()
-            }
-            
-            if (eventFiles.isEmpty()) {
-                logger.debug { "事件文件不存在: $eventId" }
-                return false
-            }
-            
-            var success = true
-            
-            for (eventFile in eventFiles) {
-                val deleted = withContext(Dispatchers.IO) {
-                    Files.deleteIfExists(eventFile)
-                }
-                
-                if (!deleted) {
-                    success = false
+                        .filter { it != null }
+                        .map { it!! }
+                        .toList()
                 }
             }
             
-            success
+            // 过滤和排序事件
+            val filteredEvents = events
+                .filter { event ->
+                    (from == null || event.timestamp.isAfter(from)) &&
+                    (to == null || event.timestamp.isBefore(to))
+                }
+                .sortedByDescending { it.timestamp }
+                .take(limit)
+            
+            for (event in filteredEvents) {
+                emit(event)
+            }
         } catch (e: Exception) {
-            logger.error(e) { "删除事件失败: $eventId" }
-            false
+            logger.error(e) { "获取事件失败: 类型: $type" }
         }
-    }
-    
-    override suspend fun deleteEventsByWorkflow(workflowId: String): Boolean {
-        logger.debug { "删除指定工作流的所有事件: $workflowId" }
-        
-        return try {
-            val workflowDir = eventsDir.resolve("workflow").resolve(workflowId)
-            
-            if (!Files.exists(workflowDir)) {
-                return true
-            }
-            
-            withContext(Dispatchers.IO) {
-                Files.walk(workflowDir)
-                    .sorted(Comparator.reverseOrder())
-                    .forEach { Files.delete(it) }
-            }
-            
-            true
-        } catch (e: Exception) {
-            logger.error(e) { "删除指定工作流的所有事件失败: $workflowId" }
-            false
-        }
-    }
-    
-    override suspend fun deleteEventsByWorkflowRun(workflowId: String, runId: String): Boolean {
-        logger.debug { "删除指定工作流运行的所有事件: $workflowId, 运行ID: $runId" }
-        
-        return try {
-            val runDir = eventsDir.resolve("workflow").resolve(workflowId).resolve(runId)
-            
-            if (!Files.exists(runDir)) {
-                return true
-            }
-            
-            withContext(Dispatchers.IO) {
-                Files.walk(runDir)
-                    .sorted(Comparator.reverseOrder())
-                    .forEach { Files.delete(it) }
-            }
-            
-            true
-        } catch (e: Exception) {
-            logger.error(e) { "删除指定工作流运行的所有事件失败: $workflowId, 运行ID: $runId" }
-            false
-        }
-    }
-    
-    private fun getEventFilePath(event: Event): Path {
-        // 存储在多个位置以便于不同的查询
-        val paths = mutableListOf<Path>()
-        
-        // 按ID存储
-        paths.add(eventsDir.resolve("id").resolve("${event.id}.json"))
-        
-        // 按类型存储
-        paths.add(eventsDir.resolve("type").resolve(event.type).resolve("${event.id}.json"))
-        
-        // 如果有工作流ID和运行ID，按工作流和运行ID存储
-        val metadata = event.metadata
-        val workflowId = metadata["workflowId"] as? String
-        val runId = metadata["runId"] as? String
-        
-        if (workflowId != null) {
-            paths.add(eventsDir.resolve("workflow").resolve(workflowId).resolve("${event.id}.json"))
-            
-            if (runId != null) {
-                paths.add(eventsDir.resolve("workflow").resolve(workflowId).resolve(runId).resolve("${event.id}.json"))
-            }
-        }
-        
-        // 返回主存储路径
-        return paths.first()
     }
 }
 
@@ -552,11 +356,15 @@ class LocalFileDataStorage(
         }
     }
     
+    private fun getDataFilePath(collection: String, id: String): Path {
+        return dataDir.resolve(collection).resolve("$id.json")
+    }
+    
     override suspend fun storeData(collection: String, id: String, data: Map<String, Any?>): Boolean {
         logger.debug { "存储数据: 集合: $collection, ID: $id" }
         
         return try {
-            val dataJson = json.encodeToString(data)
+            val dataJson = LocalFileStorage.json.encodeToString(data)
             val filePath = getDataFilePath(collection, id)
             
             withContext(Dispatchers.IO) {
@@ -571,21 +379,6 @@ class LocalFileDataStorage(
         }
     }
     
-    override suspend fun storeDataBatch(collection: String, dataList: List<Pair<String, Map<String, Any?>>>): Boolean {
-        logger.debug { "批量存储数据: 集合: $collection, 数据数量: ${dataList.size}" }
-        
-        var success = true
-        
-        for ((id, data) in dataList) {
-            val result = storeData(collection, id, data)
-            if (!result) {
-                success = false
-            }
-        }
-        
-        return success
-    }
-    
     override suspend fun getData(collection: String, id: String): Map<String, Any?>? {
         logger.debug { "获取数据: 集合: $collection, ID: $id" }
         
@@ -593,7 +386,7 @@ class LocalFileDataStorage(
             val filePath = getDataFilePath(collection, id)
             
             if (!Files.exists(filePath)) {
-                logger.debug { "数据文件不存在: 集合: $collection, ID: $id" }
+                logger.debug { "数据文件不存在: $filePath" }
                 return null
             }
             
@@ -602,69 +395,11 @@ class LocalFileDataStorage(
             }
             
             @Suppress("UNCHECKED_CAST")
-            json.decodeFromString<Map<String, Any?>>(dataJson)
+            LocalFileStorage.json.decodeFromString<Map<String, Any?>>(dataJson)
         } catch (e: Exception) {
             logger.error(e) { "获取数据失败: 集合: $collection, ID: $id" }
             null
         }
-    }
-    
-    override suspend fun getAllData(collection: String, limit: Int, offset: Int): List<Pair<String, Map<String, Any?>>> {
-        logger.debug { "获取集合中的所有数据: 集合: $collection, 限制: $limit, 偏移: $offset" }
-        
-        return try {
-            val collectionDir = dataDir.resolve(collection)
-            
-            if (!Files.exists(collectionDir)) {
-                return emptyList()
-            }
-            
-            withContext(Dispatchers.IO) {
-                Files.list(collectionDir)
-                    .filter { Files.isRegularFile(it) }
-                    .skip(offset.toLong())
-                    .limit(limit.toLong())
-                    .map { 
-                        try {
-                            val id = it.fileName.toString().removeSuffix(".json")
-                            val dataJson = Files.readString(it)
-                            @Suppress("UNCHECKED_CAST")
-                            id to json.decodeFromString<Map<String, Any?>>(dataJson)
-                        } catch (e: Exception) {
-                            logger.error(e) { "解析数据文件失败: $it" }
-                            null
-                        }
-                    }
-                    .filter { it != null }
-                    .map { it!! }
-                    .toList()
-            }
-        } catch (e: Exception) {
-            logger.error(e) { "获取集合中的所有数据失败: 集合: $collection" }
-            emptyList()
-        }
-    }
-    
-    override suspend fun queryData(collection: String, query: Map<String, Any?>, limit: Int, offset: Int): List<Pair<String, Map<String, Any?>>> {
-        logger.debug { "查询数据: 集合: $collection, 查询: $query, 限制: $limit, 偏移: $offset" }
-        
-        // 简单实现，加载所有数据并在内存中过滤
-        // 实际应用中应该使用更高效的索引和查询机制
-        return try {
-            val allData = getAllData(collection, Int.MAX_VALUE, 0)
-            
-            allData.filter { (_, data) ->
-                matchesQuery(data, query)
-            }.drop(offset).take(limit)
-        } catch (e: Exception) {
-            logger.error(e) { "查询数据失败: 集合: $collection, 查询: $query" }
-            emptyList()
-        }
-    }
-    
-    override suspend fun updateData(collection: String, id: String, data: Map<String, Any?>): Boolean {
-        // 简单实现，直接覆盖现有数据
-        return storeData(collection, id, data)
     }
     
     override suspend fun deleteData(collection: String, id: String): Boolean {
@@ -673,52 +408,61 @@ class LocalFileDataStorage(
         return try {
             val filePath = getDataFilePath(collection, id)
             
-            withContext(Dispatchers.IO) {
+            val deleted = withContext(Dispatchers.IO) {
                 Files.deleteIfExists(filePath)
             }
+            
+            deleted
         } catch (e: Exception) {
             logger.error(e) { "删除数据失败: 集合: $collection, ID: $id" }
             false
         }
     }
     
-    override suspend fun deleteAllData(collection: String): Boolean {
-        logger.debug { "删除集合中的所有数据: 集合: $collection" }
+    override suspend fun queryData(collection: String, query: Map<String, Any?>, limit: Int): Flow<Map<String, Any?>> = flow {
+        logger.debug { "查询数据: 集合: $collection, 查询: $query, 限制: $limit" }
         
-        return try {
+        try {
             val collectionDir = dataDir.resolve(collection)
             
             if (!Files.exists(collectionDir)) {
-                return true
+                return@flow
             }
+            
+            var count = 0
             
             withContext(Dispatchers.IO) {
-                Files.walk(collectionDir)
-                    .sorted(Comparator.reverseOrder())
-                    .forEach { Files.delete(it) }
+                Files.list(collectionDir)
+                    .filter { Files.isRegularFile(it) && it.toString().endsWith(".json") }
+                    .forEach {
+                        if (count >= limit) return@forEach
+                        
+                        try {
+                            val dataJson = Files.readString(it)
+                            @Suppress("UNCHECKED_CAST")
+                            val data = LocalFileStorage.json.decodeFromString<Map<String, Any?>>(dataJson)
+                            
+                            // 简单的查询匹配
+                            var matches = true
+                            for ((key, value) in query) {
+                                if (data[key] != value) {
+                                    matches = false
+                                    break
+                                }
+                            }
+                            
+                            if (matches) {
+                                count++
+                                emit(data)
+                            }
+                        } catch (e: Exception) {
+                            logger.error(e) { "解析数据文件失败: $it" }
+                        }
+                    }
             }
-            
-            true
         } catch (e: Exception) {
-            logger.error(e) { "删除集合中的所有数据失败: 集合: $collection" }
-            false
+            logger.error(e) { "查询数据失败: 集合: $collection" }
         }
-    }
-    
-    private fun getDataFilePath(collection: String, id: String): Path {
-        return dataDir.resolve(collection).resolve("$id.json")
-    }
-    
-    private fun matchesQuery(data: Map<String, Any?>, query: Map<String, Any?>): Boolean {
-        for ((key, value) in query) {
-            val dataValue = data[key]
-            
-            if (dataValue != value) {
-                return false
-            }
-        }
-        
-        return true
     }
 }
 
@@ -729,16 +473,3 @@ class LocalFileDataStorage(
 data class EventWrapper(
     val event: Event
 )
-
-/**
- * 简单事件实现。
- */
-@kotlinx.serialization.Serializable
-data class SimpleEvent(
-    override val id: String = UUID.randomUUID().toString(),
-    override val type: String,
-    override val timestamp: Long = Instant.now().toEpochMilli(),
-    override val source: String,
-    override val data: Map<String, Any?>,
-    override val metadata: Map<String, Any?>
-) : Event
