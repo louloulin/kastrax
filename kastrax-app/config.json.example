@@ -4,8 +4,7 @@
     "openai": "your-openai-api-key",
     "anthropic": "your-anthropic-api-key",
     "google": "your-google-api-key",
-    "azure_openai": "your-azure-openai-api-key",
-    "deepseek": "your-deepseek-api-key"
+    "azure_openai": "your-azure-openai-api-key"
   },
   "serverConfig": {
     "port": 8080,
@@ -13,7 +12,7 @@
     "enableCors": true
   },
   "agentConfig": {
-    "defaultModel": "deepseek-chat",
+    "defaultModel": "gpt-4",
     "temperature": 0.7,
     "maxTokens": 1000
   },

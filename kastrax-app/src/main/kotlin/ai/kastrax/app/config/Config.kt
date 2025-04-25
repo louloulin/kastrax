@@ -47,7 +47,7 @@ data class ToolConfig(
 
 /**
  * 加载应用程序配置。
- *
+ * 
  * 配置加载顺序：
  * 1. 默认配置
  * 2. 配置文件 (config.json)
@@ -56,7 +56,7 @@ data class ToolConfig(
 fun loadConfig(): AppConfig {
     // 默认配置
     var config = AppConfig()
-
+    
     try {
         // 从配置文件加载
         val configFile = File("config.json")
@@ -67,51 +67,50 @@ fun loadConfig(): AppConfig {
         } else {
             logger.info { "配置文件 config.json 不存在，使用默认配置" }
         }
-
+        
         // 从环境变量加载 API 密钥
         val apiKeys = mutableMapOf<String, String>()
         apiKeys.putAll(config.apiKeys)
-
+        
         // 常见的 API 密钥环境变量
         val keyMappings = mapOf(
             "OPENAI_API_KEY" to "openai",
             "ANTHROPIC_API_KEY" to "anthropic",
             "GOOGLE_API_KEY" to "google",
-            "AZURE_OPENAI_API_KEY" to "azure_openai",
-            "DEEPSEEK_API_KEY" to "deepseek"
+            "AZURE_OPENAI_API_KEY" to "azure_openai"
         )
-
+        
         for ((envVar, keyName) in keyMappings) {
             System.getenv(envVar)?.let { apiKey ->
                 logger.info { "从环境变量加载 $keyName API 密钥" }
                 apiKeys[keyName] = apiKey
             }
         }
-
+        
         // 更新配置
         config = config.copy(apiKeys = apiKeys)
-
+        
         // 从 .env 文件加载（如果存在）
         val envFile = File(".env")
         if (envFile.exists()) {
             logger.info { "从 .env 文件加载环境变量" }
             val properties = Properties()
             FileReader(envFile).use { properties.load(it) }
-
+            
             for ((envVar, keyName) in keyMappings) {
                 properties.getProperty(envVar)?.let { apiKey ->
                     logger.info { "从 .env 文件加载 $keyName API 密钥" }
                     apiKeys[keyName] = apiKey
                 }
             }
-
+            
             // 更新配置
             config = config.copy(apiKeys = apiKeys)
         }
-
+        
     } catch (e: Exception) {
         logger.error(e) { "加载配置时发生错误，使用默认配置" }
     }
-
+    
     return config
 }

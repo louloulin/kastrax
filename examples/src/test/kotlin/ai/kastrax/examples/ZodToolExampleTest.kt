@@ -8,6 +8,8 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 import kotlin.test.assertFalse
+// 导入 unsafeCast 扩展函数
+import ai.kastrax.examples.unsafeCast
 
 /**
  * ZodTool 示例测试。

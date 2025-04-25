@@ -5,11 +5,8 @@ import ai.kastrax.app.agents.assistantAgent
 import ai.kastrax.app.agents.expertAgent
 import ai.kastrax.app.config.loadConfig
 import ai.kastrax.app.constants.AgentIds
-import ai.kastrax.core.agent.AgentGenerateOptions
 import ai.kastrax.integrations.deepseek.DeepSeekException
 import io.github.oshai.kotlinlogging.KotlinLogging
-import kotlinx.coroutines.runBlocking
-import java.util.Scanner
 
 private val logger = KotlinLogging.logger {}
 
@@ -30,10 +27,6 @@ val kastraxInstance = kastrax {
  * KastraX 应用程序入口点。
  */
 fun main(args: Array<String>) {
-    // 设置 UTF-8 编码，确保中文正确显示
-    System.setProperty("file.encoding", System.getenv("FILE_ENCODING") ?: "UTF-8")
-    System.setProperty("sun.jnu.encoding", System.getenv("SUN_JNU_ENCODING") ?: "UTF-8")
-
     logger.info { "启动 KastraX 应用程序..." }
 
     try {
@@ -49,21 +42,9 @@ fun main(args: Array<String>) {
 
         // 如果有命令行参数，可以在这里处理
         if (args.isNotEmpty()) {
-            when {
-                args[0] == "server" -> startServer()
-                args[0] == "cli" -> startCli()
-                args[0].contains("SimpleExample") -> {
-                    // 运行 SimpleExample
-                    println("KastraX 简单示例应用程序")
-                    println("========================")
-                    startCli() // 直接启动 CLI 模式
-                }
-                args[0].contains("DeepSeekTest") -> {
-                    // 运行 DeepSeekTest
-                    println("DeepSeek 测试")
-                    println("========================")
-                    startCli() // 直接启动 CLI 模式
-                }
+            when (args[0]) {
+                "server" -> startServer()
+                "cli" -> startCli()
                 else -> printHelp()
             }
         }
@@ -90,87 +71,7 @@ private fun startServer() {
  */
 private fun startCli() {
     logger.info { "启动命令行界面模式..." }
-
-    // 简单的命令行界面实现
-    println("欢迎使用 KastraX CLI 模式")
-    println("输入 'exit' 退出")
-    println()
-
-    // 获取代理
-    val assistantAgent = kastraxInstance.getAgent("assistant")
-    val expertAgent = kastraxInstance.getAgent("expert")
-
-    // 使用 Scanner 进行输入处理，更可靠地等待用户输入
-    val scanner = Scanner(System.`in`)
-
-    // 交互循环
-    var running = true
-    while (running) {
-        try {
-            // 使用 System.out 而不是 print()
-            System.out.print("输入问题 (使用 'assistant' 或 'expert'): ")
-            System.out.flush() // 确保提示立即显示
-
-            // 使用 Scanner 等待并读取整行输入
-            // nextLine() 会阻塞直到用户按下回车键
-            if (!scanner.hasNextLine()) {
-                // 如果没有下一行，可能是输入流已经关闭
-                break
-            }
-
-            val input = scanner.nextLine().trim()
-
-            if (input.equals("exit", ignoreCase = true)) {
-                running = false
-                println("再见！")
-                break // 确保立即退出循环
-            } else if (input.isNotBlank()) {
-                val parts = input.split(":", limit = 2)
-                val agentType = parts[0].trim().lowercase()
-                val question = if (parts.size > 1) parts[1].trim() else ""
-
-                if (question.isBlank()) {
-                    println("请输入问题，格式为 'agent类型: 问题'")
-                    println("例如: 'assistant: 计算 15 * 7 的结果是多少？'")
-                    continue
-                }
-
-                val agent = when (agentType) {
-                    "assistant" -> assistantAgent
-                    "expert" -> expertAgent
-                    else -> {
-                        println("未知代理类型: $agentType，请使用 'assistant' 或 'expert'")
-                        continue
-                    }
-                }
-
-                println("正在生成回答...")
-                // 使用 runBlocking 来调用 suspend 函数
-                val response = runBlocking {
-                    agent.generate(
-                        question,
-                        AgentGenerateOptions(temperature = 0.7, maxTokens = 1000)
-                    )
-                }
-                println("回答: ${response.text}")
-            }
-        } catch (e: DeepSeekException) {
-            println("DeepSeek API 错误: ${e.message}")
-            println("请检查 API 密钥是否正确，或者尝试增加超时时间")
-        } catch (e: Exception) {
-            println("发生错误: ${e.message}")
-            e.printStackTrace()
-            // 如果是致命错误，退出循环
-            if (e is InterruptedException || e is ThreadDeath || e is OutOfMemoryError) {
-                running = false
-                break
-            }
-        }
-        println() // 添加空行分隔
-    }
-
-    // 关闭 Scanner
-    scanner.close()
+    // 在这里实现命令行界面逻辑
 }
 
 /**

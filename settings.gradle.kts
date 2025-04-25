@@ -27,7 +27,8 @@ include(":kastrax-integrations:kastrax-openai")
 include(":kastrax-integrations:kastrax-deepseek")
 include(":kastrax-integrations:kastrax-anthropic")
 include(":kastrax-integrations:kastrax-gemini")
-
+// 暂时禁用 MCP 模块，因为它仍在开发中
+// include(":kastrax-mcp")
 // Data Source modules
 include(":kastrax-datasource-common")
 include(":kastrax-datasource")

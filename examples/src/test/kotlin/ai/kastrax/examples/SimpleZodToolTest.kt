@@ -5,6 +5,8 @@ import ai.kastrax.zod.*
 import kotlinx.coroutines.runBlocking
 import kotlin.test.Test
 import kotlin.test.assertEquals
+// 导入 unsafeCast 扩展函数
+import ai.kastrax.examples.unsafeCast
 
 /**
  * Simple ZodTool test.
