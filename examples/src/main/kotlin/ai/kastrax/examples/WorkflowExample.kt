@@ -2,7 +2,8 @@ package ai.kastrax.examples
 
 import ai.kastrax.core.agent.agent
 import ai.kastrax.core.workflow.workflow
-import ai.kastrax.integrations.openai.openAi
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import ai.kastrax.integrations.deepseek.deepSeek
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.runBlocking
 
@@ -12,11 +13,12 @@ import kotlinx.coroutines.runBlocking
  * 这个示例展示了如何使用工作流引擎创建一个内容创作流程，包括研究、写作和编辑三个步骤。
  */
 fun main() = runBlocking {
-    // 创建 OpenAI 提供者
-    val openai = openAi(
-        model = "gpt-3.5-turbo"
-        // API 密钥从环境变量 OPENAI_API_KEY 获取
-    )
+    // 创建 DeepSeek 提供者
+    val deepseek = deepSeek {
+        model(DeepSeekModel.DEEPSEEK_CHAT)
+        // 显式设置 API 密钥
+        apiKey("sk-85e83081df28490b9ae63188f0cb4f79")
+    }
 
     // 创建研究代理
     val researchAgent = agent {
@@ -31,7 +33,7 @@ fun main() = runBlocking {
             3. 相关数据和统计
             4. 趋势和发展方向
         """.trimIndent()
-        model = openai
+        model = deepseek
     }
 
     // 创建写作代理
@@ -47,7 +49,7 @@ fun main() = runBlocking {
             3. 正文（分段）
             4. 结论
         """.trimIndent()
-        model = openai
+        model = deepseek
     }
 
     // 创建编辑代理
@@ -60,7 +62,7 @@ fun main() = runBlocking {
             输出格式：
             - 编辑后的完整文章
         """.trimIndent()
-        model = openai
+        model = deepseek
     }
 
     // 创建内容创作工作流

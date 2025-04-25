@@ -8,7 +8,8 @@ import ai.kastrax.rag.document.WebPageDocumentLoader
 import ai.kastrax.rag.embedding.OpenAIEmbeddingService
 import ai.kastrax.rag.embedding.RandomEmbeddingService
 import ai.kastrax.rag.vectorstore.RagInMemoryVectorStore
-import ai.kastrax.integrations.openai.openAi
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import ai.kastrax.integrations.deepseek.deepSeek
 import kotlinx.coroutines.runBlocking
 import java.io.File
 
@@ -65,11 +66,12 @@ fun main() = runBlocking {
         }
     }
 
-    // 创建 OpenAI 提供者
-    val openai = openAi(
-        model = "gpt-3.5-turbo"
-        // API 密钥从环境变量 OPENAI_API_KEY 获取
-    )
+    // 创建 DeepSeek 提供者
+    val deepseek = deepSeek {
+        model(DeepSeekModel.DEEPSEEK_CHAT)
+        // 显式设置 API 密钥
+        apiKey("sk-85e83081df28490b9ae63188f0cb4f79")
+    }
 
     // 创建 RAG 代理
     val ragAgent = agent {
@@ -90,7 +92,7 @@ fun main() = runBlocking {
             用户问题：
             {{question}}
         """.trimIndent()
-        model = openai
+        model = deepseek
     }
 
     // 使用 RAG 系统回答问题

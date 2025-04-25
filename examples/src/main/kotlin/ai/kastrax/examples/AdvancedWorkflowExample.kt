@@ -4,7 +4,8 @@ import ai.kastrax.core.agent.agent
 import ai.kastrax.core.tools.Tool
 import ai.kastrax.core.tools.zodTool
 import ai.kastrax.core.workflow.workflow
-import ai.kastrax.integrations.openai.openAi
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import ai.kastrax.integrations.deepseek.deepSeek
 import ai.kastrax.zod.*
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.runBlocking
@@ -27,11 +28,12 @@ inline fun <reified T, reified R> Schema<*, *>.unsafeCast(): Schema<T, R> = this
  * 包括数据收集、数据分析、可视化建议和报告生成四个步骤。
  */
 fun main() = runBlocking {
-    // 创建 OpenAI 提供者
-    val openai = openAi(
-        model = "gpt-4"
-        // API 密钥从环境变量 OPENAI_API_KEY 获取
-    )
+    // 创建 DeepSeek 提供者
+    val deepseek = deepSeek {
+        model(DeepSeekModel.DEEPSEEK_CHAT)
+        // 显式设置 API 密钥
+        apiKey("sk-85e83081df28490b9ae63188f0cb4f79")
+    }
 
     // 创建文件读取工具
     val readFileTool = zodTool<String, String> {
@@ -88,7 +90,7 @@ fun main() = runBlocking {
             2. 收集的数据（表格或列表形式）
             3. 数据来源
         """.trimIndent()
-        model = openai
+        model = deepseek
 
         tools {
             tool(readFileTool.toTool())
@@ -112,7 +114,7 @@ fun main() = runBlocking {
             2. 详细分析结果
             3. 关键发现和见解
         """.trimIndent()
-        model = openai
+        model = deepseek
     }
 
     // 创建可视化建议代理
@@ -131,7 +133,7 @@ fun main() = runBlocking {
             2. 详细的图表建议（每种图表单独描述）
             3. 整体设计建议
         """.trimIndent()
-        model = openai
+        model = deepseek
     }
 
     // 创建报告生成代理
@@ -153,7 +155,7 @@ fun main() = runBlocking {
             输出格式：
             - 完整的报告，包含所有章节和小节
         """.trimIndent()
-        model = openai
+        model = deepseek
 
         tools {
             tool(writeFileTool.toTool())
