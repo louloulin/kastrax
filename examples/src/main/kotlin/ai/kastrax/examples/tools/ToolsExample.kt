@@ -1,7 +1,8 @@
 package ai.kastrax.examples.tools
 
 import ai.kastrax.core.agent.agent
-import ai.kastrax.integrations.openai.openAi
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import ai.kastrax.integrations.deepseek.deepSeek
 import ai.kastrax.core.tools.ToolFactory
 import ai.kastrax.core.tools.web.WebSearchTool
 import kotlinx.coroutines.runBlocking
@@ -47,36 +48,44 @@ fun main() = runBlocking {
                 始终以友好、专业的方式回应用户。
             """.trimIndent()
 
-            model = openAi("gpt-4o")
+            model = deepSeek {
+                model(DeepSeekModel.DEEPSEEK_CHAT)
+                // 显式设置 API 密钥
+                apiKey("sk-85e83081df28490b9ae63188f0cb4f79")
+            }
 
+            // 添加工具
             tools {
-                add(webSearchTool)
-                add(fileSystemTool)
+                tool(webSearchTool)
+                tool(fileSystemTool)
             }
         }
 
         // 使用代理
         println("\n开始与代理交互...")
 
-        // 搜索信息
-        val searchResponse = researchAgent.generate("搜索关于 Kotlin 协程的信息")
-        println("\n用户: 搜索关于 Kotlin 协程的信息")
-        println("代理: ${searchResponse.text}")
+        // 定义示例问题列表，而不是依赖用户输入
+        val exampleQuestions = listOf(
+            "搜索关于 Kotlin 协程的信息",
+            "将 Kotlin 协程的基本概念保存到 kotlin-coroutines.txt 文件中",
+            "读取 kotlin-coroutines.txt 文件的内容",
+            "列出当前目录中的所有文件"
+        )
 
-        // 保存信息到文件
-        val saveResponse = researchAgent.generate("将 Kotlin 协程的基本概念保存到 kotlin-coroutines.txt 文件中")
-        println("\n用户: 将 Kotlin 协程的基本概念保存到 kotlin-coroutines.txt 文件中")
-        println("代理: ${saveResponse.text}")
+        println("\n正在使用示例问题进行演示...")
 
-        // 读取文件
-        val readResponse = researchAgent.generate("读取 kotlin-coroutines.txt 文件的内容")
-        println("\n用户: 读取 kotlin-coroutines.txt 文件的内容")
-        println("代理: ${readResponse.text}")
+        // 使用示例问题而不是用户输入
+        for (question in exampleQuestions) {
+            println("\n示例问题: $question")
+            println("思考中...")
 
-        // 列出目录
-        val listResponse = researchAgent.generate("列出当前目录中的所有文件")
-        println("\n用户: 列出当前目录中的所有文件")
-        println("代理: ${listResponse.text}")
+            try {
+                val response = researchAgent.generate(question)
+                println("代理: ${response.text}")
+            } catch (e: Exception) {
+                println("错误: ${e.message}")
+            }
+        }
 
     } finally {
         // 清理临时目录

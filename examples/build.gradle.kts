@@ -58,7 +58,9 @@ sourceSets {
                 "**/DeepSeekStreamingExample.kt",
                 "**/DeepSeekDirectStreamingExample.kt",
                 "**/MemoryAgentExample.kt",
-                "**/MemorySystemExample.kt"
+                "**/MemorySystemExample.kt",
+                "**/SimpleZodToolExample.kt",
+                "**/tools/ToolsExample.kt"
             )
         }
     }
@@ -85,7 +87,8 @@ val examples = listOf(
     "DeepSeekStreamingExample",
     "DeepSeekDirectStreamingExample",
     "MemoryAgentExample",
-    "MemorySystemExample"
+    "MemorySystemExample",
+    "SimpleZodToolExample"
 )
 
 // 为每个示例创建运行任务
@@ -104,6 +107,22 @@ examples.forEach { example ->
         environment("OPENAI_API_KEY", System.getenv("OPENAI_API_KEY") ?: "")
         environment("DEEPSEEK_API_KEY", System.getenv("DEEPSEEK_API_KEY") ?: "")
     }
+}
+
+// 为 ToolsExample 创建运行任务
+tasks.register<JavaExec>("runToolsExample") {
+    group = "examples"
+    description = "Run the ToolsExample example"
+
+    classpath = sourceSets["main"].runtimeClasspath
+    mainClass.set("ai.kastrax.examples.tools.ToolsExampleKt")
+
+    // 添加 JVM 参数
+    jvmArgs = listOf("-Xms512m", "-Xmx1g")
+
+    // 确保示例可以访问环境变量
+    environment("OPENAI_API_KEY", System.getenv("OPENAI_API_KEY") ?: "")
+    environment("DEEPSEEK_API_KEY", System.getenv("DEEPSEEK_API_KEY") ?: "")
 }
 
 // 创建一个任务来列出所有可用的示例
@@ -138,6 +157,8 @@ tasks.register("compileFixedExamples") {
         println("- DeepSeekDirectStreamingExample.kt")
         println("- MemoryAgentExample.kt")
         println("- MemorySystemExample.kt")
+        println("- SimpleZodToolExample.kt")
+        println("- tools/ToolsExample.kt")
     }
 }
 
