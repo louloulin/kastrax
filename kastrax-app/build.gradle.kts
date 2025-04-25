@@ -24,6 +24,7 @@ dependencies {
     // KastraX 集成
     implementation(project(":kastrax-integrations:kastrax-openai"))
     implementation(project(":kastrax-integrations:kastrax-anthropic"))
+    implementation(project(":kastrax-integrations:kastrax-deepseek"))
 
     // 日志
     implementation("io.github.oshai:kotlin-logging-jvm:5.1.0")

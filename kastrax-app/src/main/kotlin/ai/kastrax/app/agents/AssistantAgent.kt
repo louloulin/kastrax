@@ -1,7 +1,8 @@
 package ai.kastrax.app.agents
 
 import ai.kastrax.core.agent.agent
-import ai.kastrax.integrations.openai.openAi
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
 import ai.kastrax.app.constants.AgentIds
 import ai.kastrax.app.tools.calculatorTool
 import ai.kastrax.app.tools.weatherTool
@@ -29,7 +30,16 @@ val assistantAgent = agent {
     """.trimIndent()
 
     // 设置模型
-    model = openAi("gpt-4")
+    model = deepSeek {
+        model(DeepSeekModel.DEEPSEEK_CHAT)
+        // 显式设置 API 密钥，并确保其格式正确
+        apiKey(System.getenv("DEEPSEEK_API_KEY")?.trim() ?: "sk-85e83081df28490b9ae63188f0cb4f79".trim())
+        // 增加超时时间，防止复杂请求超时
+        timeout(120) // 120秒
+        // 设置温度和最大令牌数
+        temperature(0.7)
+        maxTokens(1000)
+    }
 
     // 添加工具
     tools {

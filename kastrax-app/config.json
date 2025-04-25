@@ -5,7 +5,7 @@
     "anthropic": "your-anthropic-api-key",
     "google": "your-google-api-key",
     "azure_openai": "your-azure-openai-api-key",
-    "deepseek": "your-deepseek-api-key"
+    "deepseek": "sk-85e83081df28490b9ae63188f0cb4f79"
   },
   "serverConfig": {
     "port": 8080,
