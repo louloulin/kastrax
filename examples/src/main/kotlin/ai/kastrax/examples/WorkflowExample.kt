@@ -132,24 +132,58 @@ fun main() = runBlocking {
 
     // 执行工作流并获取结果
     val options = WorkflowExecuteOptions(
-        timeout = 10.minutes.inWholeMilliseconds // 设置 10 分钟超时
+        timeout = 30.minutes.inWholeMilliseconds // 增加超时时间到 30 分钟
     )
-    val result = contentCreationWorkflow.execute(input, options)
 
-    if (result.success) {
+    println("=== 内容创作工作流示例 ===")
+    println("正在执行工作流...")
+
+    // 使用流式执行显示进度
+    var workflowResult: Map<String, Any?> = emptyMap()
+    var workflowSuccess = false
+
+    contentCreationWorkflow.streamExecute(input, options).collect { update ->
+        when (update.status) {
+            ai.kastrax.core.workflow.WorkflowStatus.STARTED -> {
+                println("工作流开始执行")
+            }
+            ai.kastrax.core.workflow.WorkflowStatus.IN_PROGRESS -> {
+                println("正在执行: ${update.stepId} (${update.progress}%)")
+                if (update.result != null) {
+                    println("步骤完成: ${update.stepId}")
+                    // 收集步骤结果
+                    val stepId = update.stepId ?: ""
+                    val result = update.result
+                    if (stepId.isNotEmpty() && result != null) {
+                        val text = result.output["text"]
+                        workflowResult = workflowResult + (stepId to text)
+                    }
+                }
+            }
+            ai.kastrax.core.workflow.WorkflowStatus.COMPLETED -> {
+                println("工作流执行完成 (100%)")
+                workflowSuccess = true
+                // 工作流已经完成，使用已收集的结果
+            }
+            ai.kastrax.core.workflow.WorkflowStatus.FAILED -> {
+                println("工作流执行失败: ${update.message}")
+            }
+        }
+    }
+
+    // 如果工作流成功完成，显示结果
+    if (workflowSuccess) {
         println("\n=== 工作流执行结果 ===")
         println("研究结果:")
         println("----------")
-        println(result.steps["research"]?.output?.get("text"))
+        println(workflowResult["research"])
 
         println("\n文章草稿:")
         println("----------")
-        println(result.steps["writing"]?.output?.get("text"))
+        println(workflowResult["writing"])
 
         println("\n最终文章:")
         println("----------")
-        println(result.steps["editing"]?.output?.get("text"))
-    } else {
-        println("\n工作流执行失败: ${result.error}")
+        println(workflowResult["editing"])
     }
 }

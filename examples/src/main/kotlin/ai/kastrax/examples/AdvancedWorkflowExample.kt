@@ -38,26 +38,37 @@ fun main() = runBlocking {
     }
 
     // 创建文件读取工具
-    val readFileTool = zodTool<String, String> {
+    val readFileTool = zodTool<Map<String, Any?>, String> {
         id = "read_file"
         name = "Read File"
         description = "Reads the content of a file"
 
-        inputSchema = stringInput("File path to read").unsafeCast<String, String>()
+        inputSchema = objectInput("File path") {
+            stringField("file_path", "File path to read")
+        }.unsafeCast<Map<String, Any?>, Map<String, Any?>>()
+
         outputSchema = stringOutput("File content").unsafeCast<String, String>()
 
-        execute = { filePath ->
+        execute = { params ->
             try {
-                // 增加日志输出以调试
-                println("Reading file: $filePath (type: ${filePath.javaClass})")
+                // 获取文件路径参数
+                val filePathParam = params["file_path"]
+                println("Reading file parameter: $filePathParam (type: ${filePathParam?.javaClass})")
 
                 // 处理不同类型的输入
-                val path = when (filePath) {
-                    is String -> filePath
-                    else -> filePath.toString()
+                val filePath = when (filePathParam) {
+                    is String -> filePathParam
+                    is Map<*, *> -> filePathParam["value"]?.toString() ?: ""
+                    else -> filePathParam?.toString() ?: ""
                 }
 
-                File(path).readText()
+                println("Resolved file path: $filePath")
+
+                if (filePath.isEmpty()) {
+                    "Error: Empty file path"
+                } else {
+                    File(filePath).readText()
+                }
             } catch (e: Exception) {
                 println("Error reading file: ${e.message}")
                 "Error reading file: ${e.message}"
@@ -254,7 +265,7 @@ fun main() = runBlocking {
 
     // 流式执行并显示进度
     val options = WorkflowExecuteOptions(
-        timeout = 10.minutes.inWholeMilliseconds // 设置 10 分钟超时
+        timeout = 30.minutes.inWholeMilliseconds // 增加超时时间到 30 分钟
     )
     dataAnalysisWorkflow.streamExecute(input, options).collect { update ->
         when (update.status) {
