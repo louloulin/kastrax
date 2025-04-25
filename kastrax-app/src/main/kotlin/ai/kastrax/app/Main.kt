@@ -9,6 +9,7 @@ import ai.kastrax.core.agent.AgentGenerateOptions
 import ai.kastrax.integrations.deepseek.DeepSeekException
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.runBlocking
+import java.util.Scanner
 
 private val logger = KotlinLogging.logger {}
 
@@ -87,16 +88,30 @@ private fun startCli() {
     val assistantAgent = kastraxInstance.getAgent("assistant")
     val expertAgent = kastraxInstance.getAgent("expert")
 
+    // 使用 Scanner 进行输入处理，更可靠地等待用户输入
+    val scanner = Scanner(System.`in`)
+
     // 交互循环
     var running = true
     while (running) {
         try {
-            print("输入问题 (使用 'assistant' 或 'expert'): ")
-            val input = readLine() ?: ""
+            // 使用 System.out 而不是 print()
+            System.out.print("输入问题 (使用 'assistant' 或 'expert'): ")
+            System.out.flush() // 确保提示立即显示
+
+            // 使用 Scanner 等待并读取整行输入
+            // nextLine() 会阻塞直到用户按下回车键
+            if (!scanner.hasNextLine()) {
+                // 如果没有下一行，可能是输入流已经关闭
+                break
+            }
+
+            val input = scanner.nextLine().trim()
 
             if (input.equals("exit", ignoreCase = true)) {
                 running = false
                 println("再见！")
+                break // 确保立即退出循环
             } else if (input.isNotBlank()) {
                 val parts = input.split(":", limit = 2)
                 val agentType = parts[0].trim().lowercase()
@@ -133,9 +148,17 @@ private fun startCli() {
         } catch (e: Exception) {
             println("发生错误: ${e.message}")
             e.printStackTrace()
+            // 如果是致命错误，退出循环
+            if (e is InterruptedException || e is ThreadDeath || e is OutOfMemoryError) {
+                running = false
+                break
+            }
         }
-        println()
+        println() // 添加空行分隔
     }
+
+    // 关闭 Scanner
+    scanner.close()
 }
 
 /**
