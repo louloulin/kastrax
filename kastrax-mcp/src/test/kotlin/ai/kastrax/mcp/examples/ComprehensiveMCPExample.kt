@@ -70,9 +70,9 @@ fun main() = runBlocking {
             description = "用于生成搜索结果的提示"
             content = """
                 关于"{{keyword}}"的搜索结果：
-                
+
                 {{result}}
-                
+
                 希望这对您有所帮助！
             """.trimIndent()
         }
@@ -96,7 +96,7 @@ fun main() = runBlocking {
             handler { params ->
                 val city = params["city"] as? String ?: "未知城市"
                 println("执行get_weather工具，城市: $city")
-                
+
                 "${city}的天气情况：\n温度：25°C\n天气状况：晴天\n湿度：60%"
             }
         }
@@ -120,7 +120,7 @@ fun main() = runBlocking {
             handler { params ->
                 val query = params["query"] as? String ?: "未知查询"
                 println("执行search工具，查询: $query")
-                
+
                 "关于\"${query}\"的搜索结果：\n\n人工智能（AI）是计算机科学的一个分支，致力于创建能够执行通常需要人类智能的任务的系统。\n\n希望这对您有所帮助！"
             }
         }
@@ -144,7 +144,7 @@ fun main() = runBlocking {
             handler { params ->
                 val expression = params["expression"] as? String ?: "0"
                 println("执行calculator工具，表达式: $expression")
-                
+
                 try {
                     // 使用简单的表达式求值
                     val result = javax.script.ScriptEngineManager().getEngineByName("JavaScript").eval(expression) as Double
@@ -258,5 +258,11 @@ fun main() = runBlocking {
         client.disconnect()
         server.stop()
         println("已停止MCP服务器和客户端")
+
+        // 添加一个延迟，确保所有资源都被释放
+        kotlinx.coroutines.delay(1000)
+
+        // 强制退出程序
+        kotlin.system.exitProcess(0)
     }
 }

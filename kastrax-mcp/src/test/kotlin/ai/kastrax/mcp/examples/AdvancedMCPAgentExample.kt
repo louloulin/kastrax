@@ -99,19 +99,19 @@ fun main() = runBlocking {
             description = "用于生成城市信息报告的模板"
             content = """
                 {{city}}城市信息报告：
-                
+
                 国家：{{country}}
                 人口：{{population}}人
                 面积：{{area}}平方公里
-                
+
                 著名地标：
                 {{landmarks}}
-                
+
                 当前天气：
                 温度：{{temperature}}°C
                 天气状况：{{condition}}
                 湿度：{{humidity}}%
-                
+
                 希望这些信息对您有所帮助！
             """.trimIndent()
         }
@@ -121,12 +121,12 @@ fun main() = runBlocking {
             description = "用于生成主题信息报告的模板"
             content = """
                 关于"{{topic}}"的信息：
-                
+
                 定义：
                 {{definition}}
-                
+
                 {{additional_info}}
-                
+
                 希望这些信息对您有所帮助！
             """.trimIndent()
         }
@@ -157,7 +157,7 @@ fun main() = runBlocking {
                 val topic = params["topic"] as? String ?: "未知主题"
                 val aspect = params["aspect"] as? String
                 println("执行query_knowledge工具，主题: $topic, 方面: $aspect")
-                
+
                 "关于${topic}的信息：人工智能是计算机科学的一个分支，致力于创建能够执行通常需要人类智能的任务的系统。"
             }
         }
@@ -188,7 +188,7 @@ fun main() = runBlocking {
                 val city = params["city"] as? String ?: "未知城市"
                 val infoType = params["info_type"] as? String
                 println("执行city_info工具，城市: $city, 信息类型: $infoType")
-                
+
                 "${city}城市信息报告：\n国家：中国\n人口：21540000人\n面积：16410平方公里\n著名地标：故宫、长城、天坛、颐和园"
             }
         }
@@ -212,7 +212,7 @@ fun main() = runBlocking {
             handler { params ->
                 val expression = params["expression"] as? String ?: "0"
                 println("执行calculator工具，表达式: $expression")
-                
+
                 try {
                     // 使用简单的表达式求值
                     val result = javax.script.ScriptEngineManager().getEngineByName("JavaScript").eval(expression) as Double
@@ -292,5 +292,11 @@ fun main() = runBlocking {
         client.disconnect()
         server.stop()
         println("已停止MCP服务器和客户端")
+
+        // 添加一个延迟，确保所有资源都被释放
+        kotlinx.coroutines.delay(1000)
+
+        // 强制退出程序
+        kotlin.system.exitProcess(0)
     }
 }

@@ -87,6 +87,27 @@ tasks.register<JavaExec>("runCustomTransportMCPExample") {
     mainClass.set("ai.kastrax.mcp.examples.CustomTransportMCPExampleKt")
 }
 
+tasks.register<JavaExec>("runWeatherApiMCPExample") {
+    group = "examples"
+    description = "Run the WeatherApiMCPExample"
+    classpath = sourceSets["test"].runtimeClasspath
+    mainClass.set("ai.kastrax.mcp.examples.WeatherApiMCPExampleKt")
+}
+
+tasks.register<JavaExec>("runPublicApiMCPExample") {
+    group = "examples"
+    description = "Run the PublicApiMCPExample"
+    classpath = sourceSets["test"].runtimeClasspath
+    mainClass.set("ai.kastrax.mcp.examples.PublicApiMCPExampleKt")
+}
+
+tasks.register<JavaExec>("runRemoteMCPExample") {
+    group = "examples"
+    description = "Run the RemoteMCPExample"
+    classpath = sourceSets["test"].runtimeClasspath
+    mainClass.set("ai.kastrax.mcp.examples.RemoteMCPExampleKt")
+}
+
 tasks.dokkaHtml {
     outputDirectory.set(file("$buildDir/dokka"))
 }

@@ -88,5 +88,11 @@ fun main() = runBlocking {
         client.disconnect()
         server.stop()
         println("已停止MCP服务器和客户端")
+
+        // 添加一个延迟，确保所有资源都被释放
+        kotlinx.coroutines.delay(1000)
+
+        // 强制退出程序
+        kotlin.system.exitProcess(0)
     }
 }
