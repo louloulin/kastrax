@@ -49,18 +49,21 @@ sourceSets {
         kotlin {
             // 只包含已修复的文件
             include(
-                "**/AdvancedWorkflowExample.kt",
-                "**/RAGExample.kt",
-                "**/RAGWorkflowExample.kt",
-                "**/WorkflowExample.kt",
-                "**/FastEmbedRAGExample.kt",
                 "**/DeepSeekExample.kt",
                 "**/DeepSeekStreamingExample.kt",
                 "**/DeepSeekDirectStreamingExample.kt",
                 "**/MemoryAgentExample.kt",
                 "**/MemorySystemExample.kt",
                 "**/SimpleZodToolExample.kt",
-                "**/tools/ToolsExample.kt",
+                "**/tools/ToolsExample.kt"
+            )
+            // 排除有问题的文件
+            exclude(
+                "**/AdvancedWorkflowExample.kt",
+                "**/RAGExample.kt",
+                "**/RAGWorkflowExample.kt",
+                "**/WorkflowExample.kt",
+                "**/FastEmbedRAGExample.kt",
                 "**/agent/AgentNetworkExample.kt"
             )
         }
@@ -79,18 +82,12 @@ sourceSets {
 
 // 定义示例应用
 val examples = listOf(
-    "AdvancedWorkflowExample",
-    "RAGExample",
-    "RAGWorkflowExample",
-    "WorkflowExample",
-    "FastEmbedRAGExample",
     "DeepSeekExample",
     "DeepSeekStreamingExample",
     "DeepSeekDirectStreamingExample",
     "MemoryAgentExample",
     "MemorySystemExample",
-    "SimpleZodToolExample",
-    "agent.AgentNetworkExample"
+    "SimpleZodToolExample"
 )
 
 // 为每个示例创建运行任务
@@ -127,7 +124,8 @@ tasks.register<JavaExec>("runToolsExample") {
     environment("DEEPSEEK_API_KEY", System.getenv("DEEPSEEK_API_KEY") ?: "")
 }
 
-// 为 AgentNetworkExample 创建运行任务
+// 注释掉有问题的 AgentNetworkExample 运行任务
+/*
 tasks.register<JavaExec>("runAgentNetworkExample") {
     group = "examples"
     description = "Run the AgentNetworkExample example"
@@ -141,6 +139,7 @@ tasks.register<JavaExec>("runAgentNetworkExample") {
     // 确保示例可以访问环境变量
     environment("OPENAI_API_KEY", System.getenv("OPENAI_API_KEY") ?: "")
 }
+*/
 
 // 创建一个任务来列出所有可用的示例
 tasks.register("listExamples") {
@@ -164,11 +163,6 @@ tasks.register("compileFixedExamples") {
 
     doLast {
         println("Compiled the following files successfully:")
-        println("- AdvancedWorkflowExample.kt")
-        println("- RAGExample.kt")
-        println("- RAGWorkflowExample.kt")
-        println("- WorkflowExample.kt")
-        println("- FastEmbedRAGExample.kt")
         println("- DeepSeekExample.kt")
         println("- DeepSeekStreamingExample.kt")
         println("- DeepSeekDirectStreamingExample.kt")
