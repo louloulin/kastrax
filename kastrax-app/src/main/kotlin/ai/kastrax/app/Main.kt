@@ -7,6 +7,7 @@ import ai.kastrax.app.config.loadConfig
 import ai.kastrax.app.constants.AgentIds
 import ai.kastrax.integrations.deepseek.DeepSeekException
 import io.github.oshai.kotlinlogging.KotlinLogging
+import kotlinx.coroutines.runBlocking
 
 private val logger = KotlinLogging.logger {}
 
@@ -71,7 +72,50 @@ private fun startServer() {
  */
 private fun startCli() {
     logger.info { "启动命令行界面模式..." }
-    // 在这里实现命令行界面逻辑
+    println("欢迎使用 KastraX 命令行界面！")
+    println("输入 'exit' 或 'quit' 退出\n")
+
+    val scanner = java.util.Scanner(System.`in`)
+
+    while (true) {
+        print("\n请选择代理 (assistant/expert): ")
+        System.out.flush() // 确保提示符立即显示
+
+        val agentType = scanner.nextLine().trim().lowercase()
+
+        if (agentType == "exit" || agentType == "quit") {
+            println("再见！")
+            break
+        }
+
+        val agent = when (agentType) {
+            "assistant" -> kastraxInstance.getAgent(AgentIds.ASSISTANT)
+            "expert" -> kastraxInstance.getAgent(AgentIds.EXPERT)
+            else -> {
+                println("无效的代理类型，请选择 'assistant' 或 'expert'")
+                continue
+            }
+        }
+
+        print("输入您的问题: ")
+        System.out.flush() // 确保提示符立即显示
+
+        val question = scanner.nextLine().trim()
+
+        if (question == "exit" || question == "quit") {
+            println("再见！")
+            break
+        }
+
+        try {
+            println("正在生成回答...")
+            val response = runBlocking { agent.generate(question) }
+            println("\n回答:\n${response.text}")
+        } catch (e: Exception) {
+            logger.error(e) { "生成回答时发生错误" }
+            println("生成回答时发生错误: ${e.message}")
+        }
+    }
 }
 
 /**

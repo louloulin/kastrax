@@ -5,13 +5,18 @@ import ai.kastrax.zod.*
 import kotlinx.coroutines.runBlocking
 import kotlin.test.Test
 import kotlin.test.assertEquals
-// 导入 unsafeCast 扩展函数
-import ai.kastrax.examples.unsafeCast
 
 /**
  * Simple ZodTool test.
  */
 class SimpleZodToolTest {
+
+    /**
+     * Unsafe cast extension function for Schema
+     * This is used to work around type inference issues
+     */
+    @Suppress("UNCHECKED_CAST")
+    private inline fun <reified T, reified R> Schema<*, *>.unsafeCast(): Schema<T, R> = this as Schema<T, R>
 
     /**
      * Test simple string reverse tool.

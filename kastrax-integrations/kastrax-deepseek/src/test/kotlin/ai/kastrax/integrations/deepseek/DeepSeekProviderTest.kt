@@ -99,7 +99,7 @@ class DeepSeekProviderTest {
 
         val mockClient = createMockClient(json.encodeToString(mockResponse))
         val deepSeekClient = DeepSeekClient("test-api-key", httpClient = mockClient)
-        val provider = DeepSeekProvider("deepseek-chat", "test-api-key", deepSeekClient)
+        val provider = DeepSeekProvider("deepseek-chat", "test-api-key", client = deepSeekClient)
 
         // 创建测试消息
         val messages = listOf(
@@ -157,7 +157,7 @@ class DeepSeekProviderTest {
 
         val mockClient = createMockClient(json.encodeToString(mockResponse))
         val deepSeekClient = DeepSeekClient("test-api-key", httpClient = mockClient)
-        val provider = DeepSeekProvider("deepseek-chat", "test-api-key", deepSeekClient)
+        val provider = DeepSeekProvider("deepseek-chat", "test-api-key", client = deepSeekClient)
 
         // 创建测试消息
         val messages = listOf(
@@ -264,7 +264,7 @@ class DeepSeekProviderTest {
 
         val mockClient = createMockClient(mockResponseText)
         val deepSeekClient = DeepSeekClient("test-api-key", httpClient = mockClient)
-        val provider = DeepSeekProvider("deepseek-chat", "test-api-key", deepSeekClient)
+        val provider = DeepSeekProvider("deepseek-chat", "test-api-key", client = deepSeekClient)
 
         // 创建测试消息
         val messages = listOf(
@@ -287,7 +287,7 @@ class DeepSeekProviderTest {
     fun `test embed text`() = runTest {
         val mockClient = createMockClient("")  // 使用默认的嵌入响应
         val deepSeekClient = DeepSeekClient("test-api-key", httpClient = mockClient)
-        val provider = DeepSeekProvider("deepseek-embedding", "test-api-key", deepSeekClient)
+        val provider = DeepSeekProvider("deepseek-embedding", "test-api-key", client = deepSeekClient)
 
         // 执行测试
         val embedding = provider.embedText("Test text")

@@ -8,13 +8,18 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 import kotlin.test.assertFalse
-// 导入 unsafeCast 扩展函数
-import ai.kastrax.examples.unsafeCast
 
 /**
  * ZodTool 示例测试。
  */
 class ZodToolExampleTest {
+
+    /**
+     * Unsafe cast extension function for Schema
+     * This is used to work around type inference issues
+     */
+    @Suppress("UNCHECKED_CAST")
+    inline fun <reified T, reified R> Schema<*, *>.unsafeCast(): Schema<T, R> = this as Schema<T, R>
 
     /**
      * 测试简单的字符串反转工具。
