@@ -44,3 +44,5 @@ include(":examples")
 include(":zod-test")
 include(":kastrax-examples")
 
+include(":kastrax-app")
+
