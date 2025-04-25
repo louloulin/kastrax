@@ -16,6 +16,7 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.BeforeEach
 import org.koin.core.context.startKoin
 import org.koin.core.context.stopKoin
 import org.koin.dsl.module
@@ -31,11 +32,13 @@ import kotlin.test.assertTrue
 
 class WorkflowRoutesTest : KoinTest {
 
-    init {
-        MockitoAnnotations.openMocks(this)
-    }
+    private lateinit var workflowApi: WorkflowApi
 
-    private val workflowApi = mock(WorkflowApi::class.java)
+    @BeforeEach
+    fun setUp() {
+        MockitoAnnotations.openMocks(this)
+        workflowApi = mock(WorkflowApi::class.java)
+    }
 
     @Test
     fun `test get workflow`() = testApplication {

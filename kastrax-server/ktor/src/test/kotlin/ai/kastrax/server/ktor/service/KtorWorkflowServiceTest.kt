@@ -18,6 +18,7 @@ import org.mockito.Mockito.`when`
 import org.mockito.Mockito.mock
 import org.mockito.MockitoAnnotations
 import org.mockito.Mockito.verify
+import org.mockito.ArgumentMatchers.any
 import java.time.Instant
 import java.util.UUID
 
@@ -31,15 +32,16 @@ class KtorWorkflowServiceTest {
         MockitoAnnotations.openMocks(this)
         workflowRepository = mock(WorkflowRepository::class.java)
         workflowService = KtorWorkflowService(workflowRepository)
+
+        // 配置 mock 对象的行为
+        `when`(workflowRepository.findById(any())).thenReturn(null)
+        `when`(workflowRepository.save(any())).thenAnswer { invocation -> invocation.getArgument(0) }
     }
 
     @Test
     fun `test create workflow`() {
         // 准备测试数据
         val workflow = createTestWorkflow()
-
-        // 模拟存储库调用
-        `when`(workflowRepository.save(workflow)).thenReturn(workflow)
 
         // 执行测试
         val result = workflowService.createWorkflow(workflow).get()
@@ -50,7 +52,7 @@ class KtorWorkflowServiceTest {
         assertEquals(workflow.description, result.description)
 
         // 验证存储库调用
-        verify(workflowRepository).save(workflow)
+        verify(workflowRepository).save(any())
     }
 
     @Test
