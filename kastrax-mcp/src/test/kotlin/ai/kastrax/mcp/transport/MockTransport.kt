@@ -19,50 +19,72 @@ class MockTransport : Transport {
     private val messageFlow = MutableSharedFlow<MCPMessage>(replay = 10)
     private val sentMessages = mutableListOf<MCPMessage>()
     private val requestHandlers = mutableMapOf<String, suspend (MCPRequest) -> MCPResponse>()
-    
+
     override suspend fun connect() {
         isConnected.set(true)
     }
-    
+
     override suspend fun disconnect() {
         isConnected.set(false)
     }
-    
+
     override suspend fun send(message: MCPMessage) {
         if (!isConnected.get()) {
             throw IllegalStateException("Not connected")
         }
-        
+
         sentMessages.add(message)
-        
+
         if (message is MCPRequest) {
             val handler = requestHandlers[message.method]
             if (handler != null) {
-                val response = handler(message)
-                messageFlow.emit(response)
+                try {
+                    val response = handler(message)
+                    messageFlow.emit(response)
+                } catch (e: Exception) {
+                    // 创建错误响应
+                    val errorResponse = MCPResponse(
+                        id = message.id,
+                        error = MCPError(
+                            code = MCPErrorCodes.INTERNAL_ERROR,
+                            message = e.message ?: "Unknown error"
+                        )
+                    )
+                    messageFlow.emit(errorResponse)
+                }
+            } else {
+                // 如果没有处理器，返回方法不存在错误
+                val errorResponse = MCPResponse(
+                    id = message.id,
+                    error = MCPError(
+                        code = MCPErrorCodes.METHOD_NOT_FOUND,
+                        message = "Method not found: ${message.method}"
+                    )
+                )
+                messageFlow.emit(errorResponse)
             }
         }
     }
-    
+
     override fun receive(): Flow<MCPMessage> {
         if (!isConnected.get()) {
             throw IllegalStateException("Not connected")
         }
-        
+
         return messageFlow.asSharedFlow()
     }
-    
+
     override fun isConnected(): Boolean {
         return isConnected.get()
     }
-    
+
     /**
      * 添加请求处理器
      */
     fun addRequestHandler(method: String, handler: suspend (MCPRequest) -> MCPResponse) {
         requestHandlers[method] = handler
     }
-    
+
     /**
      * 添加默认请求处理器
      */
@@ -72,6 +94,7 @@ class MockTransport : Transport {
             MCPResponse(
                 id = request.id,
                 result = json.encodeToJsonElement(
+                    InitializeResult.serializer(),
                     InitializeResult(
                         name = "mock-server",
                         version = "1.0.0",
@@ -87,12 +110,13 @@ class MockTransport : Transport {
                 )
             )
         }
-        
+
         // 列出资源处理器
         addRequestHandler(MCPMethods.LIST_RESOURCES) { request ->
             MCPResponse(
                 id = request.id,
                 result = json.encodeToJsonElement(
+                    ListResourcesResult.serializer(),
                     ListResourcesResult(
                         resources = listOf(
                             Resource(
@@ -106,17 +130,18 @@ class MockTransport : Transport {
                 )
             )
         }
-        
+
         // 获取资源处理器
         addRequestHandler(MCPMethods.GET_RESOURCE) { request ->
             val params = request.params?.let {
                 json.decodeFromJsonElement(GetResourceParams.serializer(), it)
             }
-            
+
             if (params?.id == "test-resource") {
                 MCPResponse(
                     id = request.id,
                     result = json.encodeToJsonElement(
+                        GetResourceResult.serializer(),
                         GetResourceResult(
                             content = "Test resource content"
                         )
@@ -132,12 +157,13 @@ class MockTransport : Transport {
                 )
             }
         }
-        
+
         // 列出工具处理器
         addRequestHandler(MCPMethods.LIST_TOOLS) { request ->
             MCPResponse(
                 id = request.id,
                 result = json.encodeToJsonElement(
+                    ListToolsResult.serializer(),
                     ListToolsResult(
                         tools = listOf(
                             Tool(
@@ -160,20 +186,21 @@ class MockTransport : Transport {
                 )
             )
         }
-        
+
         // 调用工具处理器
         addRequestHandler(MCPMethods.CALL_TOOL) { request ->
             val params = request.params?.let {
                 json.decodeFromJsonElement(CallToolParams.serializer(), it)
             }
-            
+
             if (params?.id == "test-tool") {
                 val parameters = params.parameters as? JsonElement
                 val param1 = (parameters as? Map<*, *>)?.get("param1") as? JsonPrimitive
-                
+
                 MCPResponse(
                     id = request.id,
                     result = json.encodeToJsonElement(
+                        CallToolResult.serializer(),
                         CallToolResult(
                             result = "Tool result: ${param1?.content ?: "no param1"}"
                         )
@@ -189,12 +216,13 @@ class MockTransport : Transport {
                 )
             }
         }
-        
+
         // 列出提示处理器
         addRequestHandler(MCPMethods.LIST_PROMPTS) { request ->
             MCPResponse(
                 id = request.id,
                 result = json.encodeToJsonElement(
+                    ListPromptsResult.serializer(),
                     ListPromptsResult(
                         prompts = listOf(
                             Prompt(
@@ -217,17 +245,18 @@ class MockTransport : Transport {
                 )
             )
         }
-        
+
         // 获取提示处理器
         addRequestHandler(MCPMethods.GET_PROMPT) { request ->
             val params = request.params?.let {
                 json.decodeFromJsonElement(GetPromptParams.serializer(), it)
             }
-            
+
             if (params?.id == "test-prompt") {
                 MCPResponse(
                     id = request.id,
                     result = json.encodeToJsonElement(
+                        GetPromptResult.serializer(),
                         GetPromptResult(
                             content = "Hello, {{param1}}!"
                         )
@@ -244,21 +273,21 @@ class MockTransport : Transport {
             }
         }
     }
-    
+
     /**
      * 发送消息
      */
     suspend fun emitMessage(message: MCPMessage) {
         messageFlow.emit(message)
     }
-    
+
     /**
      * 获取已发送的消息
      */
     fun getSentMessages(): List<MCPMessage> {
         return sentMessages.toList()
     }
-    
+
     /**
      * 清除已发送的消息
      */

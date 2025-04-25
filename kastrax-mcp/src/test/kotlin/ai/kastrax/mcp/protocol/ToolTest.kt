@@ -25,7 +25,7 @@ class ToolTest {
             ),
             metadata = mapOf("key" to "value")
         )
-        
+
         assertEquals("test", tool.id)
         assertEquals("Test Tool", tool.name)
         assertEquals("A test tool", tool.description)
@@ -36,34 +36,34 @@ class ToolTest {
         assertEquals("Parameter 1", tool.parameters.properties["param1"]?.description)
         assertEquals(mapOf("key" to "value"), tool.metadata)
     }
-    
+
     @Test
     fun `test FunctionToolHandler`() = runBlocking {
         val handler = FunctionToolHandler(
-            mapOf(
-                "test" to { params: Map<String, Any> ->
+            mapOf<String, suspend (Map<String, Any>) -> String>(
+                "test" to { params ->
                     "Result: ${params["param1"]}"
                 }
             )
         )
-        
+
         val result = handler.handleToolCall("test", mapOf("param1" to "value"))
         assertEquals("Result: value", result)
-        
+
         assertThrows<ToolNotFoundException> {
             runBlocking {
                 handler.handleToolCall("nonexistent", emptyMap())
             }
         }
-        
+
         val errorHandler = FunctionToolHandler(
-            mapOf(
-                "error" to { _: Map<String, Any> ->
+            mapOf<String, suspend (Map<String, Any>) -> String>(
+                "error" to { _ ->
                     throw RuntimeException("Test error")
                 }
             )
         )
-        
+
         assertThrows<ToolExecutionException> {
             runBlocking {
                 errorHandler.handleToolCall("error", emptyMap())
