@@ -22,6 +22,7 @@ import org.koin.dsl.module
 import org.koin.test.KoinTest
 import org.mockito.Mockito.`when`
 import org.mockito.Mockito.mock
+import org.mockito.MockitoAnnotations
 import java.time.Instant
 import java.util.UUID
 import java.util.concurrent.CompletableFuture
@@ -29,6 +30,10 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 class WorkflowRoutesTest : KoinTest {
+
+    init {
+        MockitoAnnotations.openMocks(this)
+    }
 
     private val workflowApi = mock(WorkflowApi::class.java)
 

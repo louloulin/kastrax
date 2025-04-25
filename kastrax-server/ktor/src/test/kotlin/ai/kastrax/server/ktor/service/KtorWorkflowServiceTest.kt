@@ -16,6 +16,7 @@ import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import org.mockito.Mockito.`when`
 import org.mockito.Mockito.mock
+import org.mockito.MockitoAnnotations
 import org.mockito.Mockito.verify
 import java.time.Instant
 import java.util.UUID
@@ -27,6 +28,7 @@ class KtorWorkflowServiceTest {
 
     @BeforeEach
     fun setUp() {
+        MockitoAnnotations.openMocks(this)
         workflowRepository = mock(WorkflowRepository::class.java)
         workflowService = KtorWorkflowService(workflowRepository)
     }
