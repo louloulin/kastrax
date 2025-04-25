@@ -12,6 +12,18 @@ class DeepSeekConfig {
     /** DeepSeek API 密钥 */
     var apiKey: String = ""
 
+    /** 采样温度 */
+    var temperature: Double? = null
+
+    /** 生成的最大令牌数 */
+    var maxTokens: Int? = null
+
+    /** 核采样参数 */
+    var topP: Double? = null
+
+    /** 请求超时时间（毫秒） */
+    var timeout: Long = 60000
+
     /**
      * 设置模型。
      *
@@ -37,6 +49,42 @@ class DeepSeekConfig {
      */
     fun apiKey(apiKey: String) {
         this.apiKey = apiKey
+    }
+
+    /**
+     * 设置采样温度。
+     *
+     * @param temperature 采样温度，控制输出的随机性
+     */
+    fun temperature(temperature: Double) {
+        this.temperature = temperature
+    }
+
+    /**
+     * 设置生成的最大令牌数。
+     *
+     * @param maxTokens 生成的最大令牌数
+     */
+    fun maxTokens(maxTokens: Int) {
+        this.maxTokens = maxTokens
+    }
+
+    /**
+     * 设置核采样参数。
+     *
+     * @param topP 核采样参数，用于控制输出的多样性
+     */
+    fun topP(topP: Double) {
+        this.topP = topP
+    }
+
+    /**
+     * 设置请求超时时间。
+     *
+     * @param timeout 请求超时时间（秒）
+     */
+    fun timeout(timeout: Int) {
+        this.timeout = timeout * 1000L
     }
 }
 
@@ -73,5 +121,12 @@ fun deepSeek(init: DeepSeekConfig.() -> Unit): LlmProvider {
         config.apiKey
     }
 
-    return DeepSeekProvider(config.model, apiKey)
+    return DeepSeekProvider(
+        model = config.model,
+        apiKey = apiKey,
+        temperature = config.temperature,
+        maxTokens = config.maxTokens,
+        topP = config.topP,
+        timeout = config.timeout
+    )
 }

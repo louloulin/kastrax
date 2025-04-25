@@ -35,8 +35,9 @@ class DeepSeekStreamingClient(
      * @param baseUrl DeepSeek API 的基础 URL
      * @param apiKey DeepSeek API 密钥
      * @param timeout 请求超时时间（毫秒），默认为 60000 毫秒（60秒）
+     * @param retryCount 重试次数，默认为 3
      */
-    constructor(baseUrl: String, apiKey: String, timeout: Long = 60000) : this(
+    constructor(baseUrl: String, apiKey: String, timeout: Long = 60000, retryCount: Int = 3) : this(
         httpClient = DeepSeekClient.createDefaultHttpClient(apiKey, timeout),
         baseUrl = baseUrl,
         apiKey = apiKey

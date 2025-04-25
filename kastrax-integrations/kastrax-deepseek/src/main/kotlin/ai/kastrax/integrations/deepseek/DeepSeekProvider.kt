@@ -18,7 +18,11 @@ private val logger = KotlinLogging.logger {}
 class DeepSeekProvider(
     override val model: String,
     private val apiKey: String,
-    private val client: DeepSeekClient = DeepSeekClient(apiKey)
+    private val temperature: Double? = null,
+    private val maxTokens: Int? = null,
+    private val topP: Double? = null,
+    private val timeout: Long = 60000,
+    private val client: DeepSeekClient = DeepSeekClient(apiKey = apiKey, timeout = timeout)
 ) : LlmProvider, KastraXBase(component = "LLM", name = "DeepSeek") {
 
     /**

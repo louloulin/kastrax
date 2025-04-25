@@ -2,10 +2,12 @@ package ai.kastrax.examples
 
 import ai.kastrax.core.agent.agent
 import ai.kastrax.core.workflow.workflow
+import ai.kastrax.core.workflow.WorkflowExecuteOptions
 import ai.kastrax.integrations.deepseek.DeepSeekModel
 import ai.kastrax.integrations.deepseek.deepSeek
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.runBlocking
+import kotlin.time.Duration.Companion.minutes
 
 /**
  * 工作流示例：内容创作流程
@@ -69,6 +71,7 @@ fun main() = runBlocking {
     val contentCreationWorkflow = workflow {
         name = "content-creation"
         description = "创建高质量内容的工作流"
+        // 注意：超时时间在执行时设置
 
         step(researchAgent) {
             id = "research"
@@ -128,7 +131,10 @@ fun main() = runBlocking {
     }
 
     // 执行工作流并获取结果
-    val result = contentCreationWorkflow.execute(input)
+    val options = WorkflowExecuteOptions(
+        timeout = 10.minutes.inWholeMilliseconds // 设置 10 分钟超时
+    )
+    val result = contentCreationWorkflow.execute(input, options)
 
     if (result.success) {
         println("\n=== 工作流执行结果 ===")

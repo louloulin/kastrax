@@ -25,8 +25,8 @@ private val logger = KotlinLogging.logger {}
 class DeepSeekClient(
     private val apiKey: String,
     private val baseUrl: String = "https://api.deepseek.com/v1",
-    private val httpClient: HttpClient = createDefaultHttpClient(apiKey),
-    private val timeout: Long = 60000
+    private val timeout: Long = 60000,
+    private val httpClient: HttpClient = createDefaultHttpClient(apiKey, timeout)
 ) {
     /**
      * 创建聊天完成。

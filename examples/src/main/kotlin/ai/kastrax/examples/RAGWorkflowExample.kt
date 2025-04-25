@@ -2,6 +2,7 @@ package ai.kastrax.examples
 
 import ai.kastrax.core.agent.agent
 import ai.kastrax.core.workflow.workflow
+import ai.kastrax.core.workflow.WorkflowExecuteOptions
 import ai.kastrax.rag.RAG
 import ai.kastrax.rag.document.DirectoryDocumentLoader
 import ai.kastrax.rag.document.RecursiveCharacterTextSplitter
@@ -13,6 +14,7 @@ import ai.kastrax.integrations.deepseek.deepSeek
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.runBlocking
 import java.io.File
+import kotlin.time.Duration.Companion.minutes
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
@@ -69,6 +71,7 @@ fun main() = runBlocking {
         model(DeepSeekModel.DEEPSEEK_CHAT)
         // 显式设置 API 密钥
         apiKey("sk-85e83081df28490b9ae63188f0cb4f79")
+        // 模型参数在请求时设置
     }
 
     // 创建研究代理
@@ -144,6 +147,7 @@ fun main() = runBlocking {
     val researchWorkflow = workflow {
         name = "research-workflow"
         description = "研究和报告生成工作流"
+        // 注意：超时时间在执行时设置
 
         step(researchAgent) {
             id = "research"
@@ -229,7 +233,10 @@ fun main() = runBlocking {
         println("\n开始执行研究工作流...")
 
         // 流式执行并显示进度
-        researchWorkflow.streamExecute(input).collect { update ->
+        val options = WorkflowExecuteOptions(
+            timeout = 10.minutes.inWholeMilliseconds // 设置 10 分钟超时
+        )
+        researchWorkflow.streamExecute(input, options).collect { update ->
             when (update.status) {
                 ai.kastrax.core.workflow.WorkflowStatus.STARTED -> {
                     println("工作流开始执行")

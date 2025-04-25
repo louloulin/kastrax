@@ -67,6 +67,7 @@ fun main() = runBlocking {
             model(DeepSeekModel.DEEPSEEK_CHAT)
             // 显式设置 API 密钥
             apiKey("sk-85e83081df28490b9ae63188f0cb4f79")
+            // 模型参数在请求时设置
         }
 
         // 添加工具

@@ -21,7 +21,11 @@ fun runDirectStreamingExample() = runBlocking {
     println("创建流式客户端...")
     try {
         // 创建流式客户端，增加超时设置
-        val client = DeepSeekStreamingClient(baseUrl, apiKey, timeout = 120000) // 增加超时时间到120秒
+        val client = DeepSeekStreamingClient(
+            baseUrl = baseUrl,
+            apiKey = apiKey,
+            timeout = 180000 // 增加超时时间到180秒
+        )
 
         println("DeepSeek 直接流式响应示例")
         println("-------------------")
@@ -52,7 +56,9 @@ fun runDirectStreamingExample() = runBlocking {
                         content = question
                     )
                 ),
-                stream = true
+                stream = true,
+                temperature = 0.3,  // 降低温度以获得更可靠的结果
+                maxTokens = 1000   // 设置较大的最大令牌数
             )
 
             print("\n回答: ")

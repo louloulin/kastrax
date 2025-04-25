@@ -4,6 +4,7 @@ import ai.kastrax.core.agent.agent
 import ai.kastrax.core.tools.Tool
 import ai.kastrax.core.tools.zodTool
 import ai.kastrax.core.workflow.workflow
+import ai.kastrax.core.workflow.WorkflowExecuteOptions
 import ai.kastrax.integrations.deepseek.DeepSeekModel
 import ai.kastrax.integrations.deepseek.deepSeek
 import ai.kastrax.zod.*
@@ -13,6 +14,7 @@ import kotlinx.serialization.json.*
 import java.io.File
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
+import kotlin.time.Duration.Companion.minutes
 
 /**
  * Unsafe cast extension function for Schema
@@ -46,8 +48,18 @@ fun main() = runBlocking {
 
         execute = { filePath ->
             try {
-                File(filePath).readText()
+                // 增加日志输出以调试
+                println("Reading file: $filePath (type: ${filePath.javaClass})")
+
+                // 处理不同类型的输入
+                val path = when (filePath) {
+                    is String -> filePath
+                    else -> filePath.toString()
+                }
+
+                File(path).readText()
             } catch (e: Exception) {
+                println("Error reading file: ${e.message}")
                 "Error reading file: ${e.message}"
             }
         }
@@ -166,6 +178,7 @@ fun main() = runBlocking {
     val dataAnalysisWorkflow = workflow {
         name = "data-analysis"
         description = "数据分析与报告生成工作流"
+        // 注意：超时时间在执行时设置
 
         step(dataCollectionAgent) {
             id = "data_collection"
@@ -240,7 +253,10 @@ fun main() = runBlocking {
     )
 
     // 流式执行并显示进度
-    dataAnalysisWorkflow.streamExecute(input).collect { update ->
+    val options = WorkflowExecuteOptions(
+        timeout = 10.minutes.inWholeMilliseconds // 设置 10 分钟超时
+    )
+    dataAnalysisWorkflow.streamExecute(input, options).collect { update ->
         when (update.status) {
             ai.kastrax.core.workflow.WorkflowStatus.STARTED -> {
                 println("工作流开始执行")

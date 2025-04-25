@@ -67,6 +67,7 @@ fun main() = runBlocking {
             model("deepseek-chat")
             // 确保 API 密钥格式正确，不包含多余的空格或特殊字符
             apiKey("sk-85e83081df28490b9ae63188f0cb4f79".trim())
+            // 模型参数在请求时设置
         }
 
         // 添加工具
