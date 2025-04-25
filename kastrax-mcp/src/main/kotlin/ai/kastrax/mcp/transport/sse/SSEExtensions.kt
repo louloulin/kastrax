@@ -20,7 +20,7 @@ suspend fun ApplicationCall.respondSSE(): SSESession {
 
         override suspend fun close() {
             // 关闭连接
-            response.pipeline.complete()
+            // 什么也不做，因为没有直接的方法来关闭响应管道
         }
 
         override suspend fun send(event: String, data: String) {
@@ -35,14 +35,15 @@ suspend fun ApplicationCall.respondSSE(): SSESession {
             }
         }
     }
+}
 
 /**
  * 扩展函数，用于发送SSE事件
  */
-suspend fun SSESession.send(event: String? = null, data: String) {
+suspend fun SSESession.sendEvent(event: String? = null, data: String) {
     if (event != null) {
-        send(event, data)
+        this.send(event, data)
     } else {
-        send("message", data)
+        this.send("message", data)
     }
 }

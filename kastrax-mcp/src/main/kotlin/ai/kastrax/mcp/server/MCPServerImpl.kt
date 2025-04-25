@@ -10,7 +10,7 @@ import io.ktor.server.netty.*
 import io.ktor.server.routing.*
 import ai.kastrax.mcp.transport.sse.SSESession
 import ai.kastrax.mcp.transport.sse.respondSSE
-import ai.kastrax.mcp.transport.sse.send
+import ai.kastrax.mcp.transport.sse.sendEvent
 
 import io.ktor.server.response.*
 import io.ktor.server.request.*
@@ -136,7 +136,7 @@ class MCPServerImpl(
                         try {
                             val session = call.respondSSE()
                             // 发送初始化消息
-                            session.send(
+                            session.sendEvent(
                                 event = "initialize",
                                 data = json.encodeToString(
                                     InitializeResult.serializer(),
@@ -605,7 +605,7 @@ class MCPServerBuilderImpl : MCPServerBuilder {
         val builder = PromptBuilderImpl()
         builder.configure()
 
-        val parameters = builder.parametersBuilder?.build() ?: PromptParameters(emptyMap())
+        val parameters = builder.parametersBuilder?.buildPromptParameters() ?: PromptParameters()
 
         val prompt = Prompt(
             id = builder.name,
@@ -706,7 +706,12 @@ class ParametersBuilderImpl : ParametersBuilder {
             type = "object",
             required = required,
             properties = parameters.associateBy { it.description }
+                .mapValues { (_, value) -> value }
         )
+    }
+
+    fun buildPromptParameters(): PromptParameters {
+        return PromptParameters()
     }
 }
 
