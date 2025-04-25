@@ -119,13 +119,18 @@ fun main() = runBlocking {
             }
 
             // 使用 RAG 系统回答问题
-            while (true) {
-                print("\n请输入问题（输入 'exit' 退出）: ")
-                val question = readLine() ?: ""
+            // 定义示例问题列表，而不是依赖用户输入
+            val exampleQuestions = listOf(
+                "什么是机器学习？",
+                "什么是深度学习？",
+                "人工智能的应用领域有哪些？"
+            )
 
-                if (question.equals("exit", ignoreCase = true)) {
-                    break
-                }
+            println("\n正在使用示例问题进行演示...")
+
+            // 使用示例问题而不是用户输入
+            for (question in exampleQuestions) {
+                println("\n示例问题: $question")
 
                 // 检索相关上下文
                 println("使用 FastEmbed 检索相关信息...")
@@ -171,6 +176,8 @@ fun main() = runBlocking {
                 println("\n回答:")
                 println(response.text)
             }
+
+            println("\n示例演示完成。")
         } finally {
             // 清理临时文件
             tempDir.deleteRecursively()
