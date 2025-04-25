@@ -26,6 +26,9 @@ dependencies {
     // Serialization
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.0")
 
+    // DateTime
+    implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.4.1")
+
     // Logging
     implementation("io.github.microutils:kotlin-logging-jvm:3.0.5")
     implementation("ch.qos.logback:logback-classic:1.4.11")
@@ -53,7 +56,9 @@ sourceSets {
                 "**/FastEmbedRAGExample.kt",
                 "**/DeepSeekExample.kt",
                 "**/DeepSeekStreamingExample.kt",
-                "**/DeepSeekDirectStreamingExample.kt"
+                "**/DeepSeekDirectStreamingExample.kt",
+                "**/MemoryAgentExample.kt",
+                "**/MemorySystemExample.kt"
             )
         }
     }
@@ -78,7 +83,9 @@ val examples = listOf(
     "FastEmbedRAGExample",
     "DeepSeekExample",
     "DeepSeekStreamingExample",
-    "DeepSeekDirectStreamingExample"
+    "DeepSeekDirectStreamingExample",
+    "MemoryAgentExample",
+    "MemorySystemExample"
 )
 
 // 为每个示例创建运行任务
@@ -129,6 +136,8 @@ tasks.register("compileFixedExamples") {
         println("- DeepSeekExample.kt")
         println("- DeepSeekStreamingExample.kt")
         println("- DeepSeekDirectStreamingExample.kt")
+        println("- MemoryAgentExample.kt")
+        println("- MemorySystemExample.kt")
     }
 }
 
