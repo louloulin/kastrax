@@ -9,6 +9,9 @@ import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
 import io.ktor.server.testing.*
+import io.ktor.server.routing.*
+import io.ktor.server.application.*
+import io.ktor.server.plugins.contentnegotiation.*
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.serializer
@@ -21,9 +24,12 @@ import org.koin.core.context.startKoin
 import org.koin.core.context.stopKoin
 import org.koin.dsl.module
 import org.koin.test.KoinTest
-import org.mockito.Mockito.`when`
-import org.mockito.Mockito.mock
-import org.mockito.MockitoAnnotations
+import org.mockito.kotlin.mock
+import org.mockito.kotlin.any
+import org.mockito.kotlin.whenever
+import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
+import org.koin.ktor.plugin.Koin
+import io.ktor.serialization.kotlinx.json.json as kotlinxSerializationJson
 import java.time.Instant
 import java.util.UUID
 import java.util.concurrent.CompletableFuture
@@ -36,8 +42,7 @@ class WorkflowRoutesTest : KoinTest {
 
     @BeforeEach
     fun setUp() {
-        MockitoAnnotations.openMocks(this)
-        workflowApi = mock(WorkflowApi::class.java)
+        workflowApi = mock()
     }
 
     @Test
@@ -57,10 +62,34 @@ class WorkflowRoutesTest : KoinTest {
             val workflow = createTestWorkflow(workflowId)
 
             // 模拟API调用
-            `when`(workflowApi.getWorkflow(workflowId)).thenReturn(CompletableFuture.completedFuture(workflow))
+            whenever(workflowApi.getWorkflow(workflowId)).thenReturn(CompletableFuture.completedFuture(workflow))
+
+            // 配置路由
+            application {
+                install(ContentNegotiation) {
+                    kotlinxSerializationJson(Json {
+                        prettyPrint = true
+                        isLenient = true
+                        ignoreUnknownKeys = true
+                    })
+                }
+
+                // 安装Koin
+                install(Koin) {
+                    modules(module {
+                        single { workflowApi }
+                    })
+                }
+
+                routing {
+                    route("/api") {
+                        configureWorkflowRoutes()
+                    }
+                }
+            }
 
             // 执行测试
-            val response = client.get("/workflows/$workflowId")
+            val response = client.get("/api/workflows/$workflowId")
 
             // 验证结果
             assertEquals(HttpStatusCode.OK, response.status)
@@ -90,10 +119,34 @@ class WorkflowRoutesTest : KoinTest {
             val workflow = createTestWorkflow(workflowId)
 
             // 模拟API调用
-            `when`(workflowApi.createWorkflow(workflow)).thenReturn(CompletableFuture.completedFuture(workflow))
+            whenever(workflowApi.createWorkflow(any())).thenReturn(CompletableFuture.completedFuture(workflow))
+
+            // 配置路由
+            application {
+                install(ContentNegotiation) {
+                    kotlinxSerializationJson(Json {
+                        prettyPrint = true
+                        isLenient = true
+                        ignoreUnknownKeys = true
+                    })
+                }
+
+                // 安装Koin
+                install(Koin) {
+                    modules(module {
+                        single { workflowApi }
+                    })
+                }
+
+                routing {
+                    route("/api") {
+                        configureWorkflowRoutes()
+                    }
+                }
+            }
 
             // 执行测试
-            val response = client.post("/workflows") {
+            val response = client.post("/api/workflows") {
                 contentType(ContentType.Application.Json)
                 setBody(Json.encodeToString(workflow))
             }

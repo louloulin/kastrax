@@ -67,6 +67,7 @@ dependencies {
     // Mockito
     testImplementation("org.mockito:mockito-core:5.3.1")
     testImplementation("org.mockito:mockito-junit-jupiter:5.3.1")
+    testImplementation("org.mockito.kotlin:mockito-kotlin:5.1.0")
 
     // Koin Test
     testImplementation("io.insert-koin:koin-test:$koinVersion")

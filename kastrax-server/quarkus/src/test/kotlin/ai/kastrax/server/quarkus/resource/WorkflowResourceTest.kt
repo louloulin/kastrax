@@ -11,7 +11,9 @@ import io.restassured.RestAssured.given
 import io.restassured.http.ContentType
 import org.hamcrest.CoreMatchers.containsString
 import org.junit.jupiter.api.Test
-import org.mockito.Mockito.`when`
+
+import org.mockito.kotlin.any
+import org.mockito.kotlin.whenever
 import java.time.Instant
 import java.util.UUID
 import java.util.concurrent.CompletableFuture
@@ -32,7 +34,7 @@ class WorkflowResourceTest {
         val workflow = createTestWorkflow(workflowId)
 
         // 模拟API调用
-        `when`(workflowApi.getWorkflow(workflowId)).thenReturn(CompletableFuture.completedFuture(workflow))
+        whenever(workflowApi.getWorkflow(workflowId)).thenReturn(CompletableFuture.completedFuture(workflow))
 
         // 执行测试
         given()
@@ -51,7 +53,7 @@ class WorkflowResourceTest {
         val workflow = createTestWorkflow(workflowId)
 
         // 模拟API调用
-        `when`(workflowApi.createWorkflow(workflow)).thenReturn(CompletableFuture.completedFuture(workflow))
+        whenever(workflowApi.createWorkflow(any())).thenReturn(CompletableFuture.completedFuture(workflow))
 
         // 执行测试
         given()

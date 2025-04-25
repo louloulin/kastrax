@@ -7,29 +7,28 @@ import ai.kastrax.server.common.model.Workflow
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
-import ai.kastrax.server.spring.repository.WorkflowRepository
+import ai.kastrax.server.spring.repository.IWorkflowRepository
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
-import org.mockito.Mockito.`when`
-import org.mockito.Mockito.mock
-import org.mockito.MockitoAnnotations
-import org.mockito.Mockito.verify
+import org.mockito.kotlin.mock
+import org.mockito.kotlin.verify
+import org.mockito.kotlin.any
+import org.mockito.kotlin.whenever
 import java.time.Instant
 import java.util.UUID
 
 class WorkflowServiceTest {
 
-    private lateinit var workflowRepository: WorkflowRepository
+    private lateinit var workflowRepository: IWorkflowRepository
     private lateinit var workflowService: WorkflowService
 
     @BeforeEach
     fun setUp() {
-        MockitoAnnotations.openMocks(this)
-        workflowRepository = mock(WorkflowRepository::class.java)
+        workflowRepository = mock()
         workflowService = WorkflowService(workflowRepository)
     }
 
@@ -39,7 +38,7 @@ class WorkflowServiceTest {
         val workflow = createTestWorkflow()
 
         // 模拟存储库调用
-        `when`(workflowRepository.save(workflow)).thenReturn(workflow)
+        whenever(workflowRepository.save(any())).thenReturn(workflow)
 
         // 执行测试
         val result = workflowService.createWorkflow(workflow).get()
@@ -50,7 +49,7 @@ class WorkflowServiceTest {
         assertEquals(workflow.description, result.description)
 
         // 验证存储库调用
-        verify(workflowRepository).save(workflow)
+        verify(workflowRepository).save(any())
     }
 
     @Test
@@ -60,7 +59,7 @@ class WorkflowServiceTest {
         val workflow = createTestWorkflow(workflowId)
 
         // 模拟存储库调用
-        `when`(workflowRepository.findById(workflowId)).thenReturn(workflow)
+        whenever(workflowRepository.findById(workflowId)).thenReturn(workflow)
 
         // 执行测试
         val result = workflowService.getWorkflow(workflowId).get()
@@ -80,7 +79,7 @@ class WorkflowServiceTest {
         val workflowId = UUID.randomUUID().toString()
 
         // 模拟存储库调用
-        `when`(workflowRepository.findById(workflowId)).thenReturn(null)
+        whenever(workflowRepository.findById(workflowId)).thenReturn(null)
 
         // 执行测试并验证异常
         val exception = assertThrows<NoSuchElementException> {

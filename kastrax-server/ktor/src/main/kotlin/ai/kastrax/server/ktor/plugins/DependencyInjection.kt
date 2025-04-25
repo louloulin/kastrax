@@ -20,11 +20,11 @@ fun Application.configureDependencyInjection() {
 
 val appModule = module {
     // Repositories
-    single { ai.kastrax.server.ktor.repository.WorkflowRepository() }
+    single<ai.kastrax.server.ktor.repository.IWorkflowRepository> { ai.kastrax.server.ktor.repository.WorkflowRepository() }
     single { ai.kastrax.server.ktor.repository.ExecutionRepository() }
     single { ai.kastrax.server.ktor.repository.BreakpointRepository() }
     single { ai.kastrax.server.ktor.repository.DebugSessionRepository() }
-    
+
     // Services
     single<WorkflowApi> { KtorWorkflowService(get()) }
     single<ExecutionApi> { KtorExecutionService(get(), get()) }

@@ -4,7 +4,7 @@ import ai.kastrax.server.common.model.Edge
 import ai.kastrax.server.common.model.Node
 import ai.kastrax.server.common.model.Position
 import ai.kastrax.server.common.model.Workflow
-import ai.kastrax.server.ktor.repository.WorkflowRepository
+import ai.kastrax.server.ktor.repository.IWorkflowRepository
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -14,28 +14,28 @@ import org.junit.jupiter.api.assertThrows
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
-import org.mockito.Mockito.`when`
 import org.mockito.Mockito.mock
-import org.mockito.MockitoAnnotations
-import org.mockito.Mockito.verify
-import org.mockito.ArgumentMatchers.any
+
+import org.mockito.kotlin.mock
+import org.mockito.kotlin.verify
+import org.mockito.kotlin.any
+import org.mockito.kotlin.whenever
 import java.time.Instant
 import java.util.UUID
 
 class KtorWorkflowServiceTest {
 
-    private lateinit var workflowRepository: WorkflowRepository
+    private lateinit var workflowRepository: IWorkflowRepository
     private lateinit var workflowService: KtorWorkflowService
 
     @BeforeEach
     fun setUp() {
-        MockitoAnnotations.openMocks(this)
-        workflowRepository = mock(WorkflowRepository::class.java)
+        workflowRepository = mock()
         workflowService = KtorWorkflowService(workflowRepository)
 
         // 配置 mock 对象的行为
-        `when`(workflowRepository.findById(any())).thenReturn(null)
-        `when`(workflowRepository.save(any())).thenAnswer { invocation -> invocation.getArgument(0) }
+        whenever(workflowRepository.findById(any())).thenReturn(null)
+        whenever(workflowRepository.save(any())).thenAnswer { invocation -> invocation.arguments[0] as Workflow }
     }
 
     @Test
@@ -62,7 +62,7 @@ class KtorWorkflowServiceTest {
         val workflow = createTestWorkflow(workflowId)
 
         // 模拟存储库调用
-        `when`(workflowRepository.findById(workflowId)).thenReturn(workflow)
+        whenever(workflowRepository.findById(workflowId)).thenReturn(workflow)
 
         // 执行测试
         val result = workflowService.getWorkflow(workflowId).get()
@@ -82,7 +82,7 @@ class KtorWorkflowServiceTest {
         val workflowId = UUID.randomUUID().toString()
 
         // 模拟存储库调用
-        `when`(workflowRepository.findById(workflowId)).thenReturn(null)
+        whenever(workflowRepository.findById(workflowId)).thenReturn(null)
 
         // 执行测试并验证异常
         val exception = assertThrows<NoSuchElementException> {

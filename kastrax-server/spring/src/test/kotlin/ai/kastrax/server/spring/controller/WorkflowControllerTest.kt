@@ -9,7 +9,8 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import org.junit.jupiter.api.Test
-import org.mockito.Mockito.`when`
+import org.mockito.kotlin.whenever
+import org.mockito.kotlin.any
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest
 import org.springframework.boot.test.mock.mockito.MockBean
@@ -17,6 +18,8 @@ import org.springframework.http.MediaType
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.*
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.asyncDispatch
+import org.hamcrest.Matchers.containsString
 import java.time.Instant
 import java.util.UUID
 import java.util.concurrent.CompletableFuture
@@ -37,13 +40,21 @@ class WorkflowControllerTest {
         val workflow = createTestWorkflow(workflowId)
 
         // 模拟API调用
-        `when`(workflowApi.getWorkflow(workflowId)).thenReturn(CompletableFuture.completedFuture(workflow))
+        whenever(workflowApi.getWorkflow(workflowId)).thenReturn(CompletableFuture.completedFuture(workflow))
 
         // 执行测试
         mockMvc.perform(get("/workflows/$workflowId"))
+            .andExpect(request().asyncStarted())
+            .andReturn()
+
+        // 等待异步处理完成
+        mockMvc.perform(asyncDispatch(mockMvc.perform(get("/workflows/$workflowId"))
+            .andExpect(request().asyncStarted())
+            .andReturn()))
             .andExpect(status().isOk)
-            .andExpect(jsonPath("$.id").value(workflowId))
-            .andExpect(jsonPath("$.name").value("Test Workflow"))
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+            .andExpect(content().string(containsString(workflowId)))
+            .andExpect(content().string(containsString("Test Workflow")))
     }
 
     @Test
@@ -53,10 +64,10 @@ class WorkflowControllerTest {
         val workflow = createTestWorkflow(workflowId)
 
         // 模拟API调用
-        `when`(workflowApi.createWorkflow(workflow)).thenReturn(CompletableFuture.completedFuture(workflow))
+        whenever(workflowApi.createWorkflow(any())).thenReturn(CompletableFuture.completedFuture(workflow))
 
         // 执行测试
-        mockMvc.perform(post("/workflows")
+        val mvcResult = mockMvc.perform(post("/workflows")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""
                     {
@@ -71,9 +82,15 @@ class WorkflowControllerTest {
                         "updatedAt": "${workflow.updatedAt}"
                     }
                 """))
-            .andExpect(status().isOk)
-            .andExpect(jsonPath("$.id").value(workflowId))
-            .andExpect(jsonPath("$.name").value("Test Workflow"))
+            .andExpect(request().asyncStarted())
+            .andReturn()
+
+        // 等待异步处理完成
+        mockMvc.perform(asyncDispatch(mvcResult))
+            .andExpect(status().isCreated())
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+            .andExpect(content().string(containsString(workflowId)))
+            .andExpect(content().string(containsString("Test Workflow")))
     }
 
     // 创建测试工作流

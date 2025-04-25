@@ -38,6 +38,7 @@ dependencies {
     // Mockito
     testImplementation("org.mockito:mockito-core:5.3.1")
     testImplementation("org.mockito:mockito-junit-jupiter:5.3.1")
+    testImplementation("org.mockito.kotlin:mockito-kotlin:5.1.0")
 
     // Quarkus Test
     testImplementation("io.quarkus:quarkus-junit5-mockito")

@@ -4,7 +4,7 @@ import ai.kastrax.server.common.model.Edge
 import ai.kastrax.server.common.model.Node
 import ai.kastrax.server.common.model.Position
 import ai.kastrax.server.common.model.Workflow
-import ai.kastrax.server.quarkus.repository.WorkflowRepository
+import ai.kastrax.server.quarkus.repository.IWorkflowRepository
 import io.quarkus.test.junit.QuarkusTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
@@ -15,10 +15,11 @@ import org.junit.jupiter.api.assertThrows
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
-import org.mockito.Mockito.`when`
-import org.mockito.Mockito.mock
-import org.mockito.MockitoAnnotations
-import org.mockito.Mockito.verify
+
+import org.mockito.kotlin.mock
+import org.mockito.kotlin.verify
+import org.mockito.kotlin.any
+import org.mockito.kotlin.whenever
 import java.time.Instant
 import java.util.UUID
 import jakarta.inject.Inject
@@ -26,15 +27,14 @@ import jakarta.inject.Inject
 @QuarkusTest
 class QuarkusWorkflowServiceTest {
 
-    private lateinit var workflowRepository: WorkflowRepository
+    private lateinit var workflowRepository: IWorkflowRepository
 
     @Inject
     private lateinit var workflowService: QuarkusWorkflowService
 
     @BeforeEach
     fun setUp() {
-        MockitoAnnotations.openMocks(this)
-        workflowRepository = mock(WorkflowRepository::class.java)
+        workflowRepository = mock()
         workflowService.workflowRepository = workflowRepository
     }
 
@@ -44,7 +44,7 @@ class QuarkusWorkflowServiceTest {
         val workflow = createTestWorkflow()
 
         // 模拟存储库调用
-        `when`(workflowRepository.save(workflow)).thenReturn(workflow)
+        whenever(workflowRepository.save(any())).thenReturn(workflow)
 
         // 执行测试
         val result = workflowService.createWorkflow(workflow).get()
@@ -55,7 +55,7 @@ class QuarkusWorkflowServiceTest {
         assertEquals(workflow.description, result.description)
 
         // 验证存储库调用
-        verify(workflowRepository).save(workflow)
+        verify(workflowRepository).save(any())
     }
 
     @Test
@@ -65,7 +65,7 @@ class QuarkusWorkflowServiceTest {
         val workflow = createTestWorkflow(workflowId)
 
         // 模拟存储库调用
-        `when`(workflowRepository.findById(workflowId)).thenReturn(workflow)
+        whenever(workflowRepository.findById(workflowId)).thenReturn(workflow)
 
         // 执行测试
         val result = workflowService.getWorkflow(workflowId).get()
@@ -85,7 +85,7 @@ class QuarkusWorkflowServiceTest {
         val workflowId = UUID.randomUUID().toString()
 
         // 模拟存储库调用
-        `when`(workflowRepository.findById(workflowId)).thenReturn(null)
+        whenever(workflowRepository.findById(workflowId)).thenReturn(null)
 
         // 执行测试并验证异常
         val exception = assertThrows<NoSuchElementException> {
