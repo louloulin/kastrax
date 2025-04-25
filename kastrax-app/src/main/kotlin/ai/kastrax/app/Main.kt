@@ -49,9 +49,21 @@ fun main(args: Array<String>) {
 
         // 如果有命令行参数，可以在这里处理
         if (args.isNotEmpty()) {
-            when (args[0]) {
-                "server" -> startServer()
-                "cli" -> startCli()
+            when {
+                args[0] == "server" -> startServer()
+                args[0] == "cli" -> startCli()
+                args[0].contains("SimpleExample") -> {
+                    // 运行 SimpleExample
+                    println("KastraX 简单示例应用程序")
+                    println("========================")
+                    startCli() // 直接启动 CLI 模式
+                }
+                args[0].contains("DeepSeekTest") -> {
+                    // 运行 DeepSeekTest
+                    println("DeepSeek 测试")
+                    println("========================")
+                    startCli() // 直接启动 CLI 模式
+                }
                 else -> printHelp()
             }
         }
