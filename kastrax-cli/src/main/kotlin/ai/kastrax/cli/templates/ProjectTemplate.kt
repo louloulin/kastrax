@@ -39,16 +39,16 @@ abstract class BaseProjectTemplate(protected val projectName: String) : ProjectT
         logTemplateExceptions = false
         wrapUncheckedExceptions = true
     }
-    
+
     protected val templateData: Map<String, Any> = mapOf(
         "projectName" to projectName,
-        "projectNameLowerCase" to projectName.toLowerCase(),
+        "projectNameLowerCase" to projectName.lowercase(),
         "projectNameCamelCase" to toCamelCase(projectName),
         "projectNamePascalCase" to toPascalCase(projectName),
         "kotlinVersion" to "1.9.0",
         "kastraxVersion" to "0.1.0"
     )
-    
+
     /**
      * 渲染模板。
      *
@@ -62,7 +62,7 @@ abstract class BaseProjectTemplate(protected val projectName: String) : ProjectT
         template.process(data, writer)
         return writer.toString()
     }
-    
+
     /**
      * 创建文件。
      *
@@ -80,7 +80,7 @@ abstract class BaseProjectTemplate(protected val projectName: String) : ProjectT
             StandardOpenOption.TRUNCATE_EXISTING
         )
     }
-    
+
     /**
      * 复制资源文件。
      *
@@ -91,12 +91,12 @@ abstract class BaseProjectTemplate(protected val projectName: String) : ProjectT
     protected fun copyResource(outputDir: Path, resourcePath: String, relativePath: String) {
         val resource = javaClass.classLoader.getResourceAsStream(resourcePath)
             ?: throw IllegalArgumentException("Resource not found: $resourcePath")
-        
+
         val filePath = outputDir.resolve(relativePath)
         Files.createDirectories(filePath.parent)
         Files.copy(resource, filePath)
     }
-    
+
     /**
      * 将字符串转换为驼峰命名法。
      *
@@ -107,12 +107,12 @@ abstract class BaseProjectTemplate(protected val projectName: String) : ProjectT
         return str.split(Regex("[\\s-_]"))
             .filter { it.isNotEmpty() }
             .mapIndexed { index, s ->
-                if (index == 0) s.toLowerCase()
-                else s.capitalize()
+                if (index == 0) s.lowercase()
+                else s.replaceFirstChar { it.uppercase() }
             }
             .joinToString("")
     }
-    
+
     /**
      * 将字符串转换为帕斯卡命名法。
      *
@@ -122,7 +122,7 @@ abstract class BaseProjectTemplate(protected val projectName: String) : ProjectT
     private fun toPascalCase(str: String): String {
         return str.split(Regex("[\\s-_]"))
             .filter { it.isNotEmpty() }
-            .joinToString("") { it.capitalize() }
+            .joinToString("") { it.replaceFirstChar { c -> c.uppercase() } }
     }
 }
 
@@ -134,46 +134,46 @@ abstract class BaseProjectTemplate(protected val projectName: String) : ProjectT
 class SimpleProjectTemplate(projectName: String) : BaseProjectTemplate(projectName) {
     override fun generate(outputDir: Path): Int {
         var fileCount = 0
-        
+
         // 创建基本项目结构
         createFile(outputDir, "build.gradle.kts", renderTemplate("simple/build.gradle.kts"))
         fileCount++
-        
+
         createFile(outputDir, "settings.gradle.kts", renderTemplate("simple/settings.gradle.kts"))
         fileCount++
-        
+
         createFile(outputDir, "gradle.properties", renderTemplate("simple/gradle.properties"))
         fileCount++
-        
+
         createFile(outputDir, "src/main/kotlin/Main.kt", renderTemplate("simple/Main.kt"))
         fileCount++
-        
+
         createFile(outputDir, "src/main/kotlin/SimpleAgent.kt", renderTemplate("simple/SimpleAgent.kt"))
         fileCount++
-        
+
         createFile(outputDir, "src/main/resources/logback.xml", renderTemplate("simple/logback.xml"))
         fileCount++
-        
+
         createFile(outputDir, "README.md", renderTemplate("simple/README.md"))
         fileCount++
-        
+
         // 创建 Gradle 包装器
         createFile(outputDir, "gradlew", renderTemplate("common/gradlew"))
         File(outputDir.resolve("gradlew").toUri()).setExecutable(true)
         fileCount++
-        
+
         createFile(outputDir, "gradlew.bat", renderTemplate("common/gradlew.bat"))
         fileCount++
-        
-        createFile(outputDir, "gradle/wrapper/gradle-wrapper.properties", 
+
+        createFile(outputDir, "gradle/wrapper/gradle-wrapper.properties",
                   renderTemplate("common/gradle-wrapper.properties"))
         fileCount++
-        
+
         // 复制 Gradle 包装器 JAR
-        copyResource(outputDir, "templates/common/gradle-wrapper.jar", 
+        copyResource(outputDir, "templates/common/gradle-wrapper.jar",
                     "gradle/wrapper/gradle-wrapper.jar")
         fileCount++
-        
+
         return fileCount
     }
 }
@@ -186,50 +186,50 @@ class SimpleProjectTemplate(projectName: String) : BaseProjectTemplate(projectNa
 class RagProjectTemplate(projectName: String) : BaseProjectTemplate(projectName) {
     override fun generate(outputDir: Path): Int {
         var fileCount = 0
-        
+
         // 创建基本项目结构
         createFile(outputDir, "build.gradle.kts", renderTemplate("rag/build.gradle.kts"))
         fileCount++
-        
+
         createFile(outputDir, "settings.gradle.kts", renderTemplate("rag/settings.gradle.kts"))
         fileCount++
-        
+
         createFile(outputDir, "gradle.properties", renderTemplate("rag/gradle.properties"))
         fileCount++
-        
+
         createFile(outputDir, "src/main/kotlin/Main.kt", renderTemplate("rag/Main.kt"))
         fileCount++
-        
+
         createFile(outputDir, "src/main/kotlin/RagSystem.kt", renderTemplate("rag/RagSystem.kt"))
         fileCount++
-        
+
         createFile(outputDir, "src/main/resources/logback.xml", renderTemplate("rag/logback.xml"))
         fileCount++
-        
-        createFile(outputDir, "src/main/resources/documents/sample.txt", 
+
+        createFile(outputDir, "src/main/resources/documents/sample.txt",
                   renderTemplate("rag/sample.txt"))
         fileCount++
-        
+
         createFile(outputDir, "README.md", renderTemplate("rag/README.md"))
         fileCount++
-        
+
         // 创建 Gradle 包装器
         createFile(outputDir, "gradlew", renderTemplate("common/gradlew"))
         File(outputDir.resolve("gradlew").toUri()).setExecutable(true)
         fileCount++
-        
+
         createFile(outputDir, "gradlew.bat", renderTemplate("common/gradlew.bat"))
         fileCount++
-        
-        createFile(outputDir, "gradle/wrapper/gradle-wrapper.properties", 
+
+        createFile(outputDir, "gradle/wrapper/gradle-wrapper.properties",
                   renderTemplate("common/gradle-wrapper.properties"))
         fileCount++
-        
+
         // 复制 Gradle 包装器 JAR
-        copyResource(outputDir, "templates/common/gradle-wrapper.jar", 
+        copyResource(outputDir, "templates/common/gradle-wrapper.jar",
                     "gradle/wrapper/gradle-wrapper.jar")
         fileCount++
-        
+
         return fileCount
     }
 }
@@ -242,50 +242,50 @@ class RagProjectTemplate(projectName: String) : BaseProjectTemplate(projectName)
 class AgentProjectTemplate(projectName: String) : BaseProjectTemplate(projectName) {
     override fun generate(outputDir: Path): Int {
         var fileCount = 0
-        
+
         // 创建基本项目结构
         createFile(outputDir, "build.gradle.kts", renderTemplate("agent/build.gradle.kts"))
         fileCount++
-        
+
         createFile(outputDir, "settings.gradle.kts", renderTemplate("agent/settings.gradle.kts"))
         fileCount++
-        
+
         createFile(outputDir, "gradle.properties", renderTemplate("agent/gradle.properties"))
         fileCount++
-        
+
         createFile(outputDir, "src/main/kotlin/Main.kt", renderTemplate("agent/Main.kt"))
         fileCount++
-        
+
         createFile(outputDir, "src/main/kotlin/CustomAgent.kt", renderTemplate("agent/CustomAgent.kt"))
         fileCount++
-        
-        createFile(outputDir, "src/main/kotlin/tools/CustomTool.kt", 
+
+        createFile(outputDir, "src/main/kotlin/tools/CustomTool.kt",
                   renderTemplate("agent/CustomTool.kt"))
         fileCount++
-        
+
         createFile(outputDir, "src/main/resources/logback.xml", renderTemplate("agent/logback.xml"))
         fileCount++
-        
+
         createFile(outputDir, "README.md", renderTemplate("agent/README.md"))
         fileCount++
-        
+
         // 创建 Gradle 包装器
         createFile(outputDir, "gradlew", renderTemplate("common/gradlew"))
         File(outputDir.resolve("gradlew").toUri()).setExecutable(true)
         fileCount++
-        
+
         createFile(outputDir, "gradlew.bat", renderTemplate("common/gradlew.bat"))
         fileCount++
-        
-        createFile(outputDir, "gradle/wrapper/gradle-wrapper.properties", 
+
+        createFile(outputDir, "gradle/wrapper/gradle-wrapper.properties",
                   renderTemplate("common/gradle-wrapper.properties"))
         fileCount++
-        
+
         // 复制 Gradle 包装器 JAR
-        copyResource(outputDir, "templates/common/gradle-wrapper.jar", 
+        copyResource(outputDir, "templates/common/gradle-wrapper.jar",
                     "gradle/wrapper/gradle-wrapper.jar")
         fileCount++
-        
+
         return fileCount
     }
 }
@@ -298,55 +298,55 @@ class AgentProjectTemplate(projectName: String) : BaseProjectTemplate(projectNam
 class WorkflowProjectTemplate(projectName: String) : BaseProjectTemplate(projectName) {
     override fun generate(outputDir: Path): Int {
         var fileCount = 0
-        
+
         // 创建基本项目结构
         createFile(outputDir, "build.gradle.kts", renderTemplate("workflow/build.gradle.kts"))
         fileCount++
-        
+
         createFile(outputDir, "settings.gradle.kts", renderTemplate("workflow/settings.gradle.kts"))
         fileCount++
-        
+
         createFile(outputDir, "gradle.properties", renderTemplate("workflow/gradle.properties"))
         fileCount++
-        
+
         createFile(outputDir, "src/main/kotlin/Main.kt", renderTemplate("workflow/Main.kt"))
         fileCount++
-        
-        createFile(outputDir, "src/main/kotlin/CustomWorkflow.kt", 
+
+        createFile(outputDir, "src/main/kotlin/CustomWorkflow.kt",
                   renderTemplate("workflow/CustomWorkflow.kt"))
         fileCount++
-        
-        createFile(outputDir, "src/main/kotlin/agents/ResearchAgent.kt", 
+
+        createFile(outputDir, "src/main/kotlin/agents/ResearchAgent.kt",
                   renderTemplate("workflow/ResearchAgent.kt"))
         fileCount++
-        
-        createFile(outputDir, "src/main/kotlin/agents/WritingAgent.kt", 
+
+        createFile(outputDir, "src/main/kotlin/agents/WritingAgent.kt",
                   renderTemplate("workflow/WritingAgent.kt"))
         fileCount++
-        
+
         createFile(outputDir, "src/main/resources/logback.xml", renderTemplate("workflow/logback.xml"))
         fileCount++
-        
+
         createFile(outputDir, "README.md", renderTemplate("workflow/README.md"))
         fileCount++
-        
+
         // 创建 Gradle 包装器
         createFile(outputDir, "gradlew", renderTemplate("common/gradlew"))
         File(outputDir.resolve("gradlew").toUri()).setExecutable(true)
         fileCount++
-        
+
         createFile(outputDir, "gradlew.bat", renderTemplate("common/gradlew.bat"))
         fileCount++
-        
-        createFile(outputDir, "gradle/wrapper/gradle-wrapper.properties", 
+
+        createFile(outputDir, "gradle/wrapper/gradle-wrapper.properties",
                   renderTemplate("common/gradle-wrapper.properties"))
         fileCount++
-        
+
         // 复制 Gradle 包装器 JAR
-        copyResource(outputDir, "templates/common/gradle-wrapper.jar", 
+        copyResource(outputDir, "templates/common/gradle-wrapper.jar",
                     "gradle/wrapper/gradle-wrapper.jar")
         fileCount++
-        
+
         return fileCount
     }
 }

@@ -6,6 +6,7 @@ import ai.kastrax.mcp.client.mcpClient
 import ai.kastrax.mcp.client.MCPClient
 import ai.kastrax.mcp.integration.mcpTools
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.launch
 
 /**
  * 使用 MCP 工具的代理示例
@@ -42,15 +43,17 @@ fun main() = runBlocking {
                 // model = openAi("gpt-4")
 
                 // 添加 MCP 工具
-                mcpTools(mcpClient)
+                apply {
+                    runBlocking {
+                        mcpTools(mcpClient)
+                    }
+                }
             }
 
             // 使用代理
             println("\n使用代理...")
             val response = agent.generate("请使用 echo 工具发送消息 'Hello, Agent!'，然后使用 reverse 工具反转这个消息。")
-
-            println("\n代理回答:")
-            println(response.text)
+            println("\n回答:\n${response.text}")
 
             // 打印工具调用
             println("\n工具调用:")

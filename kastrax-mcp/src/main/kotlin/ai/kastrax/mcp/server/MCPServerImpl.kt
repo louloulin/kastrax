@@ -1,5 +1,6 @@
 package ai.kastrax.mcp.server
 
+import ai.kastrax.mcp.exception.MCPException
 import ai.kastrax.mcp.protocol.*
 import ai.kastrax.mcp.transport.Transport
 import io.github.oshai.kotlinlogging.KotlinLogging
@@ -7,10 +8,14 @@ import io.ktor.server.application.*
 import io.ktor.server.engine.*
 import io.ktor.server.netty.*
 import io.ktor.server.routing.*
-import io.ktor.server.sse.*
+import ai.kastrax.mcp.transport.sse.SSESession
+import ai.kastrax.mcp.transport.sse.respondSSE
+import ai.kastrax.mcp.transport.sse.send
+
 import io.ktor.server.response.*
 import io.ktor.server.request.*
 import io.ktor.http.*
+
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 import kotlinx.serialization.json.*
@@ -129,35 +134,34 @@ class MCPServerImpl(
                         call.response.cacheControl(CacheControl.NoCache(null))
 
                         try {
-                            call.respondSSE {
-                                // 发送初始化消息
-                                send(
-                                    event = "initialize",
-                                    data = json.encodeToString(
-                                        InitializeResult.serializer(),
-                                        InitializeResult(
-                                            name = name,
-                                            version = version,
-                                            capabilities = ServerCapabilities(
-                                                resources = resources.isNotEmpty(),
-                                                tools = tools.isNotEmpty(),
-                                                prompts = prompts.isNotEmpty(),
-                                                sampling = false,
-                                                cancelRequest = true,
-                                                progress = true
-                                            )
+                            val session = call.respondSSE()
+                            // 发送初始化消息
+                            session.send(
+                                event = "initialize",
+                                data = json.encodeToString(
+                                    InitializeResult.serializer(),
+                                    InitializeResult(
+                                        name = name,
+                                        version = version,
+                                        capabilities = ServerCapabilities(
+                                            resources = resources.isNotEmpty(),
+                                            tools = tools.isNotEmpty(),
+                                            prompts = prompts.isNotEmpty(),
+                                            sampling = false,
+                                            cancelRequest = true,
+                                            progress = true
                                         )
                                     )
                                 )
+                            )
 
-                                // 保持连接活跃
-                                while (true) {
-                                    send(
-                                        event = "ping",
-                                        data = "ping"
-                                    )
-                                    delay(30000) // 30 秒
-                                }
+                            // 保持连接活跃
+                            while (true) {
+                                session.send(
+                                    event = "ping",
+                                    data = "ping"
+                                )
+                                delay(30000) // 30 秒
                             }
                         } catch (e: Exception) {
                             logger.error(e) { "SSE connection error" }
@@ -601,7 +605,7 @@ class MCPServerBuilderImpl : MCPServerBuilder {
         val builder = PromptBuilderImpl()
         builder.configure()
 
-        val parameters = builder.parametersBuilder?.build() ?: PromptParameters()
+        val parameters = builder.parametersBuilder?.build() ?: PromptParameters(emptyMap())
 
         val prompt = Prompt(
             id = builder.name,

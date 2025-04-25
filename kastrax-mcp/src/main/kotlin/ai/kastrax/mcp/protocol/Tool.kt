@@ -1,11 +1,12 @@
 package ai.kastrax.mcp.protocol
 
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.*
 import kotlinx.serialization.json.JsonElement
 
 /**
  * MCP 工具
- * 
+ *
  * 工具是 MCP 服务器提供的功能，可以被客户端调用。
  */
 @Serializable
@@ -14,27 +15,27 @@ data class Tool(
      * 工具 ID
      */
     val id: String,
-    
+
     /**
      * 工具名称
      */
     val name: String,
-    
+
     /**
      * 工具描述
      */
     val description: String,
-    
+
     /**
      * 工具参数定义
      */
     val parameters: ToolParameters,
-    
+
     /**
      * 工具返回值定义
      */
     val returns: ToolReturns? = null,
-    
+
     /**
      * 工具元数据
      */
@@ -50,17 +51,43 @@ data class ToolParameters(
      * 参数类型
      */
     val type: String = "object",
-    
+
     /**
      * 必需的参数
      */
     val required: List<String> = emptyList(),
-    
+
     /**
      * 参数属性
      */
     val properties: Map<String, ToolParameterProperty> = emptyMap()
-)
+) {
+    /**
+     * 将工具参数转换为JsonElement
+     */
+    fun toJsonElement(): JsonElement {
+        return buildJsonObject {
+            put("type", JsonPrimitive(type))
+            putJsonArray("required") {
+                required.forEach { add(JsonPrimitive(it)) }
+            }
+            putJsonObject("properties") {
+                properties.forEach { (name, property) ->
+                    putJsonObject(name) {
+                        put("type", JsonPrimitive(property.type))
+                        put("description", JsonPrimitive(property.description))
+                        property.enum?.let { enumValues ->
+                            putJsonArray("enum") {
+                                enumValues.forEach { add(JsonPrimitive(it)) }
+                            }
+                        }
+                        property.default?.let { put("default", it) }
+                    }
+                }
+            }
+        }
+    }
+}
 
 /**
  * 工具参数属性
@@ -71,17 +98,17 @@ data class ToolParameterProperty(
      * 参数类型
      */
     val type: String,
-    
+
     /**
      * 参数描述
      */
     val description: String,
-    
+
     /**
      * 参数枚举值
      */
     val enum: List<String>? = null,
-    
+
     /**
      * 参数默认值
      */
@@ -97,7 +124,7 @@ data class ToolReturns(
      * 返回值类型
      */
     val type: String,
-    
+
     /**
      * 返回值描述
      */
@@ -110,7 +137,7 @@ data class ToolReturns(
 interface ToolHandler {
     /**
      * 处理工具调用
-     * 
+     *
      * @param toolId 工具 ID
      * @param parameters 工具参数
      * @return 工具执行结果

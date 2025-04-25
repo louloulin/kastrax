@@ -29,6 +29,11 @@ interface MCPClient {
     suspend fun disconnect()
 
     /**
+     * 检查是否已连接到 MCP 服务器
+     */
+    fun isConnected(): Boolean
+
+    /**
      * 获取服务器提供的资源列表
      */
     suspend fun resources(): List<Resource>
@@ -159,8 +164,6 @@ interface SSEServerConfig {
 
 /**
  * 创建 MCP 客户端
+ * 注意：实际实现在 MCPClientImpl.kt 中
  */
-fun mcpClient(configure: MCPClientBuilder.() -> Unit): MCPClient {
-    // 实际实现将在具体的实现类中提供
-    throw NotImplementedError("MCP client implementation not available")
-}
+// 移除重复的函数定义，因为它在 MCPClientImpl.kt 中已经定义

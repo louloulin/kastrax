@@ -4,7 +4,7 @@ val koinVersion: String by project
 
 plugins {
     kotlin("jvm")
-    id("io.ktor.plugin") version "2.3.5"
+    id("io.ktor.plugin")
     id("org.jetbrains.kotlin.plugin.serialization")
 }
 
@@ -26,6 +26,13 @@ application {
 repositories {
     mavenCentral()
     mavenLocal()
+}
+
+configurations.all {
+    resolutionStrategy.dependencySubstitution {
+        substitute(module("io.ktor:ktor-server-sse-jvm:$ktorVersion"))
+            .using(module("io.ktor:ktor-server-core-jvm:$ktorVersion"))
+    }
 }
 
 dependencies {

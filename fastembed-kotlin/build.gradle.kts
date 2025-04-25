@@ -1,7 +1,7 @@
 import org.gradle.internal.os.OperatingSystem
 
 plugins {
-    kotlin("jvm") version "1.9.20"
+    kotlin("jvm")
     `maven-publish`
     signing
     application

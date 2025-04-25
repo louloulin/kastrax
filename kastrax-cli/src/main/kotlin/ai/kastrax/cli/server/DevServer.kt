@@ -22,7 +22,7 @@ private val logger = KotlinLogging.logger {}
  * 开发服务器，用于提供 API 和静态文件服务。
  */
 class DevServer(private val port: Int, initialApis: List<ApiDefinition>) {
-    private val server: NettyApplicationEngine
+    private val server: EmbeddedServer<NettyApplicationEngine, NettyApplicationEngine.Configuration>
     private val apis = AtomicReference(initialApis)
 
     init {

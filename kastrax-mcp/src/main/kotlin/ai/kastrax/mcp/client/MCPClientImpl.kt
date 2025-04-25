@@ -1,5 +1,6 @@
 package ai.kastrax.mcp.client
 
+import ai.kastrax.mcp.exception.MCPException
 import ai.kastrax.mcp.protocol.*
 import ai.kastrax.mcp.transport.Transport
 import ai.kastrax.mcp.transport.StdioTransport
@@ -14,10 +15,7 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
-import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonElement
-import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.*
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicBoolean
@@ -93,6 +91,10 @@ class MCPClientImpl(
         isInitialized.set(false)
         pendingRequests.clear()
         serverCapabilities.clear()
+    }
+
+    override fun isConnected(): Boolean {
+        return transport.isConnected()
     }
 
     override suspend fun resources(): List<Resource> {
@@ -272,7 +274,52 @@ class MCPClientImpl(
 
         // 将参数转换为 JsonElement
         val jsonParams = params?.let {
-            json.encodeToJsonElement(it)
+            // 使用安全的方式处理序列化
+            when (it) {
+                is JsonElement -> it
+                is String -> JsonPrimitive(it)
+                is Number -> JsonPrimitive(it)
+                is Boolean -> JsonPrimitive(it)
+                is Map<*, *> -> {
+                    try {
+                        val jsonObject = buildJsonObject {
+                            it.forEach { (key, value) ->
+                                if (key is String) {
+                                    when (value) {
+                                        is String -> put(key, value)
+                                        is Number -> put(key, value)
+                                        is Boolean -> put(key, value)
+                                        else -> put(key, value.toString())
+                                    }
+                                }
+                            }
+                        }
+                        jsonObject
+                    } catch (e: Exception) {
+                        logger.error(e) { "Failed to convert Map to JsonObject: $it" }
+                        JsonPrimitive(it.toString())
+                    }
+                }
+                is Collection<*> -> {
+                    try {
+                        val jsonArray = buildJsonArray {
+                            it.forEach { value ->
+                                when (value) {
+                                    is String -> add(value)
+                                    is Number -> add(value)
+                                    is Boolean -> add(value)
+                                    else -> add(value.toString())
+                                }
+                            }
+                        }
+                        jsonArray
+                    } catch (e: Exception) {
+                        logger.error(e) { "Failed to convert Collection to JsonArray: $it" }
+                        JsonPrimitive(it.toString())
+                    }
+                }
+                else -> JsonPrimitive(it.toString())
+            }
         }
 
         val request = MCPRequest(id, method, jsonParams)
@@ -293,7 +340,50 @@ class MCPClientImpl(
                     } else {
                         try {
                             val result = response.result?.let {
-                                json.decodeFromJsonElement<T>(it)
+                                try {
+                                    // 使用安全的方式处理反序列化
+                                    when (it) {
+                                        is JsonObject -> {
+                                            try {
+                                                json.decodeFromJsonElement<T>(it)
+                                            } catch (e: Exception) {
+                                                logger.warn(e) { "Failed to decode JsonObject directly, trying as string" }
+                                                // 如果直接解析失败，尝试先转换为字符串
+                                                val jsonString = it.toString()
+                                                json.decodeFromString<T>(jsonString)
+                                            }
+                                        }
+                                        is JsonPrimitive -> {
+                                            // 如果是基本类型，尝试直接转换
+                                            @Suppress("UNCHECKED_CAST")
+                                            when {
+                                                it.isString -> it.content as? T ?: it.toString() as T
+                                                it.booleanOrNull != null -> it.boolean as T
+                                                it.doubleOrNull != null -> it.double as T
+                                                it.longOrNull != null -> it.long as T
+                                                it.intOrNull != null -> it.int as T
+                                                else -> it.toString() as T
+                                            }
+                                        }
+                                        is JsonArray -> {
+                                            try {
+                                                json.decodeFromJsonElement<T>(it)
+                                            } catch (e: Exception) {
+                                                logger.warn(e) { "Failed to decode JsonArray directly, trying as string" }
+                                                val jsonString = it.toString()
+                                                json.decodeFromString<T>(jsonString)
+                                            }
+                                        }
+                                        else -> {
+                                            logger.warn { "Unknown JSON element type: ${it::class.java.name}" }
+                                            @Suppress("UNCHECKED_CAST")
+                                            it.toString() as T
+                                        }
+                                    }
+                                } catch (e: Exception) {
+                                    logger.error(e) { "Failed to decode response result: $it" }
+                                    null
+                                }
                             }
 
                             if (result != null) {
@@ -450,15 +540,6 @@ class SSEServerConfigImpl : SSEServerConfig {
     override var url: String = ""
     override var headers: Map<String, String> = emptyMap()
 }
-
-/**
- * MCP 异常
- */
-class MCPException(
-    val code: Int,
-    override val message: String,
-    val data: String? = null
-) : Exception(message)
 
 /**
  * 创建 MCP 客户端

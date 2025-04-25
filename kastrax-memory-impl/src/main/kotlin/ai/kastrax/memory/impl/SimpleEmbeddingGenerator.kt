@@ -25,7 +25,8 @@ class SimpleEmbeddingGenerator : EmbeddingGenerator, KastraXBase(component = "EM
         }
         
         // 归一化向量
-        val norm = sqrt(vector.map { it * it }.sum())
+        val norm =
+            sqrt(vector.map { it * it }.sum())
         return vector.map { it / norm }.toList()
     }
     

@@ -4,10 +4,11 @@ import ai.kastrax.mcp.protocol.MCPMessage
 import ai.kastrax.mcp.protocol.MCPRequest
 import ai.kastrax.mcp.protocol.MCPResponse
 import ai.kastrax.mcp.protocol.MCPNotification
+import ai.kastrax.mcp.transport.sse.SSE
+import ai.kastrax.mcp.transport.sse.SSESession
 import io.ktor.client.*
 import io.ktor.client.engine.cio.*
 import io.ktor.client.plugins.contentnegotiation.*
-import io.ktor.client.plugins.sse.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
@@ -22,7 +23,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 
 /**
  * 基于 SSE 的传输层
- * 
+ *
  * @param url SSE 服务器 URL
  * @param headers 请求头
  */
@@ -36,46 +37,43 @@ class SSETransport(
         install(ContentNegotiation) {
             json(json)
         }
-        install(SSE)
+        // 注意：我们使用自定义的 SSE 实现，而不是插件
+        // install(SSE)
     }
     private var sseSession: SSESession? = null
-    
+
+    // 用于模拟 SSE 事件数据
+    private data class EventData(val data: String)
+
     override suspend fun connect() {
         if (isConnected.get()) {
             return
         }
-        
+
         withContext(Dispatchers.IO) {
-            sseSession = client.sse(url) {
-                headers {
-                    this@SSETransport.headers.forEach { (key, value) ->
-                        append(key, value)
-                    }
-                }
-            }
-            
+            sseSession = SSE.client(url, headers)
             isConnected.set(true)
         }
     }
-    
+
     override suspend fun disconnect() {
         if (!isConnected.get()) {
             return
         }
-        
+
         withContext(Dispatchers.IO) {
-            sseSession?.cancel()
+            sseSession?.close()
             sseSession = null
-            
+
             isConnected.set(false)
         }
     }
-    
+
     override suspend fun send(message: MCPMessage) {
         if (!isConnected.get()) {
             throw IllegalStateException("Not connected")
         }
-        
+
         withContext(Dispatchers.IO) {
             val messageJson = when (message) {
                 is MCPRequest -> json.encodeToString(MCPRequest.serializer(), message)
@@ -83,7 +81,7 @@ class SSETransport(
                 is MCPNotification -> json.encodeToString(MCPNotification.serializer(), message)
                 else -> throw IllegalArgumentException("Unknown message type: ${message::class.java.name}")
             }
-            
+
             client.post(url) {
                 headers {
                     this@SSETransport.headers.forEach { (key, value) ->
@@ -95,48 +93,52 @@ class SSETransport(
             }
         }
     }
-    
+
     override fun receive(): Flow<MCPMessage> = flow {
         if (!isConnected.get()) {
             throw IllegalStateException("Not connected")
         }
-        
-        sseSession?.incoming?.collect { event ->
-            val data = event.data
-            
-            if (data.isBlank()) {
-                return@collect
-            }
-            
-            try {
-                // 尝试解析为请求
-                val request = json.decodeFromString<MCPRequest>(data)
-                emit(request)
-                return@collect
-            } catch (e: Exception) {
-                // 不是请求，继续尝试其他类型
-            }
-            
-            try {
-                // 尝试解析为响应
-                val response = json.decodeFromString<MCPResponse>(data)
-                emit(response)
-                return@collect
-            } catch (e: Exception) {
-                // 不是响应，继续尝试其他类型
-            }
-            
-            try {
-                // 尝试解析为通知
-                val notification = json.decodeFromString<MCPNotification>(data)
-                emit(notification)
-                return@collect
-            } catch (e: Exception) {
-                // 不是通知，忽略
+
+        sseSession?.let { session ->
+            while (true) {
+                val eventData = session.receive() ?: break
+                val event = EventData(eventData)
+                val data = event.data
+
+                if (data.isBlank()) {
+                    continue
+                }
+
+                try {
+                    // 尝试解析为请求
+                    val request = json.decodeFromString<MCPRequest>(data)
+                    emit(request)
+                    continue
+                } catch (e: Exception) {
+                    // 不是请求，继续尝试其他类型
+                }
+
+                try {
+                    // 尝试解析为响应
+                    val response = json.decodeFromString<MCPResponse>(data)
+                    emit(response)
+                    continue
+                } catch (e: Exception) {
+                    // 不是响应，继续尝试其他类型
+                }
+
+                try {
+                    // 尝试解析为通知
+                    val notification = json.decodeFromString<MCPNotification>(data)
+                    emit(notification)
+                    continue
+                } catch (e: Exception) {
+                    // 不是通知，忽略
+                }
             }
         }
     }.flowOn(Dispatchers.IO)
-    
+
     override fun isConnected(): Boolean {
         return isConnected.get()
     }

@@ -1,6 +1,7 @@
 package ai.kastrax.mcp
 
 import ai.kastrax.mcp.client.MCPClient
+import ai.kastrax.mcp.client.MCPClientImpl
 import ai.kastrax.mcp.config.MCPConfig
 import ai.kastrax.mcp.config.ServerConfig
 import ai.kastrax.mcp.config.StdioServerConfig

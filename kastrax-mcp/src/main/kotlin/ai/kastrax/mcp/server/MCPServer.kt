@@ -220,8 +220,6 @@ interface PromptBuilder {
 
 /**
  * 创建 MCP 服务器
+ * 注意：实际实现在 MCPServerImpl.kt 中
  */
-fun mcpServer(configure: MCPServerBuilder.() -> Unit): MCPServer {
-    // 实际实现将在具体的实现类中提供
-    throw NotImplementedError("MCP server implementation not available")
-}
+// 移除重复的函数定义，因为它在 MCPServerImpl.kt 中已经定义

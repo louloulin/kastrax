@@ -2,7 +2,7 @@ plugins {
     kotlin("jvm")
     kotlin("plugin.allopen")
     kotlin("plugin.serialization")
-    id("io.quarkus") version "3.5.0"
+    id("io.quarkus") version "3.9.0"
 }
 
 repositories {
