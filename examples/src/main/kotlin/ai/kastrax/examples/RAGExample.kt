@@ -97,13 +97,18 @@ fun main() = runBlocking {
     }
 
     // 使用 RAG 系统回答问题
-    while (true) {
-        print("\n请输入问题（输入 'exit' 退出）: ")
-        val question = readLine() ?: ""
+    // 定义示例问题列表，而不是依赖用户输入
+    val exampleQuestions = listOf(
+        "Kotlin 的协程是什么？",
+        "DeepSeek 模型有哪些特点？",
+        "RAG 系统的工作原理是什么？"
+    )
 
-        if (question.equals("exit", ignoreCase = true)) {
-            break
-        }
+    println("\n正在使用示例问题进行演示...")
+
+    // 使用示例问题而不是用户输入
+    for (question in exampleQuestions) {
+        println("\n示例问题: $question")
 
         // 检索相关上下文
         val context = rag.generateContextWithMetadata(
@@ -146,4 +151,6 @@ fun main() = runBlocking {
         println("\n回答:")
         println(response.text)
     }
+
+    println("\n示例演示完成。")
 }
