@@ -1020,28 +1020,29 @@ class CreateCommand : CliktCommand(
         // 创建专家代理
         val agentsDir = mastraDir.resolve("agents")
         val specialistAgentKt = agentsDir.resolve("SpecialistAgent.kt").toFile()
-        specialistAgentKt.writeText("""
-            package ai.kastrax.app.kastrax.agents
-
-            import ai.kastrax.core.agent.Agent
-            import ai.kastrax.core.agent.agent
-            import ai.kastrax.app.kastrax.tools.calculatorTool
-
-            /**
-             * 专家代理。
-             */
-            val specialistAgent = agent("specialist") {
-                description = "一个专门领域的专家代理"
-
-                tools(calculatorTool)
-
-                systemPrompt("""
-                    You are a specialist agent with expertise in a specific domain.
-                    You can provide detailed and accurate information in your area of expertise.
-                    When users ask questions in your domain, provide comprehensive answers.
-                """.trimIndent())
-            }
-        """.trimIndent())
+        val agentTemplate = "package ai.kastrax.app.kastrax.agents\n\n" +
+                "import ai.kastrax.core.agent.Agent\n" +
+                "import ai.kastrax.core.agent.agent\n" +
+                "import ai.kastrax.app.kastrax.tools.calculatorTool\n\n" +
+                "/**\n" +
+                " * 专家代理。\n" +
+                " */\n" +
+                "val specialistAgent = agent {\n" +
+                "    name = \"专家代理\"\n\n" +
+                "    instructions = \"\"\"\n" +
+                "        You are a specialist agent with expertise in a specific domain.\n" +
+                "        You can provide detailed and accurate information in your area of expertise.\n" +
+                "        When users ask questions in your domain, provide comprehensive answers.\n" +
+                "    \"\"\".trimIndent()\n\n" +
+                "    tools {\n" +
+                "        tool(calculatorTool)\n" +
+                "    }\n\n" +
+                "    defaultGenerateOptions {\n" +
+                "        temperature(0.7)\n" +
+                "        maxTokens(1000)\n" +
+                "    }\n" +
+                "}\n"
+        specialistAgentKt.writeText(agentTemplate)
         fileCount++
 
         // 更新 agents/index.kt
@@ -1328,9 +1329,9 @@ class CreateCommand : CliktCommand(
                                 "text" to text,
                                 "targetLanguage" to targetLanguage
                             )
-                            executeComponent("translator", translatorInput)
+                            executeComponent("translator", translatorInput as Map<String, Any?>)
                         }
-                        else -> mapOf("error" to "不支持的操作: $operation")
+                        else -> mapOf("error" to "不支持的操作: " + (operation ?: "unknown"))
                     }
                 }
             }
@@ -1348,7 +1349,9 @@ class CreateCommand : CliktCommand(
              */
             private fun translate(text: String, targetLanguage: String): String {
                 // 简单实现，模拟翻译
-                return "Translated: $text (to $targetLanguage)"
+                val textValue = text as? String ?: ""
+                val targetLanguageValue = targetLanguage as? String ?: "English"
+                return "Translated: " + textValue + " (to " + targetLanguageValue + ")"
             }
         """.trimIndent())
         fileCount++
@@ -1476,7 +1479,8 @@ class CreateCommand : CliktCommand(
              */
             private fun getWeather(location: String): String {
                 // 简单实现，模拟天气信息
-                return "Sunny, 25°C in $location"
+                val locationValue = location as? String ?: "Unknown"
+                return "Sunny, 25°C in " + locationValue
             }
 
             /**
@@ -1485,9 +1489,9 @@ class CreateCommand : CliktCommand(
             private fun getNews(category: String): List<String> {
                 // 简单实现，模拟新闻
                 return listOf(
-                    "Breaking news in $category",
-                    "Another important story in $category",
-                    "Latest developments in $category"
+                    "Breaking news in " + (category as? String ?: "general"),
+                    "Another important story in " + (category as? String ?: "general"),
+                    "Latest developments in " + (category as? String ?: "general")
                 )
             }
 
@@ -1532,17 +1536,17 @@ class CreateCommand : CliktCommand(
                     val query = input["query"] as? String ?: ""
                     val number = query.toDoubleOrNull() ?: 0.0
                     val squared = number * number
-                    mapOf("result" to "The square of $number is $squared")
+                    mapOf("result" to "The square of " + (number ?: 0) + " is " + (squared ?: 0))
                 }
 
                 addHandler("question_handler") { input ->
                     val query = input["query"] as? String ?: ""
-                    mapOf("result" to "You asked: $query Here's the answer...")
+                    mapOf("result" to "You asked: " + (query ?: "") + " Here's the answer...")
                 }
 
                 addHandler("default_handler") { input ->
                     val query = input["query"] as? String ?: ""
-                    mapOf("result" to "I received your input: $query")
+                    mapOf("result" to "I received your input: " + (query ?: ""))
                 }
 
                 // 定义条件逻辑
@@ -1814,7 +1818,7 @@ class CreateCommand : CliktCommand(
                                 "units" to units
                             )
                         }
-                        else -> mapOf("error" to "未知端点: $endpointName")
+                        else -> mapOf("error" to "未知端点: " + (endpointName ?: "unknown"))
                     }
                 }
 
@@ -1881,7 +1885,7 @@ class CreateCommand : CliktCommand(
                         "list" -> listFiles(safePath, options)
                         "delete" -> deleteFile(safePath)
                         "info" -> getFileInfo(safePath)
-                        else -> mapOf("error" to "不支持的操作: $operation")
+                        else -> mapOf("error" to "不支持的操作: " + (operation ?: "unknown"))
                     }
                 }
 
@@ -1921,8 +1925,8 @@ class CreateCommand : CliktCommand(
             private fun readFile(path: String): Map<String, Any?> {
                 // 简单实现，模拟文件读取
                 return mapOf(
-                    "content" to "This is the content of file: $path",
-                    "path" to path,
+                    "content" to "This is the content of file: " + (path ?: "unknown"),
+                    "path" to (path ?: "unknown"),
                     "size" to 1024,
                     "lastModified" to System.currentTimeMillis()
                 )
@@ -1935,7 +1939,7 @@ class CreateCommand : CliktCommand(
                 // 简单实现，模拟文件写入
                 return mapOf(
                     "success" to true,
-                    "path" to path,
+                    "path" to (path ?: "unknown"),
                     "size" to content.length,
                     "lastModified" to System.currentTimeMillis()
                 )
@@ -1951,19 +1955,19 @@ class CreateCommand : CliktCommand(
                 val files = listOf(
                     mapOf(
                         "name" to "file1.txt",
-                        "path" to "$path/file1.txt",
+                        "path" to (path ?: "") + "/file1.txt",
                         "type" to "file",
                         "size" to 1024
                     ),
                     mapOf(
                         "name" to "file2.txt",
-                        "path" to "$path/file2.txt",
+                        "path" to (path ?: "") + "/file2.txt",
                         "type" to "file",
                         "size" to 2048
                     ),
                     mapOf(
                         "name" to "subdir",
-                        "path" to "$path/subdir",
+                        "path" to (path ?: "") + "/subdir",
                         "type" to "directory"
                     )
                 )

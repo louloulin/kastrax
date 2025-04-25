@@ -5,6 +5,7 @@ plugins {
     id("io.spring.dependency-management")
     kotlin("jvm")
     kotlin("plugin.spring")
+    kotlin("plugin.serialization")
 }
 
 group = "ai.kastrax.server"
@@ -34,6 +35,9 @@ dependencies {
 
     // Common
     implementation(project(":kastrax-server:common"))
+
+    // Serialization
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.5.1")
 
     // OpenAPI
     implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.2.0")

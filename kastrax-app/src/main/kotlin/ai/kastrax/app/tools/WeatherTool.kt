@@ -106,11 +106,16 @@ data class WeatherData(
  * 注意：这是一个模拟实现，实际应用中应该调用真实的天气 API。
  */
 private fun getWeatherData(location: String, units: String): WeatherData {
+    // 根据单位调整温度和风速
+    val tempAdjustment = if (units == "imperial") 1.8 else 1.0
+    val tempOffset = if (units == "imperial") 32.0 else 0.0
+    val windSpeedAdjustment = if (units == "imperial") 0.621371 else 1.0
     // 在实际应用中，这里应该调用真实的天气 API
     // 例如 OpenWeatherMap、WeatherAPI 等
 
     // 模拟数据
-    return when (location.lowercase()) {
+    // 根据位置获取基础数据
+    val baseData = when (location.lowercase()) {
         "beijing", "北京" -> WeatherData(
             location = "Beijing",
             temperature = 25.0,
@@ -140,4 +145,13 @@ private fun getWeatherData(location: String, units: String): WeatherData {
             windSpeed = (2..15).random().toDouble()
         )
     }
+
+    // 根据单位调整数据
+    return WeatherData(
+        location = baseData.location,
+        temperature = baseData.temperature * tempAdjustment + tempOffset,
+        conditions = baseData.conditions,
+        humidity = baseData.humidity,
+        windSpeed = baseData.windSpeed * windSpeedAdjustment
+    )
 }

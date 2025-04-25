@@ -33,7 +33,7 @@ class DevCommand : CliktCommand(
 
     private val dir by option("-d", "--dir", help = "源代码目录").default("src/main/kotlin")
 
-    private val watch by option("-w", "--watch", help = "启用文件监视和热重载").flag().default(true)
+    private val watch by option("-w", "--watch", help = "启用文件监视和热重载").flag(default = true)
 
     private val terminal = Terminal()
     private var server: DevServer? = null

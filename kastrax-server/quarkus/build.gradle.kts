@@ -1,6 +1,7 @@
 plugins {
     kotlin("jvm")
     kotlin("plugin.allopen")
+    kotlin("plugin.serialization")
     id("io.quarkus") version "3.5.0"
 }
 
@@ -28,8 +29,18 @@ dependencies {
     // Common
     implementation(project(":kastrax-server:common"))
 
+    // Serialization
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.5.1")
+
     testImplementation("io.quarkus:quarkus-junit5")
     testImplementation("io.rest-assured:rest-assured")
+
+    // Mockito
+    testImplementation("org.mockito:mockito-core:5.3.1")
+    testImplementation("org.mockito:mockito-junit-jupiter:5.3.1")
+
+    // Quarkus Test
+    testImplementation("io.quarkus:quarkus-junit5-mockito")
 }
 
 group = "ai.kastrax.server"
