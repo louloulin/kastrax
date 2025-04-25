@@ -58,6 +58,35 @@ tasks.test {
     useJUnitPlatform()
 }
 
+// Add run tasks for examples
+tasks.register<JavaExec>("runSimpleMCPExample") {
+    group = "examples"
+    description = "Run the SimpleMCPExample"
+    classpath = sourceSets["test"].runtimeClasspath
+    mainClass.set("ai.kastrax.mcp.examples.SimpleMCPExampleKt")
+}
+
+tasks.register<JavaExec>("runComprehensiveMCPExample") {
+    group = "examples"
+    description = "Run the ComprehensiveMCPExample"
+    classpath = sourceSets["test"].runtimeClasspath
+    mainClass.set("ai.kastrax.mcp.examples.ComprehensiveMCPExampleKt")
+}
+
+tasks.register<JavaExec>("runAdvancedMCPAgentExample") {
+    group = "examples"
+    description = "Run the AdvancedMCPAgentExample"
+    classpath = sourceSets["test"].runtimeClasspath
+    mainClass.set("ai.kastrax.mcp.examples.AdvancedMCPAgentExampleKt")
+}
+
+tasks.register<JavaExec>("runCustomTransportMCPExample") {
+    group = "examples"
+    description = "Run the CustomTransportMCPExample"
+    classpath = sourceSets["test"].runtimeClasspath
+    mainClass.set("ai.kastrax.mcp.examples.CustomTransportMCPExampleKt")
+}
+
 tasks.dokkaHtml {
     outputDirectory.set(file("$buildDir/dokka"))
 }
