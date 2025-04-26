@@ -7,6 +7,9 @@ import ai.kastrax.memory.api.MemoryBuilder
 import ai.kastrax.memory.api.MemoryCompressor
 import ai.kastrax.memory.api.MemoryCompressionConfig
 import ai.kastrax.memory.api.MemoryMessage
+import ai.kastrax.memory.api.MemoryPriority
+import ai.kastrax.memory.api.MemoryPriorityConfig
+import ai.kastrax.memory.api.MemoryPriorityProcessor
 import ai.kastrax.memory.api.MemoryProcessor
 import ai.kastrax.memory.api.MemoryProcessorOptions
 import ai.kastrax.memory.api.MemoryTag
@@ -37,7 +40,8 @@ class EnhancedMemory(
     private val memoryCompressor: MemoryCompressor? = null,
     private val compressionConfig: MemoryCompressionConfig = MemoryCompressionConfig(),
     private val tagManagerEnabled: Boolean = false,
-    private val threadSharingEnabled: Boolean = false
+    private val threadSharingEnabled: Boolean = false,
+    private val priorityConfig: MemoryPriorityConfig = MemoryPriorityConfig()
 ) : Memory, KastraXBase(component = "MEMORY", name = "enhanced") {
 
     init {
@@ -70,6 +74,12 @@ class EnhancedMemory(
         null
     }
 
+    private val priorityProcessor: MemoryPriorityProcessor? = if (priorityConfig.enablePriority) {
+        BasicMemoryPriorityProcessor(storage as MemoryStorage)
+    } else {
+        null
+    }
+
     // 内存统计
     private val memoryStats = MemoryStats()
 
@@ -79,18 +89,28 @@ class EnhancedMemory(
     // 线程访问控制：线程ID -> 访问控制列表
     private val threadAccessControl = mutableMapOf<String, MutableSet<String>>()
 
-    override suspend fun saveMessage(message: Message, threadId: String): String {
+    override suspend fun saveMessage(message: Message, threadId: String, priority: MemoryPriority?): String {
         // 检查线程是否存在
         require(threadExists(threadId)) { "线程不存在: $threadId" }
 
         val messageId = UUID.randomUUID().toString()
+
+        // 计算消息优先级
+        val messagePriority = priority ?: if (priorityConfig.enablePriority && priorityProcessor != null) {
+            priorityProcessor.calculatePriority(message, priorityConfig)
+        } else {
+            priorityConfig.defaultPriority
+        }
 
         // 创建内存消息
         val memoryMessage = MemoryMessage(
             id = messageId,
             threadId = threadId,
             message = message,
-            createdAt = Clock.System.now()
+            createdAt = Clock.System.now(),
+            priority = messagePriority,
+            lastAccessedAt = Clock.System.now(),
+            accessCount = 0
         )
 
         // 保存消息
@@ -588,6 +608,34 @@ class EnhancedMemory(
         } else {
             tags.any { it.name == tagName }
         }
+    }
+
+    override suspend fun updateMessagePriority(messageId: String, priority: MemoryPriority): Boolean {
+        if (storage is MemoryStorage) {
+            return storage.updateMessagePriority(messageId, priority)
+        }
+        return false
+    }
+
+    override suspend fun getMessagePriority(messageId: String): MemoryPriority? {
+        if (storage is MemoryStorage) {
+            return storage.getMessagePriority(messageId)
+        }
+        return null
+    }
+
+    override suspend fun applyPriorityDecay(config: MemoryPriorityConfig): Int {
+        if (priorityProcessor != null) {
+            return priorityProcessor.applyPriorityDecay(config)
+        }
+        return 0
+    }
+
+    override suspend fun cleanupLowPriorityMessages(config: MemoryPriorityConfig): Int {
+        if (priorityProcessor != null) {
+            return priorityProcessor.cleanupLowPriorityMessages(config)
+        }
+        return 0
     }
 }
 

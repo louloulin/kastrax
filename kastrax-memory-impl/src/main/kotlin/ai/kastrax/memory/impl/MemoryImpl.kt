@@ -11,19 +11,33 @@ import java.util.UUID
 class MemoryImpl(
     private val storage: MemoryStorage,
     @Suppress("unused") private val lastMessages: Int = 10, // 目前未使用，但保留以备将来需要
-    private val semanticRecall: Boolean = false
+    private val semanticRecall: Boolean = false,
+    private val priorityConfig: MemoryPriorityConfig = MemoryPriorityConfig()
 ) : Memory, KastraXBase(component = "MEMORY", name = "memory") {
 
-    override suspend fun saveMessage(message: Message, threadId: String): String {
+    // 优先级处理器
+    private val priorityProcessor = BasicMemoryPriorityProcessor(storage)
+
+    override suspend fun saveMessage(message: Message, threadId: String, priority: MemoryPriority?): String {
         // 检查线程是否存在
         val thread = storage.getThread(threadId) ?: throw IllegalArgumentException("Thread not found: $threadId")
+
+        // 计算消息优先级
+        val messagePriority = priority ?: if (priorityConfig.enablePriority) {
+            priorityProcessor.calculatePriority(message, priorityConfig)
+        } else {
+            priorityConfig.defaultPriority
+        }
 
         // 创建内存消息
         val memoryMessage = MemoryMessage(
             id = UUID.randomUUID().toString(),
             threadId = threadId,
             message = message,
-            createdAt = Clock.System.now()
+            createdAt = Clock.System.now(),
+            priority = messagePriority,
+            lastAccessedAt = Clock.System.now(),
+            accessCount = 0
         )
 
         // 保存消息
@@ -99,5 +113,21 @@ class MemoryImpl(
     ): List<SemanticSearchResult> {
         // 基础实现不支持语义搜索，返回空列表
         return emptyList()
+    }
+
+    override suspend fun updateMessagePriority(messageId: String, priority: MemoryPriority): Boolean {
+        return storage.updateMessagePriority(messageId, priority)
+    }
+
+    override suspend fun getMessagePriority(messageId: String): MemoryPriority? {
+        return storage.getMessagePriority(messageId)
+    }
+
+    override suspend fun applyPriorityDecay(config: MemoryPriorityConfig): Int {
+        return priorityProcessor.applyPriorityDecay(config)
+    }
+
+    override suspend fun cleanupLowPriorityMessages(config: MemoryPriorityConfig): Int {
+        return priorityProcessor.cleanupLowPriorityMessages(config)
     }
 }

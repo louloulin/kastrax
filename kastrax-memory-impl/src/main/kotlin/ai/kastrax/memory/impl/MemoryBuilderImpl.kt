@@ -5,6 +5,8 @@ import ai.kastrax.memory.api.Memory
 import ai.kastrax.memory.api.MemoryBuilder
 import ai.kastrax.memory.api.MemoryCompressor
 import ai.kastrax.memory.api.MemoryCompressionConfig
+import ai.kastrax.memory.api.MemoryPriority
+import ai.kastrax.memory.api.MemoryPriorityConfig
 import ai.kastrax.memory.api.MemoryProcessor
 import ai.kastrax.memory.api.VectorStorage
 import ai.kastrax.memory.api.WorkingMemoryConfig
@@ -24,6 +26,7 @@ class MemoryBuilderImpl : MemoryBuilder {
     private var compressionConfig: MemoryCompressionConfig = MemoryCompressionConfig()
     private var tagManagerEnabled: Boolean = false
     private var threadSharingEnabled: Boolean = false
+    private var priorityConfig: MemoryPriorityConfig = MemoryPriorityConfig()
 
     override fun storage(storage: Any): MemoryBuilder {
         if (storage is MemoryStorage) {
@@ -59,6 +62,11 @@ class MemoryBuilderImpl : MemoryBuilder {
 
     override fun workingMemory(config: WorkingMemoryConfig): MemoryBuilder {
         this.workingMemoryConfig = config
+        return this
+    }
+
+    override fun priorityConfig(config: MemoryPriorityConfig): MemoryBuilder {
+        this.priorityConfig = config
         return this
     }
 
@@ -120,7 +128,8 @@ class MemoryBuilderImpl : MemoryBuilder {
         return MemoryImpl(
             storage = finalStorage,
             lastMessages = lastMessages,
-            semanticRecall = semanticRecall
+            semanticRecall = semanticRecall,
+            priorityConfig = priorityConfig
         )
     }
 }

@@ -11,9 +11,10 @@ interface Memory {
      *
      * @param message 要保存的消息
      * @param threadId 线程ID
+     * @param priority 消息优先级（可选）
      * @return 保存的消息ID
      */
-    suspend fun saveMessage(message: Message, threadId: String): String
+    suspend fun saveMessage(message: Message, threadId: String, priority: MemoryPriority? = null): String
 
     /**
      * 获取指定线程的消息。
@@ -85,6 +86,39 @@ interface Memory {
      * @return 线程列表
      */
     suspend fun listThreads(limit: Int = 20, offset: Int = 0): List<MemoryThread>
+
+    /**
+     * 更新消息的优先级。
+     *
+     * @param messageId 消息ID
+     * @param priority 新的优先级
+     * @return 是否更新成功
+     */
+    suspend fun updateMessagePriority(messageId: String, priority: MemoryPriority): Boolean
+
+    /**
+     * 获取消息的优先级。
+     *
+     * @param messageId 消息ID
+     * @return 消息的优先级，如果消息不存在则返回null
+     */
+    suspend fun getMessagePriority(messageId: String): MemoryPriority?
+
+    /**
+     * 应用优先级衰减。
+     *
+     * @param config 优先级配置
+     * @return 处理的消息数量
+     */
+    suspend fun applyPriorityDecay(config: MemoryPriorityConfig): Int
+
+    /**
+     * 清理过期的低优先级消息。
+     *
+     * @param config 优先级配置
+     * @return 清理的消息数量
+     */
+    suspend fun cleanupLowPriorityMessages(config: MemoryPriorityConfig): Int
 }
 
 /**
@@ -154,12 +188,18 @@ interface ToolCall {
  * @property threadId 线程ID
  * @property message 消息
  * @property createdAt 创建时间
+ * @property priority 消息优先级
+ * @property lastAccessedAt 最后访问时间
+ * @property accessCount 访问计数
  */
 data class MemoryMessage(
     val id: String,
     val threadId: String,
     val message: Message,
-    val createdAt: Instant
+    val createdAt: Instant,
+    val priority: MemoryPriority? = null,
+    val lastAccessedAt: Instant? = null,
+    val accessCount: Int = 0
 )
 
 /**
@@ -217,6 +257,11 @@ interface MemoryBuilder {
      * 启用或禁用工作内存。
      */
     fun workingMemory(config: WorkingMemoryConfig): MemoryBuilder
+
+    /**
+     * 设置优先级配置。
+     */
+    fun priorityConfig(config: MemoryPriorityConfig): MemoryBuilder
 
     /**
      * 构建内存实例。

@@ -5,6 +5,7 @@ import ai.kastrax.memory.api.Memory
 import ai.kastrax.memory.api.MemoryBuilder
 import ai.kastrax.memory.api.MemoryCompressor
 import ai.kastrax.memory.api.MemoryCompressionConfig
+import ai.kastrax.memory.api.MemoryPriorityConfig
 import ai.kastrax.memory.api.MemoryProcessor
 import ai.kastrax.memory.api.VectorStorage
 import ai.kastrax.memory.api.WorkingMemoryConfig
@@ -28,6 +29,7 @@ class EnhancedMemoryBuilder : MemoryBuilder {
     private var reranker: RelevanceReranker? = null
     private var tagManagerEnabled: Boolean = false
     private var threadSharingEnabled: Boolean = false
+    private var priorityConfig: MemoryPriorityConfig = MemoryPriorityConfig()
 
     override fun storage(storage: Any): EnhancedMemoryBuilder {
         this.storage = storage
@@ -61,6 +63,11 @@ class EnhancedMemoryBuilder : MemoryBuilder {
 
     override fun workingMemory(config: WorkingMemoryConfig): EnhancedMemoryBuilder {
         this.workingMemoryConfig = config
+        return this
+    }
+
+    override fun priorityConfig(config: MemoryPriorityConfig): EnhancedMemoryBuilder {
+        this.priorityConfig = config
         return this
     }
 
@@ -145,7 +152,8 @@ class EnhancedMemoryBuilder : MemoryBuilder {
             memoryCompressor = memoryCompressor,
             compressionConfig = compressionConfig,
             tagManagerEnabled = tagManagerEnabled,
-            threadSharingEnabled = threadSharingEnabled
+            threadSharingEnabled = threadSharingEnabled,
+            priorityConfig = priorityConfig
         )
 
         // 如果启用了混合搜索，创建混合搜索内存

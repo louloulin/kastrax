@@ -4,6 +4,8 @@ import ai.kastrax.core.common.KastraXBase
 import ai.kastrax.memory.api.EmbeddingGenerator
 import ai.kastrax.memory.api.Memory
 import ai.kastrax.memory.api.MemoryMessage
+import ai.kastrax.memory.api.MemoryPriority
+import ai.kastrax.memory.api.MemoryPriorityConfig
 import ai.kastrax.memory.api.MemoryProcessor
 import ai.kastrax.memory.api.MemoryThread
 import ai.kastrax.memory.api.Message
@@ -199,8 +201,8 @@ class HybridSearchMemoryImpl(
         return baseMemory.listThreads(limit, offset)
     }
 
-    override suspend fun saveMessage(message: Message, threadId: String): String {
-        val messageId = baseMemory.saveMessage(message, threadId)
+    override suspend fun saveMessage(message: Message, threadId: String, priority: MemoryPriority?): String {
+        val messageId = baseMemory.saveMessage(message, threadId, priority)
         semanticMemory.saveMessage(message, threadId)
         return messageId
     }
@@ -231,6 +233,22 @@ class HybridSearchMemoryImpl(
         config: SemanticRecallConfig
     ): List<SemanticSearchResult> {
         return hybridSearch(query, threadId, config)
+    }
+
+    override suspend fun updateMessagePriority(messageId: String, priority: MemoryPriority): Boolean {
+        return baseMemory.updateMessagePriority(messageId, priority)
+    }
+
+    override suspend fun getMessagePriority(messageId: String): MemoryPriority? {
+        return baseMemory.getMessagePriority(messageId)
+    }
+
+    override suspend fun applyPriorityDecay(config: MemoryPriorityConfig): Int {
+        return baseMemory.applyPriorityDecay(config)
+    }
+
+    override suspend fun cleanupLowPriorityMessages(config: MemoryPriorityConfig): Int {
+        return baseMemory.cleanupLowPriorityMessages(config)
     }
 }
 
@@ -267,4 +285,6 @@ private class HybridSemanticMemoryDelegate(
         // 获取上下文消息
         return hybridSearchMemory.getContextMessages(messages, threadId, config.messageRange)
     }
+
+
 }
