@@ -50,6 +50,6 @@ extra["quarkusPlatformArtifactId"] = "quarkus-bom"
 extra["quarkusPlatformVersion"] = "3.5.0"
 
 // 定义Ktor版本
-extra["ktorVersion"] = "2.3.5"
+extra["ktorVersion"] = "3.1.2"
 extra["logbackVersion"] = "1.4.11"
 extra["koinVersion"] = "3.5.0"

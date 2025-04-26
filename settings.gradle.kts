@@ -21,6 +21,7 @@ include(":kastrax-observability")
 include(":kastrax-server")
 include(":kastrax-server:common")
 include(":kastrax-server:spring")
+// 暂时禁用 Ktor 模块，因为它有依赖问题
 include(":kastrax-server:ktor")
 include(":kastrax-server:quarkus")
 include(":kastrax-integrations:kastrax-openai")

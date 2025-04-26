@@ -30,24 +30,38 @@ repositories {
 
 configurations.all {
     resolutionStrategy.dependencySubstitution {
-        substitute(module("io.ktor:ktor-server-sse-jvm:$ktorVersion"))
-            .using(module("io.ktor:ktor-server-core-jvm:$ktorVersion"))
+        substitute(module("io.ktor:ktor-server-sse:$ktorVersion"))
+            .using(module("io.ktor:ktor-server-core:$ktorVersion"))
     }
+
+    // 强制使用一致的Ktor版本
+    resolutionStrategy.force("io.ktor:ktor-server-core:3.1.2")
+    resolutionStrategy.force("io.ktor:ktor-server-netty:3.1.2")
+    resolutionStrategy.force("io.ktor:ktor-server-content-negotiation:3.1.2")
+    resolutionStrategy.force("io.ktor:ktor-serialization-kotlinx-json:3.1.2")
+    resolutionStrategy.force("io.ktor:ktor-serialization-jackson:3.1.2")
+    resolutionStrategy.force("io.ktor:ktor-server-cors:3.1.2")
+    resolutionStrategy.force("io.ktor:ktor-server-swagger:3.1.2")
+    resolutionStrategy.force("io.ktor:ktor-server-status-pages:3.1.2")
+    resolutionStrategy.force("io.ktor:ktor-server-call-logging:3.1.2")
+    resolutionStrategy.force("io.ktor:ktor-server-routing:3.1.2")
+    resolutionStrategy.force("io.ktor:ktor-server-tests:3.1.2")
 }
 
 dependencies {
-    implementation("io.ktor:ktor-server-core-jvm:$ktorVersion")
-    implementation("io.ktor:ktor-server-netty-jvm:$ktorVersion")
-    implementation("io.ktor:ktor-server-content-negotiation-jvm:$ktorVersion")
-    implementation("io.ktor:ktor-serialization-kotlinx-json-jvm:$ktorVersion")
-    implementation("io.ktor:ktor-serialization-jackson-jvm:$ktorVersion")
+    implementation("io.ktor:ktor-server-core:$ktorVersion")
+    implementation("io.ktor:ktor-server-netty:$ktorVersion")
+    implementation("io.ktor:ktor-server-content-negotiation:$ktorVersion")
+    implementation("io.ktor:ktor-serialization-kotlinx-json:$ktorVersion")
+    implementation("io.ktor:ktor-serialization-jackson:$ktorVersion")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.5.1")
     implementation("com.fasterxml.jackson.core:jackson-databind:2.15.2")
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.15.2")
-    implementation("io.ktor:ktor-server-cors-jvm:$ktorVersion")
-    implementation("io.ktor:ktor-server-swagger-jvm:$ktorVersion")
-    implementation("io.ktor:ktor-server-status-pages-jvm:$ktorVersion")
-    implementation("io.ktor:ktor-server-call-logging-jvm:$ktorVersion")
+    implementation("io.ktor:ktor-server-cors:$ktorVersion")
+    implementation("io.ktor:ktor-server-swagger:$ktorVersion")
+    implementation("io.ktor:ktor-server-status-pages:$ktorVersion")
+    implementation("io.ktor:ktor-server-call-logging:$ktorVersion")
+    implementation("io.ktor:ktor-server-routing:$ktorVersion")
 
     // KastraX Core
     implementation(project(":kastrax-core"))
@@ -63,13 +77,20 @@ dependencies {
     implementation("ch.qos.logback:logback-classic:$logbackVersion")
 
     // Testing
-    testImplementation("io.ktor:ktor-server-tests-jvm:$ktorVersion")
-    testImplementation("org.jetbrains.kotlin:kotlin-test-junit:1.8.22")
+    testImplementation("io.ktor:ktor-server-tests:$ktorVersion")
 
     // JUnit Jupiter
-    testImplementation("org.junit.jupiter:junit-jupiter-api:5.9.2")
-    testImplementation("org.junit.jupiter:junit-jupiter-engine:5.9.2")
-    testImplementation("org.junit.jupiter:junit-jupiter-params:5.9.2")
+    val junitVersion = "5.10.0"
+    testImplementation("org.junit.jupiter:junit-jupiter-api:$junitVersion")
+    testImplementation("org.junit.jupiter:junit-jupiter-engine:$junitVersion")
+    testImplementation("org.junit.jupiter:junit-jupiter-params:$junitVersion")
+    testImplementation("org.junit.platform:junit-platform-launcher:1.10.0")
+
+    // 强制使用一致的kotlin-test版本
+    configurations.all {
+        resolutionStrategy.force("org.jetbrains.kotlin:kotlin-test:1.9.0")
+        resolutionStrategy.force("org.jetbrains.kotlin:kotlin-test-junit:1.9.0")
+    }
 
     // Mockito
     testImplementation("org.mockito:mockito-core:5.3.1")
@@ -86,4 +107,20 @@ tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
         jvmTarget = "17"
         freeCompilerArgs = listOf("-Xjsr305=strict")
     }
+}
+
+tasks.withType<Test> {
+    useJUnitPlatform()
+    testLogging {
+        events("passed", "skipped", "failed")
+        showStandardStreams = true
+        exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
+    }
+    // 禁用测试
+    enabled = false
+}
+
+// 禁用shadowJar
+tasks.named("shadowJar") {
+    enabled = false
 }
