@@ -1,0 +1,15 @@
+{
+    "appName": "KastraX Native",
+    "version": "0.1.0",
+    "apiKeys": {
+        "deepseek": "",
+        "anthropic": "",
+        "openai": ""
+    },
+    "logging": {
+        "level": "INFO",
+        "enableConsole": true,
+        "enableFile": false,
+        "filePath": "logs/kastrax-native.log"
+    }
+}

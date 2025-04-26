@@ -1,0 +1,25 @@
+@plan3.md 工作空间是kastrax，参考mastra代码，实现相关功能，实现后增加测试验证，验证通过后 更新 @plan3.md .md 标记实现的功能，中文说明，并按章节编写文档
+
+@plan4.md 工作空间是kastrax，参考mastra代码，实现相关功能，实现后增加测试验证，验证通过后 更新 @plan4.md 标记实现的功能，中文说明，并按章节编写文档
+
+@pb1.md 工作空间是kastrax，参考mastra代码，实现相关功能，实现后增加测试验证，验证通过后 更新 @pb1.md 标记实现的功能，中文说明，并按章节编写文档
+
+
+通过命令copy mastra playground和playground-ui到 kastrax ui目录下，构建类似的功能，同时为支持类似本地调试ui构建server，支持spring，ktor，quarkus等多种server实现
+
+按 @plan5.md 的计划，结合mastra的代码，和kastrax-server和kastrax-ui的代码实现，综合考虑后构建和实现相关功能，实现后增加测试验证，验证通过更新 @plan5.md
+
+参考 mastra dev的实现代码，按照 @play.md @play1.md 的计划实现类似的kastra dev功能，优先实现自动生成API，并增加验证，验证通过后更新 @play.md @play1.md 标记实现的功能
+
+参考 mastra dev的实现代码，按照 @play.md @play1.md 的计划实现类似的kastra dev功能，优先实现自动生成API，并增加验证，验证通过后更新 @play.md @play1.md 标记实现的功能，中文说明，修改create创建模板，分析整个kastrax的代码实现agent，workflow，tools，network， tools优先使用zodtools
+
+@pb2.md 按照计划，分析 mastra和 kastrax的相关代码实现，基于现有kastrax的实现，修复相关问题，修复后增加验证，验证通过后更新 @pb2.md 标记实现的功能
+
+基于 @pb3.md ，同时执行gradle build，基于异常修复问题，修复后增加测试验证，验证通过更新 @pb3.md 标记实现的功能
+
+@docs/mcp.md 按照这个计划实现相关功能，实现增加测试验证验证通过后更新 @docs/mcp.md 标记实现的功能
+@mcppb.md 按计划实现相关功能，增加测试验证，验证通过后 更新@mcppb.md 标记实现的功能
+
+@improvement_plan.md 按计划修复问题，增加测试验证，验证通过后更新 @improvement_plan.md 标记实现的功能
+
+@plan6.md 按照计划，同时参考mastra目录的相关代码，实现相关功能，实现后更新，增加测试验证，验证通过后更新 @plan6.md 标记实现的功能，中文说明
