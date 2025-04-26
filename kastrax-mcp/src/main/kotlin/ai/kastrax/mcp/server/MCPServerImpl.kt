@@ -48,7 +48,7 @@ class MCPServerImpl(
     private val toolHandlers = ConcurrentHashMap<String, ToolHandler>()
     private val promptContentProviders = ConcurrentHashMap<String, PromptContentProvider>()
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
-    private var server: ApplicationEngine? = null
+    private var server: EmbeddedServer<NettyApplicationEngine, NettyApplicationEngine.Configuration>? = null
     private var stdioJob: Job? = null
 
     override suspend fun start() {
@@ -126,7 +126,7 @@ class MCPServerImpl(
         }
 
         // 启动 SSE 服务器
-        server = embeddedServer(Netty, host = host, port = port) {
+        val embeddedServer = embeddedServer(Netty, host = host, port = port) {
             routing {
                 route("/mcp") {
                     // SSE 端点
@@ -199,6 +199,7 @@ class MCPServerImpl(
             }
         }
 
+        server = embeddedServer
         server?.start(wait = false)
         isRunning.set(true)
 

@@ -44,8 +44,9 @@ configurations.all {
     resolutionStrategy.force("io.ktor:ktor-server-swagger:3.1.2")
     resolutionStrategy.force("io.ktor:ktor-server-status-pages:3.1.2")
     resolutionStrategy.force("io.ktor:ktor-server-call-logging:3.1.2")
-    resolutionStrategy.force("io.ktor:ktor-server-routing:3.1.2")
-    resolutionStrategy.force("io.ktor:ktor-server-tests:3.1.2")
+    // 路由功能已经包含在ktor-server-core中，不需要单独的依赖
+    // resolutionStrategy.force("io.ktor:ktor-server-routing:3.1.2")
+    resolutionStrategy.force("io.ktor:ktor-server-test-host:3.1.2")
 }
 
 dependencies {
@@ -61,7 +62,8 @@ dependencies {
     implementation("io.ktor:ktor-server-swagger:$ktorVersion")
     implementation("io.ktor:ktor-server-status-pages:$ktorVersion")
     implementation("io.ktor:ktor-server-call-logging:$ktorVersion")
-    implementation("io.ktor:ktor-server-routing:$ktorVersion")
+    // 路由功能已经包含在ktor-server-core中，不需要单独的依赖
+    // implementation("io.ktor:ktor-server-routing:$ktorVersion")
 
     // KastraX Core
     implementation(project(":kastrax-core"))
@@ -77,7 +79,7 @@ dependencies {
     implementation("ch.qos.logback:logback-classic:$logbackVersion")
 
     // Testing
-    testImplementation("io.ktor:ktor-server-tests:$ktorVersion")
+    testImplementation("io.ktor:ktor-server-test-host:$ktorVersion")
 
     // JUnit Jupiter
     val junitVersion = "5.10.0"
