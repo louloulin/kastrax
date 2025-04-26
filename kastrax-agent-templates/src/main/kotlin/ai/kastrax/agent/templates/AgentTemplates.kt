@@ -5,6 +5,9 @@ import ai.kastrax.core.agent.AgentGenerateOptions
 import ai.kastrax.core.agent.agent
 import ai.kastrax.core.llm.LlmProvider
 import ai.kastrax.core.tools.Tool
+import ai.kastrax.core.tools.ZodTool
+// import ai.kastrax.core.tools.datetime.DateTimeToolFactory
+import ai.kastrax.core.tools.math.ZodCalculatorTool
 import ai.kastrax.memory.api.Memory
 
 /**
@@ -283,4 +286,122 @@ object AgentTemplates {
             }
         }
     }
+
+    /**
+     * 创建数学助手代理
+     *
+     * @param name 代理名称
+     * @param model 语言模型提供者
+     * @param memory 可选的记忆系统
+     * @param additionalTools 额外的工具
+     * @param customInstructions 自定义指令（可选）
+     * @return 数学助手代理实例
+     */
+    fun createMathAssistantAgent(
+        name: String,
+        model: LlmProvider,
+        memory: Memory? = null,
+        additionalTools: Map<String, Tool> = emptyMap(),
+        customInstructions: String? = null
+    ): Agent {
+        val defaultInstructions = """
+            你是一名专业的数学助手，名为 $name。
+            你的主要职责是：
+            1. 帮助用户解决各种数学问题
+            2. 执行各种数学计算，包括基本运算、三角函数、对数等
+            3. 解释数学概念和原理
+            4. 提供清晰的计算步骤和结果
+
+            指导原则：
+            - 始终使用计算器工具执行计算，确保结果准确
+            - 解释计算过程和步骤
+            - 尽可能使用数学符号和公式来增强解释
+            - 当遇到复杂问题时，将其分解为简单的步骤
+            - 在适当的情况下提供多种解决方法
+
+            当用户要求你执行计算时，始终使用计算器工具，而不是自己计算。
+        """.trimIndent()
+
+        // 创建计算器工具
+        val calculatorTool = ZodCalculatorTool.create()
+
+        return agent {
+            this.name = name
+            this.instructions = customInstructions ?: defaultInstructions
+            this.model = model
+            if (memory != null) {
+                this.memory(memory)
+            }
+            tools {
+                tool(calculatorTool)
+                additionalTools.forEach { (id, tool) ->
+                    tool(id, tool)
+                }
+            }
+            defaultGenerateOptions {
+                maxSteps(3)
+                temperature(0.2)
+            }
+        }
+    }
+
+    /**
+     * 创建日期时间助手代理
+     *
+     * @param name 代理名称
+     * @param model 语言模型提供者
+     * @param memory 可选的记忆系统
+     * @param additionalTools 额外的工具
+     * @param customInstructions 自定义指令（可选）
+     * @return 日期时间助手代理实例
+     */
+    // TODO: 实现日期时间助手代理
+    /*
+    fun createDateTimeAssistantAgent(
+        name: String,
+        model: LlmProvider,
+        memory: Memory? = null,
+        additionalTools: Map<String, Tool> = emptyMap(),
+        customInstructions: String? = null
+    ): Agent {
+        val defaultInstructions = """
+            你是一名专业的日期时间助手，名为 $name。
+            你的主要职责是：
+            1. 帮助用户处理各种日期时间相关的操作
+            2. 获取当前日期时间，包括不同时区
+            3. 格式化和解析日期时间
+            4. 计算日期时间差异和时区转换
+
+            指导原则：
+            - 始终使用日期时间工具执行操作，确保结果准确
+            - 清晰地解释日期时间格式和时区信息
+            - 在处理时区时，注意夏令时和标准时的区别
+            - 当用户提供不完整的日期时间信息时，请求澄清
+
+            当用户要求你执行日期时间操作时，始终使用日期时间工具。
+        """.trimIndent()
+
+        // 创建日期时间工具
+        // val dateTimeTool = DateTimeToolFactory.createTool()
+
+        return agent {
+            this.name = name
+            this.instructions = customInstructions ?: defaultInstructions
+            this.model = model
+            if (memory != null) {
+                this.memory(memory)
+            }
+            tools {
+                // tool(dateTimeTool)
+                additionalTools.forEach { (id, tool) ->
+                    tool(id, tool)
+                }
+            }
+            defaultGenerateOptions {
+                maxSteps(3)
+                temperature(0.3)
+            }
+        }
+    }
+    */
 }

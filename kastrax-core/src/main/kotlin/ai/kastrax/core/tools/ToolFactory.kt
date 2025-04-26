@@ -2,6 +2,7 @@ package ai.kastrax.core.tools
 
 import ai.kastrax.core.tools.file.FileSystemTool
 import ai.kastrax.core.tools.math.CalculatorTool
+import ai.kastrax.core.tools.math.ZodCalculatorTool
 import ai.kastrax.core.tools.web.WebSearchTool
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
@@ -52,9 +53,14 @@ object ToolFactory {
     /**
      * 创建计算器工具。
      *
+     * @param useZod 是否使用 ZodTool 实现
      * @return 计算器工具实例
      */
-    fun createCalculatorTool(): Tool {
-        return CalculatorTool.create()
+    fun createCalculatorTool(useZod: Boolean = false): Tool {
+        return if (useZod) {
+            ZodCalculatorTool.create()
+        } else {
+            CalculatorTool.create()
+        }
     }
 }

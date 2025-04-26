@@ -38,7 +38,8 @@ fun main() = runBlocking {
     }
 
     // 创建文件读取工具
-    val readFileTool = zodTool<Map<String, Any?>, String> {
+
+    val readFileTool = zodTool<Map<String, Any?>, Map<String, Any?>> {
         id = "read_file"
         name = "Read File"
         description = "Reads the content of a file"
@@ -47,13 +48,16 @@ fun main() = runBlocking {
             stringField("file_path", "File path to read")
         }.unsafeCast<Map<String, Any?>, Map<String, Any?>>()
 
-        outputSchema = stringOutput("File content").unsafeCast<String, String>()
+        outputSchema = objectOutput("File operation result") {
+            stringField("content", "File content")
+            booleanField("success", "Whether the operation was successful")
+            stringField("message", "Status message or error description")
+        }.unsafeCast<Map<String, Any?>, Map<String, Any?>>()
 
         execute = { params ->
             try {
                 // 获取文件路径参数
                 val filePathParam = params["file_path"]
-                println("Reading file parameter: $filePathParam (type: ${filePathParam?.javaClass})")
 
                 // 处理不同类型的输入
                 val filePath = when (filePathParam) {
@@ -62,39 +66,130 @@ fun main() = runBlocking {
                     else -> filePathParam?.toString() ?: ""
                 }
 
-                println("Resolved file path: $filePath")
-
+                // 验证文件路径
                 if (filePath.isEmpty()) {
-                    "Error: Empty file path"
+                    mapOf(
+                        "content" to "",
+                        "success" to false,
+                        "message" to "Error: Empty file path"
+                    )
                 } else {
-                    File(filePath).readText()
+                    // 安全检查：防止目录遍历攻击
+                    val file = File(filePath)
+                    val canonicalPath = file.canonicalPath
+
+                    // 检查文件是否存在
+                    if (!file.exists()) {
+                        mapOf(
+                            "content" to "",
+                            "success" to false,
+                            "message" to "Error: File does not exist: $filePath"
+                        )
+                    } else if (!file.isFile) {
+                        mapOf(
+                            "content" to "",
+                            "success" to false,
+                            "message" to "Error: Not a file: $filePath"
+                        )
+                    } else {
+                        // 读取文件内容
+                        val content = file.readText()
+                        mapOf(
+                            "content" to content,
+                            "success" to true,
+                            "message" to "File read successfully: $filePath"
+                        )
+                    }
                 }
             } catch (e: Exception) {
-                println("Error reading file: ${e.message}")
-                "Error reading file: ${e.message}"
+                // 详细的错误处理
+                val errorMessage = when (e) {
+                    is SecurityException -> "Security error: ${e.message}"
+                    is java.nio.file.NoSuchFileException -> "File not found: ${e.message}"
+                    is java.nio.file.AccessDeniedException -> "Access denied: ${e.message}"
+                    else -> "Error reading file: ${e.message}"
+                }
+
+                mapOf(
+                    "content" to "",
+                    "success" to false,
+                    "message" to errorMessage
+                )
             }
         }
     }
 
     // 创建文件写入工具
-    val writeFileTool = zodTool<Map<String, String>, String> {
+    val writeFileTool = zodTool<Map<String, Any?>, Map<String, Any?>> {
         id = "write_file"
         name = "Write File"
         description = "Writes content to a file"
 
         inputSchema = objectInput("File write parameters") {
-            stringField("filePath", "Path where to write the file")
+            stringField("file_path", "Path where to write the file")
             stringField("content", "Content to write to the file")
-        }.unsafeCast<Map<String, String>, Map<String, String>>()
+        }.unsafeCast<Map<String, Any?>, Map<String, Any?>>()
 
-        outputSchema = stringOutput("Result of the write operation").unsafeCast<String, String>()
+        outputSchema = objectOutput("File operation result") {
+            booleanField("success", "Whether the operation was successful")
+            stringField("message", "Status message or error description")
+            stringField("file_path", "Path of the file that was written")
+        }.unsafeCast<Map<String, Any?>, Map<String, Any?>>()
 
         execute = { params ->
             try {
-                File(params["filePath"]!!).writeText(params["content"]!!)
-                "Successfully wrote to ${params["filePath"]}"
+                // 获取参数
+                val filePathParam = params["file_path"]
+                val content = params["content"] as? String
+
+                // 处理文件路径
+                val filePath = when (filePathParam) {
+                    is String -> filePathParam
+                    is Map<*, *> -> filePathParam["value"]?.toString() ?: ""
+                    else -> filePathParam?.toString() ?: ""
+                }
+
+                // 验证参数
+                if (filePath.isEmpty()) {
+                    mapOf(
+                        "success" to false,
+                        "message" to "Error: Empty file path",
+                        "file_path" to ""
+                    )
+                } else if (content == null) {
+                    mapOf(
+                        "success" to false,
+                        "message" to "Error: Content is null or not a string",
+                        "file_path" to filePath
+                    )
+                } else {
+                    // 创建目录（如果不存在）
+                    val file = File(filePath)
+                    file.parentFile?.mkdirs()
+
+                    // 写入文件
+                    file.writeText(content)
+
+                    mapOf(
+                        "success" to true,
+                        "message" to "File written successfully",
+                        "file_path" to filePath
+                    )
+                }
             } catch (e: Exception) {
-                "Error writing file: ${e.message}"
+                // 详细的错误处理
+                val errorMessage = when (e) {
+                    is SecurityException -> "Security error: ${e.message}"
+                    is java.nio.file.NoSuchFileException -> "Directory not found: ${e.message}"
+                    is java.nio.file.AccessDeniedException -> "Access denied: ${e.message}"
+                    else -> "Error writing file: ${e.message}"
+                }
+
+                mapOf(
+                    "success" to false,
+                    "message" to errorMessage,
+                    "file_path" to (params["file_path"]?.toString() ?: "")
+                )
             }
         }
     }
