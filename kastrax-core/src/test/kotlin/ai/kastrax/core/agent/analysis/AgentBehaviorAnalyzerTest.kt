@@ -28,10 +28,17 @@ class AgentBehaviorAnalyzerTest {
         // 开始代理执行
         val agentId = "test-agent"
         val sessionId = "test-session"
-        metricsCollector.startAgentExecution(agentId, sessionId)
+        val agentMetrics = AgentMetrics(
+            agentId = agentId,
+            sessionId = sessionId,
+            startTime = kotlinx.datetime.Instant.fromEpochMilliseconds(System.currentTimeMillis())
+        )
+        metricsStorage.saveAgentMetrics(agentMetrics)
 
         // 完成代理执行
-        metricsCollector.completeAgentExecution(agentId, sessionId, AgentStatus.COMPLETED)
+        agentMetrics.status = AgentStatus.COMPLETED
+        agentMetrics.endTime = kotlinx.datetime.Instant.fromEpochMilliseconds(System.currentTimeMillis() + 1000)
+        metricsStorage.saveAgentMetrics(agentMetrics)
 
         // 分析代理行为
         val analysis = behaviorAnalyzer.analyzeAgentBehavior(agentId, sessionId)
@@ -45,7 +52,12 @@ class AgentBehaviorAnalyzerTest {
         // 开始代理执行
         val agentId = "test-agent"
         val sessionId = "test-session"
-        metricsCollector.startAgentExecution(agentId, sessionId)
+        val agentMetrics = AgentMetrics(
+            agentId = agentId,
+            sessionId = sessionId,
+            startTime = kotlinx.datetime.Instant.fromEpochMilliseconds(System.currentTimeMillis())
+        )
+        metricsStorage.saveAgentMetrics(agentMetrics)
 
         // 添加步骤
         val step1 = metricsCollector.startStep(agentId, sessionId, "Step 1", "test")
