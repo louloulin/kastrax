@@ -12,13 +12,17 @@ class MemoryImpl(
     private val storage: MemoryStorage,
     @Suppress("unused") private val lastMessages: Int = 10, // 目前未使用，但保留以备将来需要
     private val semanticRecall: Boolean = false,
-    private val priorityConfig: MemoryPriorityConfig = MemoryPriorityConfig()
+    private val priorityConfig: MemoryPriorityConfig = MemoryPriorityConfig(),
+    private val structuredMemoryConfig: StructuredMemoryConfig = StructuredMemoryConfig()
 ) : Memory, KastraXBase(component = "MEMORY", name = "memory") {
 
     // 优先级处理器
     private val priorityProcessor = BasicMemoryPriorityProcessor(storage)
 
-    override suspend fun saveMessage(message: Message, threadId: String, priority: MemoryPriority?): String {
+    // 结构化记忆
+    private val structuredMemory = InMemoryStructuredMemory(structuredMemoryConfig)
+
+    override suspend fun saveMessage(message: Message, threadId: String, priority: MemoryPriority?, metadata: Map<String, Any>?): String {
         // 检查线程是否存在
         val thread = storage.getThread(threadId) ?: throw IllegalArgumentException("Thread not found: $threadId")
 
@@ -37,7 +41,8 @@ class MemoryImpl(
             createdAt = Clock.System.now(),
             priority = messagePriority,
             lastAccessedAt = Clock.System.now(),
-            accessCount = 0
+            accessCount = 0,
+            metadata = metadata
         )
 
         // 保存消息
@@ -129,5 +134,9 @@ class MemoryImpl(
 
     override suspend fun cleanupLowPriorityMessages(config: MemoryPriorityConfig): Int {
         return priorityProcessor.cleanupLowPriorityMessages(config)
+    }
+
+    override fun getStructuredMemory(): StructuredMemory? {
+        return structuredMemory
     }
 }

@@ -12,6 +12,7 @@ import ai.kastrax.memory.api.Message
 import ai.kastrax.memory.api.SemanticMemory
 import ai.kastrax.memory.api.SemanticRecallConfig
 import ai.kastrax.memory.api.SemanticSearchResult
+import ai.kastrax.memory.api.StructuredMemory
 import ai.kastrax.memory.api.VectorStorage
 
 /**
@@ -201,8 +202,8 @@ class HybridSearchMemoryImpl(
         return baseMemory.listThreads(limit, offset)
     }
 
-    override suspend fun saveMessage(message: Message, threadId: String, priority: MemoryPriority?): String {
-        val messageId = baseMemory.saveMessage(message, threadId, priority)
+    override suspend fun saveMessage(message: Message, threadId: String, priority: MemoryPriority?, metadata: Map<String, Any>?): String {
+        val messageId = baseMemory.saveMessage(message, threadId, priority, metadata)
         semanticMemory.saveMessage(message, threadId)
         return messageId
     }
@@ -249,6 +250,10 @@ class HybridSearchMemoryImpl(
 
     override suspend fun cleanupLowPriorityMessages(config: MemoryPriorityConfig): Int {
         return baseMemory.cleanupLowPriorityMessages(config)
+    }
+
+    override fun getStructuredMemory(): StructuredMemory? {
+        return baseMemory.getStructuredMemory()
     }
 }
 

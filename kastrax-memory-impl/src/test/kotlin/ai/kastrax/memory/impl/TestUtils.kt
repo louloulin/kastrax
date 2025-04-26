@@ -8,6 +8,7 @@ import ai.kastrax.memory.api.MemoryPriorityConfig
 import ai.kastrax.memory.api.MemoryProcessor
 import ai.kastrax.memory.api.MemoryProcessorOptions
 import ai.kastrax.memory.api.EmbeddingGenerator
+import ai.kastrax.memory.api.StructuredMemoryConfig
 import ai.kastrax.memory.api.VectorStorage
 import ai.kastrax.memory.api.WorkingMemoryConfig
 
@@ -41,6 +42,7 @@ class TestEnhancedMemoryBuilder : MemoryBuilder {
     private var tagManagerEnabled: Boolean = false
     private var threadSharingEnabled: Boolean = false
     private var priorityConfig: MemoryPriorityConfig = MemoryPriorityConfig()
+    private var structuredMemoryConfig: StructuredMemoryConfig = StructuredMemoryConfig()
 
     // Getter methods for debugging
     fun getStorage(): Any? = storage
@@ -54,6 +56,7 @@ class TestEnhancedMemoryBuilder : MemoryBuilder {
     fun getTagManagerEnabled(): Boolean = tagManagerEnabled
     fun getThreadSharingEnabled(): Boolean = threadSharingEnabled
     fun getPriorityConfig(): MemoryPriorityConfig = priorityConfig
+    fun getStructuredMemoryConfig(): StructuredMemoryConfig = structuredMemoryConfig
 
     override fun storage(storage: Any): MemoryBuilder {
         this.storage = storage
@@ -92,6 +95,11 @@ class TestEnhancedMemoryBuilder : MemoryBuilder {
 
     override fun priorityConfig(config: MemoryPriorityConfig): MemoryBuilder {
         this.priorityConfig = config
+        return this
+    }
+
+    override fun structuredMemoryConfig(config: StructuredMemoryConfig): MemoryBuilder {
+        this.structuredMemoryConfig = config
         return this
     }
 
@@ -143,7 +151,8 @@ class TestEnhancedMemoryBuilder : MemoryBuilder {
             compressionConfig = MemoryCompressionConfig(),
             tagManagerEnabled = tagManagerEnabled,
             threadSharingEnabled = threadSharingEnabled,
-            priorityConfig = priorityConfig
+            priorityConfig = priorityConfig,
+            structuredMemoryConfig = structuredMemoryConfig
         )
     }
 }

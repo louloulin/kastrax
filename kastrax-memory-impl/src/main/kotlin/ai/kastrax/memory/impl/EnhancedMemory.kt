@@ -18,6 +18,8 @@ import ai.kastrax.memory.api.Message
 import ai.kastrax.memory.api.SemanticMemory
 import ai.kastrax.memory.api.SemanticRecallConfig
 import ai.kastrax.memory.api.SemanticSearchResult
+import ai.kastrax.memory.api.StructuredMemory
+import ai.kastrax.memory.api.StructuredMemoryConfig
 import ai.kastrax.memory.api.VectorStorage
 import ai.kastrax.memory.api.WorkingMemory
 import ai.kastrax.memory.api.WorkingMemoryConfig
@@ -41,7 +43,8 @@ class EnhancedMemory(
     private val compressionConfig: MemoryCompressionConfig = MemoryCompressionConfig(),
     private val tagManagerEnabled: Boolean = false,
     private val threadSharingEnabled: Boolean = false,
-    private val priorityConfig: MemoryPriorityConfig = MemoryPriorityConfig()
+    private val priorityConfig: MemoryPriorityConfig = MemoryPriorityConfig(),
+    private val structuredMemoryConfig: StructuredMemoryConfig = StructuredMemoryConfig()
 ) : Memory, KastraXBase(component = "MEMORY", name = "enhanced") {
 
     init {
@@ -80,6 +83,12 @@ class EnhancedMemory(
         null
     }
 
+    private val structuredMemory: StructuredMemory? = if (structuredMemoryConfig.enableRelations) {
+        InMemoryStructuredMemory(structuredMemoryConfig)
+    } else {
+        null
+    }
+
     // 内存统计
     private val memoryStats = MemoryStats()
 
@@ -89,7 +98,7 @@ class EnhancedMemory(
     // 线程访问控制：线程ID -> 访问控制列表
     private val threadAccessControl = mutableMapOf<String, MutableSet<String>>()
 
-    override suspend fun saveMessage(message: Message, threadId: String, priority: MemoryPriority?): String {
+    override suspend fun saveMessage(message: Message, threadId: String, priority: MemoryPriority?, metadata: Map<String, Any>?): String {
         // 检查线程是否存在
         require(threadExists(threadId)) { "线程不存在: $threadId" }
 
@@ -110,7 +119,8 @@ class EnhancedMemory(
             createdAt = Clock.System.now(),
             priority = messagePriority,
             lastAccessedAt = Clock.System.now(),
-            accessCount = 0
+            accessCount = 0,
+            metadata = metadata
         )
 
         // 保存消息
@@ -636,6 +646,10 @@ class EnhancedMemory(
             return priorityProcessor.cleanupLowPriorityMessages(config)
         }
         return 0
+    }
+
+    override fun getStructuredMemory(): StructuredMemory? {
+        return structuredMemory
     }
 }
 

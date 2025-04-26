@@ -1,6 +1,7 @@
 package ai.kastrax.memory.api
 
 import kotlinx.datetime.Instant
+import kotlinx.serialization.json.JsonElement
 
 /**
  * 内存系统接口，用于存储和检索对话历史。
@@ -14,7 +15,7 @@ interface Memory {
      * @param priority 消息优先级（可选）
      * @return 保存的消息ID
      */
-    suspend fun saveMessage(message: Message, threadId: String, priority: MemoryPriority? = null): String
+    suspend fun saveMessage(message: Message, threadId: String, priority: MemoryPriority? = null, metadata: Map<String, Any>? = null): String
 
     /**
      * 获取指定线程的消息。
@@ -86,6 +87,13 @@ interface Memory {
      * @return 线程列表
      */
     suspend fun listThreads(limit: Int = 20, offset: Int = 0): List<MemoryThread>
+
+    /**
+     * 获取结构化记忆接口。
+     *
+     * @return 结构化记忆接口，如果不支持则返回null
+     */
+    fun getStructuredMemory(): StructuredMemory?
 
     /**
      * 更新消息的优先级。
@@ -191,6 +199,7 @@ interface ToolCall {
  * @property priority 消息优先级
  * @property lastAccessedAt 最后访问时间
  * @property accessCount 访问计数
+ * @property metadata 消息元数据，可用于存储结构化信息
  */
 data class MemoryMessage(
     val id: String,
@@ -199,7 +208,8 @@ data class MemoryMessage(
     val createdAt: Instant,
     val priority: MemoryPriority? = null,
     val lastAccessedAt: Instant? = null,
-    val accessCount: Int = 0
+    val accessCount: Int = 0,
+    val metadata: Map<String, Any>? = null
 )
 
 /**
@@ -210,13 +220,15 @@ data class MemoryMessage(
  * @property createdAt 创建时间
  * @property updatedAt 最后更新时间
  * @property messageCount 消息数量
+ * @property metadata 线程元数据，可用于存储结构化信息
  */
 data class MemoryThread(
     val id: String,
     val title: String?,
     val createdAt: Instant,
     val updatedAt: Instant,
-    val messageCount: Int = 0
+    val messageCount: Int = 0,
+    val metadata: Map<String, Any>? = null
 )
 
 /**
@@ -262,6 +274,11 @@ interface MemoryBuilder {
      * 设置优先级配置。
      */
     fun priorityConfig(config: MemoryPriorityConfig): MemoryBuilder
+
+    /**
+     * 设置结构化记忆配置。
+     */
+    fun structuredMemoryConfig(config: StructuredMemoryConfig): MemoryBuilder
 
     /**
      * 构建内存实例。
