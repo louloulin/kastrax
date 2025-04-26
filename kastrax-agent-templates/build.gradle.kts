@@ -1,3 +1,5 @@
+import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
+
 plugins {
     kotlin("jvm")
     kotlin("plugin.serialization")
@@ -35,5 +37,19 @@ kotlin {
 tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
     compilerOptions {
         jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
+        languageVersion.set(KotlinVersion.KOTLIN_1_9)
+    }
+}
+
+// 添加一个任务来构建Native应用
+tasks.register("buildNative") {
+    group = "build"
+    description = "构建Native应用"
+
+    dependsOn(":kastrax-native:buildAllExecutables")
+
+    doLast {
+        println("构建Native应用完成")
+        println("可执行文件位于: kastrax-native/build/bin/native/releaseExecutable/")
     }
 }

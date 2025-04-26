@@ -6,7 +6,7 @@ pluginManagement {
         maven { url = uri("https://plugins.gradle.org/m2/") }
         google() // 添加Google仓库，用于Android库
     }
-
+    
     // 定义插件版本
     plugins {
         kotlin("multiplatform") version "1.9.22"
