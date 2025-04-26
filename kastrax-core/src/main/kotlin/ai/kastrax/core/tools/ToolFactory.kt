@@ -1,7 +1,12 @@
 package ai.kastrax.core.tools
 
 import ai.kastrax.core.tools.file.FileSystemTool
+import ai.kastrax.core.tools.math.CalculatorTool
 import ai.kastrax.core.tools.web.WebSearchTool
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 
 /**
  * 工具工厂类，用于创建各种工具的实例。
@@ -26,7 +31,7 @@ object ToolFactory {
             maxResults = maxResults
         )
     }
-    
+
     /**
      * 创建文件系统工具。
      *
@@ -42,5 +47,14 @@ object ToolFactory {
             rootPath = rootPath,
             allowAbsolutePaths = allowAbsolutePaths
         )
+    }
+
+    /**
+     * 创建计算器工具。
+     *
+     * @return 计算器工具实例
+     */
+    fun createCalculatorTool(): Tool {
+        return CalculatorTool.create()
     }
 }
