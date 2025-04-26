@@ -229,7 +229,7 @@
 #### Agent 高级特性
 - [x] 实现基础的 Agent 网络（已完成：AgentNetwork.kt）
 - [ ] 实现完整的 Agent 编排和协作框架（当前缺少完整的编排机制）
-- [ ] 开发 Agent 行为分析和优化工具（当前缺少分析工具）
+- [x] 开发 Agent 行为分析和优化工具（已完成：kastrax-core 模块中的 AgentBehaviorAnalyzer、AgentMetricsCollector 和 AgentOptimizationAdvisor）
 - [ ] 实现 Agent 版本控制和回滚机制（当前缺少版本控制）
 - [ ] 提供 Agent 性能监控和诊断工具（当前监控能力有限）
 

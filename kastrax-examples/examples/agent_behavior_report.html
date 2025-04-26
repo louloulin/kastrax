@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>代理行为分析报告</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        h1 { color: #333; }
+        .metric { margin-bottom: 10px; }
+        .label { font-weight: bold; }
+        .section { margin-top: 20px; border-top: 1px solid #eee; padding-top: 10px; }
+        .bottleneck { background-color: #fff8f8; padding: 10px; margin-bottom: 10px; border-left: 3px solid #f88; }
+        .suggestion { background-color: #f8fff8; padding: 10px; margin-bottom: 10px; border-left: 3px solid #8f8; }
+    </style>
+</head>
+<body>
+    <h1>代理行为分析报告</h1>
+    
+    <div class="section">
+        <h2>基本信息</h2>
+        <div class="metric"><span class="label">代理ID:</span> ResearchAssistant</div>
+        <div class="metric"><span class="label">会话ID:</span> behavior-analysis-session</div>
+        <div class="metric"><span class="label">分析时间:</span> 2023-04-26 11:25:00</div>
+    </div>
+    
+    <div class="section">
+        <h2>性能指标</h2>
+        <div class="metric"><span class="label">总执行时间:</span> 4000毫秒</div>
+        <div class="metric"><span class="label">平均步骤时间:</span> 1000.00毫秒</div>
+        <div class="metric"><span class="label">最长步骤时间:</span> 1500毫秒</div>
+        <div class="metric"><span class="label">最短步骤时间:</span> 500毫秒</div>
+        <div class="metric"><span class="label">总Token使用:</span> 1000 (提示词: 600, 完成词: 400)</div>
+        <div class="metric"><span class="label">总工具调用次数:</span> 1</div>
+        <div class="metric"><span class="label">每步骤平均工具调用次数:</span> 0.25</div>
+        <div class="metric"><span class="label">总错误次数:</span> 1</div>
+        <div class="metric"><span class="label">总重试次数:</span> 1</div>
+        <div class="metric"><span class="label">错误率:</span> 25.00%</div>
+        <div class="metric"><span class="label">重试率:</span> 25.00%</div>
+    </div>
+    
+    <div class="section">
+        <h2>性能瓶颈步骤</h2>
+        <div class="bottleneck">
+            <div class="metric"><span class="label">步骤名称:</span> 执行搜索</div>
+            <div class="metric"><span class="label">步骤类型:</span> search</div>
+            <div class="metric"><span class="label">持续时间:</span> 1500毫秒</div>
+            <div class="metric"><span class="label">占总时间比例:</span> 37.50%</div>
+            <div class="metric"><span class="label">工具调用次数:</span> 1</div>
+            <div class="metric"><span class="label">Token使用量:</span> 300</div>
+        </div>
+        
+        <div class="bottleneck">
+            <div class="metric"><span class="label">步骤名称:</span> 生成回复</div>
+            <div class="metric"><span class="label">步骤类型:</span> generation</div>
+            <div class="metric"><span class="label">持续时间:</span> 1200毫秒</div>
+            <div class="metric"><span class="label">占总时间比例:</span> 30.00%</div>
+            <div class="metric"><span class="label">工具调用次数:</span> 0</div>
+            <div class="metric"><span class="label">Token使用量:</span> 600</div>
+        </div>
+    </div>
+    
+    <div class="section">
+        <h2>优化建议</h2>
+        <div class="suggestion">
+            <div class="metric"><span class="label">类别:</span> Token使用</div>
+            <div class="metric"><span class="label">建议:</span> 考虑减少提示词长度或优化提示词结构，以减少Token使用量。</div>
+            <div class="metric"><span class="label">影响程度:</span> 中</div>
+            <div class="metric"><span class="label">详细信息:</span> 当前Token使用量为1000，其中提示词600，完成词400。</div>
+        </div>
+        
+        <div class="suggestion">
+            <div class="metric"><span class="label">类别:</span> 错误处理</div>
+            <div class="metric"><span class="label">建议:</span> 改进步骤'生成回复'的错误处理。</div>
+            <div class="metric"><span class="label">影响程度:</span> 高</div>
+            <div class="metric"><span class="label">详细信息:</span> 该步骤重试次数为1，工具调用错误次数为0。错误信息：生成回复时出现错误</div>
+        </div>
+    </div>
+</body>
+</html>

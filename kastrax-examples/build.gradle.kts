@@ -9,6 +9,7 @@ kotlin {
 
 dependencies {
     implementation(project(":kastrax-core"))
+    implementation(project(":kastrax-memory-api"))
     implementation(project(":kastrax-memory-impl"))
     implementation(project(":kastrax-datasource:kastrax-filesystem"))
     implementation(project(":kastrax-datasource:kastrax-database"))
@@ -20,6 +21,7 @@ dependencies {
 
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.4.1")
     implementation("io.github.microutils:kotlin-logging-jvm:3.0.5")
     implementation("ch.qos.logback:logback-classic:1.4.11")
 }

@@ -91,7 +91,8 @@ enum class AgentStatus {
     EXECUTING,   // 执行工具
     RESPONDING,  // 生成响应
     ERROR,       // 错误状态
-    PAUSED       // 暂停状态
+    PAUSED,      // 暂停状态
+    COMPLETED    // 完成状态
 }
 
 /**

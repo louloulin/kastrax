@@ -1,0 +1,19 @@
+```mermaid
+gantt
+    title 代理执行时间线
+    dateFormat  HH:mm:ss
+    axisFormat %H:%M:%S
+    
+    section 准备查询
+    步骤执行 : done, 00:00:00, 00:00:01
+    
+    section 执行搜索
+    步骤执行 : done, 00:00:01, 00:00:03
+    Web Search : done, 00:00:01, 00:00:02
+    
+    section 分析结果
+    步骤执行 : done, 00:00:03, 00:00:04
+    
+    section 生成回复
+    步骤执行 : crit, 00:00:04, 00:00:06
+```
