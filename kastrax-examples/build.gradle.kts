@@ -12,6 +12,7 @@ dependencies {
     implementation(project(":kastrax-memory-impl"))
     implementation(project(":kastrax-datasource:kastrax-filesystem"))
     implementation(project(":kastrax-datasource:kastrax-database"))
+    implementation(project(":kastrax-agent-templates"))
 
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
     implementation("io.github.microutils:kotlin-logging-jvm:3.0.5")

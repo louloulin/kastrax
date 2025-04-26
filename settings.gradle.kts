@@ -46,4 +46,5 @@ include(":zod-test")
 include(":kastrax-examples")
 
 include(":kastrax-app")
+include(":kastrax-agent-templates")
 

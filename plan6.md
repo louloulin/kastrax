@@ -110,13 +110,16 @@
 - 已实现多种存储后端（InMemoryStorage、RedisMemoryStorage、SQLiteMemoryStorage、PostgresMemoryStorage）
 - 已实现基础的记忆优先级机制（MemoryPriority、MemoryPriorityConfig、BasicMemoryPriorityProcessor）
 - 已实现优先级过滤器和排序器（PriorityFilter、PrioritySorter）
+- 已实现结构化记忆支持（StructuredMemory 接口和 InMemoryStructuredMemory 实现）
+- 已实现消息元数据支持（MemoryMessage 类中的 metadata 属性）
 - 缺少高级记忆管理功能
 
 **改进方向：**
 - 完善存储后端的测试和文档（提供更详细的使用指南）
 - 增强记忆优先级机制（增加更多优先级策略和自适应优先级）
-- 增加结构化记忆支持（支持复杂数据结构和关系）
+- 完善结构化记忆支持（增加更多存储后端和查询能力）
 - 提供记忆可视化和管理工具（便于开发者调试和优化）
+- 提供记忆查询和管理 API（增强记忆的检索和管理能力）
 
 ### 2.5 RAG 能力
 
@@ -193,8 +196,8 @@
 #### Agent 框架增强
 - [x] 实现基础 Agent 接口和 DSL 构建器（已完成：Agent.kt 中的 AgentBuilder 和 DSL）
 - [x] 实现基础状态管理（已完成：AgentState.kt 中的状态管理接口和实现）
-- [ ] 实现更丰富的 Agent 类型和专用模板
-- [ ] 增强 Agent 状态持久化能力（当前仅支持内存存储）
+- [x] 实现更丰富的 Agent 类型和专用模板（已完成：kastrax-agent-templates 模块中的 AgentTemplates）
+- [x] 增强 Agent 状态持久化能力（已完成：kastrax-core 模块中的 SQLiteStateManager 和 SQLiteSessionManager）
 - [ ] 改进 Agent 配置和参数管理（增加更多配置选项）
 - [ ] 实现基础的 Agent 协作机制（当前缺少 Agent 间通信）
 
@@ -218,7 +221,7 @@
 - [x] 实现基础会话管理（已完成：SessionManager 接口）
 - [x] 支持多种存储后端（已完成：实现了 RedisMemoryStorage、SQLiteMemoryStorage 和 PostgresMemoryStorage）
 - [x] 实现基础的记忆优先级机制（已完成：实现了 MemoryPriority、MemoryPriorityConfig 和 BasicMemoryPriorityProcessor）
-- [ ] 增加结构化记忆支持（当前记忆结构较简单）
+- [x] 增加结构化记忆支持（已完成：实现了 StructuredMemory 接口和 InMemoryStructuredMemory 实现）
 - [ ] 提供记忆查询和管理 API（当前 API 有限）
 
 ### 3.2 中期计划（4-6个月）
