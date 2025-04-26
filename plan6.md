@@ -222,7 +222,7 @@
 - [x] 支持多种存储后端（已完成：实现了 RedisMemoryStorage、SQLiteMemoryStorage 和 PostgresMemoryStorage）
 - [x] 实现基础的记忆优先级机制（已完成：实现了 MemoryPriority、MemoryPriorityConfig 和 BasicMemoryPriorityProcessor）
 - [x] 增加结构化记忆支持（已完成：实现了 StructuredMemory 接口和 InMemoryStructuredMemory 实现）
-- [ ] 提供记忆查询和管理 API（当前 API 有限）
+- [x] 提供记忆查询和管理 API（已完成：实现了 MemoryManager 接口和 MemoryManagerImpl 实现，支持高级查询、上下文获取、线程管理、统计分析、导出导入和批量操作，已修复类型转换和序列化问题）
 
 ### 3.2 中期计划（4-6个月）
 
