@@ -2,12 +2,21 @@ package ai.kastrax.core.agent
 
 import ai.kastrax.core.common.KastraXBase
 import ai.kastrax.core.llm.LlmMessage
+import ai.kastrax.core.llm.LlmMessageRole
+import ai.kastrax.core.llm.LlmToolCall
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.put
+import kotlinx.serialization.json.putJsonArray
 import java.sql.Connection
 import java.sql.DriverManager
 import java.sql.ResultSet
@@ -120,7 +129,78 @@ class SQLiteSessionManager(
         val id = rs.getString("id")
         val sessionId = rs.getString("session_id")
         val messageJson = rs.getString("message")
-        val message = json.decodeFromString<LlmMessage>(messageJson)
+
+        // 手动解析LlmMessage，避免序列化问题
+        val messageObj = json.parseToJsonElement(messageJson).jsonObject
+        val role = LlmMessageRole.valueOf(messageObj["role"]?.let {
+            when (it) {
+                is JsonPrimitive -> it.content
+                else -> LlmMessageRole.USER.name
+            }
+        } ?: LlmMessageRole.USER.name)
+
+        val content = messageObj["content"]?.let {
+            when (it) {
+                is JsonPrimitive -> it.content
+                else -> ""
+            }
+        } ?: ""
+
+        val name = messageObj["name"]?.let {
+            when (it) {
+                is JsonPrimitive -> it.content
+                else -> null
+            }
+        }
+
+        val toolCallId = messageObj["toolCallId"]?.let {
+            when (it) {
+                is JsonPrimitive -> it.content
+                else -> null
+            }
+        }
+
+        val toolCalls = messageObj["toolCalls"]?.let {
+            when (it) {
+                is kotlinx.serialization.json.JsonArray -> {
+                    it.mapNotNull { toolCallElement ->
+                        val toolCallObj = toolCallElement.jsonObject
+                        val toolId = toolCallObj["id"]?.let { idElement ->
+                            when (idElement) {
+                                is JsonPrimitive -> idElement.content
+                                else -> ""
+                            }
+                        } ?: ""
+
+                        val toolName = toolCallObj["name"]?.let { nameElement ->
+                            when (nameElement) {
+                                is JsonPrimitive -> nameElement.content
+                                else -> ""
+                            }
+                        } ?: ""
+
+                        val toolArgs = toolCallObj["arguments"]?.let { argsElement ->
+                            when (argsElement) {
+                                is JsonPrimitive -> argsElement.content
+                                else -> ""
+                            }
+                        } ?: ""
+
+                        LlmToolCall(id = toolId, name = toolName, arguments = toolArgs)
+                    }
+                }
+                else -> emptyList()
+            }
+        } ?: emptyList()
+
+        val message = LlmMessage(
+            role = role,
+            content = content,
+            name = name,
+            toolCalls = toolCalls,
+            toolCallId = toolCallId
+        )
+
         val createdAt = Instant.parse(rs.getString("created_at"))
 
         return SessionMessage(
@@ -277,7 +357,7 @@ class SQLiteSessionManager(
             connection.prepareStatement("DELETE FROM sessions WHERE id = ?").use { stmt ->
                 stmt.setString(1, sessionId)
                 val count = stmt.executeUpdate()
-                
+
                 logger.debug { "删除会话: $sessionId, 影响行数: $count" }
                 return@withContext count > 0
             }
@@ -323,7 +403,7 @@ class SQLiteSessionManager(
                 ?: throw IllegalArgumentException("会话不存在: $sessionId")
 
             connection = getConnection()
-            
+
             // 保存消息
             connection.prepareStatement("""
                 INSERT INTO session_messages (
@@ -332,7 +412,26 @@ class SQLiteSessionManager(
             """).use { stmt ->
                 stmt.setString(1, messageId)
                 stmt.setString(2, sessionId)
-                stmt.setString(3, json.encodeToString(message))
+                // 手动序列化LlmMessage，避免序列化问题
+                val messageJson = buildJsonObject {
+                    put("role", message.role.name)
+                    put("content", message.content)
+                    message.name?.let { put("name", it) }
+                    message.toolCallId?.let { put("toolCallId", it) }
+
+                    if (message.toolCalls.isNotEmpty()) {
+                        putJsonArray("toolCalls") {
+                            message.toolCalls.forEach { toolCall ->
+                                add(buildJsonObject {
+                                    put("id", toolCall.id)
+                                    put("name", toolCall.name)
+                                    put("arguments", toolCall.arguments)
+                                })
+                            }
+                        }
+                    }
+                }
+                stmt.setString(3, messageJson.toString())
                 stmt.setString(4, now.toString())
                 stmt.executeUpdate()
             }
