@@ -99,6 +99,11 @@ data class LlmToolCall(
  * @property toolChoice How the model should use tools (can be a string or a JSON object)
  * @property responseFormat Controls the format of the response
  * @property seed Random seed for deterministic results
+ * @property logitBias Modifies the likelihood of specified tokens appearing in the completion
+ * @property timeoutMs Timeout in milliseconds for the entire generation process
+ * @property logProbabilities Whether to return log probabilities of the output tokens
+ * @property safetySettings Custom safety settings for content filtering
+ * @property stopSequences Additional sequences where the API will stop generating further tokens
  */
 data class LlmOptions(
     val temperature: Double = 0.7,
@@ -110,7 +115,12 @@ data class LlmOptions(
     val tools: List<JsonElement> = emptyList(),
     val toolChoice: Any = "auto",
     val responseFormat: JsonElement? = null,
-    val seed: Long? = null
+    val seed: Long? = null,
+    val logitBias: Map<String, Float>? = null,
+    val timeoutMs: Long? = null,
+    val logProbabilities: Boolean = false,
+    val safetySettings: JsonElement? = null,
+    val stopSequences: List<String>? = null
 )
 
 /**

@@ -198,7 +198,7 @@
 - [x] 实现基础状态管理（已完成：AgentState.kt 中的状态管理接口和实现）
 - [x] 实现更丰富的 Agent 类型和专用模板（已完成：kastrax-agent-templates 模块中的 AgentTemplates）
 - [x] 增强 Agent 状态持久化能力（已完成：kastrax-core 模块中的 SQLiteStateManager 和 SQLiteSessionManager）
-- [ ] 改进 Agent 配置和参数管理（增加更多配置选项）
+- [x] 改进 Agent 配置和参数管理（已完成：增加了更多配置选项，包括响应格式控制、安全设置、重试策略、工具调用预算、超时设置、示例对话、元数据等高级选项）
 - [x] 实现基础的 Agent 协作机制（已完成：实现了上下文感知路由和代理网络可视化）
 
 #### 工具生态扩展

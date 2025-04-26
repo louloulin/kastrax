@@ -1,5 +1,8 @@
 package ai.kastrax.core.agent
 
+import ai.kastrax.core.agent.config.ResponseFormat
+import ai.kastrax.core.agent.config.RetryStrategy
+import ai.kastrax.core.agent.config.SafetySettings
 import ai.kastrax.core.common.KastraXBase
 import ai.kastrax.core.llm.LlmMessage
 import ai.kastrax.core.llm.LlmMessageRole
@@ -159,6 +162,18 @@ interface Agent {
  * @property topP Top-p sampling parameter (nucleus sampling)
  * @property frequencyPenalty Frequency penalty parameter
  * @property presencePenalty Presence penalty parameter
+ * @property stopSequences List of sequences where the API will stop generating further tokens
+ * @property logitBias Modifies the likelihood of specified tokens appearing in the completion
+ * @property seed Random seed for deterministic results
+ * @property responseFormat Controls the format of the response (e.g., JSON)
+ * @property toolCallBudget Maximum number of tool calls allowed in a single generation
+ * @property timeoutMs Timeout in milliseconds for the entire generation process
+ * @property retryStrategy Strategy for retrying failed generations
+ * @property safetySettings Custom safety settings for content filtering
+ * @property logProbabilities Whether to return log probabilities of the output tokens
+ * @property examples Example conversations to guide the agent's behavior
+ * @property metadata Custom metadata for tracking and analysis
+ * @property debugMode Enable debug mode for detailed logging
  */
 data class AgentGenerateOptions(
     val maxSteps: Int = 1,
@@ -177,7 +192,19 @@ data class AgentGenerateOptions(
     val toolChoice: ToolChoice = ToolChoice.Auto,
     val topP: Double? = null,
     val frequencyPenalty: Double? = null,
-    val presencePenalty: Double? = null
+    val presencePenalty: Double? = null,
+    val stopSequences: List<String>? = null,
+    val logitBias: Map<String, Float>? = null,
+    val seed: Long? = null,
+    val responseFormat: ResponseFormat? = null,
+    val toolCallBudget: Int? = null,
+    val timeoutMs: Long? = null,
+    val retryStrategy: RetryStrategy? = null,
+    val safetySettings: SafetySettings? = null,
+    val logProbabilities: Boolean = false,
+    val examples: List<List<LlmMessage>>? = null,
+    val metadata: Map<String, String>? = null,
+    val debugMode: Boolean = false
 ) {
     /**
      * Convert to LLM options.
@@ -188,7 +215,14 @@ data class AgentGenerateOptions(
             maxTokens = maxTokens,
             topP = topP,
             frequencyPenalty = frequencyPenalty,
-            presencePenalty = presencePenalty
+            presencePenalty = presencePenalty,
+            stop = stopSequences ?: emptyList(),
+            logitBias = logitBias,
+            seed = seed,
+            responseFormat = null, // TODO: Implement proper conversion
+            timeoutMs = timeoutMs,
+            logProbabilities = logProbabilities,
+            safetySettings = null // TODO: Implement proper conversion
         )
 
     /**
@@ -329,6 +363,18 @@ enum class ToolChoice {
  * @property topP Top-p sampling parameter (nucleus sampling)
  * @property frequencyPenalty Frequency penalty parameter
  * @property presencePenalty Presence penalty parameter
+ * @property stopSequences List of sequences where the API will stop generating further tokens
+ * @property logitBias Modifies the likelihood of specified tokens appearing in the completion
+ * @property seed Random seed for deterministic results
+ * @property responseFormat Controls the format of the response (e.g., JSON)
+ * @property toolCallBudget Maximum number of tool calls allowed in a single generation
+ * @property timeoutMs Timeout in milliseconds for the entire generation process
+ * @property retryStrategy Strategy for retrying failed generations
+ * @property safetySettings Custom safety settings for content filtering
+ * @property logProbabilities Whether to return log probabilities of the output tokens
+ * @property examples Example conversations to guide the agent's behavior
+ * @property metadata Custom metadata for tracking and analysis
+ * @property debugMode Enable debug mode for detailed logging
  */
 data class AgentStreamOptions(
     val threadId: String? = null,
@@ -348,7 +394,19 @@ data class AgentStreamOptions(
     val toolChoice: ToolChoice = ToolChoice.Auto,
     val topP: Double? = null,
     val frequencyPenalty: Double? = null,
-    val presencePenalty: Double? = null
+    val presencePenalty: Double? = null,
+    val stopSequences: List<String>? = null,
+    val logitBias: Map<String, Float>? = null,
+    val seed: Long? = null,
+    val responseFormat: ResponseFormat? = null,
+    val toolCallBudget: Int? = null,
+    val timeoutMs: Long? = null,
+    val retryStrategy: RetryStrategy? = null,
+    val safetySettings: SafetySettings? = null,
+    val logProbabilities: Boolean = false,
+    val examples: List<List<LlmMessage>>? = null,
+    val metadata: Map<String, String>? = null,
+    val debugMode: Boolean = false
 ) {
     /**
      * Convert to LLM options.
@@ -359,7 +417,14 @@ data class AgentStreamOptions(
             maxTokens = maxTokens,
             topP = topP,
             frequencyPenalty = frequencyPenalty,
-            presencePenalty = presencePenalty
+            presencePenalty = presencePenalty,
+            stop = stopSequences ?: emptyList(),
+            logitBias = logitBias,
+            seed = seed,
+            responseFormat = null, // TODO: Implement proper conversion
+            timeoutMs = timeoutMs,
+            logProbabilities = logProbabilities,
+            safetySettings = null // TODO: Implement proper conversion
         )
 
     /**
@@ -607,6 +672,54 @@ class AgentBuilder {
         fun presencePenalty(value: Double?) {
             options = options.copy(presencePenalty = value)
         }
+
+        fun stopSequences(value: List<String>) {
+            options = options.copy(stopSequences = value)
+        }
+
+        fun logitBias(value: Map<String, Float>) {
+            options = options.copy(logitBias = value)
+        }
+
+        fun seed(value: Long) {
+            options = options.copy(seed = value)
+        }
+
+        fun responseFormat(value: ResponseFormat) {
+            options = options.copy(responseFormat = value)
+        }
+
+        fun toolCallBudget(value: Int) {
+            options = options.copy(toolCallBudget = value)
+        }
+
+        fun timeout(value: Long) {
+            options = options.copy(timeoutMs = value)
+        }
+
+        fun retryStrategy(value: RetryStrategy) {
+            options = options.copy(retryStrategy = value)
+        }
+
+        fun safetySettings(value: SafetySettings) {
+            options = options.copy(safetySettings = value)
+        }
+
+        fun logProbabilities(value: Boolean) {
+            options = options.copy(logProbabilities = value)
+        }
+
+        fun examples(value: List<List<LlmMessage>>) {
+            options = options.copy(examples = value)
+        }
+
+        fun metadata(value: Map<String, String>) {
+            options = options.copy(metadata = value)
+        }
+
+        fun debugMode(value: Boolean) {
+            options = options.copy(debugMode = value)
+        }
     }
 
     /**
@@ -642,6 +755,54 @@ class AgentBuilder {
 
         fun presencePenalty(value: Double?) {
             options = options.copy(presencePenalty = value)
+        }
+
+        fun stopSequences(value: List<String>) {
+            options = options.copy(stopSequences = value)
+        }
+
+        fun logitBias(value: Map<String, Float>) {
+            options = options.copy(logitBias = value)
+        }
+
+        fun seed(value: Long) {
+            options = options.copy(seed = value)
+        }
+
+        fun responseFormat(value: ResponseFormat) {
+            options = options.copy(responseFormat = value)
+        }
+
+        fun toolCallBudget(value: Int) {
+            options = options.copy(toolCallBudget = value)
+        }
+
+        fun timeout(value: Long) {
+            options = options.copy(timeoutMs = value)
+        }
+
+        fun retryStrategy(value: RetryStrategy) {
+            options = options.copy(retryStrategy = value)
+        }
+
+        fun safetySettings(value: SafetySettings) {
+            options = options.copy(safetySettings = value)
+        }
+
+        fun logProbabilities(value: Boolean) {
+            options = options.copy(logProbabilities = value)
+        }
+
+        fun examples(value: List<List<LlmMessage>>) {
+            options = options.copy(examples = value)
+        }
+
+        fun metadata(value: Map<String, String>) {
+            options = options.copy(metadata = value)
+        }
+
+        fun debugMode(value: Boolean) {
+            options = options.copy(debugMode = value)
         }
     }
 
