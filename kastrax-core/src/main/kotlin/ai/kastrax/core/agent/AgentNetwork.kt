@@ -1,5 +1,9 @@
 package ai.kastrax.core.agent
 
+import ai.kastrax.core.agent.routing.ContextAwareRoutingStrategy
+import ai.kastrax.core.agent.routing.DefaultRoutingStrategy
+import ai.kastrax.core.agent.routing.RoutingStrategy
+import ai.kastrax.core.agent.visualization.AgentNetworkVisualizer
 import ai.kastrax.core.common.KastraXBase
 import ai.kastrax.core.llm.LlmMessage
 import ai.kastrax.core.llm.LlmMessageRole
@@ -19,12 +23,16 @@ import java.util.UUID
  * @property instructions 网络指令
  * @property model LLM提供者
  * @property agents 专业代理列表
+ * @property routingStrategy 路由策略
+ * @property visualizeInteractions 是否可视化交互
  */
 data class AgentNetworkConfig(
     val name: String,
     val instructions: String,
     val model: LlmProvider,
-    val agents: List<Agent>
+    val agents: List<Agent>,
+    val routingStrategy: RoutingStrategy = DefaultRoutingStrategy(),
+    val visualizeInteractions: Boolean = false
 )
 
 /**
@@ -34,7 +42,10 @@ class AgentNetwork(config: AgentNetworkConfig) : KastraXBase(component = "NETWOR
     private val instructions = config.instructions
     private val agents = config.agents
     private val model = config.model
+    private val routingStrategy = config.routingStrategy
+    private val visualizeInteractions = config.visualizeInteractions
     private val routingAgent: LLMAgent
+    private val visualizer = if (visualizeInteractions) AgentNetworkVisualizer() else null
 
     // 代理历史记录
     private val agentHistory: MutableMap<String, MutableList<AgentInteraction>> = mutableMapOf()
@@ -43,7 +54,7 @@ class AgentNetwork(config: AgentNetworkConfig) : KastraXBase(component = "NETWOR
         // 创建路由代理
         routingAgent = LLMAgent(
             name = config.name,
-            instructions = getInstructions(),
+            instructions = routingStrategy.getInstructions(agents, instructions),
             model = config.model,
             tools = getTools()
         )
@@ -53,81 +64,7 @@ class AgentNetwork(config: AgentNetworkConfig) : KastraXBase(component = "NETWOR
      * 格式化代理ID
      */
     private fun formatAgentId(name: String): String {
-        return name.replace(Regex("[^a-zA-Z0-9_-]"), "_")
-    }
-
-    /**
-     * 获取路由指令
-     */
-    private fun getInstructions(): String {
-        // 创建可用代理列表
-        val agentList = agents.joinToString("\n") { agent ->
-            val id = formatAgentId(agent.name)
-            " - **$id**: ${agent.name}"
-        }
-
-        return """
-            你是一个专业代理网络中的路由器。
-            你的工作是决定哪个代理应该处理任务的每个步骤。
-
-            ## 系统指令
-            $instructions
-
-            ## 可用的专业代理
-            你可以使用"transmit"工具调用这些代理：
-            $agentList
-
-            ## 如何使用"transmit"工具
-
-            "transmit"工具允许你调用一个或多个专业代理。
-
-            ### 单个代理调用
-            要调用单个代理，使用以下格式：
-            ```json
-            {
-              "actions": [
-                {
-                  "agent": "agent_name",
-                  "input": "给代理的详细指令",
-                  "includeHistory": true
-                }
-              ]
-            }
-            ```
-
-            ### 多个代理调用
-            要调用多个代理，使用以下格式：
-            ```json
-            {
-              "actions": [
-                {
-                  "agent": "agent_name_1",
-                  "input": "给代理1的详细指令",
-                  "includeHistory": true
-                },
-                {
-                  "agent": "agent_name_2",
-                  "input": "给代理2的详细指令",
-                  "includeHistory": false
-                }
-              ]
-            }
-            ```
-
-            ## 最佳实践
-            1. 将复杂任务分解为更小的步骤
-            2. 为每个步骤选择最合适的代理
-            3. 为每个代理提供清晰、详细的指令
-            4. 在需要时综合多个代理的结果
-            5. 为用户提供最终摘要或答案
-
-            ## 工作流程
-            1. 分析用户的请求
-            2. 确定哪些专业代理可以提供帮助
-            3. 使用transmit工具调用适当的代理
-            4. 审查代理的响应
-            5. 调用更多代理或提供最终答案
-        """.trimIndent()
+        return routingStrategy.formatAgentId(name)
     }
 
     /**
@@ -252,30 +189,29 @@ class AgentNetwork(config: AgentNetworkConfig) : KastraXBase(component = "NETWOR
                     "找不到代理\"$agentId\"。可用代理: ${agents.map { formatAgentId(it.name) }.joinToString(", ")}"
                 )
 
-            // 准备消息
-            val userMessage = LlmMessage(role = LlmMessageRole.USER, content = input)
-            val messages = mutableListOf<LlmMessage>()
+            // 准备消息，使用路由策略
+            val messages = routingStrategy.prepareAgentContext(agentId, input, includeHistory, agentHistory.toMap())
 
-            // 如果请求，包含相关历史
-            if (includeHistory) {
-                val history = getAgentHistory(agentId)
-                if (history.isNotEmpty()) {
-                    messages.add(LlmMessage(
-                        role = LlmMessageRole.SYSTEM,
-                        content = "以下是之前与你的交互历史，可能对当前任务有帮助:\n" +
-                                history.joinToString("\n\n") { "用户: ${it.input}\n你: ${it.output}" }
-                    ))
-                }
+            // 记录代理执行开始
+            logger.debug("开始执行代理 '$agentId'")
+            if (visualizeInteractions) {
+                visualizer?.recordAgentStart(agentId, input)
             }
-
-            messages.add(userMessage)
 
             // 从代理生成响应
             val result = agent.generate(messages)
 
+            // 记录代理执行结束
+            if (visualizeInteractions) {
+                visualizer?.recordAgentEnd(agentId, result.text)
+            }
+
             return result.text
         } catch (e: Exception) {
             logger.error("执行代理\"$agentId\"时出错: ${e.message}")
+            if (visualizeInteractions) {
+                visualizer?.recordAgentError(agentId, e.message ?: "未知错误")
+            }
             return "无法执行代理\"$agentId\": ${e.message}"
         }
     }
@@ -350,6 +286,19 @@ class AgentNetwork(config: AgentNetworkConfig) : KastraXBase(component = "NETWOR
             "代理: ${meta.agentId}\n" +
             "输入: ${meta.interaction.input}\n" +
             "输出: ${meta.interaction.output}"
+        }
+    }
+
+    /**
+     * 获取代理交互可视化
+     *
+     * @return 可视化HTML或null（如果未启用可视化）
+     */
+    fun getAgentInteractionVisualization(): String? {
+        return if (visualizeInteractions && visualizer != null) {
+            visualizer.generateVisualization(agentHistory.toMap())
+        } else {
+            null
         }
     }
 
@@ -532,12 +481,35 @@ class AgentNetworkBuilder {
     var instructions: String = ""
     lateinit var model: LlmProvider
     val agents: MutableList<Agent> = mutableListOf()
+    var routingStrategy: RoutingStrategy = DefaultRoutingStrategy()
+    var visualizeInteractions: Boolean = false
 
     /**
      * 添加代理
      */
     fun agent(agent: Agent) {
         agents.add(agent)
+    }
+
+    /**
+     * 设置路由策略
+     */
+    fun routingStrategy(strategy: RoutingStrategy) {
+        routingStrategy = strategy
+    }
+
+    /**
+     * 使用上下文感知路由策略
+     */
+    fun useContextAwareRouting() {
+        routingStrategy = ContextAwareRoutingStrategy()
+    }
+
+    /**
+     * 启用交互可视化
+     */
+    fun enableVisualization() {
+        visualizeInteractions = true
     }
 
     /**
@@ -554,7 +526,9 @@ class AgentNetworkBuilder {
                 name = name,
                 instructions = instructions,
                 model = model,
-                agents = agents
+                agents = agents,
+                routingStrategy = routingStrategy,
+                visualizeInteractions = visualizeInteractions
             )
         )
     }

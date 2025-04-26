@@ -199,7 +199,7 @@
 - [x] 实现更丰富的 Agent 类型和专用模板（已完成：kastrax-agent-templates 模块中的 AgentTemplates）
 - [x] 增强 Agent 状态持久化能力（已完成：kastrax-core 模块中的 SQLiteStateManager 和 SQLiteSessionManager）
 - [ ] 改进 Agent 配置和参数管理（增加更多配置选项）
-- [ ] 实现基础的 Agent 协作机制（当前缺少 Agent 间通信）
+- [x] 实现基础的 Agent 协作机制（已完成：实现了上下文感知路由和代理网络可视化）
 
 #### 工具生态扩展
 - [x] 实现基础工具接口和注册机制（已完成：Tool 接口和工具注册）
@@ -228,7 +228,7 @@
 
 #### Agent 高级特性
 - [x] 实现基础的 Agent 网络（已完成：AgentNetwork.kt）
-- [ ] 实现完整的 Agent 编排和协作框架（当前缺少完整的编排机制）
+- [x] 实现完整的 Agent 编排和协作框架（已完成：实现了上下文感知路由和代理网络可视化）
 - [x] 开发 Agent 行为分析和优化工具（已完成：kastrax-core 模块中的 AgentBehaviorAnalyzer、AgentMetricsCollector 和 AgentOptimizationAdvisor）
 - [ ] 实现 Agent 版本控制和回滚机制（当前缺少版本控制）
 - [ ] 提供 Agent 性能监控和诊断工具（当前监控能力有限）

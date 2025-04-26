@@ -59,4 +59,4 @@ include(":kastrax-app")
 include(":kastrax-agent-templates")
 
 // 添加新的Native模块
-include(":kastrax-native")
+//include(":kastrax-native")
