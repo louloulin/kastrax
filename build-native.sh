@@ -8,6 +8,26 @@ ARCH=$(uname -m)
 
 echo "检测到操作系统: $OS ($ARCH)"
 
+# 检查Xcode命令行工具是否已安装
+if [ "$OS" = "Darwin" ]; then
+    echo "检查Xcode命令行工具..."
+    if ! /usr/bin/xcrun xcodebuild -version &> /dev/null; then
+        echo "警告: Xcode命令行工具未正确安装或配置"
+        echo "请安装Xcode或命令行工具，然后再尝试构建"
+        echo "可以使用以下命令安装命令行工具:"
+        echo "  xcode-select --install"
+        echo "或者从 Mac App Store 安装 Xcode，然后运行:"
+        echo "  sudo xcode-select -s /Applications/Xcode.app/Contents/Developer"
+        echo "  sudo xcodebuild -license accept"
+        echo "
+将仅构建JVM版本..."
+    else
+        echo "Xcode命令行工具已正确安装"
+        XCODE_VERSION=$(/usr/bin/xcrun xcodebuild -version | head -n 1)
+        echo "$XCODE_VERSION"
+    fi
+fi
+
 # 设置Gradle命令
 GRADLE="./gradlew"
 

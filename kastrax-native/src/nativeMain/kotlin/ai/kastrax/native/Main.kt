@@ -55,7 +55,7 @@ private fun startCli() {
     while (running) {
         print("\n请输入命令: ")
 
-        val input = readLine() ?: ""
+        val input = readlnOrNull() ?: ""
 
         when (input.trim().lowercase()) {
             "exit", "quit" -> {
