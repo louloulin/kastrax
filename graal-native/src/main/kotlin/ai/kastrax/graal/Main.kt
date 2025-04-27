@@ -131,6 +131,7 @@ fun main(args: Array<String>) {
             "cli" -> startCli()
             "config" -> showConfig()
             "deepseek" -> startDeepSeekAgent()
+            "real-deepseek" -> startRealDeepSeekAgent()
             else -> printHelp()
         }
     } catch (e: DeepSeekException) {
@@ -279,16 +280,32 @@ private fun startDeepSeekAgent() {
 
     // 检查 API 密钥
     if (config.apiKeys.deepseek.isEmpty()) {
-        println("错误: 未设置 DeepSeek API 密钥")
-        println("请在配置文件中设置 DeepSeek API 密钥")
-        return
+        println("警告: 未设置 DeepSeek API 密钥，将使用模拟模式")
     }
 
     println("启动 DeepSeek Agent...")
 
     // 使用简化版本的 DeepSeek Agent 示例
     val apiKey = config.apiKeys.deepseek
-    ai.kastrax.graal.agent.SimpleDeepSeekAgent.run(apiKey)
+    ai.kastrax.graal.agent.SimpleDeepSeekAgent.run(apiKey, interactive = true)
+}
+
+/**
+ * 启动真实的 DeepSeek Agent
+ */
+private fun startRealDeepSeekAgent() {
+    logger.info { "启动真实的 DeepSeek Agent..." }
+
+    // 检查 API 密钥
+    if (config.apiKeys.deepseek.isEmpty()) {
+        println("警告: 未设置 DeepSeek API 密钥，将使用默认密钥")
+    }
+
+    println("启动真实的 DeepSeek Agent...")
+
+    // 使用真实的 DeepSeek Agent
+    val apiKey = config.apiKeys.deepseek
+    ai.kastrax.graal.agent.RealDeepSeekAgent.run(apiKey, interactive = true)
 }
 
 /**
@@ -302,11 +319,12 @@ private fun printHelp() {
           kastrax [命令]
 
         命令:
-          server    启动服务器模式
-          cli       启动命令行界面模式
-          config    显示当前配置
-          deepseek  启动 DeepSeek Agent 示例
-          help      显示帮助信息
+          server        启动服务器模式
+          cli           启动命令行界面模式
+          config        显示当前配置
+          deepseek      启动 DeepSeek Agent 示例
+          real-deepseek 启动真实的 DeepSeek Agent（使用 agent DSL）
+          help          显示帮助信息
 
         CLI 模式命令:
           calc      进入计算器模式

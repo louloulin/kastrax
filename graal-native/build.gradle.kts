@@ -24,8 +24,8 @@ dependencies {
     implementation("io.github.oshai:kotlin-logging-jvm:5.1.0")
     implementation("ch.qos.logback:logback-classic:1.4.11")
 
-    // 添加 Kotlin 反射依赖
-    implementation("org.jetbrains.kotlin:kotlin-reflect:2.1.10")
+    // 移除 Kotlin 反射依赖
+    // implementation("org.jetbrains.kotlin:kotlin-reflect:2.1.10")
 
     // 排除 Truffle API 依赖项
     configurations.all {
@@ -121,6 +121,57 @@ tasks.register<Exec>("buildNativeManually") {
     doFirst {
         println("Building native image using: $nativeImage")
         println("Output will be in: $outputDir/kastrax")
+        println("Using classpath: ${classpathString}")
+    }
+}
+
+// 自定义任务，构建 DeepSeekAgentMain
+tasks.register<Exec>("buildDeepSeekAgentNative") {
+    dependsOn(tasks.named("jar"))
+
+    val outputDir = layout.buildDirectory.dir("native/deepseek-agent").get().asFile
+    outputDir.mkdirs()
+
+    val graalVmHome = System.getenv("GRAALVM_HOME") ?: "${System.getProperty("user.home")}/Library/Java/JavaVirtualMachines/graalvm-ce-17.0.9/Contents/Home"
+    val nativeImage = "$graalVmHome/bin/native-image"
+
+    // 收集所有运行时依赖项
+    val runtimeClasspath = configurations.runtimeClasspath.get().files
+
+    // 添加 kastrax-deepseek 模块
+    val deepseekJar = project(":kastrax-integrations:kastrax-deepseek").tasks.named("jar").get().outputs.files
+
+    // 添加当前模块的jar
+    val jarFile = tasks.jar.get().archiveFile.get().asFile
+
+    // 组合所有类路径
+    val classpathFiles = runtimeClasspath + deepseekJar + jarFile
+    val classpathString = classpathFiles.joinToString(":")
+
+    commandLine = listOf(
+        nativeImage,
+        "--no-fallback",
+        "-H:+AllowDeprecatedBuilderClassesOnImageClasspath",
+        "--initialize-at-build-time=kotlin,kotlin.jvm.internal.TypeParameterReference,ai.kastrax.graal.serialization",
+        "--initialize-at-run-time=kotlinx.datetime.serializers",
+        "--report-unsupported-elements-at-runtime",
+        "--allow-incomplete-classpath",
+        "-H:+ReportExceptionStackTraces",
+        "-H:ReflectionConfigurationFiles=${project.projectDir}/META-INF/native-image/reflection-config.json",
+        "-H:SerializationConfigurationResources=META-INF/native-image/serialization-config.json",
+        "-H:ResourceConfigurationFiles=${project.projectDir}/META-INF/native-image/resource-config.json",
+        "-H:+JNI",
+        "-H:+AddAllCharsets",
+        "-H:+PrintClassInitialization",
+        "-O2",
+        "-cp", classpathString,
+        "ai.kastrax.graal.agent.DeepSeekAgentMain",
+        "-o", "$outputDir/deepseek-agent"
+    )
+
+    doFirst {
+        println("Building DeepSeek Agent native image using: $nativeImage")
+        println("Output will be in: $outputDir/deepseek-agent")
         println("Using classpath: ${classpathString}")
     }
 }

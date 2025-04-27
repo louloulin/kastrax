@@ -1,19 +1,33 @@
 package ai.kastrax.graal.agent
 
+import org.slf4j.LoggerFactory
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.util.*
 
 /**
- * 真实的 DeepSeek Agent 示例
- * 使用默认配置好的 API 密钥，专为 GraalVM Native Image 设计
+ * DeepSeek Agent Main 类
+ * 使用指定的 API 密钥
  */
-object SimpleDeepSeekAgent {
+object DeepSeekAgentMain {
+    private val logger = LoggerFactory.getLogger(DeepSeekAgentMain::class.java)
+    private const val API_KEY = "sk-85e83081df28490b9ae63188f0cb4f79"
+
     /**
-     * 运行 DeepSeek Agent 示例
+     * 主函数
      */
-    fun run(apiKey: String = "", interactive: Boolean = true) {
-        println("启动真实的 DeepSeek Agent 示例...")
+    @JvmStatic
+    fun main(args: Array<String>) {
+        logger.info("启动 DeepSeek Agent Main...")
+        run(API_KEY)
+    }
+
+    /**
+     * 运行 DeepSeek Agent
+     */
+    fun run(apiKey: String = API_KEY, interactive: Boolean = true) {
+        logger.info("启动 DeepSeek Agent...")
+        println("使用 API 密钥: $apiKey")
 
         if (interactive) {
             runInteractiveSession()
@@ -26,15 +40,12 @@ object SimpleDeepSeekAgent {
      * 运行交互式会话
      */
     private fun runInteractiveSession() {
-        println("欢迎使用真实的 DeepSeek Agent！")
+        println("欢迎使用 DeepSeek Agent！")
         println("输入 'exit' 或 'quit' 退出")
         println()
 
         // 存储用户信息的简单内存
         val memory = mutableMapOf<String, String>()
-
-        // 预先展示一些示例
-        runSingleExample()
 
         var running = true
         val scanner = Scanner(System.`in`)
@@ -57,7 +68,7 @@ object SimpleDeepSeekAgent {
             println()
         }
 
-        println("感谢使用真实的 DeepSeek Agent！")
+        println("感谢使用 DeepSeek Agent！")
     }
 
     /**
@@ -72,7 +83,7 @@ object SimpleDeepSeekAgent {
             "我的名字是什么？"
         )
 
-        println("真实的 DeepSeek Agent 示例演示：")
+        println("DeepSeek Agent 示例演示：")
         println()
 
         // 存储用户信息的简单内存
@@ -93,7 +104,7 @@ object SimpleDeepSeekAgent {
         // 根据输入生成回复
         return when {
             input.contains("你好") || input.contains("介绍") -> {
-                "你好！我是真实的 DeepSeek 助手，一个使用默认配置好的 API 密钥的智能助手。我可以回答问题、执行计算和提供当前日期时间。很高兴为你服务！"
+                "你好！我是 DeepSeek 助手，使用 API 密钥 $API_KEY 的智能助手。我可以回答问题、执行计算和提供当前日期时间。很高兴为你服务！"
             }
             input.contains("时间") || input.contains("日期") -> {
                 "现在是 ${LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))}。"
@@ -130,7 +141,7 @@ object SimpleDeepSeekAgent {
                 }
             }
             else -> {
-                "我是真实的 DeepSeek 助手，使用默认配置好的 API 密钥。你的问题是关于 '$input'。我可以回答各种问题，包括时间、计算、常识等。请继续提问！"
+                "我是 DeepSeek 助手，使用 API 密钥 $API_KEY。你的问题是关于 '$input'。我可以回答各种问题，包括时间、计算、常识等。请继续提问！"
             }
         }
     }
