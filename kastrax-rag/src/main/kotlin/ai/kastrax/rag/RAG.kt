@@ -13,6 +13,8 @@ import ai.kastrax.rag.reranker.ContextAwareReranker
 import ai.kastrax.rag.reranker.ContextAwareRerankerConfig
 import ai.kastrax.rag.reranker.IdentityReranker
 import ai.kastrax.rag.reranker.Reranker
+import ai.kastrax.rag.retrieval.EnhancedHybridRetriever
+import ai.kastrax.rag.retrieval.EnhancedHybridRetrieverConfig
 import ai.kastrax.rag.retrieval.HybridRetriever
 import ai.kastrax.rag.retrieval.HybridRetrieverConfig
 import ai.kastrax.rag.retrieval.QueryEnhancedRetriever
@@ -43,11 +45,13 @@ private val logger = KotlinLogging.logger {}
  */
 data class RagProcessOptions(
     val useHybridSearch: Boolean = false,
+    val useEnhancedHybridSearch: Boolean = false,
     val useSemanticRetrieval: Boolean = false,
     val useReranking: Boolean = true,
     val useContextAwareReranking: Boolean = false,
     val useQueryEnhancement: Boolean = false,
     val hybridOptions: HybridRetrieverConfig = HybridRetrieverConfig(),
+    val enhancedHybridOptions: EnhancedHybridRetrieverConfig = EnhancedHybridRetrieverConfig(),
     val semanticOptions: SemanticRetrieverConfig = SemanticRetrieverConfig(),
     val rerankingOptions: Any? = null,
     val contextAwareRerankingOptions: ContextAwareRerankerConfig = ContextAwareRerankerConfig(),
@@ -149,6 +153,15 @@ class RAG(
     private fun createRetriever(options: RagProcessOptions): Retriever {
         // 首先创建基础检索器
         val baseRetriever = when {
+            options.useEnhancedHybridSearch -> {
+                logger.debug { "Using enhanced hybrid retriever with options: ${options.enhancedHybridOptions}" }
+                EnhancedHybridRetriever(
+                    vectorStore = vectorStore,
+                    embeddingService = embeddingService,
+                    keywordExtractor = TfIdfKeywordExtractor(),
+                    config = options.enhancedHybridOptions
+                )
+            }
             options.useHybridSearch -> {
                 logger.debug { "Using hybrid retriever with options: ${options.hybridOptions}" }
                 HybridRetriever(

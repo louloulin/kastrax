@@ -264,6 +264,86 @@ open class InMemoryVectorStore : RagVectorStore {
     }
 
     /**
+     * 使用元数据过滤器进行搜索。
+     *
+     * @param filter 元数据过滤器
+     * @param limit 返回结果的最大数量
+     * @return 搜索结果列表
+     */
+    override suspend fun metadataSearch(filter: Map<String, Any>, limit: Int): List<SearchResult> {
+        if (documents.isEmpty() || filter.isEmpty()) {
+            return emptyList()
+        }
+
+        // 过滤文档
+        val filteredDocuments = documents.values.filter { document ->
+            matchesFilter(document.metadata, filter)
+        }
+
+        // 为每个文档计算匹配分数
+        val results = filteredDocuments.map { document ->
+            val matchScore = calculateFilterMatchScore(document.metadata, filter)
+            SearchResult(document, matchScore)
+        }
+
+        // 排序并限制结果数量
+        return results
+            .sortedByDescending { it.score }
+            .take(limit)
+    }
+
+    /**
+     * 检查元数据是否匹配过滤器。
+     *
+     * @param metadata 元数据
+     * @param filter 过滤器
+     * @return 是否匹配
+     */
+    private fun matchesFilter(metadata: Map<String, String>, filter: Map<String, Any>): Boolean {
+        // 所有过滤条件都必须匹配
+        return filter.all { (key, value) ->
+            when (value) {
+                is String -> metadata[key]?.equals(value, ignoreCase = true) ?: false
+                is Number -> metadata[key]?.toDoubleOrNull() == value.toDouble()
+                is Boolean -> metadata[key]?.toBoolean() == value
+                is List<*> -> {
+                    val metadataValue = metadata[key] ?: return@all false
+                    value.any { it.toString().equals(metadataValue, ignoreCase = true) }
+                }
+                else -> false
+            }
+        }
+    }
+
+    /**
+     * 计算元数据与过滤器的匹配分数。
+     *
+     * @param metadata 元数据
+     * @param filter 过滤器
+     * @return 匹配分数
+     */
+    private fun calculateFilterMatchScore(metadata: Map<String, String>, filter: Map<String, Any>): Double {
+        if (filter.isEmpty()) return 0.0
+
+        // 计算匹配的过滤条件数量
+        val matchCount = filter.count { (key, value) ->
+            when (value) {
+                is String -> metadata[key]?.equals(value, ignoreCase = true) ?: false
+                is Number -> metadata[key]?.toDoubleOrNull() == value.toDouble()
+                is Boolean -> metadata[key]?.toBoolean() == value
+                is List<*> -> {
+                    val metadataValue = metadata[key] ?: return@count false
+                    value.any { it.toString().equals(metadataValue, ignoreCase = true) }
+                }
+                else -> false
+            }
+        }
+
+        // 计算匹配分数
+        return matchCount.toDouble() / filter.size
+    }
+
+    /**
      * 生成唯一的文档 ID。
      *
      * @return 文档 ID
