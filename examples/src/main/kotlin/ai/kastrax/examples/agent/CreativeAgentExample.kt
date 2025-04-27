@@ -1,10 +1,14 @@
 package ai.kastrax.examples.agent
 
+import ai.kastrax.core.agent.Agent
 import ai.kastrax.core.agent.AgentGenerateOptions
+import ai.kastrax.core.agent.AgentResponse
 import ai.kastrax.core.agent.agent
 import ai.kastrax.core.agent.autonomy.*
+import ai.kastrax.core.llm.*
 import ai.kastrax.integrations.deepseek.DeepSeekModel
 import ai.kastrax.integrations.deepseek.deepSeek
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.runBlocking
 
 /**
@@ -21,7 +25,7 @@ fun main() = runBlocking {
         model = deepSeek {
             model(DeepSeekModel.DEEPSEEK_CHAT)
             // 使用环境变量中的API密钥
-            apiKey(System.getenv("DEEPSEEK_API_KEY") ?: "your-api-key-here")
+            apiKey("sk-85e83081df28490b9ae63188f0cb4f79")
         }
     }
 
