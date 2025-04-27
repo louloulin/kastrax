@@ -33,6 +33,19 @@ dependencies {
     implementation("io.github.microutils:kotlin-logging-jvm:3.0.5")
     implementation("ch.qos.logback:logback-classic:1.4.11")
 
+    // Ktor - 使用与kastrax-integrations:kastrax-deepseek相同的版本
+    implementation("io.ktor:ktor-client-core:2.3.3")
+    implementation("io.ktor:ktor-client-cio:2.3.3")
+    implementation("io.ktor:ktor-client-content-negotiation:2.3.3")
+    implementation("io.ktor:ktor-serialization-kotlinx-json:2.3.3")
+    implementation("io.ktor:ktor-client-auth:2.3.3")
+
+    // 添加更多的Ktor依赖
+    implementation("io.ktor:ktor-client-logging:2.3.3")
+
+    // 直接依赖kastrax-integrations:kastrax-deepseek模块
+    implementation(project(":kastrax-integrations:kastrax-deepseek"))
+
     // Testing
     testImplementation(kotlin("test"))
     testImplementation("org.junit.jupiter:junit-jupiter-api:5.9.3")
@@ -55,7 +68,8 @@ sourceSets {
                 "**/MemoryAgentExample.kt",
                 "**/MemorySystemExample.kt",
                 "**/SimpleZodToolExample.kt",
-                "**/tools/ToolsExample.kt"
+                "**/tools/ToolsExample.kt",
+                "**/agent/CreativeAgentExample.kt"
             )
             // 排除有问题的文件
             exclude(
@@ -141,6 +155,22 @@ tasks.register<JavaExec>("runAgentNetworkExample") {
 }
 */
 
+// 为 CreativeAgentExample 创建运行任务
+tasks.register<JavaExec>("runCreativeAgentExample") {
+    group = "examples"
+    description = "Run the CreativeAgentExample example"
+
+    classpath = sourceSets["main"].runtimeClasspath
+    mainClass.set("ai.kastrax.examples.agent.CreativeAgentExampleKt")
+
+    // 添加 JVM 参数
+    jvmArgs = listOf("-Xms512m", "-Xmx1g")
+
+    // 确保示例可以访问环境变量
+    environment("OPENAI_API_KEY", System.getenv("OPENAI_API_KEY") ?: "")
+    environment("DEEPSEEK_API_KEY", System.getenv("DEEPSEEK_API_KEY") ?: "")
+}
+
 // 创建一个任务来列出所有可用的示例
 tasks.register("listExamples") {
     group = "examples"
@@ -151,6 +181,8 @@ tasks.register("listExamples") {
         examples.forEach { example ->
             println("  ./gradlew run$example - Run the $example example")
         }
+        println("  ./gradlew runToolsExample - Run the ToolsExample example")
+        println("  ./gradlew runCreativeAgentExample - Run the CreativeAgentExample example")
     }
 }
 
@@ -170,6 +202,7 @@ tasks.register("compileFixedExamples") {
         println("- MemorySystemExample.kt")
         println("- SimpleZodToolExample.kt")
         println("- tools/ToolsExample.kt")
+        println("- agent/CreativeAgentExample.kt")
     }
 }
 
