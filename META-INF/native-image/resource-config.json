@@ -1,0 +1,22 @@
+{
+  "resources": {
+    "includes": [
+      {
+        "pattern": ".*\\.properties"
+      },
+      {
+        "pattern": ".*\\.json"
+      },
+      {
+        "pattern": "META-INF/services/.*"
+      },
+      {
+        "pattern": "META-INF/native/.*"
+      },
+      {
+        "pattern": "META-INF/native-image/.*"
+      }
+    ]
+  },
+  "bundles": []
+}

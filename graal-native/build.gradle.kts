@@ -69,7 +69,7 @@ tasks.jar {
         attributes(mapOf(
             "Implementation-Title" to project.name,
             "Implementation-Version" to project.version,
-            "Main-Class" to "ai.kastrax.graal.MainKt"
+            "Main-Class" to "ai.kastrax.graal.MainNoReflection"
         ))
     }
 }
@@ -101,16 +101,14 @@ tasks.register<Exec>("buildNativeManually") {
         nativeImage,
         "--no-fallback",
         "-H:+AllowDeprecatedBuilderClassesOnImageClasspath",
-        "--initialize-at-build-time=kotlin",
-        "--initialize-at-run-time=kotlin.reflect,kotlin.reflect.jvm.internal,kotlin.reflect.full,kotlin.reflect.KVariance",
-        "--trace-class-initialization=kotlin.reflect.KVariance",
-        "--initialize-at-run-time=kotlinx.serialization,kotlinx.datetime.serializers",
+        "--initialize-at-build-time=kotlin,kotlin.jvm.internal.TypeParameterReference",
+        "--initialize-at-run-time=kotlin.reflect,kotlinx.serialization,kotlinx.datetime.serializers",
         "--report-unsupported-elements-at-runtime",
         "--allow-incomplete-classpath",
         "-H:+ReportExceptionStackTraces",
-        "-H:ReflectionConfigurationFiles=${project.projectDir}/src/main/resources/META-INF/native-image/kotlin-reflect-config.json,${project.projectDir}/src/main/resources/META-INF/native-image/reflection-config.json",
+        "-H:ReflectionConfigurationFiles=${project.projectDir}/META-INF/native-image/reflection-config.json",
         "-H:SerializationConfigurationResources=META-INF/native-image/serialization-config.json",
-        "-H:ResourceConfigurationFiles=${project.projectDir}/src/main/resources/META-INF/native-image/resource-config.json",
+        "-H:ResourceConfigurationFiles=${project.projectDir}/META-INF/native-image/resource-config.json",
         "-H:+JNI",
         "-H:+AddAllCharsets",
         "-H:+PrintClassInitialization",
@@ -251,9 +249,10 @@ tasks.register<Exec>("buildNoReflectionNative") {
         "--no-fallback",
         "-H:+AllowDeprecatedBuilderClassesOnImageClasspath",
         "--initialize-at-build-time=kotlin",
-        "--initialize-at-run-time=kotlin.reflect",
+        "--initialize-at-run-time=kotlin.reflect,kotlinx.serialization",
         "-H:+ReportExceptionStackTraces",
         "-H:ResourceConfigurationFiles=${project.projectDir}/src/main/resources/META-INF/native-image/resource-config.json",
+        "-H:SerializationConfigurationResources=META-INF/native-image/serialization-config.json",
         "-H:+JNI",
         "-H:+AddAllCharsets",
         "-O2",
@@ -265,6 +264,52 @@ tasks.register<Exec>("buildNoReflectionNative") {
     doFirst {
         println("Building no-reflection native image using: $nativeImage")
         println("Output will be in: $outputDir/kastrax-no-reflection")
+        println("Using classpath: ${classpathString}")
+    }
+}
+
+// 自定义任务，构建全部初始化的 Native Image
+tasks.register<Exec>("buildAllInitNative") {
+    dependsOn(tasks.named("jar"))
+
+    val outputDir = layout.buildDirectory.dir("native/all-init").get().asFile
+    outputDir.mkdirs()
+
+    val graalVmHome = System.getenv("GRAALVM_HOME") ?: "${System.getProperty("user.home")}/Library/Java/JavaVirtualMachines/graalvm-ce-17.0.9/Contents/Home"
+    val nativeImage = "$graalVmHome/bin/native-image"
+
+    // 收集所有运行时依赖项
+    val runtimeClasspath = configurations.runtimeClasspath.get().files
+
+    // 添加 kastrax-deepseek 模块
+    val deepseekJar = project(":kastrax-integrations:kastrax-deepseek").tasks.named("jar").get().outputs.files
+
+    // 添加当前模块的jar
+    val jarFile = tasks.jar.get().archiveFile.get().asFile
+
+    // 组合所有类路径
+    val classpathFiles = runtimeClasspath + deepseekJar + jarFile
+    val classpathString = classpathFiles.joinToString(":")
+
+    commandLine = listOf(
+        nativeImage,
+        "--no-fallback",
+        "-H:+AllowDeprecatedBuilderClassesOnImageClasspath",
+        "--initialize-at-build-time=kotlin,kotlin.jvm.internal,kotlinx",
+        "-H:+AllowDeprecatedInitializeAllClassesAtBuildTime",
+        "-H:+ReportExceptionStackTraces",
+        "-H:ResourceConfigurationFiles=${project.projectDir}/src/main/resources/META-INF/native-image/resource-config.json",
+        "-H:+JNI",
+        "-H:+AddAllCharsets",
+        "-O2",
+        "-cp", classpathString,
+        "ai.kastrax.graal.MainKt",
+        "-o", "$outputDir/kastrax-all-init"
+    )
+
+    doFirst {
+        println("Building all-init native image using: $nativeImage")
+        println("Output will be in: $outputDir/kastrax-all-init")
         println("Using classpath: ${classpathString}")
     }
 }
