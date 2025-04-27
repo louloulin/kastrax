@@ -24,6 +24,9 @@ dependencies {
     implementation("io.github.oshai:kotlin-logging-jvm:5.1.0")
     implementation("ch.qos.logback:logback-classic:1.4.11")
 
+    // 添加 Kotlin 反射依赖
+    implementation("org.jetbrains.kotlin:kotlin-reflect:2.1.10")
+
     // 排除 Truffle API 依赖项
     configurations.all {
         exclude(group = "org.graalvm.truffle", module = "truffle-api")
@@ -66,7 +69,7 @@ tasks.jar {
         attributes(mapOf(
             "Implementation-Title" to project.name,
             "Implementation-Version" to project.version,
-            "Main-Class" to "ai.kastrax.graal.JavaMain"
+            "Main-Class" to "ai.kastrax.graal.MainKt"
         ))
     }
 }
@@ -99,48 +102,78 @@ tasks.register<Exec>("buildNativeManually") {
         "--no-fallback",
         "-H:+AllowDeprecatedBuilderClassesOnImageClasspath",
         "--initialize-at-build-time=kotlin",
-        "--initialize-at-run-time=kotlin.reflect.jvm.internal.KClassImpl",
-        "--initialize-at-run-time=kotlin.reflect.jvm.internal.ReflectionFactoryImpl",
-        "--initialize-at-run-time=kotlin.reflect",
-        "--initialize-at-run-time=kotlinx.datetime.serializers.InstantIso8601Serializer",
-        "--initialize-at-run-time=kotlinx.serialization.internal.PrimitivesKt",
-        "--initialize-at-run-time=kotlinx.serialization",
-        "--initialize-at-run-time=kotlinx.serialization.json.Json",
-        "--initialize-at-run-time=kotlinx.serialization.json.JsonElement",
-        "--initialize-at-run-time=kotlinx.serialization.json.JsonObject",
-        "--initialize-at-run-time=kotlinx.serialization.json.JsonArray",
-        "--initialize-at-run-time=kotlinx.serialization.json.JsonPrimitive",
-        "--initialize-at-run-time=kotlinx.serialization.descriptors.SerialDescriptor",
-        "--initialize-at-run-time=kotlinx.serialization.descriptors.SerialKind",
-        "--initialize-at-run-time=kotlinx.serialization.descriptors.PrimitiveKind",
-        "--initialize-at-run-time=kotlinx.serialization.descriptors.StructureKind",
-        "--initialize-at-run-time=kotlinx.serialization.encoding.Decoder",
-        "--initialize-at-run-time=kotlinx.serialization.encoding.Encoder",
-        "--initialize-at-run-time=kotlinx.serialization.encoding.CompositeDecoder",
-        "--initialize-at-run-time=kotlinx.serialization.encoding.CompositeEncoder",
-        "--initialize-at-run-time=kotlinx.serialization.KSerializer",
-        "--initialize-at-run-time=kotlinx.serialization.SerializationStrategy",
-        "--initialize-at-run-time=kotlinx.serialization.DeserializationStrategy",
-        "--initialize-at-run-time=kotlinx.serialization.modules.SerializersModule",
-        "--trace-object-instantiation=kotlin.reflect.jvm.internal.KClassImpl",
-        "--trace-class-initialization=kotlin.reflect.jvm.internal.KClassImpl",
-        "--trace-class-initialization=kotlin.reflect.jvm.internal.ReflectionFactoryImpl",
-        "-H:ReflectionConfigurationFiles=${project.projectDir}/src/main/resources/META-INF/native-image/reflection-config.json",
-        "-H:SerializationConfigurationResources=META-INF/native-image/serialization-config.json",
+        "--initialize-at-run-time=kotlin.reflect,kotlin.reflect.jvm.internal,kotlin.reflect.full,kotlin.reflect.KVariance",
+        "--trace-class-initialization=kotlin.reflect.KVariance",
+        "--initialize-at-run-time=kotlinx.serialization,kotlinx.datetime.serializers",
+        "--report-unsupported-elements-at-runtime",
+        "--allow-incomplete-classpath",
         "-H:+ReportExceptionStackTraces",
+        "-H:ReflectionConfigurationFiles=${project.projectDir}/src/main/resources/META-INF/native-image/kotlin-reflect-config.json,${project.projectDir}/src/main/resources/META-INF/native-image/reflection-config.json",
+        "-H:SerializationConfigurationResources=META-INF/native-image/serialization-config.json",
         "-H:ResourceConfigurationFiles=${project.projectDir}/src/main/resources/META-INF/native-image/resource-config.json",
         "-H:+JNI",
         "-H:+AddAllCharsets",
         "-H:+PrintClassInitialization",
         "-O2",
         "-cp", classpathString,
-        "ai.kastrax.graal.SimpleMain",
+        "ai.kastrax.graal.MainKt",
         "-o", "$outputDir/kastrax"
     )
 
     doFirst {
         println("Building native image using: $nativeImage")
         println("Output will be in: $outputDir/kastrax")
+        println("Using classpath: ${classpathString}")
+    }
+}
+
+// 自定义任务，构建带反射的 Native Image
+tasks.register<Exec>("buildReflectionNative") {
+    dependsOn(tasks.named("jar"))
+
+    val outputDir = layout.buildDirectory.dir("native/reflection").get().asFile
+    outputDir.mkdirs()
+
+    val graalVmHome = System.getenv("GRAALVM_HOME") ?: "${System.getProperty("user.home")}/Library/Java/JavaVirtualMachines/graalvm-ce-17.0.9/Contents/Home"
+    val nativeImage = "$graalVmHome/bin/native-image"
+
+    // 收集所有运行时依赖项
+    val runtimeClasspath = configurations.runtimeClasspath.get().files
+
+    // 添加 kotlin-reflect 模块
+    val kotlinReflectJar = configurations.runtimeClasspath.get().files.filter { it.name.contains("kotlin-reflect") }
+
+    // 添加当前模块的jar
+    val jarFile = tasks.jar.get().archiveFile.get().asFile
+
+    // 组合所有类路径
+    val classpathFiles = runtimeClasspath + kotlinReflectJar + jarFile
+    val classpathString = classpathFiles.joinToString(":")
+
+    commandLine = listOf(
+        nativeImage,
+        "--no-fallback",
+        "-H:+AllowDeprecatedBuilderClassesOnImageClasspath",
+        "--initialize-at-build-time",
+        "--initialize-at-run-time=kotlin.reflect,kotlin.reflect.jvm.internal,kotlin.reflect.full,kotlin.reflect.KVariance",
+        "--trace-class-initialization=kotlin.reflect.KVariance",
+
+        "--report-unsupported-elements-at-runtime",
+        "--allow-incomplete-classpath",
+        "-H:+ReportExceptionStackTraces",
+        "-H:ReflectionConfigurationFiles=${project.projectDir}/src/main/resources/META-INF/native-image/kotlin-reflect-config.json",
+        "-H:+JNI",
+        "-H:+AddAllCharsets",
+        "-H:+PrintClassInitialization",
+        "-O2",
+        "-cp", classpathString,
+        "ai.kastrax.graal.MainWithReflection",
+        "-o", "$outputDir/kastrax-reflection"
+    )
+
+    doFirst {
+        println("Building reflection native image using: $nativeImage")
+        println("Output will be in: $outputDir/kastrax-reflection")
         println("Using classpath: ${classpathString}")
     }
 }
@@ -155,26 +188,38 @@ tasks.register<Exec>("buildSimpleNative") {
     val graalVmHome = System.getenv("GRAALVM_HOME") ?: "${System.getProperty("user.home")}/Library/Java/JavaVirtualMachines/graalvm-ce-17.0.9/Contents/Home"
     val nativeImage = "$graalVmHome/bin/native-image"
 
+    // 收集所有运行时依赖项
+    val runtimeClasspath = configurations.runtimeClasspath.get().files
+
     // 添加当前模块的jar
     val jarFile = tasks.jar.get().archiveFile.get().asFile
+
+    // 组合所有类路径
+    val classpathFiles = runtimeClasspath + jarFile
+    val classpathString = classpathFiles.joinToString(":")
 
     commandLine = listOf(
         nativeImage,
         "--no-fallback",
+        "-H:+AllowDeprecatedBuilderClassesOnImageClasspath",
         "--initialize-at-build-time=kotlin",
+        "--initialize-at-run-time=kotlin.reflect,kotlinx.serialization",
+        "--report-unsupported-elements-at-runtime",
+        "--allow-incomplete-classpath",
         "-H:+ReportExceptionStackTraces",
+        "-H:ResourceConfigurationFiles=${project.projectDir}/src/main/resources/META-INF/native-image/resource-config.json",
         "-H:+JNI",
         "-H:+AddAllCharsets",
         "-O2",
-        "-jar", jarFile.absolutePath,
-        "ai.kastrax.graal.SimpleMain",
+        "-cp", classpathString,
+        "ai.kastrax.graal.SimpleNativeMain",
         "-o", "$outputDir/kastrax-simple"
     )
 
     doFirst {
         println("Building simple native image using: $nativeImage")
         println("Output will be in: $outputDir/kastrax-simple")
-        println("Using jar: ${jarFile.absolutePath}")
+        println("Using classpath: ${classpathString}")
     }
 }
 

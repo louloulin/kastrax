@@ -1,6 +1,6 @@
 [
   {
-    "name": "kotlin.reflect.jvm.internal.KClassImpl",
+    "name": "kotlin.reflect.jvm.internal.ReflectionFactoryImpl",
     "allDeclaredConstructors": true,
     "allPublicConstructors": true,
     "allDeclaredMethods": true,
@@ -9,7 +9,7 @@
     "allPublicFields": true
   },
   {
-    "name": "kotlin.reflect.jvm.internal.ReflectionFactoryImpl",
+    "name": "kotlin.reflect.jvm.internal.KClassImpl",
     "allDeclaredConstructors": true,
     "allPublicConstructors": true,
     "allDeclaredMethods": true,
@@ -109,6 +109,15 @@
   },
   {
     "name": "kotlin.reflect.KParameter",
+    "allDeclaredConstructors": true,
+    "allPublicConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicMethods": true,
+    "allDeclaredFields": true,
+    "allPublicFields": true
+  },
+  {
+    "name": "kotlin.reflect.full.KClasses",
     "allDeclaredConstructors": true,
     "allPublicConstructors": true,
     "allDeclaredMethods": true,
