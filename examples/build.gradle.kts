@@ -79,7 +79,13 @@ sourceSets {
                 "**/MemorySystemExample.kt",
                 "**/SimpleZodToolExample.kt",
                 "**/tools/ToolsExample.kt",
-                "**/agent/CreativeAgentExample.kt"
+                "**/agent/CreativeAgentExample.kt",
+                "**/agent/DeepseekAgentExample.kt",
+                "**/agent/DeepseekToolAgentExample.kt",
+                "**/agent/DeepseekArchitectureExample.kt",
+                "**/agent/DeepseekMemoryExample.kt",
+                "**/agent/DeepseekExamples.kt",
+                "**/agent/DeepseekMain.kt"
             )
             // 排除有问题的文件
             exclude(
@@ -181,6 +187,81 @@ tasks.register<JavaExec>("runCreativeAgentExample") {
     environment("DEEPSEEK_API_KEY", System.getenv("DEEPSEEK_API_KEY") ?: "")
 }
 
+// 为 DeepseekAgentExample 创建运行任务
+tasks.register<JavaExec>("runDeepseekAgentExample") {
+    group = "examples"
+    description = "Run the DeepseekAgentExample example"
+
+    classpath = sourceSets["main"].runtimeClasspath
+    mainClass.set("ai.kastrax.examples.agent.DeepseekAgentExampleKt")
+
+    // 添加 JVM 参数
+    jvmArgs = listOf("-Xms512m", "-Xmx1g")
+
+    // 确保示例可以访问环境变量
+    environment("DEEPSEEK_API_KEY", System.getenv("DEEPSEEK_API_KEY") ?: "")
+}
+
+// 为 DeepseekToolAgentExample 创建运行任务
+tasks.register<JavaExec>("runDeepseekToolAgentExample") {
+    group = "examples"
+    description = "Run the DeepseekToolAgentExample example"
+
+    classpath = sourceSets["main"].runtimeClasspath
+    mainClass.set("ai.kastrax.examples.agent.DeepseekToolAgentExampleKt")
+
+    // 添加 JVM 参数
+    jvmArgs = listOf("-Xms512m", "-Xmx1g")
+
+    // 确保示例可以访问环境变量
+    environment("DEEPSEEK_API_KEY", System.getenv("DEEPSEEK_API_KEY") ?: "")
+}
+
+// 为 DeepseekArchitectureExample 创建运行任务
+tasks.register<JavaExec>("runDeepseekArchitectureExample") {
+    group = "examples"
+    description = "Run the DeepseekArchitectureExample example"
+
+    classpath = sourceSets["main"].runtimeClasspath
+    mainClass.set("ai.kastrax.examples.agent.DeepseekArchitectureExampleKt")
+
+    // 添加 JVM 参数
+    jvmArgs = listOf("-Xms512m", "-Xmx1g")
+
+    // 确保示例可以访问环境变量
+    environment("DEEPSEEK_API_KEY", System.getenv("DEEPSEEK_API_KEY") ?: "")
+}
+
+// 为 DeepseekMemoryExample 创建运行任务
+tasks.register<JavaExec>("runDeepseekMemoryExample") {
+    group = "examples"
+    description = "Run the DeepseekMemoryExample example"
+
+    classpath = sourceSets["main"].runtimeClasspath
+    mainClass.set("ai.kastrax.examples.agent.DeepseekMemoryExampleKt")
+
+    // 添加 JVM 参数
+    jvmArgs = listOf("-Xms512m", "-Xmx1g")
+
+    // 确保示例可以访问环境变量
+    environment("DEEPSEEK_API_KEY", System.getenv("DEEPSEEK_API_KEY") ?: "")
+}
+
+// 为 DeepseekMain 创建运行任务
+tasks.register<JavaExec>("runDeepseekMain") {
+    group = "examples"
+    description = "Run the DeepseekMain example"
+
+    classpath = sourceSets["main"].runtimeClasspath
+    mainClass.set("ai.kastrax.examples.agent.DeepseekMainKt")
+
+    // 添加 JVM 参数
+    jvmArgs = listOf("-Xms512m", "-Xmx1g")
+
+    // 确保示例可以访问环境变量
+    environment("DEEPSEEK_API_KEY", System.getenv("DEEPSEEK_API_KEY") ?: "")
+}
+
 // 创建一个任务来列出所有可用的示例
 tasks.register("listExamples") {
     group = "examples"
@@ -193,6 +274,10 @@ tasks.register("listExamples") {
         }
         println("  ./gradlew runToolsExample - Run the ToolsExample example")
         println("  ./gradlew runCreativeAgentExample - Run the CreativeAgentExample example")
+        println("  ./gradlew runDeepseekAgentExample - Run the DeepseekAgentExample example")
+        println("  ./gradlew runDeepseekToolAgentExample - Run the DeepseekToolAgentExample example")
+        println("  ./gradlew runDeepseekArchitectureExample - Run the DeepseekArchitectureExample example")
+        println("  ./gradlew runDeepseekMemoryExample - Run the DeepseekMemoryExample example")
     }
 }
 
@@ -213,6 +298,10 @@ tasks.register("compileFixedExamples") {
         println("- SimpleZodToolExample.kt")
         println("- tools/ToolsExample.kt")
         println("- agent/CreativeAgentExample.kt")
+        println("- agent/DeepseekAgentExample.kt")
+        println("- agent/DeepseekToolAgentExample.kt")
+        println("- agent/DeepseekArchitectureExample.kt")
+        println("- agent/DeepseekMemoryExample.kt")
     }
 }
 
