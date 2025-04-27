@@ -9,6 +9,8 @@ import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
+import io.ktor.utils.io.*
+import io.ktor.utils.io.core.*
 import kotlinx.coroutines.flow.*
 import kotlinx.serialization.*
 import kotlinx.serialization.json.*
@@ -90,7 +92,7 @@ class OpenAiProvider(
                     val buffer = StringBuilder()
 
                     while (!channel.isClosedForRead) {
-                        val line = channel.readUTF8Line(limit = 8192) ?: continue
+                        val line = channel.readUTF8Line() ?: continue
 
                         if (line.isEmpty() || !line.startsWith("data:")) continue
 

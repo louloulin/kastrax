@@ -9,6 +9,8 @@ import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
+import io.ktor.utils.io.*
+import io.ktor.utils.io.core.*
 import kotlinx.coroutines.flow.*
 import kotlinx.serialization.json.*
 import mu.KotlinLogging
@@ -83,7 +85,7 @@ class DeepSeekClient(
                     // 不需要buffer，直接处理每一行
 
                     while (!isClosedForRead) {
-                        val line = readUTF8Line(limit = 8192) ?: continue
+                        val line = readUTF8Line() ?: continue
 
                         if (line.isBlank()) continue
 
