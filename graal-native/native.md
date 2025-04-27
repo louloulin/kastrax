@@ -295,16 +295,22 @@ JavaScript SDK同时支持Node.js和浏览器环境。对于浏览器，使用�
 ### 构建命令 [已实现 ✅]
 
 ```bash
-# 构建简单的Hello World示例
+# 构建简单的 Java Hello World 示例
+./gradlew :graal-native:buildJavaHelloNative
+
+# 运行生成的 Java 原生可执行文件
+graal-native/build/native/java-hello/java-hello
+
+# 构建简单的 Kotlin Hello World 示例
 ./gradlew :graal-native:buildHelloWorldNative
 
-# 运行生成的原生可执行文件
+# 运行生成的 Kotlin 原生可执行文件
 graal-native/build/native/hello-world/hello-world
 
-# 构建完整的KastraX原生可执行文件
+# 构建完整的 KastraX 原生可执行文件
 ./gradlew :graal-native:buildNativeManually
 
-# 运行生成的KastraX原生可执行文件
+# 运行生成的 KastraX 原生可执行文件
 graal-native/build/native/manual/kastrax help
 
 # 构建所有内容

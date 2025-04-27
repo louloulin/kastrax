@@ -15,6 +15,15 @@
       },
       {
         "pattern": "\\Qkotlinx/serialization/.*\\E"
+      },
+      {
+        "pattern": "\\QMETA-INF/kotlinx-serialization/.*\\E"
+      },
+      {
+        "pattern": ".*\\.kotlin_serialization$"
+      },
+      {
+        "pattern": "\\QMETA-INF/native-image/serialization-config.json\\E"
       }
     ]
   },

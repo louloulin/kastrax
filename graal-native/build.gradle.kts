@@ -61,6 +61,16 @@ tasks.withType<BuildNativeImageTask> {
     dependsOn(tasks.named("jar"))
 }
 
+tasks.jar {
+    manifest {
+        attributes(mapOf(
+            "Implementation-Title" to project.name,
+            "Implementation-Version" to project.version,
+            "Main-Class" to "ai.kastrax.graal.SimpleMain"
+        ))
+    }
+}
+
 // 自定义任务，手动构建 Native Image
 tasks.register<Exec>("buildNativeManually") {
     dependsOn(tasks.named("jar"))
@@ -88,14 +98,25 @@ tasks.register<Exec>("buildNativeManually") {
         nativeImage,
         "--no-fallback",
         "-H:+AllowDeprecatedBuilderClassesOnImageClasspath",
-        "--initialize-at-build-time=kotlin.DeprecationLevel",
-        "-H:+ReportExceptionStackTraces",
+        "--initialize-at-build-time=kotlin",
+        "--initialize-at-run-time=kotlin.reflect.jvm.internal.KClassImpl",
+        "--initialize-at-run-time=kotlin.reflect.jvm.internal.ReflectionFactoryImpl",
+        "--initialize-at-run-time=kotlin.reflect",
+        "--initialize-at-run-time=kotlinx.datetime.serializers.InstantIso8601Serializer",
+        "--initialize-at-run-time=kotlinx.serialization.internal.PrimitivesKt",
+        "--initialize-at-run-time=kotlinx.serialization",
+        "--trace-object-instantiation=kotlin.reflect.jvm.internal.KClassImpl",
+        "--trace-class-initialization=kotlin.reflect.jvm.internal.KClassImpl",
         "-H:ReflectionConfigurationFiles=${project.projectDir}/src/main/resources/META-INF/native-image/reflection-config.json",
+        "-H:SerializationConfigurationResources=META-INF/native-image/serialization-config.json",
+        "-H:+ReportExceptionStackTraces",
         "-H:ResourceConfigurationFiles=${project.projectDir}/src/main/resources/META-INF/native-image/resource-config.json",
         "-H:+JNI",
+        "-H:+AddAllCharsets",
+        "-H:+PrintClassInitialization",
         "-O2",
         "-cp", classpathString,
-        "ai.kastrax.graal.MainKt",
+        "ai.kastrax.graal.SimpleMain",
         "-o", "$outputDir/kastrax"
     )
 
@@ -103,6 +124,39 @@ tasks.register<Exec>("buildNativeManually") {
         println("Building native image using: $nativeImage")
         println("Output will be in: $outputDir/kastrax")
         println("Using classpath: ${classpathString}")
+    }
+}
+
+// 自定义任务，构建简化版本的 Native Image
+tasks.register<Exec>("buildSimpleNative") {
+    dependsOn(tasks.named("jar"))
+
+    val outputDir = layout.buildDirectory.dir("native/simple").get().asFile
+    outputDir.mkdirs()
+
+    val graalVmHome = System.getenv("GRAALVM_HOME") ?: "${System.getProperty("user.home")}/Library/Java/JavaVirtualMachines/graalvm-ce-17.0.9/Contents/Home"
+    val nativeImage = "$graalVmHome/bin/native-image"
+
+    // 添加当前模块的jar
+    val jarFile = tasks.jar.get().archiveFile.get().asFile
+
+    commandLine = listOf(
+        nativeImage,
+        "--no-fallback",
+        "--initialize-at-build-time=kotlin",
+        "-H:+ReportExceptionStackTraces",
+        "-H:+JNI",
+        "-H:+AddAllCharsets",
+        "-O2",
+        "-jar", jarFile.absolutePath,
+        "ai.kastrax.graal.SimpleMain",
+        "-o", "$outputDir/kastrax-simple"
+    )
+
+    doFirst {
+        println("Building simple native image using: $nativeImage")
+        println("Output will be in: $outputDir/kastrax-simple")
+        println("Using jar: ${jarFile.absolutePath}")
     }
 }
 
@@ -138,6 +192,87 @@ tasks.register<Jar>("helloWorldJar") {
         attributes(mapOf(
             "Main-Class" to "ai.kastrax.graal.HelloWorldKt"
         ))
+    }
+}
+
+tasks.register<Jar>("simpleHelloJar") {
+    dependsOn("compileKotlin")
+    archiveBaseName.set("simple-hello")
+    destinationDirectory.set(layout.buildDirectory.dir("libs"))
+
+    from(sourceSets["main"].output) {
+        include("ai/kastrax/graal/SimpleHello*")
+    }
+
+    manifest {
+        attributes(mapOf(
+            "Main-Class" to "ai.kastrax.graal.SimpleHello"
+        ))
+    }
+}
+
+tasks.register<Jar>("javaHelloJar") {
+    dependsOn("compileJava")
+    archiveBaseName.set("java-hello")
+    destinationDirectory.set(layout.buildDirectory.dir("libs"))
+
+    from(sourceSets["main"].output) {
+        include("ai/kastrax/graal/JavaHello*")
+    }
+
+    manifest {
+        attributes(mapOf(
+            "Main-Class" to "ai.kastrax.graal.JavaHello"
+        ))
+    }
+}
+
+tasks.register<Exec>("buildJavaHelloNative") {
+    dependsOn("javaHelloJar")
+
+    val outputDir = layout.buildDirectory.dir("native/java-hello").get().asFile
+    outputDir.mkdirs()
+
+    val graalVmHome = System.getenv("GRAALVM_HOME") ?: "${System.getProperty("user.home")}/Library/Java/JavaVirtualMachines/graalvm-ce-17.0.9/Contents/Home"
+    val nativeImage = "$graalVmHome/bin/native-image"
+    val jarFile = tasks.named<Jar>("javaHelloJar").get().archiveFile.get().asFile
+
+    commandLine = listOf(
+        nativeImage,
+        "--no-fallback",
+        "-H:+ReportExceptionStackTraces",
+        "-jar", jarFile.absolutePath,
+        "-o", "$outputDir/java-hello"
+    )
+
+    doFirst {
+        println("Building Java Hello native image using: $nativeImage")
+        println("Output will be in: $outputDir/java-hello")
+    }
+}
+
+tasks.register<Exec>("buildSimpleHelloNative") {
+    dependsOn("simpleHelloJar")
+
+    val outputDir = layout.buildDirectory.dir("native/simple-hello").get().asFile
+    outputDir.mkdirs()
+
+    val graalVmHome = System.getenv("GRAALVM_HOME") ?: "${System.getProperty("user.home")}/Library/Java/JavaVirtualMachines/graalvm-ce-17.0.9/Contents/Home"
+    val nativeImage = "$graalVmHome/bin/native-image"
+    val jarFile = tasks.named<Jar>("simpleHelloJar").get().archiveFile.get().asFile
+
+    commandLine = listOf(
+        nativeImage,
+        "--no-fallback",
+        "--initialize-at-build-time=kotlin",
+        "-H:+ReportExceptionStackTraces",
+        "-jar", jarFile.absolutePath,
+        "-o", "$outputDir/simple-hello"
+    )
+
+    doFirst {
+        println("Building Simple Hello native image using: $nativeImage")
+        println("Output will be in: $outputDir/simple-hello")
     }
 }
 
