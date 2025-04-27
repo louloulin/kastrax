@@ -16,66 +16,66 @@ import java.io.File
 fun main() = runBlocking {
     println("KastraX 增强型RAG示例")
     println("===================")
-    
+
     // 创建向量存储和嵌入服务
     val vectorStore = RagInMemoryVectorStore()
     val embeddingService = RandomEmbeddingService(dimensions = 1536)
-    
+
     // 创建RAG系统
     val rag = RAG(vectorStore, embeddingService)
-    
+
     // 创建文档分割器
     val splitter = RecursiveCharacterTextSplitter(
         chunkSize = 500,
         chunkOverlap = 100
     )
-    
+
     // 创建示例文件目录
     val examplesDir = File("examples_data")
     if (!examplesDir.exists()) {
         examplesDir.mkdirs()
     }
-    
+
     // 创建示例文件
     createExampleFiles(examplesDir)
-    
+
     // 加载CSV文件
     println("\n加载CSV文件...")
     val csvFile = File(examplesDir, "example.csv")
     val csvLoader = CsvDocumentLoader(csvFile)
     val csvDocuments = csvLoader.load()
     println("加载了 ${csvDocuments.size} 个CSV文档")
-    
+
     // 加载JSON文件
     println("\n加载JSON文件...")
     val jsonFile = File(examplesDir, "example.json")
     val jsonLoader = JsonDocumentLoader(jsonFile)
     val jsonDocuments = jsonLoader.load()
     println("加载了 ${jsonDocuments.size} 个JSON文档")
-    
+
     // 加载XML文件
     println("\n加载XML文件...")
     val xmlFile = File(examplesDir, "example.xml")
     val xmlLoader = XmlDocumentLoader(xmlFile)
     val xmlDocuments = xmlLoader.load()
     println("加载了 ${xmlDocuments.size} 个XML文档")
-    
+
     // 加载Markdown文件
     println("\n加载Markdown文件...")
     val mdFile = File(examplesDir, "example.md")
     val mdLoader = MarkdownDocumentLoader(mdFile)
     val mdDocuments = mdLoader.load()
     println("加载了 ${mdDocuments.size} 个Markdown文档")
-    
+
     // 将所有文档添加到RAG系统
     println("\n将文档添加到RAG系统...")
-    rag.addDocuments(csvDocuments)
-    rag.addDocuments(jsonDocuments)
-    rag.addDocuments(xmlDocuments)
-    rag.addDocuments(mdDocuments)
-    
-    println("总共添加了 ${csvDocuments.size + jsonDocuments.size + xmlDocuments.size + mdDocuments.size} 个文档")
-    
+    val csvCount = rag.loadDocuments(csvLoader)
+    val jsonCount = rag.loadDocuments(jsonLoader)
+    val xmlCount = rag.loadDocuments(xmlLoader)
+    val mdCount = rag.loadDocuments(mdLoader)
+
+    println("总共添加了 ${csvCount + jsonCount + xmlCount + mdCount} 个文档")
+
     // 创建Agent
     val agent = agent {
         name = "RAG助手"
@@ -92,7 +92,7 @@ fun main() = runBlocking {
             timeout(60000) // 60秒超时
         }
     }
-    
+
     // 示例查询
     val queries = listOf(
         "谁是John Doe？",
@@ -100,30 +100,30 @@ fun main() = runBlocking {
         "这些数据中最年长的人是谁？",
         "Markdown文档的标题是什么？"
     )
-    
+
     // 处理查询
     println("\n处理查询...")
     for (query in queries) {
         println("\n查询: $query")
-        
+
         // 生成上下文
         val context = rag.generateContext(query, limit = 3)
         println("上下文长度: ${context.length} 字符")
-        
+
         // 使用Agent生成回答
         val response = agent.generate(
             """
             基于以下上下文回答问题:
-            
+
             $context
-            
+
             问题: $query
             """.trimIndent()
         )
-        
+
         println("回答: ${response.text}")
     }
-    
+
     println("\n示例完成")
 }
 
@@ -141,7 +141,7 @@ private fun createExampleFiles(dir: File) {
         Alice Brown,35,London
         Charlie Wilson,45,Tokyo
     """.trimIndent())
-    
+
     // 创建JSON文件
     val jsonFile = File(dir, "example.json")
     jsonFile.writeText("""
@@ -180,7 +180,7 @@ private fun createExampleFiles(dir: File) {
             ]
         }
     """.trimIndent())
-    
+
     // 创建XML文件
     val xmlFile = File(dir, "example.xml")
     xmlFile.writeText("""
@@ -218,7 +218,7 @@ private fun createExampleFiles(dir: File) {
             </projects>
         </data>
     """.trimIndent())
-    
+
     // 创建Markdown文件
     val mdFile = File(dir, "example.md")
     mdFile.writeText("""
@@ -227,37 +227,37 @@ private fun createExampleFiles(dir: File) {
         author: KastraX团队
         date: 2023-06-15
         ---
-        
+
         # 员工和项目信息
-        
+
         这是一个包含员工和项目信息的文档。
-        
+
         ## 员工
-        
+
         1. **John Doe**
            - 年龄: 30
            - 城市: New York
            - 部门: Engineering
            - 技能: Java, Kotlin, Python
-        
+
         2. **Jane Smith**
            - 年龄: 25
            - 城市: London
            - 部门: Marketing
            - 技能: JavaScript, TypeScript, React
-        
+
         3. **Bob Johnson**
            - 年龄: 40
            - 城市: Paris
            - 部门: Finance
            - 技能: C++, Rust, Go
-        
+
         ## 项目
-        
+
         1. **Website Redesign**
            - 负责人: Jane Smith
            - 状态: 进行中
-        
+
         2. **Mobile App**
            - 负责人: John Doe
            - 状态: 计划中
