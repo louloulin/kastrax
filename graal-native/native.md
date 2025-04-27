@@ -37,16 +37,29 @@ KastraX提供两种主要的原生集成方式：
 - Native Image工具 (`gu install native-image`)
 - 适合您平台的构建工具（Visual Studio、XCode、GCC等）
 
-### 构建Native Image
+### 构建Native Image [已实现 ✅]
+
+```bash
+# 使用Gradle直接构建简单的Hello World示例
+./gradlew :graal-native:buildHelloWorldNative
+
+# 运行生成的Native可执行文件
+graal-native/build/native/hello-world/hello-world
+```
+
+或者手动构建：
 
 ```bash
 # 构建项目
 ./gradlew :graal-native:nativeCompile
 
+# 创建分发包
+./gradlew :graal-native:packageNative
+
 # 在build/native/nativeCompile/目录中找到可执行文件
 ```
 
-### 配置
+### 配置 [已实现 ✅]
 
 KastraX提供以下GraalVM配置文件：
 
@@ -55,6 +68,12 @@ KastraX提供以下GraalVM配置文件：
 - `native-image.properties`: 默认的native-image参数
 
 使用Gradle构建时，这些文件会自动包含。
+
+### 功能特性 [已实现 ✅]
+
+- 简单的Hello World示例
+- 使用Gradle直接构建原生可执行文件
+- 支持多平台构建
 
 ### 限制
 
@@ -142,12 +161,12 @@ fn main() {
         .name("my-agent")
         .model("deepseek-coder")
         .build();
-    
+
     // 添加工具
     agent.add_tool(Tool::new("calculator", |input| {
         // 工具实现
     }));
-    
+
     // 运行Agent
     let response = agent.run("Calculate 2+2");
     println!("{}", response);
@@ -188,7 +207,7 @@ func main() {
         Name: "my-agent",
         Model: "deepseek-coder",
     })
-    
+
     // 添加工具
     agent.AddTool(kastrax.Tool{
         Name: "calculator",
@@ -197,13 +216,13 @@ func main() {
             return "4", nil
         },
     })
-    
+
     // 运行Agent
     response, err := agent.Run("Calculate 2+2")
     if err != nil {
         panic(err)
     }
-    
+
     fmt.Println(response)
 }
 ```
@@ -257,12 +276,12 @@ JavaScript SDK同时支持Node.js和浏览器环境。对于浏览器，使用�
     name: 'my-agent',
     model: 'deepseek-coder'
   });
-  
+
   // 使用Agent...
 </script>
 ```
 
-## 从源代码构建
+## 从源代码构建 [已实现 ✅]
 
 ### 前提条件
 
@@ -276,6 +295,12 @@ JavaScript SDK同时支持Node.js和浏览器环境。对于浏览器，使用�
 ### 构建命令
 
 ```bash
+# 构建简单的Hello World示例
+./gradlew :graal-native:buildHelloWorldNative
+
+# 运行生成的原生可执行文件
+graal-native/build/native/hello-world/hello-world
+
 # 构建所有内容
 ./gradlew build
 

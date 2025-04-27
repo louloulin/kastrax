@@ -1,0 +1,22 @@
+{
+  "resources": {
+    "includes": [
+      {
+        "pattern": "\\QMETA-INF/services/.*\\E"
+      },
+      {
+        "pattern": "\\Qlogback.xml\\E"
+      },
+      {
+        "pattern": "\\Qconfig/.*\\E"
+      },
+      {
+        "pattern": "\\Qai/kastrax/.*\\E"
+      },
+      {
+        "pattern": "\\Qkotlinx/serialization/.*\\E"
+      }
+    ]
+  },
+  "bundles": []
+}

@@ -21,6 +21,96 @@ val kastraxInstance = kastrax {
     // 这里可以注册代理
 }
 
+// 创建一个简单的计算器工具
+val calculatorTool = ai.kastrax.core.tools.tool {
+    id = "calculator"
+    name = "calculator"
+    description = "执行简单的数学计算，支持加减乘除"
+
+    // 设置输入和输出模式
+    inputSchema = ai.kastrax.core.tools.jsonObject {
+        "type" to "string"
+        "description" to "数学表达式，如 2+2"
+    }
+
+    outputSchema = ai.kastrax.core.tools.jsonObject {
+        "type" to "string"
+        "description" to "计算结果"
+    }
+
+    execute = { input ->
+        val inputStr = (input as? kotlinx.serialization.json.JsonPrimitive)?.content ?: ""
+        val result = try {
+            // 简单的计算器实现
+            val trimmedInput = inputStr.trim()
+
+            if (trimmedInput.contains('+')) {
+                val parts = trimmedInput.split('+')
+                if (parts.size == 2) {
+                    val a = parts[0].trim().toDoubleOrNull()
+                    val b = parts[1].trim().toDoubleOrNull()
+                    if (a != null && b != null) {
+                        (a + b).toString()
+                    } else {
+                        "无法解析数字"
+                    }
+                } else {
+                    "格式错误"
+                }
+            } else if (trimmedInput.contains('-')) {
+                val parts = trimmedInput.split('-')
+                if (parts.size == 2) {
+                    val a = parts[0].trim().toDoubleOrNull()
+                    val b = parts[1].trim().toDoubleOrNull()
+                    if (a != null && b != null) {
+                        (a - b).toString()
+                    } else {
+                        "无法解析数字"
+                    }
+                } else {
+                    "格式错误"
+                }
+            } else if (trimmedInput.contains('*')) {
+                val parts = trimmedInput.split('*')
+                if (parts.size == 2) {
+                    val a = parts[0].trim().toDoubleOrNull()
+                    val b = parts[1].trim().toDoubleOrNull()
+                    if (a != null && b != null) {
+                        (a * b).toString()
+                    } else {
+                        "无法解析数字"
+                    }
+                } else {
+                    "格式错误"
+                }
+            } else if (trimmedInput.contains('/')) {
+                val parts = trimmedInput.split('/')
+                if (parts.size == 2) {
+                    val a = parts[0].trim().toDoubleOrNull()
+                    val b = parts[1].trim().toDoubleOrNull()
+                    if (a != null && b != null) {
+                        if (b == 0.0) {
+                            "错误：除数不能为零"
+                        } else {
+                            (a / b).toString()
+                        }
+                    } else {
+                        "无法解析数字"
+                    }
+                } else {
+                    "格式错误"
+                }
+            } else {
+                "无法解析表达式：$trimmedInput"
+            }
+        } catch (e: Exception) {
+            "计算错误：${e.message}"
+        }
+
+        kotlinx.serialization.json.JsonPrimitive(result)
+    }
+}
+
 /**
  * KastraX GraalVM Native应用程序入口点
  */
@@ -57,7 +147,7 @@ fun getPlatformInfo(): String {
     val version = System.getProperty("os.version")
     val arch = System.getProperty("os.arch")
     val javaVersion = System.getProperty("java.version")
-    
+
     return "运行平台: $os $version ($arch), Java版本: $javaVersion"
 }
 
@@ -71,12 +161,31 @@ private fun startServer() {
 }
 
 /**
+ * 创建一个简单的Agent
+ */
+private fun createSimpleAgent(): ai.kastrax.core.agent.Agent {
+    return ai.kastrax.core.agent.agent {
+        name = "calculator-agent"
+        instructions = "你是一个数学助手，可以帮助用户进行计算。"
+        model = ai.kastrax.integrations.deepseek.DeepSeekProvider(
+            model = "deepseek-coder",
+            apiKey = config.apiKeys.deepseek
+        )
+        tools {
+            tool(calculatorTool)
+        }
+    }
+}
+
+/**
  * 启动命令行界面模式
  */
 private fun startCli() {
     logger.info { "启动命令行界面模式..." }
     println("欢迎使用 KastraX GraalVM Native 命令行界面！")
-    println("输入 'exit' 或 'quit' 退出\n")
+    println("输入 'exit' 或 'quit' 退出")
+    println("输入 'calc' 进入计算器模式")
+    println("输入 'help' 查看帮助\n")
 
     // 简单的命令行交互
     var running = true
@@ -91,9 +200,53 @@ private fun startCli() {
                 running = false
             }
             "help" -> printHelp()
+            "calc" -> startCalculatorMode()
             else -> {
-                println("处理命令: $input")
-                println("命令执行完成")
+                println("未知命令: $input")
+                println("输入 'help' 查看可用命令")
+            }
+        }
+    }
+}
+
+/**
+ * 启动计算器模式
+ */
+private fun startCalculatorMode() {
+    println("进入计算器模式，输入数学表达式进行计算")
+    println("例如：2+2、2*3、等等")
+    println("输入 'back' 返回主菜单\n")
+
+    // 创建一个简单的Agent
+    val agent = createSimpleAgent()
+
+    var calculating = true
+    while (calculating) {
+        print("\n请输入表达式: ")
+
+        val input = readLine() ?: ""
+
+        if (input.trim().lowercase() == "back") {
+            println("返回主菜单")
+            calculating = false
+        } else {
+            try {
+                // 直接使用计算器工具
+                val jsonInput = kotlinx.serialization.json.JsonPrimitive(input)
+                val jsonResult = runBlocking { calculatorTool.execute(jsonInput) }
+                val result = (jsonResult as? kotlinx.serialization.json.JsonPrimitive)?.content ?: "无法解析结果"
+                println("结果: $result")
+
+                // 使用Agent进行更复杂的计算
+                if (input.length > 5) { // 假设较复杂的表达式
+                    println("正在使用Agent进行分析...")
+                    val agentResponse = runBlocking {
+                        agent.generate(input)
+                    }
+                    println("智能助手: $agentResponse")
+                }
+            } catch (e: Exception) {
+                println("计算错误: ${e.message}")
             }
         }
     }
@@ -130,8 +283,15 @@ private fun printHelp() {
           config    显示当前配置
           help      显示帮助信息
 
+        CLI 模式命令:
+          calc      进入计算器模式
+          help      显示帮助信息
+          exit      退出应用程序
+
         示例:
-          kastrax server
+          kastrax cli
+          > calc
+          > 2+2
     """.trimIndent())
 }
 
@@ -169,7 +329,7 @@ fun loadConfig(): AppConfig {
     }
 
     val configFile = File(configDir, "kastrax.json")
-    
+
     return if (configFile.exists()) {
         try {
             Json.decodeFromString<AppConfig>(configFile.readText())

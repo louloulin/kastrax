@@ -2,6 +2,15 @@
 
 KastraX的GraalVM Native实现，支持在多个平台上运行，并提供多语言SDK。
 
+## 已实现功能
+
+- ✅ GraalVM Native Image 构建配置
+- ✅ 命令行界面 (CLI) 模式
+- ✅ 配置管理
+- ✅ 简单的计算器工具示例
+- ✅ Agent 创建和使用示例
+- ✅ 自动化构建脚本
+
 ## 支持的平台
 
 - macOS (Intel和Apple Silicon)
@@ -29,19 +38,23 @@ KastraX的GraalVM Native实现，支持在多个平台上运行，并提供多�
 
 **Unix系统 (macOS/Linux)**
 ```bash
-./gradlew :graal-native:nativeCompile
+./graal-native/build-native.sh
 ```
 
 **Windows系统**
 ```batch
-gradlew :graal-native:nativeCompile
+graal-native\build-native.bat
 ```
 
-#### 打包分发
+#### 手动构建
 
-构建完成后，可以创建分发包：
+您也可以手动执行构建步骤：
 
 ```bash
+# 构建项目
+./gradlew :graal-native:nativeCompile
+
+# 创建分发包
 ./gradlew :graal-native:packageNative
 ```
 
@@ -80,9 +93,27 @@ graal-native\build\native\nativeCompile\kastrax.exe [命令]
 - `config`: 显示当前配置
 - `help`: 显示帮助信息
 
+### CLI 模式命令
+
+在CLI模式下，可以使用以下命令：
+
+- `calc`: 进入计算器模式，可以进行简单的数学计算
+- `help`: 显示帮助信息
+- `exit`/`quit`: 退出应用程序
+
 ## 配置
 
 应用程序的配置文件位于`config/kastrax.json`，首次运行时会自动创建默认配置。
+
+## 测试
+
+项目包含单元测试，可以通过以下命令运行：
+
+```bash
+./gradlew :graal-native:test
+```
+
+测试包括对计算器工具的功能验证。
 
 ## SDK集成
 
