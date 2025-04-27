@@ -233,7 +233,7 @@
 - [x] 实现基础的 Agent 网络（已完成：AgentNetwork.kt）
 - [x] 实现完整的 Agent 编排和协作框架（已完成：实现了上下文感知路由和代理网络可视化）
 - [x] 开发 Agent 行为分析和优化工具（已完成：kastrax-core 模块中的 AgentBehaviorAnalyzer、AgentMetricsCollector 和 AgentOptimizationAdvisor）
-- [ ] 实现 Agent 版本控制和回滚机制（当前缺少版本控制）
+- [x] 实现 Agent 版本控制和回滚机制（已实现：包括 AgentVersion、AgentVersionManager 接口和 InMemoryAgentVersionManager 实现，支持创建、获取、激活和回滚版本）
 - [ ] 提供 Agent 性能监控和诊断工具（当前监控能力有限）
 
 #### 工具生态成熟

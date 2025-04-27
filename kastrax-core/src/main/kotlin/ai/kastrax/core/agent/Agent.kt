@@ -20,6 +20,7 @@ import ai.kastrax.memory.api.Message
 import ai.kastrax.memory.api.MessageRole
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
@@ -49,6 +50,63 @@ data class MemoryOptions(
  * Interface for AI agents.
  */
 interface Agent {
+    /**
+     * 获取Agent的版本管理器
+     */
+    val versionManager: ai.kastrax.core.agent.version.AgentVersionManager?
+
+    /**
+     * 创建新版本
+     *
+     * @param instructions 指令内容
+     * @param name 版本名称
+     * @param description 版本描述
+     * @param metadata 元数据
+     * @param activateImmediately 是否立即激活
+     * @return 创建的版本
+     */
+    suspend fun createVersion(
+        instructions: String,
+        name: String? = null,
+        description: String? = null,
+        metadata: Map<String, String> = emptyMap(),
+        activateImmediately: Boolean = false
+    ): ai.kastrax.core.agent.version.AgentVersion?
+
+    /**
+     * 获取所有版本
+     *
+     * @param limit 限制数量
+     * @param offset 偏移量
+     * @return 版本列表
+     */
+    suspend fun getVersions(
+        limit: Int = 100,
+        offset: Int = 0
+    ): List<ai.kastrax.core.agent.version.AgentVersion>?
+
+    /**
+     * 获取当前激活版本
+     *
+     * @return 当前激活的版本
+     */
+    suspend fun getActiveVersion(): ai.kastrax.core.agent.version.AgentVersion?
+
+    /**
+     * 激活版本
+     *
+     * @param versionId 版本ID
+     * @return 激活的版本
+     */
+    suspend fun activateVersion(versionId: String): ai.kastrax.core.agent.version.AgentVersion?
+
+    /**
+     * 回滚到指定版本
+     *
+     * @param versionId 版本ID
+     * @return 回滚后激活的版本
+     */
+    suspend fun rollbackToVersion(versionId: String): ai.kastrax.core.agent.version.AgentVersion?
     /**
      * The agent's name.
      */
@@ -569,6 +627,7 @@ class AgentBuilder {
     var toolsets: MutableMap<String, MutableMap<String, Tool>> = mutableMapOf()
     var sessionManager: SessionManager? = null
     var stateManager: StateManager? = null
+    var versionManager: ai.kastrax.core.agent.version.AgentVersionManager? = null
 
     /**
      * Add tools to the agent.
@@ -823,11 +882,18 @@ class AgentBuilder {
     /**
      * Build the agent.
      */
+    /**
+     * 配置版本管理器
+     */
+    fun versionManager(versionManager: ai.kastrax.core.agent.version.AgentVersionManager) {
+        this.versionManager = versionManager
+    }
+
     fun build(): LLMAgent {
         require(name.isNotEmpty()) { "Agent name must not be empty" }
         require(::model.isInitialized) { "Agent model must be defined" }
 
-        return LLMAgent(
+        val agent = LLMAgent(
             name = name,
             instructions = instructions,
             model = model,
@@ -837,8 +903,25 @@ class AgentBuilder {
             defaultStreamOptions = defaultStreamOptions,
             toolsets = toolsets,
             sessionManager = sessionManager,
-            stateManager = stateManager
+            stateManager = stateManager,
+            versionManager = versionManager
         )
+
+        // 创建初始版本
+        val vm = versionManager
+        if (vm != null) {
+            runBlocking {
+                vm.createVersion(
+                    agentId = name,
+                    instructions = instructions,
+                    name = "Initial Version",
+                    description = "Initial version",
+                    activateImmediately = true
+                )
+            }
+        }
+
+        return agent
     }
 }
 
@@ -866,7 +949,8 @@ class LLMAgent(
     val defaultStreamOptions: AgentStreamOptions = AgentStreamOptions(),
     val toolsets: Map<String, Map<String, Tool>> = emptyMap(),
     val sessionManager: SessionManager? = null,
-    val stateManager: StateManager? = null
+    val stateManager: StateManager? = null,
+    override val versionManager: ai.kastrax.core.agent.version.AgentVersionManager? = null
 ) : KastraXBase(component = "AGENT", name = name), Agent {
 
     // 当前状态ID
@@ -1391,6 +1475,85 @@ class LLMAgent(
 
         currentStateId = null
         logger.debug { "Reset agent state" }
+    }
+
+    /**
+     * 创建新版本
+     */
+    override suspend fun createVersion(
+        instructions: String,
+        name: String?,
+        description: String?,
+        metadata: Map<String, String>,
+        activateImmediately: Boolean
+    ): ai.kastrax.core.agent.version.AgentVersion? {
+        if (versionManager == null) {
+            logger.warn { "没有配置版本管理器" }
+            return null
+        }
+
+        val agentId = this.name // 使用Agent的名称作为agentId
+
+        return versionManager.createVersion(
+            agentId = agentId,
+            instructions = instructions,
+            name = name,
+            description = description,
+            metadata = metadata,
+            activateImmediately = activateImmediately
+        )
+    }
+
+    /**
+     * 获取所有版本
+     */
+    override suspend fun getVersions(limit: Int, offset: Int): List<ai.kastrax.core.agent.version.AgentVersion>? {
+        if (versionManager == null) {
+            logger.warn { "没有配置版本管理器" }
+            return null
+        }
+
+        val agentId = this.name // 使用Agent的名称作为agentId
+
+        return versionManager.getVersions(agentId, limit, offset)
+    }
+
+    /**
+     * 获取当前激活版本
+     */
+    override suspend fun getActiveVersion(): ai.kastrax.core.agent.version.AgentVersion? {
+        if (versionManager == null) {
+            logger.warn { "没有配置版本管理器" }
+            return null
+        }
+
+        val agentId = this.name // 使用Agent的名称作为agentId
+
+        return versionManager.getActiveVersion(agentId)
+    }
+
+    /**
+     * 激活版本
+     */
+    override suspend fun activateVersion(versionId: String): ai.kastrax.core.agent.version.AgentVersion? {
+        if (versionManager == null) {
+            logger.warn { "没有配置版本管理器" }
+            return null
+        }
+
+        return versionManager.activateVersion(versionId)
+    }
+
+    /**
+     * 回滚到指定版本
+     */
+    override suspend fun rollbackToVersion(versionId: String): ai.kastrax.core.agent.version.AgentVersion? {
+        if (versionManager == null) {
+            logger.warn { "没有配置版本管理器" }
+            return null
+        }
+
+        return versionManager.rollbackToVersion(versionId)
     }
 }
 

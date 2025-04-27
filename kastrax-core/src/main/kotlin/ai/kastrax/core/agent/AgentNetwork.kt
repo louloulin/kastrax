@@ -39,6 +39,7 @@ data class AgentNetworkConfig(
  * 代理网络，用于协调多个专业代理
  */
 class AgentNetwork(config: AgentNetworkConfig) : KastraXBase(component = "NETWORK", name = config.name), Agent {
+    override val versionManager: ai.kastrax.core.agent.version.AgentVersionManager? = null
     private val instructions = config.instructions
     private val agents = config.agents
     private val model = config.model
@@ -442,6 +443,52 @@ class AgentNetwork(config: AgentNetworkConfig) : KastraXBase(component = "NETWOR
      */
     override suspend fun getSessionMessages(sessionId: String, limit: Int): List<SessionMessage>? {
         return routingAgent.getSessionMessages(sessionId, limit)
+    }
+
+    /**
+     * 创建新版本
+     */
+    override suspend fun createVersion(
+        instructions: String,
+        name: String?,
+        description: String?,
+        metadata: Map<String, String>,
+        activateImmediately: Boolean
+    ): ai.kastrax.core.agent.version.AgentVersion? {
+        logger.warn { "Agent网络不支持版本控制" }
+        return null
+    }
+
+    /**
+     * 获取所有版本
+     */
+    override suspend fun getVersions(limit: Int, offset: Int): List<ai.kastrax.core.agent.version.AgentVersion>? {
+        logger.warn { "Agent网络不支持版本控制" }
+        return null
+    }
+
+    /**
+     * 获取当前激活版本
+     */
+    override suspend fun getActiveVersion(): ai.kastrax.core.agent.version.AgentVersion? {
+        logger.warn { "Agent网络不支持版本控制" }
+        return null
+    }
+
+    /**
+     * 激活版本
+     */
+    override suspend fun activateVersion(versionId: String): ai.kastrax.core.agent.version.AgentVersion? {
+        logger.warn { "Agent网络不支持版本控制" }
+        return null
+    }
+
+    /**
+     * 回滚到指定版本
+     */
+    override suspend fun rollbackToVersion(versionId: String): ai.kastrax.core.agent.version.AgentVersion? {
+        logger.warn { "Agent网络不支持版本控制" }
+        return null
     }
 }
 
