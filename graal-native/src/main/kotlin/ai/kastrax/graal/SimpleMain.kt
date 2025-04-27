@@ -8,12 +8,12 @@ object SimpleMain {
     fun main(args: Array<String>) {
         println("KastraX Native Image")
         println("====================")
-
+        
         if (args.isEmpty()) {
             printHelp()
             return
         }
-
+        
         when (args[0]) {
             "help" -> printHelp()
             "version" -> printVersion()
@@ -25,7 +25,7 @@ object SimpleMain {
             }
         }
     }
-
+    
     private fun printHelp() {
         println("可用命令:")
         println("  help     - 显示帮助信息")
@@ -33,14 +33,14 @@ object SimpleMain {
         println("  config   - 显示配置信息")
         println("  deepseek - 测试 DeepSeek 集成")
     }
-
+    
     private fun printVersion() {
         println("KastraX 版本: 0.1.0")
         println("构建时间: ${java.time.LocalDateTime.now()}")
         println("Java 版本: ${System.getProperty("java.version")}")
         println("OS: ${System.getProperty("os.name")}")
     }
-
+    
     private fun printConfig() {
         println("配置信息:")
         println("  工作目录: ${System.getProperty("user.dir")}")
@@ -50,19 +50,10 @@ object SimpleMain {
         println("  路径分隔符: ${System.getProperty("path.separator")}")
         println("  行分隔符: ${System.getProperty("line.separator").replace("\n", "\\n").replace("\r", "\\r")}")
     }
-
+    
     private fun testDeepSeek() {
         println("测试 DeepSeek 集成")
-
-        val client = SimpleDeepSeekClient("fake-api-key")
-
-        val messages = listOf(
-            mapOf("role" to "system", "content" to "You are a helpful assistant."),
-            mapOf("role" to "user", "content" to "Hello, how are you?")
-        )
-
-        val response = client.createChatCompletion("deepseek-coder", messages)
-
-        println("响应: $response")
+        println("这是一个简化的实现，不使用 Kotlin 反射和序列化")
+        println("在实际应用中，您需要使用 DeepSeekClient 类进行集成")
     }
 }

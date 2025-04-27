@@ -66,7 +66,7 @@ tasks.jar {
         attributes(mapOf(
             "Implementation-Title" to project.name,
             "Implementation-Version" to project.version,
-            "Main-Class" to "ai.kastrax.graal.SimpleMain"
+            "Main-Class" to "ai.kastrax.graal.JavaMain"
         ))
     }
 }
@@ -105,8 +105,26 @@ tasks.register<Exec>("buildNativeManually") {
         "--initialize-at-run-time=kotlinx.datetime.serializers.InstantIso8601Serializer",
         "--initialize-at-run-time=kotlinx.serialization.internal.PrimitivesKt",
         "--initialize-at-run-time=kotlinx.serialization",
+        "--initialize-at-run-time=kotlinx.serialization.json.Json",
+        "--initialize-at-run-time=kotlinx.serialization.json.JsonElement",
+        "--initialize-at-run-time=kotlinx.serialization.json.JsonObject",
+        "--initialize-at-run-time=kotlinx.serialization.json.JsonArray",
+        "--initialize-at-run-time=kotlinx.serialization.json.JsonPrimitive",
+        "--initialize-at-run-time=kotlinx.serialization.descriptors.SerialDescriptor",
+        "--initialize-at-run-time=kotlinx.serialization.descriptors.SerialKind",
+        "--initialize-at-run-time=kotlinx.serialization.descriptors.PrimitiveKind",
+        "--initialize-at-run-time=kotlinx.serialization.descriptors.StructureKind",
+        "--initialize-at-run-time=kotlinx.serialization.encoding.Decoder",
+        "--initialize-at-run-time=kotlinx.serialization.encoding.Encoder",
+        "--initialize-at-run-time=kotlinx.serialization.encoding.CompositeDecoder",
+        "--initialize-at-run-time=kotlinx.serialization.encoding.CompositeEncoder",
+        "--initialize-at-run-time=kotlinx.serialization.KSerializer",
+        "--initialize-at-run-time=kotlinx.serialization.SerializationStrategy",
+        "--initialize-at-run-time=kotlinx.serialization.DeserializationStrategy",
+        "--initialize-at-run-time=kotlinx.serialization.modules.SerializersModule",
         "--trace-object-instantiation=kotlin.reflect.jvm.internal.KClassImpl",
         "--trace-class-initialization=kotlin.reflect.jvm.internal.KClassImpl",
+        "--trace-class-initialization=kotlin.reflect.jvm.internal.ReflectionFactoryImpl",
         "-H:ReflectionConfigurationFiles=${project.projectDir}/src/main/resources/META-INF/native-image/reflection-config.json",
         "-H:SerializationConfigurationResources=META-INF/native-image/serialization-config.json",
         "-H:+ReportExceptionStackTraces",
@@ -156,6 +174,84 @@ tasks.register<Exec>("buildSimpleNative") {
     doFirst {
         println("Building simple native image using: $nativeImage")
         println("Output will be in: $outputDir/kastrax-simple")
+        println("Using jar: ${jarFile.absolutePath}")
+    }
+}
+
+// 自定义任务，构建不使用反射的 Native Image
+tasks.register<Exec>("buildNoReflectionNative") {
+    dependsOn(tasks.named("jar"))
+
+    val outputDir = layout.buildDirectory.dir("native/no-reflection").get().asFile
+    outputDir.mkdirs()
+
+    val graalVmHome = System.getenv("GRAALVM_HOME") ?: "${System.getProperty("user.home")}/Library/Java/JavaVirtualMachines/graalvm-ce-17.0.9/Contents/Home"
+    val nativeImage = "$graalVmHome/bin/native-image"
+
+    // 收集所有运行时依赖项
+    val runtimeClasspath = configurations.runtimeClasspath.get().files
+
+    // 添加 kastrax-deepseek 模块
+    val deepseekJar = project(":kastrax-integrations:kastrax-deepseek").tasks.named("jar").get().outputs.files
+
+    // 添加当前模块的jar
+    val jarFile = tasks.jar.get().archiveFile.get().asFile
+
+    // 组合所有类路径
+    val classpathFiles = runtimeClasspath + deepseekJar + jarFile
+    val classpathString = classpathFiles.joinToString(":")
+
+    commandLine = listOf(
+        nativeImage,
+        "--no-fallback",
+        "-H:+AllowDeprecatedBuilderClassesOnImageClasspath",
+        "--initialize-at-build-time=kotlin",
+        "--initialize-at-run-time=kotlin.reflect",
+        "-H:+ReportExceptionStackTraces",
+        "-H:ResourceConfigurationFiles=${project.projectDir}/src/main/resources/META-INF/native-image/resource-config.json",
+        "-H:+JNI",
+        "-H:+AddAllCharsets",
+        "-O2",
+        "-cp", classpathString,
+        "ai.kastrax.graal.MainNoReflection",
+        "-o", "$outputDir/kastrax-no-reflection"
+    )
+
+    doFirst {
+        println("Building no-reflection native image using: $nativeImage")
+        println("Output will be in: $outputDir/kastrax-no-reflection")
+        println("Using classpath: ${classpathString}")
+    }
+}
+
+// 自定义任务，构建纯 Java 版本的 Native Image
+tasks.register<Exec>("buildJavaNative") {
+    dependsOn(tasks.named("jar"))
+
+    val outputDir = layout.buildDirectory.dir("native/java").get().asFile
+    outputDir.mkdirs()
+
+    val graalVmHome = System.getenv("GRAALVM_HOME") ?: "${System.getProperty("user.home")}/Library/Java/JavaVirtualMachines/graalvm-ce-17.0.9/Contents/Home"
+    val nativeImage = "$graalVmHome/bin/native-image"
+
+    // 添加当前模块的jar
+    val jarFile = tasks.jar.get().archiveFile.get().asFile
+
+    commandLine = listOf(
+        nativeImage,
+        "--no-fallback",
+        "-H:+ReportExceptionStackTraces",
+        "-H:+JNI",
+        "-H:+AddAllCharsets",
+        "-O2",
+        "-cp", jarFile.absolutePath,
+        "ai.kastrax.graal.JavaMain",
+        "-o", "$outputDir/kastrax-java"
+    )
+
+    doFirst {
+        println("Building Java native image using: $nativeImage")
+        println("Output will be in: $outputDir/kastrax-java")
         println("Using jar: ${jarFile.absolutePath}")
     }
 }
