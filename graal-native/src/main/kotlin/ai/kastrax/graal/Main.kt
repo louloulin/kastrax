@@ -115,6 +115,9 @@ val calculatorTool = ai.kastrax.core.tools.tool {
  * KastraX GraalVM Native应用程序入口点
  */
 fun main(args: Array<String>) {
+    // 初始化序列化模块
+    ai.kastrax.graal.serialization.SerializationInitializer.initialize()
+
     logger.info { "启动 KastraX GraalVM Native 应用程序..." }
     logger.info { "应用名称: ${config.appName} v${config.version}" }
     logger.info { getPlatformInfo() }
@@ -127,6 +130,7 @@ fun main(args: Array<String>) {
             "server" -> startServer()
             "cli" -> startCli()
             "config" -> showConfig()
+            "deepseek" -> startDeepSeekAgent()
             else -> printHelp()
         }
     } catch (e: DeepSeekException) {
@@ -268,6 +272,26 @@ private fun showConfig() {
 }
 
 /**
+ * 启动 DeepSeek Agent
+ */
+private fun startDeepSeekAgent() {
+    logger.info { "启动 DeepSeek Agent..." }
+
+    // 检查 API 密钥
+    if (config.apiKeys.deepseek.isEmpty()) {
+        println("错误: 未设置 DeepSeek API 密钥")
+        println("请在配置文件中设置 DeepSeek API 密钥")
+        return
+    }
+
+    println("启动 DeepSeek Agent...")
+
+    // 使用简化版本的 DeepSeek Agent 示例
+    val apiKey = config.apiKeys.deepseek
+    ai.kastrax.graal.agent.SimpleDeepSeekAgent.run(apiKey)
+}
+
+/**
  * 打印帮助信息
  */
 private fun printHelp() {
@@ -281,6 +305,7 @@ private fun printHelp() {
           server    启动服务器模式
           cli       启动命令行界面模式
           config    显示当前配置
+          deepseek  启动 DeepSeek Agent 示例
           help      显示帮助信息
 
         CLI 模式命令:

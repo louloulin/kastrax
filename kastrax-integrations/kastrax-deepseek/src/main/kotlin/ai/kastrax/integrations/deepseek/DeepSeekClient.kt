@@ -98,7 +98,7 @@ class DeepSeekClient(
                             }
 
                             try {
-                                val chunk = jsonParser.decodeFromString<DeepSeekChatCompletionResponse>(data)
+                                val chunk = jsonParser.decodeFromString(DeepSeekChatCompletionResponse.serializer(), data)
                                 send(chunk)
                             } catch (e: Exception) {
                                 logger.warn { "Failed to parse streaming response chunk: $data" }
@@ -177,11 +177,7 @@ class DeepSeekClient(
         fun createDefaultHttpClient(apiKey: String, timeout: Long = 60000): HttpClient {
             return HttpClient(CIO) {
                 install(ContentNegotiation) {
-                    json(Json {
-                        ignoreUnknownKeys = true
-                        isLenient = true
-                        encodeDefaults = false
-                    })
+                    json(DeepSeekJson.json)
                 }
 
                 install(HttpTimeout) {

@@ -23,11 +23,7 @@ class DeepSeekStreamingClient(
     val httpClient: HttpClient,
     private val baseUrl: String,
     private val apiKey: String,
-    private val json: Json = Json {
-        ignoreUnknownKeys = true
-        isLenient = true
-        encodeDefaults = false
-    }
+    private val json: Json = DeepSeekJson.json
 ) {
     /**
      * 创建一个新的 DeepSeekStreamingClient 实例，使用与 DeepSeekClient 相同的 HTTP 客户端配置。
