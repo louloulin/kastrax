@@ -1,0 +1,26 @@
+{
+  "name": "kastrax",
+  "version": "0.1.0",
+  "description": "KastraX JavaScript SDK for AI Agents",
+  "main": "kastrax.js",
+  "types": "kastrax.d.ts",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "ai",
+    "agent",
+    "llm",
+    "kastrax"
+  ],
+  "author": "KastraX Team",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/kastrax/kastrax"
+  },
+  "bugs": {
+    "url": "https://github.com/kastrax/kastrax/issues"
+  },
+  "homepage": "https://kastrax.ai"
+}

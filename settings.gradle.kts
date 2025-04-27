@@ -58,5 +58,11 @@ include(":kastrax-examples")
 include(":kastrax-app")
 include(":kastrax-agent-templates")
 
-// 添加新的Native模块
-//include(":kastrax-native")
+// Native modules
+include(":kastrax-native")
+
+// GraalVM Native modules
+include(":graal-native")
+include(":graal-native:sdk-rust")
+include(":graal-native:sdk-go")
+include(":graal-native:sdk-js")
