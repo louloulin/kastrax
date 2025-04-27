@@ -33,15 +33,25 @@ dependencies {
     implementation("io.github.microutils:kotlin-logging-jvm:3.0.5")
     implementation("ch.qos.logback:logback-classic:1.4.11")
 
-    // Ktor - 使用与kastrax-integrations:kastrax-deepseek相同的版本
-    implementation("io.ktor:ktor-client-core:2.3.3")
-    implementation("io.ktor:ktor-client-cio:2.3.3")
-    implementation("io.ktor:ktor-client-content-negotiation:2.3.3")
-    implementation("io.ktor:ktor-serialization-kotlinx-json:2.3.3")
-    implementation("io.ktor:ktor-client-auth:2.3.3")
+    // 使用与kastrax-integrations:kastrax-deepseek相同的依赖
+    val ktorVersion = "2.3.3"
 
-    // 添加更多的Ktor依赖
-    implementation("io.ktor:ktor-client-logging:2.3.3")
+    // 核心Ktor依赖
+    implementation("io.ktor:ktor-client-core:$ktorVersion")
+    implementation("io.ktor:ktor-client-cio:$ktorVersion")
+
+    // 内容协商和序列化
+    implementation("io.ktor:ktor-client-content-negotiation:$ktorVersion")
+    implementation("io.ktor:ktor-serialization-kotlinx-json:$ktorVersion")
+
+    // 其他必要的Ktor插件
+    implementation("io.ktor:ktor-client-auth:$ktorVersion")
+    implementation("io.ktor:ktor-client-logging:$ktorVersion")
+
+    // 确保使用正确的类路径
+    implementation("io.ktor:ktor-http:$ktorVersion")
+    implementation("io.ktor:ktor-utils:$ktorVersion")
+    implementation("io.ktor:ktor-io:$ktorVersion")
 
     // 直接依赖kastrax-integrations:kastrax-deepseek模块
     implementation(project(":kastrax-integrations:kastrax-deepseek"))
