@@ -91,7 +91,8 @@ sourceSets {
                 "**/memory/EnhancedMemoryExample.kt",
                 "**/workflow/EnhancedWorkflowExample.kt",
                 "**/EnhancedRagExample.kt",
-                "**/EnhancedRetrievalExample.kt"
+                "**/EnhancedRetrievalExample.kt",
+                "**/EnhancedDocumentProcessingExample.kt"
             )
             // 排除有问题的文件
             exclude(
@@ -344,6 +345,21 @@ tasks.register<JavaExec>("runEnhancedRetrievalExample") {
     environment("DEEPSEEK_API_KEY", System.getenv("DEEPSEEK_API_KEY") ?: "")
 }
 
+// 为 EnhancedDocumentProcessingExample 创建运行任务
+tasks.register<JavaExec>("runEnhancedDocumentProcessingExample") {
+    group = "examples"
+    description = "Run the EnhancedDocumentProcessingExample example"
+
+    classpath = sourceSets["main"].runtimeClasspath
+    mainClass.set("ai.kastrax.examples.EnhancedDocumentProcessingExampleKt")
+
+    // 添加 JVM 参数
+    jvmArgs = listOf("-Xms512m", "-Xmx1g")
+
+    // 确保示例可以访问环境变量
+    environment("DEEPSEEK_API_KEY", System.getenv("DEEPSEEK_API_KEY") ?: "")
+}
+
 // 创建一个任务来列出所有可用的示例
 tasks.register("listExamples") {
     group = "examples"
@@ -365,6 +381,7 @@ tasks.register("listExamples") {
         println("  ./gradlew runEnhancedWorkflowExample - Run the EnhancedWorkflowExample example")
         println("  ./gradlew runEnhancedRagExample - Run the EnhancedRagExample example")
         println("  ./gradlew runEnhancedRetrievalExample - Run the EnhancedRetrievalExample example")
+        println("  ./gradlew runEnhancedDocumentProcessingExample - Run the EnhancedDocumentProcessingExample example")
     }
 }
 
@@ -395,6 +412,7 @@ tasks.register("compileFixedExamples") {
         println("- workflow/EnhancedWorkflowExample.kt")
         println("- EnhancedRagExample.kt")
         println("- EnhancedRetrievalExample.kt")
+        println("- EnhancedDocumentProcessingExample.kt")
     }
 }
 

@@ -1,165 +1,307 @@
 package ai.kastrax.rag.document.transform
 
 import ai.kastrax.rag.document.Document
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
-import kotlin.test.assertEquals
-import kotlin.test.assertFalse
-import kotlin.test.assertTrue
 
 class DocumentTransformerTest {
 
     @Test
-    fun `test text cleaning transformer`() {
+    fun `test TextReplaceTransformer`() {
+        val transformer = TextReplaceTransformer("test", "example")
+
         val document = Document(
-            content = "  This is a test with   extra   spaces.  ",
+            content = "This is a test document for testing.",
             metadata = mapOf("source" to "test")
         )
 
-        val options = TextCleaner.CleaningOptions(
-            trimWhitespace = true,
-            removeExtraSpaces = true
-        )
+        val transformedDocument = transformer.transform(document)
 
-        val transformer = TextCleaningTransformer(options = options)
-        val transformed = transformer.transform(document)
-
-        // 由于我们的实现使用了 lines().joinToString() 方法，行首行尾的空格被去除，但不会合并多个空格
-        assertEquals("This is a test with   extra   spaces.", transformed.content)
-        assertEquals("test", transformed.metadata["source"])
+        assertEquals("This is a example document for exampleing.", transformedDocument.content)
+        assertEquals("test", transformedDocument.metadata["source"])
     }
 
     @Test
-    fun `test html to text transformer`() {
+    fun `test TextReplaceTransformer with case insensitive`() {
+        val transformer = TextReplaceTransformer("TEST", "example", caseSensitive = false)
+
         val document = Document(
-            content = "<h1>Test</h1><p>This is a <b>test</b>.</p>",
-            metadata = mapOf("source" to "test.html")
+            content = "This is a test document for testing.",
+            metadata = mapOf("source" to "test")
         )
 
-        val options = HtmlToTextConverter.ConversionOptions(
-            preserveHeaderFormatting = true,
-            preserveTextFormatting = true
-        )
+        val transformedDocument = transformer.transform(document)
 
-        val transformer = HtmlToTextTransformer(options = options)
-        val transformed = transformer.transform(document)
-
-        assertTrue(transformed.content.contains("# Test"))
-        assertTrue(transformed.content.contains("**test**"))
-        assertEquals("test.html", transformed.metadata["source"])
+        assertEquals("This is a example document for exampleing.", transformedDocument.content)
     }
 
     @Test
-    fun `test table extraction transformer`() {
+    fun `test TextReplaceTransformer with replace first only`() {
+        val transformer = TextReplaceTransformer("test", "example", replaceAll = false)
+
+        val document = Document(
+            content = "This is a test document for test purposes.",
+            metadata = mapOf("source" to "test")
+        )
+
+        val transformedDocument = transformer.transform(document)
+
+        assertEquals("This is a example document for test purposes.", transformedDocument.content)
+    }
+
+    @Test
+    fun `test TextNormalizeTransformer`() {
+        val transformer = TextNormalizeTransformer(
+            normalizeWhitespace = true,
+            normalizePunctuation = true,
+            normalizeCase = true,
+            removeEmptyLines = true,
+            trimLines = true
+        )
+
+        val document = Document(
+            content = "This is a \"test\" document with   extra   spaces.\n\nAnd UPPERCASE text.",
+            metadata = mapOf("source" to "test")
+        )
+
+        val transformedDocument = transformer.transform(document)
+
+        assertEquals("this is a \"test\" document with extra spaces. and uppercase text.", transformedDocument.content)
+        assertEquals("test", transformedDocument.metadata["source"])
+    }
+
+    @Test
+    fun `test TextTruncateTransformer with END truncation`() {
+        val transformer = TextTruncateTransformer(
+            maxLength = 20,
+            truncateFrom = TextTruncateTransformer.TruncateFrom.END,
+            addEllipsis = true
+        )
+
+        val document = Document(
+            content = "This is a test document that is longer than the maximum length.",
+            metadata = mapOf("source" to "test")
+        )
+
+        val transformedDocument = transformer.transform(document)
+
+        assertEquals("This is a test d ...", transformedDocument.content)
+        assertEquals("test", transformedDocument.metadata["source"])
+    }
+
+    @Test
+    fun `test TextTruncateTransformer with START truncation`() {
+        val transformer = TextTruncateTransformer(
+            maxLength = 20,
+            truncateFrom = TextTruncateTransformer.TruncateFrom.START,
+            addEllipsis = true
+        )
+
+        val document = Document(
+            content = "This is a test document that is longer than the maximum length.",
+            metadata = mapOf("source" to "test")
+        )
+
+        val transformedDocument = transformer.transform(document)
+
+        assertEquals("...  maximum length.", transformedDocument.content)
+    }
+
+    @Test
+    fun `test TextTruncateTransformer with MIDDLE truncation`() {
+        val transformer = TextTruncateTransformer(
+            maxLength = 20,
+            truncateFrom = TextTruncateTransformer.TruncateFrom.MIDDLE,
+            addEllipsis = true
+        )
+
+        val document = Document(
+            content = "This is a test document that is longer than the maximum length.",
+            metadata = mapOf("source" to "test")
+        )
+
+        val transformedDocument = transformer.transform(document)
+
+        assertEquals("This is  ... length.", transformedDocument.content)
+    }
+
+    @Test
+    fun `test MetadataTransformer`() {
+        val transformer = MetadataTransformer(
+            addMetadata = mapOf("processed" to true, "timestamp" to 123456789L),
+            removeKeys = listOf("temporary"),
+            renameKeys = mapOf("source" to "origin")
+        )
+
+        val document = Document(
+            content = "This is a test document.",
+            metadata = mapOf("source" to "test", "temporary" to "value")
+        )
+
+        val transformedDocument = transformer.transform(document)
+
+        assertEquals("This is a test document.", transformedDocument.content)
+        assertEquals("test", transformedDocument.metadata["origin"])
+        assertEquals(true, transformedDocument.metadata["processed"])
+        assertEquals(123456789L, transformedDocument.metadata["timestamp"])
+        assertFalse(transformedDocument.metadata.containsKey("temporary"))
+        assertFalse(transformedDocument.metadata.containsKey("source"))
+    }
+
+    @Test
+    fun `test MetadataTransformer with key transformation`() {
+        val transformer = MetadataTransformer(
+            transformKeys = true,
+            keysToLowercase = true,
+            replaceSpacesInKeys = true
+        )
+
+        val document = Document(
+            content = "This is a test document.",
+            metadata = mapOf("Source Type" to "test", "CATEGORY" to "example")
+        )
+
+        val transformedDocument = transformer.transform(document)
+
+        assertEquals("This is a test document.", transformedDocument.content)
+        assertEquals("test", transformedDocument.metadata["source_type"])
+        assertEquals("example", transformedDocument.metadata["category"])
+    }
+
+    @Test
+    fun `test MetadataExtractorTransformer`() {
+        val transformer = MetadataExtractorTransformer.fromRegexPatterns(
+            patterns = mapOf(
+                "title" to "Title:\\s*(.+)".toRegex(),
+                "author" to "Author:\\s*(.+)".toRegex(),
+                "date" to "Date:\\s*(.+)".toRegex()
+            ),
+            removeExtracted = true
+        )
+
         val document = Document(
             content = """
-                <table>
-                    <tr><th>Header</th></tr>
-                    <tr><td>Cell</td></tr>
-                </table>
+                Title: Test Document
+                Author: John Doe
+                Date: 2023-01-01
+
+                This is the content of the document.
             """.trimIndent(),
-            metadata = mapOf("source" to "test.html")
+            metadata = mapOf("source" to "test")
         )
 
-        val transformer = TableExtractionTransformer(
-            outputFormat = "markdown",
-            extractAsDocuments = true
-        )
+        val transformedDocument = transformer.transform(document)
 
-        val transformed = transformer.transform(document)
-
-        assertTrue(transformed.content.contains("| Header |"))
-        assertTrue(transformed.content.contains("| Cell |"))
-        assertEquals("html", transformed.metadata["table_source"])
+        assertEquals("This is the content of the document.", transformedDocument.content.trim())
+        assertEquals("test", transformedDocument.metadata["source"])
+        assertEquals("Test Document", transformedDocument.metadata["title"])
+        assertEquals("John Doe", transformedDocument.metadata["author"])
+        assertEquals("2023-01-01", transformedDocument.metadata["date"])
     }
 
     @Test
-    fun `test table extraction transformer with multiple tables`() {
+    fun `test MetadataFilterTransformer with INCLUDE mode`() {
+        val transformer = MetadataFilterTransformer(
+            filter = mapOf("category" to "test"),
+            mode = MetadataFilterTransformer.FilterMode.INCLUDE
+        )
+
+        val document1 = Document(
+            content = "Document 1",
+            metadata = mapOf("category" to "test")
+        )
+
+        val document2 = Document(
+            content = "Document 2",
+            metadata = mapOf("category" to "other")
+        )
+
+        val transformedDocument1 = transformer.transform(document1)
+        val transformedDocument2 = transformer.transform(document2)
+
+        assertEquals("Document 1", transformedDocument1.content)
+        assertEquals("", transformedDocument2.content)
+    }
+
+    @Test
+    fun `test MetadataFilterTransformer with EXCLUDE mode`() {
+        val transformer = MetadataFilterTransformer(
+            filter = mapOf("category" to "test"),
+            mode = MetadataFilterTransformer.FilterMode.EXCLUDE
+        )
+
+        val document1 = Document(
+            content = "Document 1",
+            metadata = mapOf("category" to "test")
+        )
+
+        val document2 = Document(
+            content = "Document 2",
+            metadata = mapOf("category" to "other")
+        )
+
+        val transformedDocument1 = transformer.transform(document1)
+        val transformedDocument2 = transformer.transform(document2)
+
+        assertEquals("", transformedDocument1.content)
+        assertEquals("Document 2", transformedDocument2.content)
+    }
+
+    @Test
+    fun `test CompositeDocumentTransformer`() {
+        val replaceTransformer = TextReplaceTransformer("test", "sample")
+        val normalizeTransformer = TextNormalizeTransformer(normalizeCase = true)
+        val metadataTransformer = MetadataTransformer(
+            addMetadata = mapOf("processed" to true),
+            removeKeys = listOf()
+        )
+
+        val compositeTransformer = CompositeDocumentTransformer(
+            replaceTransformer,
+            normalizeTransformer,
+            metadataTransformer
+        )
+
         val document = Document(
-            content = """
-                <table>
-                    <tr><th>Table 1 Header</th></tr>
-                    <tr><td>Table 1 Cell</td></tr>
-                </table>
-                <table>
-                    <tr><th>Table 2 Header</th></tr>
-                    <tr><td>Table 2 Cell</td></tr>
-                </table>
-            """.trimIndent(),
-            metadata = mapOf("source" to "test.html")
+            content = "This is a test document with UPPERCASE text.",
+            metadata = mapOf("source" to "test")
         )
 
-        // 不提取为单独文档，而是合并为一个文档
-        val transformer = TableExtractionTransformer(
-            outputFormat = "markdown",
-            extractAsDocuments = false
-        )
+        val transformedDocument = compositeTransformer.transform(document)
 
-        val transformed = transformer.transform(document)
-
-        assertTrue(transformed.content.contains("Table 1"))
-        assertTrue(transformed.content.contains("Table 2"))
-        assertEquals(2, transformed.metadata["table_count"])
+        assertEquals("this is a sample document with uppercase text.", transformedDocument.content)
+        assertEquals("test", transformedDocument.metadata["source"])
+        assertEquals(true, transformedDocument.metadata["processed"])
     }
 
     @Test
-    fun `test composite transformer`() {
-        val document = Document(
-            content = "<h1>Test</h1><p>This is a <b>test</b> with   extra   spaces.</p>",
-            metadata = mapOf("source" to "test.html")
+    fun `test ConditionalDocumentTransformer`() {
+        val condition: (Document) -> Boolean = { doc -> doc.metadata["category"] == "test" }
+        val transformer = TextReplaceTransformer("test", "sample")
+        val elseTransformer = TextReplaceTransformer("test", "example")
+
+        val conditionalTransformer = ConditionalDocumentTransformer(
+            condition = condition,
+            transformer = transformer,
+            elseTransformer = elseTransformer
         )
 
-        // 创建复合转换器，先将 HTML 转换为文本，然后清理文本
-        val htmlToTextTransformer = HtmlToTextTransformer(
-            options = HtmlToTextConverter.ConversionOptions(
-                preserveHeaderFormatting = true,
-                preserveTextFormatting = true
-            )
+        val document1 = Document(
+            content = "This is a test document.",
+            metadata = mapOf("category" to "test")
         )
 
-        val textCleaningTransformer = TextCleaningTransformer(
-            options = TextCleaner.CleaningOptions(
-                removeExtraSpaces = true
-            )
+        val document2 = Document(
+            content = "This is a test document.",
+            metadata = mapOf("category" to "other")
         )
 
-        val compositeTransformer = CompositeTransformer(
-            htmlToTextTransformer,
-            textCleaningTransformer
-        )
+        val transformedDocument1 = conditionalTransformer.transform(document1)
+        val transformedDocument2 = conditionalTransformer.transform(document2)
 
-        val transformed = compositeTransformer.transform(document)
-
-        assertTrue(transformed.content.contains("# Test"))
-        assertTrue(transformed.content.contains("**test**"))
-        assertFalse(transformed.content.contains("   extra   spaces"))
-        assertEquals("test.html", transformed.metadata["source"])
-    }
-
-    @Test
-    fun `test transform multiple documents`() {
-        val documents = listOf(
-            Document("Document 1", mapOf("id" to 1)),
-            Document("Document 2", mapOf("id" to 2)),
-            Document("Document 3", mapOf("id" to 3))
-        )
-
-        val transformer = object : DocumentTransformer {
-            override fun transform(document: Document): Document {
-                return Document(
-                    content = "Transformed: ${document.content}",
-                    metadata = document.metadata
-                )
-            }
-        }
-
-        val transformed = transformer.transform(documents)
-
-        assertEquals(3, transformed.size)
-        assertEquals("Transformed: Document 1", transformed[0].content)
-        assertEquals("Transformed: Document 2", transformed[1].content)
-        assertEquals("Transformed: Document 3", transformed[2].content)
-        assertEquals(1, transformed[0].metadata["id"])
-        assertEquals(2, transformed[1].metadata["id"])
-        assertEquals(3, transformed[2].metadata["id"])
+        assertEquals("This is a sample document.", transformedDocument1.content)
+        assertEquals("This is a example document.", transformedDocument2.content)
     }
 }
