@@ -142,7 +142,7 @@
 - 增强 RAG 系统，支持更多数据源（网页、PDF、数据库、API 等）
 - 完善高级检索功能，增强混合检索和重排序能力
 - 改进文档处理和索引能力（支持复杂文档结构和格式）
-- 提供 RAG 评估和优化工具（便于开发者评估和优化检索质量）
+- [x] 提供 RAG 评估和优化工具（便于开发者评估和优化检索质量）（已实现：kastrax-rag 模块中的 RagEvaluationTool、RagOptimizationTool 和 RagBenchmarkTool，支持检索精确度评估、上下文相关性评估、回答质量评估和幻觉检测，以及 RAG 配置优化和基准测试）
 
 ### 2.6 模型集成
 
@@ -251,7 +251,7 @@
 - [x] 支持 10+ 数据源类型（当前数据源支持有限）
 - [x] 增强高级检索功能（当前重排序功能有限）
 - [x] 增强文档处理和索引能力（当前处理能力有限）
-- [ ] 提供 RAG 评估和优化工具（当前缺少评估工具）
+- [x] 提供 RAG 评估和优化工具（已实现：kastrax-rag 模块中的 RagEvaluationTool、RagOptimizationTool 和 RagBenchmarkTool，支持全面的 RAG 评估、优化和基准测试）
 
 #### 模型集成扩展
 - [x] 实现统一的模型接口（已完成：LlmProvider 接口）
