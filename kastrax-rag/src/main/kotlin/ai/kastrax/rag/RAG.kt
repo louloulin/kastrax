@@ -2,9 +2,7 @@ package ai.kastrax.rag
 
 import ai.kastrax.rag.context.ContextBuilder
 import ai.kastrax.rag.context.ContextBuilderConfig
-import ai.kastrax.rag.document.Document
-import ai.kastrax.rag.document.DocumentLoader
-import ai.kastrax.rag.document.DocumentSplitter
+import ai.kastrax.rag.document.*
 import ai.kastrax.rag.embedding.EmbeddingService
 import ai.kastrax.rag.query.CompositeQueryTransformer
 import ai.kastrax.rag.query.DecompositionQueryTransformer

@@ -47,6 +47,19 @@ dependencies {
     // Vector Similarity
     implementation("org.apache.commons:commons-math3:3.6.1")
 
+    // PDF Processing
+    implementation("org.apache.pdfbox:pdfbox:2.0.29")
+
+    // CSV Processing
+    implementation("org.apache.commons:commons-csv:1.10.0")
+
+    // Excel Processing
+    implementation("org.apache.poi:poi:5.2.3")
+    implementation("org.apache.poi:poi-ooxml:5.2.3")
+
+    // XML Processing
+    implementation("org.dom4j:dom4j:2.1.4")
+
     // JSON 处理
     implementation("com.fasterxml.jackson.core:jackson-databind:2.15.2")
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.15.2")
