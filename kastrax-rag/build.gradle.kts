@@ -33,11 +33,13 @@ dependencies {
     implementation("ch.qos.logback:logback-classic:1.4.11")
 
     // HTTP Client
-    implementation("io.ktor:ktor-client-core:2.3.4")
-    implementation("io.ktor:ktor-client-cio:2.3.4")
-    implementation("io.ktor:ktor-client-content-negotiation:2.3.4")
-    implementation("io.ktor:ktor-serialization-kotlinx-json:2.3.4")
-    implementation("io.ktor:ktor-client-auth:2.3.4")
+    val ktorVersion = "3.1.2"
+    implementation("io.ktor:ktor-client-core:$ktorVersion")
+    implementation("io.ktor:ktor-client-cio:$ktorVersion")
+    implementation("io.ktor:ktor-client-content-negotiation:$ktorVersion")
+    implementation("io.ktor:ktor-serialization-kotlinx-json:$ktorVersion")
+    implementation("io.ktor:ktor-client-auth:$ktorVersion")
+
 
     // HTML Parsing
     implementation("org.jsoup:jsoup:1.16.1")

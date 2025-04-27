@@ -1,12 +1,10 @@
 package ai.kastrax.examples.agent
 
-import ai.kastrax.core.agent.Agent
 import ai.kastrax.core.agent.AgentGenerateOptions
-import ai.kastrax.core.agent.AgentResponse
 import ai.kastrax.core.agent.agent
 import ai.kastrax.core.agent.autonomy.*
-import ai.kastrax.core.llm.*
-import kotlinx.coroutines.flow.Flow
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import ai.kastrax.integrations.deepseek.deepSeek
 import kotlinx.coroutines.runBlocking
 
 /**
@@ -16,14 +14,15 @@ fun main() = runBlocking {
     println("KastraX 创造性Agent示例")
     println("-------------------")
 
-    // 创建模拟LLM提供者
-    val mockLlmProvider = MockLlmProvider()
-
     // 创建基础Agent
     val baseAgent = agent {
         name = "CreativeAssistant"
-        instructions = "You are a helpful and creative assistant."
-        model = mockLlmProvider
+        instructions = "You are a helpful and creative assistant. You excel at generating creative ideas, exploring new concepts, and providing innovative solutions."
+        model = deepSeek {
+            model(DeepSeekModel.DEEPSEEK_CHAT)
+            // 使用环境变量中的API密钥
+            apiKey(System.getenv("DEEPSEEK_API_KEY") ?: "your-api-key-here")
+        }
     }
 
     // 创建自主性管理器
@@ -139,33 +138,4 @@ fun main() = runBlocking {
     }
 }
 
-/**
- * 模拟LLM提供者
- */
-class MockLlmProvider : LlmProvider {
-    override val model: String = "mock-model"
 
-    override suspend fun generate(messages: List<LlmMessage>, options: LlmOptions): LlmResponse {
-        // 根据输入内容生成不同的响应
-        val lastMessage = messages.lastOrNull { it.role == LlmMessageRole.USER }?.content ?: ""
-
-        val content = when {
-            lastMessage.contains("creativity") -> "创造力是产生新颖、有用和有价值的想法或解决方案的能力。它涉及到打破常规思维模式，探索新的可能性，并将不同的概念结合起来。"
-            lastMessage.contains("sport") -> "国际象棋篮球：这是一项结合了国际象棋策略和篮球运动的新型运动。球员在一个特殊设计的篮球场上移动，每个位置对应棋盘上的一个格子。球员的移动必须遵循国际象棋规则，同时他们需要投篮得分。"
-            lastMessage.contains("education") -> "在数字时代，教育可以转变为个性化学习旅程，学生通过虚拟现实环境探索不同学科，AI导师根据每个学生的学习风格和进度提供指导，全球教育资源共享平台使知识民主化。"
-            lastMessage.contains("art") -> "量子情感艺术：这是一种利用量子计算和脑机接口的新艺术形式。艺术家通过思想和情感直接影响量子粒子的行为，创造出随观众情绪变化而变化的动态视觉和听觉体验。"
-            lastMessage.contains("future of work") -> "未来工作的探索：\n1. 远程协作将成为主流，虚拟办公室技术将模拟真实办公环境\n2. AI助手将处理日常任务，人类专注于创造性和战略性工作\n3. 工作将更加灵活，基于项目而非固定时间\n4. 终身学习将成为职业发展的核心"
-            else -> "这是一个模拟响应。在实际应用中，这里会返回真实的AI生成内容。"
-        }
-
-        return LlmResponse(content = content)
-    }
-
-    override suspend fun streamGenerate(messages: List<LlmMessage>, options: LlmOptions): Flow<String> {
-        throw UnsupportedOperationException("Stream generation not supported in mock")
-    }
-
-    override suspend fun embedText(text: String): List<Float> {
-        return List(10) { 0.1f * it }
-    }
-}
