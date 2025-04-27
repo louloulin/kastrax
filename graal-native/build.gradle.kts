@@ -24,6 +24,11 @@ dependencies {
     implementation("io.github.oshai:kotlin-logging-jvm:5.1.0")
     implementation("ch.qos.logback:logback-classic:1.4.11")
 
+    // 排除 Truffle API 依赖项
+    configurations.all {
+        exclude(group = "org.graalvm.truffle", module = "truffle-api")
+    }
+
     testImplementation(kotlin("test"))
 }
 
@@ -82,12 +87,14 @@ tasks.register<Exec>("buildNativeManually") {
     commandLine = listOf(
         nativeImage,
         "--no-fallback",
+        "-H:+AllowDeprecatedBuilderClassesOnImageClasspath",
+        "--initialize-at-build-time=kotlin.DeprecationLevel",
         "-H:+ReportExceptionStackTraces",
         "-H:ReflectionConfigurationFiles=${project.projectDir}/src/main/resources/META-INF/native-image/reflection-config.json",
         "-H:ResourceConfigurationFiles=${project.projectDir}/src/main/resources/META-INF/native-image/resource-config.json",
         "-H:+JNI",
         "-O2",
-        "-cp", jarFile.absolutePath,
+        "-cp", classpathString,
         "ai.kastrax.graal.MainKt",
         "-o", "$outputDir/kastrax"
     )
@@ -95,7 +102,7 @@ tasks.register<Exec>("buildNativeManually") {
     doFirst {
         println("Building native image using: $nativeImage")
         println("Output will be in: $outputDir/kastrax")
-        println("Using jar: ${jarFile.absolutePath}")
+        println("Using classpath: ${classpathString}")
     }
 }
 

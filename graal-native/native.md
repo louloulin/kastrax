@@ -292,7 +292,7 @@ JavaScript SDK同时支持Node.js和浏览器环境。对于浏览器，使用�
 - Node.js 16或更高版本（用于JavaScript SDK）
 - GraalVM 22.3.0或更高版本（用于native image）
 
-### 构建命令
+### 构建命令 [已实现 ✅]
 
 ```bash
 # 构建简单的Hello World示例
@@ -300,6 +300,12 @@ JavaScript SDK同时支持Node.js和浏览器环境。对于浏览器，使用�
 
 # 运行生成的原生可执行文件
 graal-native/build/native/hello-world/hello-world
+
+# 构建完整的KastraX原生可执行文件
+./gradlew :graal-native:buildNativeManually
+
+# 运行生成的KastraX原生可执行文件
+graal-native/build/native/manual/kastrax help
 
 # 构建所有内容
 ./gradlew build
@@ -309,9 +315,6 @@ graal-native/build/native/hello-world/hello-world
 ./gradlew :graal-native:sdk-rust:build
 ./gradlew :graal-native:sdk-go:build
 ./gradlew :graal-native:sdk-js:build
-
-# 构建native image
-./gradlew :graal-native:nativeCompile
 ```
 
 ## 集成示例
