@@ -90,7 +90,8 @@ fun main() = runBlocking {
         // 使用流式响应
         println("\n计算中...")
 
-        myAgent.stream(input).collect { chunk ->
+        val response = myAgent.stream(input)
+        response.textStream?.collect { chunk ->
             print(chunk)
         }
     }

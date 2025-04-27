@@ -1,6 +1,7 @@
 package ai.kastrax.examples.memory
 
 import ai.kastrax.core.agent.agent
+import ai.kastrax.core.agent.AgentGenerateOptions
 import ai.kastrax.integrations.deepseek.DeepSeekModel
 import ai.kastrax.integrations.deepseek.deepSeek
 import ai.kastrax.memory.api.MessageRole
@@ -32,7 +33,7 @@ fun main(): kotlin.Unit = runBlocking {
     val reranker = SemanticSearchFactory.createStandardReranker()
 
     // 创建增强型内存，启用语义搜索和混合搜索
-    val memory = enhancedMemory {
+    var memory = enhancedMemory {
         lastMessages(10)
         semanticRecall(true)
         embeddingGenerator(embeddingGenerator)
@@ -95,8 +96,8 @@ fun main(): kotlin.Unit = runBlocking {
         )
 
         // 生成回复
-        val response = agent.generate(userMessage, threadId = threadId)
-        println("助手: ${response.content}")
+        val response = agent.generate(userMessage, AgentGenerateOptions(threadId = threadId))
+        println("助手: ${response.text}")
     }
 
     // 测试语义搜索
@@ -129,5 +130,5 @@ fun main(): kotlin.Unit = runBlocking {
     }
 
     // 关闭嵌入生成器
-    embeddingGenerator.close()
+    // SimpleEmbeddingGenerator不需要关闭
 }

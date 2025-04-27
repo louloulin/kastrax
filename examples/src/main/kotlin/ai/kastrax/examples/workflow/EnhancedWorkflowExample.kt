@@ -65,7 +65,7 @@ fun main() = runBlocking {
         override val variables: Map<String, VariableReference> = emptyMap()
 
         override suspend fun execute(context: WorkflowContext): WorkflowStepResult {
-            val value = context.getStepOutput("init")?.get("value")?.toString()?.toIntOrNull() ?: 0
+            val value = context.steps["init"]?.output?.get("value")?.toString()?.toIntOrNull() ?: 0
             println("执行高值处理步骤，值为: $value")
 
             return WorkflowStepResult.success(
@@ -87,7 +87,7 @@ fun main() = runBlocking {
         override val variables: Map<String, VariableReference> = emptyMap()
 
         override suspend fun execute(context: WorkflowContext): WorkflowStepResult {
-            val value = context.getStepOutput("init")?.get("value")?.toString()?.toIntOrNull() ?: 0
+            val value = context.steps["init"]?.output?.get("value")?.toString()?.toIntOrNull() ?: 0
             println("执行低值处理步骤，值为: $value")
 
             return WorkflowStepResult.success(
@@ -113,7 +113,7 @@ fun main() = runBlocking {
 
             // 获取条件步骤的结果
             val conditionalStepId = context.steps.keys.find { it.startsWith("if-") }
-            val category = context.getStepOutput(conditionalStepId ?: "")?.get("category")?.toString() ?: "unknown"
+            val category = context.steps[conditionalStepId ?: ""]?.output?.get("category")?.toString() ?: "unknown"
 
             return WorkflowStepResult.success(
                 stepId = id,
@@ -134,7 +134,7 @@ fun main() = runBlocking {
             println("执行分析步骤2...")
 
             // 获取初始步骤的值
-            val value = context.getStepOutput("init")?.get("value")?.toString()?.toIntOrNull() ?: 0
+            val value = context.steps["init"]?.output?.get("value")?.toString()?.toIntOrNull() ?: 0
 
             return WorkflowStepResult.success(
                 stepId = id,
@@ -178,12 +178,12 @@ fun main() = runBlocking {
 
             // 获取并行步骤的结果
             val parallelStepId = context.steps.keys.find { it.startsWith("parallel-") }
-            val analysis1 = context.getStepOutput(parallelStepId ?: "")?.get("analysis1")?.toString() ?: ""
-            val analysis2 = context.getStepOutput(parallelStepId ?: "")?.get("analysis2")?.toString() ?: ""
+            val analysis1 = context.steps[parallelStepId ?: ""]?.output?.get("analysis1")?.toString() ?: ""
+            val analysis2 = context.steps[parallelStepId ?: ""]?.output?.get("analysis2")?.toString() ?: ""
 
             // 获取循环步骤的结果
             val loopStepId = context.steps.keys.find { it.startsWith("loop-") }
-            val iterations = context.getStepOutput(loopStepId ?: "")?.get("iterations")?.toString()?.toIntOrNull() ?: 0
+            val iterations = context.steps[loopStepId ?: ""]?.output?.get("iterations")?.toString()?.toIntOrNull() ?: 0
 
             // 创建最终输出
             val summary = """
@@ -213,8 +213,8 @@ fun main() = runBlocking {
 
         // 添加条件分支
         ifThen(
-            condition = { context ->
-                val value = context.getStepOutput("init")?.get("value")?.toString()?.toIntOrNull() ?: 0
+            conditionFn = { context ->
+                val value = context.steps["init"]?.output?.get("value")?.toString()?.toIntOrNull() ?: 0
                 value > 10
             },
             thenStep = highValueStep,
