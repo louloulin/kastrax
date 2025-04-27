@@ -2,7 +2,8 @@ package ai.kastrax.examples
 
 import ai.kastrax.core.agent.agent
 import ai.kastrax.core.tools.tool
-import ai.kastrax.integrations.openai.openAi
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import ai.kastrax.integrations.deepseek.deepSeek
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.*
@@ -54,16 +55,18 @@ fun main() = runBlocking {
         }
     }
 
-    // 创建一个使用 OpenAI 的代理
+    // 创建一个使用 Deepseek 的代理
     val myAgent = agent {
         name = "计算助手"
         instructions = "你是一个计算助手，可以执行数学计算。当用户提出计算请求时，使用计算器工具来计算结果。"
 
-        // 使用 OpenAI 模型
-        model = openAi {
-            model("gpt-3.5-turbo")
-            // 从环境变量获取 API 密钥，或者在这里显式设置
-            // apiKey("your-api-key-here")
+        // 使用 Deepseek 模型
+        model = deepSeek {
+            model(DeepSeekModel.DEEPSEEK_CHAT)
+            apiKey(System.getenv("DEEPSEEK_API_KEY") ?: "test-api-key")
+            temperature(0.7)
+            maxTokens(2000)
+            timeout(60000) // 60秒超时
         }
 
         // 添加工具

@@ -3,58 +3,42 @@ package ai.kastrax.core.agent.architecture
 import ai.kastrax.core.agent.Agent
 import ai.kastrax.core.agent.AgentGenerateOptions
 import ai.kastrax.core.agent.AgentResponse
-import io.mockk.coEvery
-import io.mockk.mockk
+import ai.kastrax.core.agent.agent
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import ai.kastrax.integrations.deepseek.deepSeek
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 class GoalOrientedAgentTest {
 
-    private lateinit var mockBaseAgent: Agent
+    private lateinit var baseAgent: Agent
     private lateinit var goalOrientedAgent: GoalOrientedAgent
 
     @BeforeEach
     fun setup() {
-        mockBaseAgent = mockk<Agent>()
+        // 创建基础Agent，使用Deepseek LLM Provider
+        baseAgent = agent {
+            name = "TestAgent"
+            instructions = "你是一个有帮助的助手，可以回答问题和执行计算。"
 
-        // 设置基础Agent的行为
-        coEvery { mockBaseAgent.name } returns "TestAgent"
-        coEvery { mockBaseAgent.versionManager } returns null
-
-        // 模拟目标提取响应
-        coEvery {
-            mockBaseAgent.generate(match { it.contains("提取主要目标") }, any())
-        } returns AgentResponse(text = "学习Kotlin编程")
-
-        // 模拟任务分解响应
-        coEvery {
-            mockBaseAgent.generate(match { it.contains("分解为3-5个具体的任务") }, any())
-        } returns AgentResponse(
-            text = """
-                1. 了解Kotlin基础语法
-                2. 学习Kotlin面向对象编程
-                3. 掌握Kotlin协程
-                4. 实践Kotlin项目开发
-            """.trimIndent()
-        )
-
-        // 模拟任务完成检查响应
-        coEvery {
-            mockBaseAgent.generate(match { it.contains("任务是否已经完成") }, any())
-        } returns AgentResponse(text = "是")
-
-        // 模拟常规响应
-        coEvery {
-            mockBaseAgent.generate(any<String>(), any())
-        } returns AgentResponse(text = "Mock response")
+            // 使用Deepseek模型
+            model = deepSeek {
+                model(DeepSeekModel.DEEPSEEK_CHAT)
+                apiKey(System.getenv("DEEPSEEK_API_KEY") ?: "test-api-key")
+                temperature(0.7)
+                maxTokens(2000)
+                timeout(60000) // 60秒超时
+            }
+        }
 
         // 使用DSL创建GoalOrientedAgent
         goalOrientedAgent = goalOrientedAgent {
-            baseAgent(mockBaseAgent)
+            baseAgent(baseAgent)
             config {
                 minPromptLengthForGoal(10)
                 enableAutoTaskCreation(true)
@@ -63,6 +47,7 @@ class GoalOrientedAgentTest {
     }
 
     @Test
+    @EnabledIfEnvironmentVariable(named = "DEEPSEEK_API_KEY", matches = ".*")
     fun `test create goal`() = runBlocking {
         // 创建目标
         val goal = goalOrientedAgent.createGoal(
@@ -78,6 +63,7 @@ class GoalOrientedAgentTest {
     }
 
     @Test
+    @EnabledIfEnvironmentVariable(named = "DEEPSEEK_API_KEY", matches = ".*")
     fun `test create and update task`() = runBlocking {
         // 创建目标
         val goal = goalOrientedAgent.createGoal(
@@ -110,6 +96,7 @@ class GoalOrientedAgentTest {
     }
 
     @Test
+    @EnabledIfEnvironmentVariable(named = "DEEPSEEK_API_KEY", matches = ".*")
     fun `test goal completion when all tasks completed`() = runBlocking {
         // 创建目标
         val goal = goalOrientedAgent.createGoal(
@@ -141,6 +128,7 @@ class GoalOrientedAgentTest {
     }
 
     @Test
+    @EnabledIfEnvironmentVariable(named = "DEEPSEEK_API_KEY", matches = ".*")
     fun `test generate with goal-oriented prompt`() = runBlocking {
         // 准备测试数据
         val prompt = "我想学习Kotlin编程，请帮我制定一个学习计划"
@@ -153,7 +141,8 @@ class GoalOrientedAgentTest {
 
         // 验证结果
         assertNotNull(response)
-        assertEquals("Mock response", response.text)
+        assertNotNull(response.text)
+        assertTrue(response.text.isNotEmpty())
 
         // 验证目标创建
         val goals = goalOrientedAgent.getAllGoals()
