@@ -145,6 +145,17 @@ open class InMemoryVectorStore : RagVectorStore {
     }
 
     /**
+     * 根据内容获取文档。
+     *
+     * @param content 文档内容
+     * @return 文档，如果不存在则返回 null
+     */
+    override suspend fun getDocumentByContent(content: String): RagDocument? {
+        val id = contentToId[content]
+        return id?.let { documents[it] }
+    }
+
+    /**
      * 根据 ID 获取文档的嵌入向量。
      *
      * @param id 文档 ID

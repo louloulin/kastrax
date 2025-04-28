@@ -16,7 +16,7 @@ dependencies {
     implementation(project(":kastrax-integrations:kastrax-deepseek"))
     implementation(project(":kastrax-integrations:kastrax-anthropic"))
     implementation(project(":kastrax-integrations:kastrax-gemini"))
-    implementation(project(":kastrax-integrations:kastrax-mistral"))
+    // implementation(project(":kastrax-integrations:kastrax-mistral")) // 暂时禁用，因为模块不存在
     implementation(project(":fastembed-kotlin"))
 
     // Kotlin
@@ -78,7 +78,7 @@ sourceSets {
                 "**/DeepSeekExample.kt",
                 "**/DeepSeekStreamingExample.kt",
                 "**/DeepSeekDirectStreamingExample.kt",
-                "**/MistralExample.kt",
+                // "**/MistralExample.kt", // 暂时禁用，因为模块不存在
                 "**/MemoryAgentExample.kt",
                 "**/MemorySystemExample.kt",
                 "**/SimpleZodToolExample.kt",

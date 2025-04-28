@@ -250,8 +250,10 @@ class GraphRAG(
         }
 
         // 创建节点
+        val nodeIds = mutableListOf<String>()
         documents.forEachIndexed { index, document ->
-            val nodeId = document.metadata["id"]?.toString() ?: UUID.randomUUID().toString()
+            val nodeId = (document.metadata["id"] as? String) ?: index.toString()
+            nodeIds.add(nodeId)
             val node = GraphNode(
                 id = nodeId,
                 content = document.content,
@@ -270,8 +272,8 @@ class GraphRAG(
 
                 // 仅当相似度高于阈值时创建边
                 if (similarity > config.threshold) {
-                    val sourceId = documents[i].metadata["id"]?.toString() ?: i.toString()
-                    val targetId = documents[j].metadata["id"]?.toString() ?: j.toString()
+                    val sourceId = nodeIds[i]
+                    val targetId = nodeIds[j]
 
                     addEdge(
                         GraphEdge(
