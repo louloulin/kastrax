@@ -137,13 +137,13 @@
 - 已实现基础的重排序功能（Reranker 接口及实现类）
 - 数据源支持有限，主要支持基础文档类型
 - 文档处理和索引能力有限
-- [x] 已实现全面的 RAG 评估工具，包括上下文相关性评估和回答质量评估，并修复了相关的编译错误
+- [x] 已实现全面的 RAG 评估工具，包括四个核心评估指标：RetrievalPrecisionMetric（检索精确度评估）、ContextRelevanceMetric（上下文相关性评估）、AnswerQualityMetric（回答质量评估）和 HallucinationMetric（幻觉检测），并修复了相关的编译错误和测试问题
 
 **改进方向：**
 - 增强 RAG 系统，支持更多数据源（网页、PDF、数据库、API 等）
 - 完善高级检索功能，增强混合检索和重排序能力
 - 改进文档处理和索引能力（支持复杂文档结构和格式）
-- [x] 提供 RAG 评估和优化工具（便于开发者评估和优化检索质量）（已实现：kastrax-rag 模块中的 RagEvaluationTool、RagOptimizationTool 和 RagBenchmarkTool，支持检索精确度评估、上下文相关性评估、回答质量评估和幻觉检测，以及 RAG 配置优化和基准测试）
+- [x] 提供 RAG 评估和优化工具（便于开发者评估和优化检索质量）（已实现：完成了 kastrax-rag 模块中的 RagEvaluationTool 工具，包括四个核心评估指标：RetrievalPrecisionMetric（检索精确度评估）、ContextRelevanceMetric（上下文相关性评估）、AnswerQualityMetric（回答质量评估）和 HallucinationMetric（幻觉检测）。这些指标可以全面评估 RAG 系统的质量，并生成详细的评估报告，帮助开发者优化 RAG 系统）
 
 ### 2.6 模型集成
 
@@ -215,8 +215,8 @@
 #### MCP 增强
 - [x] 实现基础 MCP 客户端和服务端（已完成：MCPClient 和 MCPServer 接口及实现）
 - [x] 支持 stdio 和 SSE 传输（已完成：StdioTransport 和 SSETransport）
-- [ ] 增加 5+ MCP 应用案例（当前示例有限）
-- [ ] 实现基础的 MCP 服务发现机制（当前缺少服务发现）
+- [x] 增加 5+ MCP 应用案例（已实现：在 examples/src/mcp 目录下实现了 5 个完整的 MCP 应用案例，包括天气查询、股票行情、翻译服务、知识库查询和文件操作，每个案例都包含完整的服务器和客户端实现，并提供了多个工具和交互示例）
+- [x] 实现基础的 MCP 服务发现机制（已实现：在 kastrax-mcp 模块中实现了 MCPRegistry、MCPDiscoveryService 和 RemoteRegistryClient 类，支持本地和远程服务器注册、发现和连接，并提供了服务器变化通知机制）
 - [ ] 增强 MCP 安全性和访问控制（当前安全机制有限）
 - [ ] 提供 MCP 工具开发指南（当前文档不足）
 
@@ -252,7 +252,7 @@
 - [x] 支持 10+ 数据源类型（当前数据源支持有限）
 - [x] 增强高级检索功能（当前重排序功能有限）
 - [x] 增强文档处理和索引能力（当前处理能力有限）
-- [x] 提供 RAG 评估和优化工具（已实现：kastrax-rag 模块中的 RagEvaluationTool、RagOptimizationTool 和 RagBenchmarkTool，支持全面的 RAG 评估、优化和基准测试）
+- [x] 提供 RAG 评估和优化工具（已实现：完成了 kastrax-rag 模块中的 RagEvaluationTool 工具，包括四个核心评估指标：RetrievalPrecisionMetric（检索精确度评估）、ContextRelevanceMetric（上下文相关性评估）、AnswerQualityMetric（回答质量评估）和 HallucinationMetric（幻觉检测）。这些指标可以全面评估 RAG 系统的质量，并生成详细的评估报告，帮助开发者优化 RAG 系统。所有指标都支持基于规则和基于 LLM 的评估方法，并已通过测试验证）
 
 #### 模型集成扩展
 - [x] 实现统一的模型接口（已完成：LlmProvider 接口）
