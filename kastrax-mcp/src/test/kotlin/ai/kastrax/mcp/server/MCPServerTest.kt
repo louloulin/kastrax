@@ -76,7 +76,7 @@ class MCPServerTest {
 
     @Test
     fun `test handle initialize request`() = runBlocking {
-        val server = MCPServerImpl("test-server", "1.0.0")
+        val server = MCPServerImpl("test-server", "1.0.0", "test-server-id")
 
         val request = MCPRequest(
             id = "123",
@@ -111,7 +111,7 @@ class MCPServerTest {
 
     @Test
     fun `test handle list resources request`() = runBlocking {
-        val server = MCPServerImpl("test-server", "1.0.0")
+        val server = MCPServerImpl("test-server", "1.0.0", "test-server-id")
 
         val resource = Resource(
             id = "test-resource",
@@ -141,7 +141,7 @@ class MCPServerTest {
 
     @Test
     fun `test handle get resource request`() = runBlocking {
-        val server = MCPServerImpl("test-server", "1.0.0")
+        val server = MCPServerImpl("test-server", "1.0.0", "test-server-id")
 
         val resource = Resource(
             id = "test-resource",
@@ -181,7 +181,7 @@ class MCPServerTest {
 
     @Test
     fun `test handle list tools request`() = runBlocking {
-        val server = MCPServerImpl("test-server", "1.0.0")
+        val server = MCPServerImpl("test-server", "1.0.0", "test-server-id")
 
         val tool = Tool(
             id = "test-tool",
@@ -220,7 +220,7 @@ class MCPServerTest {
 
     @Test
     fun `test handle call tool request`() = runBlocking {
-        val server = MCPServerImpl("test-server", "1.0.0")
+        val server = MCPServerImpl("test-server", "1.0.0", "test-server-id")
 
         val tool = Tool(
             id = "test-tool",

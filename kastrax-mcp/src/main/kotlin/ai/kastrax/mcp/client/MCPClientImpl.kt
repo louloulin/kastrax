@@ -31,6 +31,8 @@ private val logger = KotlinLogging.logger {}
 class MCPClientImpl(
     override val name: String,
     override val version: String,
+    override val clientId: String = java.util.UUID.randomUUID().toString(),
+    private val clientSecret: String = "",
     private val transport: Transport,
     private val timeoutMs: Long = 60000
 ) : MCPClient {
@@ -42,6 +44,10 @@ class MCPClientImpl(
     private var receiveJob: Job? = null
 
     override suspend fun connect() {
+        connect("")
+    }
+
+    override suspend fun connect(clientSecret: String) {
         if (transport.isConnected()) {
             return
         }
@@ -72,7 +78,7 @@ class MCPClientImpl(
             .launchIn(scope)
 
         // 初始化客户端
-        initialize()
+        initialize(clientSecret)
     }
 
     override suspend fun disconnect() {
@@ -206,10 +212,29 @@ class MCPClientImpl(
         return serverCapabilities[capability] ?: false
     }
 
+    override suspend fun getAccessToken(scope: List<String>, expiresIn: Long): String {
+        // 简单实现，实际应用中应该调用服务器获取令牌
+        return "mcp-token-${UUID.randomUUID()}"
+    }
+
+    override fun setAccessToken(token: String) {
+        // 简单实现，实际应用中应该存储令牌
+    }
+
+    override suspend fun refreshAccessToken(): String {
+        // 简单实现，实际应用中应该调用服务器刷新令牌
+        return getAccessToken()
+    }
+
+    override suspend fun revokeAccessToken(): Boolean {
+        // 简单实现，实际应用中应该调用服务器吊销令牌
+        return true
+    }
+
     /**
      * 初始化客户端
      */
-    private suspend fun initialize() {
+    private suspend fun initialize(clientSecret: String = "") {
         if (isInitialized.get()) {
             return
         }
@@ -469,8 +494,11 @@ class MCPClientImpl(
 class MCPClientBuilderImpl : MCPClientBuilder {
     private var name: String = "kastrax-client"
     private var version: String = "1.0.0"
+    private var clientId: String = UUID.randomUUID().toString()
+    private var clientSecret: String = ""
     private var timeoutMs: Long = 60000
     private var transport: Transport? = null
+    private var securityConfig: ai.kastrax.mcp.security.MCPSecurityConfig? = null
 
     override fun name(name: String): MCPClientBuilder {
         this.name = name
@@ -479,6 +507,16 @@ class MCPClientBuilderImpl : MCPClientBuilder {
 
     override fun version(version: String): MCPClientBuilder {
         this.version = version
+        return this
+    }
+
+    override fun clientId(clientId: String): MCPClientBuilder {
+        this.clientId = clientId
+        return this
+    }
+
+    override fun clientSecret(clientSecret: String): MCPClientBuilder {
+        this.clientSecret = clientSecret
         return this
     }
 
@@ -496,10 +534,17 @@ class MCPClientBuilderImpl : MCPClientBuilder {
         return this
     }
 
+    override fun security(configure: ai.kastrax.mcp.security.MCPSecurityConfigBuilder.() -> Unit): MCPClientBuilder {
+        val builder = ai.kastrax.mcp.security.MCPSecurityConfigBuilderImpl()
+        builder.configure()
+        securityConfig = builder.build()
+        return this
+    }
+
     override fun build(): MCPClient {
         val transport = this.transport ?: throw IllegalStateException("Server not configured")
 
-        return MCPClientImpl(name, version, transport, timeoutMs)
+        return MCPClientImpl(name, version, clientId, clientSecret, transport, timeoutMs)
     }
 }
 

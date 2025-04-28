@@ -23,6 +23,7 @@ class MCPClientTest {
         client = MCPClientImpl(
             name = "test-client",
             version = "1.0.0",
+            clientId = "test-client-id",
             transport = transport,
             timeoutMs = 1000
         )

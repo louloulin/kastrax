@@ -1,7 +1,9 @@
 package ai.kastrax.mcp.security
 
 import ai.kastrax.mcp.protocol.Resource
+import ai.kastrax.mcp.protocol.ResourceType
 import ai.kastrax.mcp.protocol.Tool
+import ai.kastrax.mcp.protocol.ToolParameters
 import ai.kastrax.mcp.protocol.Prompt
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assertions.*
@@ -66,9 +68,24 @@ class MCPSecurityTest {
     @Test
     fun `test access control`() {
         // 创建测试资源
-        val resource = Resource("test-resource", "Test Resource", "Test resource description")
-        val tool = Tool("test-tool", "Test Tool", "Test tool description", emptyList())
-        val prompt = Prompt("test-prompt", "Test Prompt", "Test prompt description", emptyList())
+        val resource = Resource(
+            id = "test-resource",
+            name = "Test Resource",
+            description = "Test resource description",
+            type = ResourceType.TEXT
+        )
+        val tool = Tool(
+            id = "test-tool",
+            name = "Test Tool",
+            description = "Test tool description",
+            parameters = ToolParameters()
+        )
+        val prompt = Prompt(
+            id = "test-prompt",
+            name = "Test Prompt",
+            description = "Test prompt description",
+            parameters = null
+        )
 
         // 测试资源访问控制
         assertTrue(security.canAccessResource("test-client", resource))

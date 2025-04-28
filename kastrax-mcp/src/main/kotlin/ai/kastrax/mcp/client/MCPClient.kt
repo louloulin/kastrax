@@ -3,6 +3,7 @@ package ai.kastrax.mcp.client
 import ai.kastrax.mcp.protocol.Resource
 import ai.kastrax.mcp.protocol.Tool
 import ai.kastrax.mcp.protocol.Prompt
+import ai.kastrax.mcp.security.MCPSecurityConfigBuilder
 
 /**
  * MCP 客户端接口，用于连接到 MCP 服务器并与之交互。

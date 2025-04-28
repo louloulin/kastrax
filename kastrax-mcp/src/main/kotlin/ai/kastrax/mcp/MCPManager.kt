@@ -16,6 +16,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 
 private val logger = KotlinLogging.logger {}
@@ -133,6 +134,7 @@ class MCPManager(
         return MCPClientImpl(
             name = name,
             version = "1.0.0",
+            clientId = "kastrax-client-${UUID.randomUUID()}",
             transport = transport
         )
     }

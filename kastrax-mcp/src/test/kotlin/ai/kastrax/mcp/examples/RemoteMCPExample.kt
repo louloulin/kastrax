@@ -32,7 +32,11 @@ fun main() = runBlocking {
     val remoteTransport = SimulatedRemoteTransport()
 
     // Create MCP client directly with the transport
-    val client = ai.kastrax.mcp.client.MCPClientImpl("RemoteMCPClient", "1.0.0", remoteTransport)
+    val client = ai.kastrax.mcp.client.MCPClientImpl(
+        name = "RemoteMCPClient",
+        version = "1.0.0",
+        transport = remoteTransport
+    )
 
     try {
         // Connect to server

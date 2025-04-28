@@ -103,7 +103,11 @@ fun main() = runBlocking {
     println("MCP服务器已启动")
 
     // 创建MCP客户端
-    val client = MCPClientImpl("CustomTransportClient", "1.0.0", transport)
+    val client = MCPClientImpl(
+        name = "CustomTransportClient",
+        version = "1.0.0",
+        transport = transport
+    )
 
     try {
         // 连接到服务器

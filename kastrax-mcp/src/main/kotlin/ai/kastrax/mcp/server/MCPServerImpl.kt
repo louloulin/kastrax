@@ -37,7 +37,9 @@ private val logger = KotlinLogging.logger {}
  */
 class MCPServerImpl(
     override val name: String,
-    override val version: String
+    override val version: String,
+    override val serverId: String = java.util.UUID.randomUUID().toString(),
+    private val security: ai.kastrax.mcp.security.MCPSecurity? = null
 ) : MCPServer {
     private val json = Json { ignoreUnknownKeys = true }
     private val isRunning = AtomicBoolean(false)
@@ -246,6 +248,37 @@ class MCPServerImpl(
 
     override fun getPrompts(): List<Prompt> {
         return prompts.values.toList()
+    }
+
+    override fun authenticateClient(clientId: String, clientSecret: String): Boolean {
+        return security?.authenticateClient(clientId, clientSecret) ?: true
+    }
+
+    override fun canAccessResource(clientId: String, resourceId: String): Boolean {
+        val resource = resources[resourceId] ?: return false
+        return security?.canAccessResource(clientId, resource) ?: true
+    }
+
+    override fun canUseTool(clientId: String, toolId: String): Boolean {
+        val tool = tools[toolId] ?: return false
+        return security?.canUseTool(clientId, tool) ?: true
+    }
+
+    override fun canUsePrompt(clientId: String, promptId: String): Boolean {
+        val prompt = prompts[promptId] ?: return false
+        return security?.canUsePrompt(clientId, prompt) ?: true
+    }
+
+    override fun generateAccessToken(clientId: String, scope: List<String>, expiresIn: Long): String {
+        return security?.generateAccessToken(clientId, scope, expiresIn) ?: "mcp-token-${UUID.randomUUID()}"
+    }
+
+    override fun validateAccessToken(token: String): ai.kastrax.mcp.security.TokenInfo? {
+        return security?.validateAccessToken(token)
+    }
+
+    override fun revokeAccessToken(token: String): Boolean {
+        return security?.revokeAccessToken(token) ?: true
     }
 
     /**
@@ -541,9 +574,11 @@ class MCPServerImpl(
 class MCPServerBuilderImpl : MCPServerBuilder {
     private var name: String = "kastrax-server"
     private var version: String = "1.0.0"
+    private var serverId: String = UUID.randomUUID().toString()
     private val resources = mutableListOf<Pair<Resource, ResourceContentProvider>>()
     private val tools = mutableListOf<Pair<Tool, ToolHandler>>()
     private val prompts = mutableListOf<Pair<Prompt, PromptContentProvider>>()
+    private var security: ai.kastrax.mcp.security.MCPSecurity? = null
 
     override fun name(name: String): MCPServerBuilder {
         this.name = name
@@ -552,6 +587,18 @@ class MCPServerBuilderImpl : MCPServerBuilder {
 
     override fun version(version: String): MCPServerBuilder {
         this.version = version
+        return this
+    }
+
+    override fun serverId(serverId: String): MCPServerBuilder {
+        this.serverId = serverId
+        return this
+    }
+
+    override fun security(configure: ai.kastrax.mcp.security.MCPSecurityConfigBuilder.() -> Unit): MCPServerBuilder {
+        val builder = ai.kastrax.mcp.security.MCPSecurityBuilderImpl()
+        builder.config(configure)
+        this.security = builder.build()
         return this
     }
 
@@ -625,7 +672,7 @@ class MCPServerBuilderImpl : MCPServerBuilder {
     }
 
     override fun build(): MCPServer {
-        val server = MCPServerImpl(name, version)
+        val server = MCPServerImpl(name, version, serverId, security)
 
         // 注册资源
         resources.forEach { (resource, contentProvider) ->
