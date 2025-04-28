@@ -14,6 +14,9 @@ dependencies {
     implementation(project(":kastrax-memory-impl"))
     implementation(project(":kastrax-integrations:kastrax-openai"))
     implementation(project(":kastrax-integrations:kastrax-deepseek"))
+    implementation(project(":kastrax-integrations:kastrax-anthropic"))
+    implementation(project(":kastrax-integrations:kastrax-gemini"))
+    implementation(project(":kastrax-integrations:kastrax-mistral"))
     implementation(project(":fastembed-kotlin"))
 
     // Kotlin
@@ -75,6 +78,7 @@ sourceSets {
                 "**/DeepSeekExample.kt",
                 "**/DeepSeekStreamingExample.kt",
                 "**/DeepSeekDirectStreamingExample.kt",
+                "**/MistralExample.kt",
                 "**/MemoryAgentExample.kt",
                 "**/MemorySystemExample.kt",
                 "**/SimpleZodToolExample.kt",
