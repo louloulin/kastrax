@@ -6,8 +6,9 @@ import ai.kastrax.rag.llm.LlmClient
 import ai.kastrax.rag.RAG
 import ai.kastrax.rag.RagProcessOptions
 import ai.kastrax.rag.embedding.EmbeddingService
-import ai.kastrax.rag.vectorstore.Document
+import ai.kastrax.rag.document.Document
 import ai.kastrax.rag.vectorstore.RagVectorStore
+import ai.kastrax.rag.vectorstore.RagDocument
 import ai.kastrax.rag.vectorstore.SearchResult
 import io.mockk.coEvery
 import io.mockk.mockk
@@ -34,7 +35,7 @@ class RagEvaluationToolTest {
 
         // 设置 mock 行为
         coEvery { mockRag.search(any(), any(), any(), any()) } returns listOf(
-            SearchResult(Document("这是测试文档内容", mapOf("source" to "test.txt")), 0.8)
+            SearchResult(RagDocument("1", "这是测试文档内容", mapOf("source" to "test.txt")), 0.8)
         )
 
         coEvery { mockRag.generateContext(any(), any(), any(), any()) } returns "这是测试上下文"

@@ -44,14 +44,7 @@ class RagEvaluationTool(
             metrics.add(AnswerQualityMetric(llmClient))
 
             // 添加幻觉检测指标
-            try {
-                val hallucinationMetricClass = Class.forName("ai.kastrax.rag.metrics.rag.HallucinationMetric")
-                val constructor = hallucinationMetricClass.getConstructor(LlmClient::class.java)
-                val hallucinationMetric = constructor.newInstance(llmClient) as RagMetric
-                metrics.add(hallucinationMetric)
-            } catch (e: Exception) {
-                // 如果找不到 HallucinationMetric 类，则忽略
-            }
+            metrics.add(HallucinationMetric(llmClient))
 
             return metrics
         }
