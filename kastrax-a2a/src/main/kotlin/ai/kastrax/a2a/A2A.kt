@@ -16,6 +16,7 @@ import ai.kastrax.a2a.security.AuthType
 import ai.kastrax.a2a.security.configureA2AAuth
 import ai.kastrax.a2a.security.security
 import ai.kastrax.a2a.server.A2AServerConfig
+import ai.kastrax.a2a.task.TaskManager
 import ai.kastrax.a2a.workflow.A2AWorkflow
 import ai.kastrax.a2a.workflow.workflow
 import ai.kastrax.core.agent.Agent
@@ -69,6 +70,11 @@ class A2A {
      * 协程作用域
      */
     private val scope = CoroutineScope(Dispatchers.Default)
+
+    /**
+     * 任务管理器
+     */
+    private val taskManager = TaskManager(scope)
 
     /**
      * 已注册的代理
@@ -136,7 +142,7 @@ class A2A {
         server = embeddedServer(Netty, port = config.port, host = config.host) {
             // 配置 A2A 服务器
             // 注释掉这一行，因为我们还没有实现这个函数
-            // ai.kastrax.a2a.server.configureA2AServer(agents)
+            // ai.kastrax.a2a.server.configureA2AServer(agents, taskManager)
         }
 
         server?.start(wait = false)
@@ -194,6 +200,37 @@ class A2A {
      */
     fun log(level: LogLevel, message: String, tags: Map<String, String> = emptyMap()) {
         println("[$level] $message, tags: $tags")
+    }
+
+    /**
+     * 创建任务
+     */
+    fun createTask(message: ai.kastrax.a2a.model.Message, sessionId: String? = null): ai.kastrax.a2a.model.Task {
+        return taskManager.createTask(message, sessionId)
+    }
+
+    /**
+     * 获取任务
+     */
+    fun getTask(taskId: String): ai.kastrax.a2a.model.Task? {
+        return taskManager.getTask(taskId)
+    }
+
+    /**
+     * 取消任务
+     */
+    suspend fun cancelTask(taskId: String): ai.kastrax.a2a.model.Task? {
+        return taskManager.cancelTask(taskId)
+    }
+
+    /**
+     * 处理任务
+     */
+    suspend fun processTask(agentId: String, taskId: String) {
+        val agent = agents[agentId] ?: throw IllegalArgumentException("Agent not found: $agentId")
+        val task = taskManager.getTask(taskId) ?: throw IllegalArgumentException("Task not found: $taskId")
+
+        taskManager.processTask(agent, task)
     }
 
     /**
@@ -310,6 +347,20 @@ class A2ADslBuilder {
      */
     fun discovery(serverUrl: String) {
         a2a.addServerToDiscovery(serverUrl)
+    }
+
+    /**
+     * 创建任务
+     */
+    fun createTask(message: ai.kastrax.a2a.model.Message, sessionId: String? = null): ai.kastrax.a2a.model.Task {
+        return a2a.createTask(message, sessionId)
+    }
+
+    /**
+     * 处理任务
+     */
+    suspend fun processTask(agentId: String, taskId: String) {
+        a2a.processTask(agentId, taskId)
     }
 
     /**
