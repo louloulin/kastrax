@@ -19,9 +19,21 @@ interface MCPClient {
     val version: String
 
     /**
+     * 客户端 ID
+     */
+    val clientId: String
+
+    /**
      * 连接到 MCP 服务器
      */
     suspend fun connect()
+
+    /**
+     * 连接到 MCP 服务器，并进行身份验证
+     *
+     * @param clientSecret 客户端密钥
+     */
+    suspend fun connect(clientSecret: String)
 
     /**
      * 断开与 MCP 服务器的连接
@@ -80,6 +92,36 @@ interface MCPClient {
      * @return 是否支持
      */
     fun supportsCapability(capability: String): Boolean
+
+    /**
+     * 获取访问令牌
+     *
+     * @param scope 权限范围
+     * @param expiresIn 过期时间（秒）
+     * @return 访问令牌
+     */
+    suspend fun getAccessToken(scope: List<String> = emptyList(), expiresIn: Long = 3600): String
+
+    /**
+     * 设置访问令牌
+     *
+     * @param token 访问令牌
+     */
+    fun setAccessToken(token: String)
+
+    /**
+     * 刷新访问令牌
+     *
+     * @return 新的访问令牌
+     */
+    suspend fun refreshAccessToken(): String
+
+    /**
+     * 吸销访问令牌
+     *
+     * @return 是否吸销成功
+     */
+    suspend fun revokeAccessToken(): Boolean
 }
 
 /**
@@ -97,6 +139,16 @@ interface MCPClientBuilder {
     fun version(version: String): MCPClientBuilder
 
     /**
+     * 设置客户端 ID
+     */
+    fun clientId(clientId: String): MCPClientBuilder
+
+    /**
+     * 设置客户端密钥
+     */
+    fun clientSecret(clientSecret: String): MCPClientBuilder
+
+    /**
      * 设置服务器配置
      */
     fun server(configure: MCPServerConfig.() -> Unit): MCPClientBuilder
@@ -105,6 +157,11 @@ interface MCPClientBuilder {
      * 设置超时时间（毫秒）
      */
     fun timeout(timeoutMs: Long): MCPClientBuilder
+
+    /**
+     * 设置安全配置
+     */
+    fun security(configure: MCPSecurityConfigBuilder.() -> Unit): MCPClientBuilder
 
     /**
      * 构建 MCP 客户端

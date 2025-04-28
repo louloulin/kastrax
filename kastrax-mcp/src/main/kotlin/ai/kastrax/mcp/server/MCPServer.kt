@@ -19,6 +19,11 @@ interface MCPServer {
     val version: String
 
     /**
+     * 服务器 ID
+     */
+    val serverId: String
+
+    /**
      * 启动服务器（标准输入/输出模式）
      */
     suspend fun start()
@@ -71,6 +76,68 @@ interface MCPServer {
      * 获取已注册的提示列表
      */
     fun getPrompts(): List<Prompt>
+
+    /**
+     * 验证客户端
+     *
+     * @param clientId 客户端 ID
+     * @param clientSecret 客户端密钥
+     * @return 是否验证成功
+     */
+    fun authenticateClient(clientId: String, clientSecret: String): Boolean
+
+    /**
+     * 检查客户端是否有权限访问资源
+     *
+     * @param clientId 客户端 ID
+     * @param resourceId 资源 ID
+     * @return 是否有权限
+     */
+    fun canAccessResource(clientId: String, resourceId: String): Boolean
+
+    /**
+     * 检查客户端是否有权限使用工具
+     *
+     * @param clientId 客户端 ID
+     * @param toolId 工具 ID
+     * @return 是否有权限
+     */
+    fun canUseTool(clientId: String, toolId: String): Boolean
+
+    /**
+     * 检查客户端是否有权限使用提示
+     *
+     * @param clientId 客户端 ID
+     * @param promptId 提示 ID
+     * @return 是否有权限
+     */
+    fun canUsePrompt(clientId: String, promptId: String): Boolean
+
+    /**
+     * 生成访问令牌
+     *
+     * @param clientId 客户端 ID
+     * @param scope 权限范围
+     * @param expiresIn 过期时间（秒）
+     * @return 访问令牌
+     */
+    fun generateAccessToken(clientId: String, scope: List<String>, expiresIn: Long): String
+
+    /**
+     * 验证访问令牌
+     *
+     * @param token 访问令牌
+     * @return 令牌信息，如果令牌无效则返回 null
+     */
+    fun validateAccessToken(token: String): ai.kastrax.mcp.security.TokenInfo?
+
+    /**
+     * 吸销访问令牌
+     *
+     * @param token 访问令牌
+     * @return 是否吸销成功
+     */
+    fun revokeAccessToken(token: String): Boolean
 }
 
 /**
@@ -88,6 +155,11 @@ interface MCPServerBuilder {
     fun version(version: String): MCPServerBuilder
 
     /**
+     * 设置服务器 ID
+     */
+    fun serverId(serverId: String): MCPServerBuilder
+
+    /**
      * 添加资源
      */
     fun resource(configure: ResourceBuilder.() -> Unit): MCPServerBuilder
@@ -101,6 +173,11 @@ interface MCPServerBuilder {
      * 添加提示
      */
     fun prompt(configure: PromptBuilder.() -> Unit): MCPServerBuilder
+
+    /**
+     * 设置安全配置
+     */
+    fun security(configure: ai.kastrax.mcp.security.MCPSecurityConfigBuilder.() -> Unit): MCPServerBuilder
 
     /**
      * 构建 MCP 服务器

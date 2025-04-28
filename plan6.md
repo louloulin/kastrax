@@ -217,8 +217,8 @@
 - [x] 支持 stdio 和 SSE 传输（已完成：StdioTransport 和 SSETransport）
 - [x] 增加 5+ MCP 应用案例（已实现：在 examples/src/mcp 目录下实现了 5 个完整的 MCP 应用案例，包括天气查询、股票行情、翻译服务、知识库查询和文件操作，每个案例都包含完整的服务器和客户端实现，并提供了多个工具和交互示例）
 - [x] 实现基础的 MCP 服务发现机制（已实现：在 kastrax-mcp 模块中实现了 MCPRegistry、MCPDiscoveryService 和 RemoteRegistryClient 类，支持本地和远程服务器注册、发现和连接，并提供了服务器变化通知机制）
-- [ ] 增强 MCP 安全性和访问控制（当前安全机制有限）
-- [ ] 提供 MCP 工具开发指南（当前文档不足）
+- [x] 增强 MCP 安全性和访问控制（已实现：在 kastrax-mcp 模块中实现了 MCPSecurity、MCPAuthenticator 和 MCPAuthorizer 接口及实现，支持客户端和服务器身份验证、资源和工具访问控制、令牌管理等功能，并提供了完整的测试和示例）
+- [x] 提供 MCP 工具开发指南（已实现：创建了 docs/mcp-tool-development-guide.md 文档，详细介绍了 MCP 工具的开发和使用方法，包括工具开发、工具使用、与 Agent 集成、安全性和访问控制、服务发现等内容，并提供了示例和最佳实践）
 
 #### 记忆系统改进
 - [x] 实现基础记忆接口（已完成：Memory.kt 中的 Memory 接口）
