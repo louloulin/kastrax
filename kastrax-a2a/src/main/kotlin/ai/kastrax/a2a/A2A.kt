@@ -21,6 +21,7 @@ import ai.kastrax.a2a.workflow.workflow
 import ai.kastrax.core.agent.Agent
 import io.ktor.server.application.*
 import io.ktor.server.engine.*
+import io.ktor.server.engine.EmbeddedServer
 import io.ktor.server.netty.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -77,7 +78,7 @@ class A2A {
     /**
      * 服务器实例
      */
-    private var server: ApplicationEngine? = null
+    private var server: EmbeddedServer<*, *>? = null
 
     /**
      * 将 kastrax 代理转换为 A2A 代理
@@ -132,13 +133,11 @@ class A2A {
         // 记录服务器启动事件
         println("Starting A2A server on ${config.host}:${config.port}")
 
-        val embeddedServer = embeddedServer(Netty, port = config.port, host = config.host) {
+        server = embeddedServer(Netty, port = config.port, host = config.host) {
             // 配置 A2A 服务器
             // 注释掉这一行，因为我们还没有实现这个函数
             // ai.kastrax.a2a.server.configureA2AServer(agents)
         }
-
-        server = embeddedServer as ApplicationEngine
 
         server?.start(wait = false)
 
