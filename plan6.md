@@ -252,6 +252,7 @@
 - [x] 支持 10+ 数据源类型（当前数据源支持有限）
 - [x] 增强高级检索功能（当前重排序功能有限）
 - [x] 增强文档处理和索引能力（当前处理能力有限）
+- [x] 实现实时 RAG 系统，支持流式处理和实时更新（已实现：完成了 RealTimeRag 类及相关组件，支持实时文档更新、流式检索和上下文生成，并提供了工具集成和示例代码）
 - [x] 提供 RAG 评估和优化工具（已实现：完成了 kastrax-rag 模块中的 RagEvaluationTool 工具，包括四个核心评估指标：RetrievalPrecisionMetric（检索精确度评估）、ContextRelevanceMetric（上下文相关性评估）、AnswerQualityMetric（回答质量评估）和 HallucinationMetric（幻觉检测）。这些指标可以全面评估 RAG 系统的质量，并生成详细的评估报告，帮助开发者优化 RAG 系统。所有指标都支持基于规则和基于 LLM 的评估方法，并已通过测试验证）
 
 #### 模型集成扩展
