@@ -1,7 +1,7 @@
-package ai.kastrax.evals.metrics.rag
+package ai.kastrax.rag.metrics.rag
 
-import ai.kastrax.core.llm.LlmClient
-import ai.kastrax.evals.metrics.MetricResult
+import ai.kastrax.rag.llm.LlmClient
+import ai.kastrax.rag.metrics.MetricResult
 import io.github.oshai.kotlinlogging.KotlinLogging
 
 private val logger = KotlinLogging.logger {}
@@ -61,7 +61,7 @@ class HallucinationMetric(
         try {
             // 构建评估提示
             val prompt = buildPrompt(input, output)
-            
+
             // 使用 LLM 生成评估结果
             val llmResponse = llmClient.generate(systemPrompt, prompt)
             
@@ -70,8 +70,8 @@ class HallucinationMetric(
             
             // 从 LLM 的输出中提取幻觉内容
             val hallucinations = extractHallucinations(llmResponse)
-            
-            MetricResult(
+
+            return MetricResult(
                 score = score,
                 details = mapOf(
                     "query" to input.query,
@@ -85,7 +85,7 @@ class HallucinationMetric(
             logger.error(e) { "Error evaluating hallucination with LLM" }
             
             // 出错时回退到基于规则的评估
-            calculateRuleBasedHallucination(input, output)
+            return calculateRuleBasedHallucination(input, output)
         }
     }
 

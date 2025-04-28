@@ -1,8 +1,8 @@
 package ai.kastrax.rag.tools
 
-import ai.kastrax.core.llm.LlmClient
-import ai.kastrax.evals.metrics.MetricResult
-import ai.kastrax.evals.metrics.rag.*
+import ai.kastrax.rag.llm.LlmClient
+import ai.kastrax.rag.metrics.MetricResult
+import ai.kastrax.rag.metrics.rag.*
 import ai.kastrax.rag.RAG
 import ai.kastrax.rag.RagProcessOptions
 import ai.kastrax.rag.vectorstore.SearchResult
@@ -32,12 +32,28 @@ class RagEvaluationTool(
          * @return 评估指标列表
          */
         fun defaultMetrics(llmClient: LlmClient? = null): List<RagMetric> {
-            return listOf(
-                RetrievalPrecisionMetric(llmClient),
-                ContextRelevanceMetric(llmClient),
-                AnswerQualityMetric(llmClient),
-                HallucinationMetric(llmClient)
-            )
+            val metrics = mutableListOf<RagMetric>()
+
+            // 添加检索精确度指标
+            metrics.add(RetrievalPrecisionMetric(llmClient))
+
+            // 添加上下文相关性指标
+            metrics.add(ContextRelevanceMetric(llmClient))
+
+            // 添加回答质量指标
+            metrics.add(AnswerQualityMetric(llmClient))
+
+            // 添加幻觉检测指标
+            try {
+                val hallucinationMetricClass = Class.forName("ai.kastrax.rag.metrics.rag.HallucinationMetric")
+                val constructor = hallucinationMetricClass.getConstructor(LlmClient::class.java)
+                val hallucinationMetric = constructor.newInstance(llmClient) as RagMetric
+                metrics.add(hallucinationMetric)
+            } catch (e: Exception) {
+                // 如果找不到 HallucinationMetric 类，则忽略
+            }
+
+            return metrics
         }
     }
 
@@ -134,13 +150,13 @@ class RagEvaluationTool(
                 try {
                     // 获取上下文
                     val context = rag.generateContext(query, options = options)
-                    
+
                     // 生成回答
                     val answer = generateAnswer(query, context)
-                    
+
                     // 获取参考答案（如果有）
                     val groundTruth = groundTruths?.getOrNull(index)
-                    
+
                     // 评估
                     evaluate(query, answer, options, groundTruth)
                 } catch (e: Exception) {
@@ -169,30 +185,30 @@ class RagEvaluationTool(
     fun generateReport(result: RagEvaluationResult, detailed: Boolean = false): String {
         return buildString {
             append("# RAG 评估报告\n\n")
-            
+
             append("## 总体评分\n\n")
             append("总体分数: ${result.overallScore.format(2)}\n\n")
-            
+
             append("## 查询和回答\n\n")
             append("查询: ${result.query}\n\n")
             append("回答: ${result.answer}\n\n")
-            
+
             if (detailed) {
                 append("## 上下文\n\n")
                 append("```\n${result.context}\n```\n\n")
-                
+
                 append("## 检索结果\n\n")
                 result.retrievalResults.forEachIndexed { index, retrievalResult ->
                     append("### 结果 ${index + 1} (分数: ${retrievalResult.score.format(3)})\n\n")
                     append("```\n${retrievalResult.content}\n```\n\n")
                 }
             }
-            
+
             append("## 指标评分\n\n")
             result.metricResults.forEach { (metricName, metricResult) ->
                 append("### $metricName\n\n")
                 append("分数: ${metricResult.score.format(2)}\n\n")
-                
+
                 if (detailed) {
                     append("详情:\n\n")
                     metricResult.details.forEach { (key, value) ->
@@ -203,7 +219,7 @@ class RagEvaluationTool(
                     append("\n")
                 }
             }
-            
+
             if (result.error != null) {
                 append("## 错误\n\n")
                 append("${result.error}\n\n")
@@ -221,21 +237,21 @@ class RagEvaluationTool(
     fun generateBatchReport(results: List<RagEvaluationResult>, detailed: Boolean = false): String {
         return buildString {
             append("# RAG 批量评估报告\n\n")
-            
+
             val averageScore = results.map { it.overallScore }.average()
             append("## 总体评分\n\n")
             append("平均分数: ${averageScore.format(2)}\n\n")
-            
+
             append("## 各查询评分\n\n")
             append("| 查询 | 总体分数 | 检索精确度 | 上下文相关性 | 回答质量 | 幻觉检测 |\n")
             append("|------|----------|------------|--------------|----------|----------|\n")
-            
+
             results.forEach { result ->
                 val retrievalPrecision = result.metricResults["RetrievalPrecisionMetric"]?.score?.format(2) ?: "N/A"
                 val contextRelevance = result.metricResults["ContextRelevanceMetric"]?.score?.format(2) ?: "N/A"
                 val answerQuality = result.metricResults["AnswerQualityMetric"]?.score?.format(2) ?: "N/A"
                 val hallucination = result.metricResults["HallucinationMetric"]?.score?.format(2) ?: "N/A"
-                
+
                 append("| ${result.query.take(30)}${if (result.query.length > 30) "..." else ""} ")
                 append("| ${result.overallScore.format(2)} ")
                 append("| $retrievalPrecision ")
@@ -243,7 +259,7 @@ class RagEvaluationTool(
                 append("| $answerQuality ")
                 append("| $hallucination |\n")
             }
-            
+
             if (detailed) {
                 append("\n## 详细评估\n\n")
                 results.forEachIndexed { index, result ->

@@ -1,7 +1,7 @@
-package ai.kastrax.evals.metrics.rag
+package ai.kastrax.rag.metrics.rag
 
-import ai.kastrax.core.llm.LlmClient
-import ai.kastrax.evals.metrics.MetricResult
+import ai.kastrax.rag.llm.LlmClient
+import ai.kastrax.rag.metrics.MetricResult
 import io.github.oshai.kotlinlogging.KotlinLogging
 
 private val logger = KotlinLogging.logger {}
@@ -69,7 +69,7 @@ class AnswerQualityMetric(
             // 从 LLM 的输出中提取分数
             val score = extractScore(llmResponse)
             
-            MetricResult(
+            return MetricResult(
                 score = score,
                 details = mapOf(
                     "query" to input.query,
@@ -82,7 +82,7 @@ class AnswerQualityMetric(
             logger.error(e) { "Error evaluating answer quality with LLM" }
             
             // 出错时回退到基于规则的评估
-            calculateRuleBasedQuality(input, output)
+            return calculateRuleBasedQuality(input, output)
         }
     }
 

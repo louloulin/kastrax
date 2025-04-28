@@ -59,11 +59,11 @@ include(":kastrax-examples")
 include(":kastrax-app")
 include(":kastrax-agent-templates")
 
-// Native modules
-include(":kastrax-native")
+// Native modules - 暂时注释掉，避免构建错误
+// include(":kastrax-native")
 
-// GraalVM Native modules
-include(":graal-native")
-include(":graal-native:sdk-rust")
-include(":graal-native:sdk-go")
-include(":graal-native:sdk-js")
+// GraalVM Native modules - 暂时注释掉，避免构建错误
+// include(":graal-native")
+// include(":graal-native:sdk-rust")
+// include(":graal-native:sdk-go")
+// include(":graal-native:sdk-js")

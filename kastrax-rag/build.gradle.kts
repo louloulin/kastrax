@@ -21,6 +21,8 @@ dependencies {
     // Project dependencies
     implementation(project(":kastrax-core"))
     implementation(project(":fastembed-kotlin"))
+    implementation(project(":kastrax-evals"))
+    implementation(project(":kastrax-integrations:kastrax-deepseek"))
 
     // Kotlin
     implementation(kotlin("stdlib"))

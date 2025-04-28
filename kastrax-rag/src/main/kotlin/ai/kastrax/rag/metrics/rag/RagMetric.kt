@@ -1,8 +1,8 @@
-package ai.kastrax.evals.metrics.rag
+package ai.kastrax.rag.metrics.rag
 
-import ai.kastrax.core.llm.LlmClient
-import ai.kastrax.evals.metrics.Metric
-import ai.kastrax.evals.metrics.MetricResult
+import ai.kastrax.rag.llm.LlmClient
+import ai.kastrax.rag.metrics.Metric
+import ai.kastrax.rag.metrics.MetricResult
 import io.github.oshai.kotlinlogging.KotlinLogging
 
 private val logger = KotlinLogging.logger {}
