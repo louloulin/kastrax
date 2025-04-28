@@ -1,6 +1,7 @@
 package ai.kastrax.a2x.examples
 
 import ai.kastrax.a2a.a2a
+import ai.kastrax.a2a.agent.A2AAgent
 import ai.kastrax.a2a.dsl.a2aAgent
 import ai.kastrax.a2x.a2x
 import ai.kastrax.a2x.model.EntityType

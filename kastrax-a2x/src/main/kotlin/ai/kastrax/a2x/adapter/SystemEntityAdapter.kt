@@ -40,11 +40,11 @@ class SystemEntityAdapter : EntityAdapter {
         /**
          * 实体卡片
          */
-        private val entityCard: EntityCard by lazy {
+        private val _entityCard: EntityCard by lazy {
             val osName = System.getProperty("os.name")
             val osVersion = System.getProperty("os.version")
             val osArch = System.getProperty("os.arch")
-            
+
             EntityCard(
                 id = "system-${UUID.randomUUID()}",
                 name = "System ($osName)",
@@ -125,9 +125,9 @@ class SystemEntityAdapter : EntityAdapter {
             )
         }
 
-        override fun getEntityCard(): EntityCard = entityCard
+        override fun getEntityCard(): EntityCard = _entityCard
 
-        override fun getCapabilities(): List<Capability> = entityCard.capabilities
+        override fun getCapabilities(): List<Capability> = _entityCard.capabilities
 
         override suspend fun invoke(request: InvokeRequest): InvokeResponse {
             return when (request.capabilityId) {
@@ -137,7 +137,7 @@ class SystemEntityAdapter : EntityAdapter {
                 else -> InvokeResponse(
                     id = request.id,
                     source = EntityReference(
-                        id = entityCard.id,
+                        id = _entityCard.id,
                         type = EntityType.SYSTEM
                     ),
                     target = request.source,
@@ -152,7 +152,7 @@ class SystemEntityAdapter : EntityAdapter {
                 else -> QueryResponse(
                     id = request.id,
                     source = EntityReference(
-                        id = entityCard.id,
+                        id = _entityCard.id,
                         type = EntityType.SYSTEM
                     ),
                     target = request.source,
@@ -169,7 +169,7 @@ class SystemEntityAdapter : EntityAdapter {
                 else -> ErrorMessage(
                     id = message.id,
                     source = EntityReference(
-                        id = entityCard.id,
+                        id = _entityCard.id,
                         type = EntityType.SYSTEM
                     ),
                     target = message.source,
@@ -186,7 +186,7 @@ class SystemEntityAdapter : EntityAdapter {
         override fun subscribeToEvents(eventTypes: List<String>): Flow<EventMessage> {
             // 订阅 A2X 事件流，过滤出目标是当前实体的事件
             return a2x.eventFlow.filter { event ->
-                event.target.id == entityCard.id || event.target.id == "*"
+                event.target.id == _entityCard.id || event.target.id == "*"
             }.filter { event ->
                 eventTypes.isEmpty() || eventTypes.contains(event.eventType)
             }
@@ -205,15 +205,15 @@ class SystemEntityAdapter : EntityAdapter {
          */
         private fun handleCapabilityRequest(request: CapabilityRequest): CapabilityResponse {
             val capabilities = if (request.capabilityId != null) {
-                entityCard.capabilities.filter { it.id == request.capabilityId }
+                _entityCard.capabilities.filter { it.id == request.capabilityId }
             } else {
-                entityCard.capabilities
+                _entityCard.capabilities
             }
-            
+
             return CapabilityResponse(
                 id = request.id,
                 source = EntityReference(
-                    id = entityCard.id,
+                    id = _entityCard.id,
                     type = EntityType.SYSTEM
                 ),
                 target = request.source,
@@ -228,7 +228,7 @@ class SystemEntityAdapter : EntityAdapter {
         private fun getSystemInfo(request: InvokeRequest): InvokeResponse {
             val runtime = Runtime.getRuntime()
             val mb = 1024 * 1024
-            
+
             val info = mapOf(
                 "os" to mapOf(
                     "name" to System.getProperty("os.name"),
@@ -246,11 +246,11 @@ class SystemEntityAdapter : EntityAdapter {
                 ),
                 "processors" to runtime.availableProcessors()
             )
-            
+
             return InvokeResponse(
                 id = request.id,
                 source = EntityReference(
-                    id = entityCard.id,
+                    id = _entityCard.id,
                     type = EntityType.SYSTEM
                 ),
                 target = request.source,
@@ -278,9 +278,9 @@ class SystemEntityAdapter : EntityAdapter {
             val operation = request.parameters["operation"]?.toString()?.replace("\"", "") ?: ""
             val path = request.parameters["path"]?.toString()?.replace("\"", "") ?: ""
             val content = request.parameters["content"]?.toString()?.replace("\"", "")
-            
+
             val file = File(path)
-            
+
             val result = when (operation) {
                 "read" -> {
                     if (file.exists() && file.isFile) {
@@ -322,11 +322,11 @@ class SystemEntityAdapter : EntityAdapter {
                     JsonPrimitive("Unsupported operation: $operation")
                 }
             }
-            
+
             return InvokeResponse(
                 id = request.id,
                 source = EntityReference(
-                    id = entityCard.id,
+                    id = _entityCard.id,
                     type = EntityType.SYSTEM
                 ),
                 target = request.source,
@@ -341,7 +341,7 @@ class SystemEntityAdapter : EntityAdapter {
             val operation = request.parameters["operation"]?.toString()?.replace("\"", "") ?: ""
             val command = request.parameters["command"]?.toString()?.replace("\"", "")
             val pid = request.parameters["pid"]?.toString()?.toIntOrNull()
-            
+
             val result = when (operation) {
                 "list" -> {
                     val processes = ManagementFactory.getRuntimeMXBean().name.split("@")[0]
@@ -378,11 +378,11 @@ class SystemEntityAdapter : EntityAdapter {
                     JsonPrimitive("Unsupported operation: $operation")
                 }
             }
-            
+
             return InvokeResponse(
                 id = request.id,
                 source = EntityReference(
-                    id = entityCard.id,
+                    id = _entityCard.id,
                     type = EntityType.SYSTEM
                 ),
                 target = request.source,
@@ -396,7 +396,7 @@ class SystemEntityAdapter : EntityAdapter {
         private fun getSystemStatus(request: QueryRequest): QueryResponse {
             val runtime = Runtime.getRuntime()
             val mb = 1024 * 1024
-            
+
             val status = mapOf(
                 "memory" to mapOf(
                     "total" to (runtime.totalMemory() / mb),
@@ -410,11 +410,11 @@ class SystemEntityAdapter : EntityAdapter {
                 ),
                 "uptime" to ManagementFactory.getRuntimeMXBean().uptime
             )
-            
+
             return QueryResponse(
                 id = request.id,
                 source = EntityReference(
-                    id = entityCard.id,
+                    id = _entityCard.id,
                     type = EntityType.SYSTEM
                 ),
                 target = request.source,

@@ -78,7 +78,7 @@ class A2X private constructor() {
     /**
      * 服务器实例
      */
-    private var server: ApplicationEngine? = null
+    private var server: EmbeddedServer<NettyApplicationEngine, NettyApplicationEngine.Configuration>? = null
 
     /**
      * 事件流

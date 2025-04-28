@@ -36,7 +36,7 @@ class A2AEntityAdapter : EntityAdapter {
         if (obj !is A2AAgent) {
             throw IllegalArgumentException("Object is not an A2AAgent: ${obj.javaClass.name}")
         }
-        
+
         return A2AEntityImpl(obj)
     }
 
@@ -50,9 +50,9 @@ class A2AEntityAdapter : EntityAdapter {
         /**
          * 实体卡片
          */
-        private val entityCard: EntityCard by lazy {
+        private val _entityCard: EntityCard by lazy {
             val agentCard = a2aAgent.getAgentCard()
-            
+
             EntityCard(
                 id = agentCard.id,
                 name = agentCard.name,
@@ -65,19 +65,19 @@ class A2AEntityAdapter : EntityAdapter {
                         id = capability.id,
                         name = capability.name,
                         description = capability.description,
-                        version = capability.version,
+                        version = "1.0.0", // 使用固定版本，因为 A2A Capability 没有 version 属性
                         parameters = capability.parameters.map { parameter ->
                             Parameter(
                                 name = parameter.name,
                                 type = parameter.type,
                                 description = parameter.description,
                                 required = parameter.required,
-                                defaultValue = parameter.defaultValue,
-                                metadata = parameter.metadata
+                                defaultValue = null, // A2A Parameter 没有 defaultValue 属性
+                                metadata = emptyMap() // A2A Parameter 没有 metadata 属性
                             )
                         },
                         returnType = capability.returnType,
-                        metadata = capability.metadata
+                        metadata = emptyMap() // A2A Capability 没有 metadata 属性
                     )
                 },
                 authentication = Authentication(
@@ -86,18 +86,17 @@ class A2AEntityAdapter : EntityAdapter {
                         ai.kastrax.a2a.model.AuthType.API_KEY -> AuthenticationType.API_KEY
                         ai.kastrax.a2a.model.AuthType.OAUTH2 -> AuthenticationType.OAUTH2
                         ai.kastrax.a2a.model.AuthType.JWT -> AuthenticationType.JWT
-                        ai.kastrax.a2a.model.AuthType.BASIC -> AuthenticationType.BASIC
-                        else -> AuthenticationType.OTHER
+                        else -> AuthenticationType.OTHER // A2A AuthType 没有 BASIC 类型
                     },
-                    metadata = agentCard.authentication.metadata
+                    metadata = agentCard.authentication.details
                 ),
                 metadata = agentCard.metadata
             )
         }
 
-        override fun getEntityCard(): EntityCard = entityCard
+        override fun getEntityCard(): EntityCard = _entityCard
 
-        override fun getCapabilities(): List<Capability> = entityCard.capabilities
+        override fun getCapabilities(): List<Capability> = _entityCard.capabilities
 
         override suspend fun invoke(request: InvokeRequest): InvokeResponse {
             // 将 A2X 请求转换为 A2A 请求
@@ -107,15 +106,15 @@ class A2AEntityAdapter : EntityAdapter {
                 parameters = request.parameters,
                 metadata = request.metadata
             )
-            
+
             // 调用 A2A 代理
             val a2aResponse = a2aAgent.invoke(a2aRequest)
-            
+
             // 将 A2A 响应转换为 A2X 响应
             return InvokeResponse(
                 id = a2aResponse.id,
                 source = EntityReference(
-                    id = entityCard.id,
+                    id = _entityCard.id,
                     type = EntityType.AGENT
                 ),
                 target = request.source,
@@ -132,15 +131,15 @@ class A2AEntityAdapter : EntityAdapter {
                 parameters = request.parameters,
                 metadata = request.metadata
             )
-            
+
             // 调用 A2A 代理
             val a2aResponse = a2aAgent.query(a2aRequest)
-            
+
             // 将 A2A 响应转换为 A2X 响应
             return QueryResponse(
                 id = a2aResponse.id,
                 source = EntityReference(
-                    id = entityCard.id,
+                    id = _entityCard.id,
                     type = EntityType.AGENT
                 ),
                 target = request.source,
@@ -157,7 +156,7 @@ class A2AEntityAdapter : EntityAdapter {
                 else -> ErrorMessage(
                     id = message.id,
                     source = EntityReference(
-                        id = entityCard.id,
+                        id = _entityCard.id,
                         type = EntityType.AGENT
                     ),
                     target = message.source,
@@ -174,7 +173,7 @@ class A2AEntityAdapter : EntityAdapter {
         override fun subscribeToEvents(eventTypes: List<String>): Flow<EventMessage> {
             // 订阅 A2X 事件流，过滤出目标是当前实体的事件
             return a2x.eventFlow.filter { event ->
-                event.target.id == entityCard.id || event.target.id == "*"
+                event.target.id == _entityCard.id || event.target.id == "*"
             }.filter { event ->
                 eventTypes.isEmpty() || eventTypes.contains(event.eventType)
             }
@@ -193,15 +192,15 @@ class A2AEntityAdapter : EntityAdapter {
          */
         private fun handleCapabilityRequest(request: CapabilityRequest): CapabilityResponse {
             val capabilities = if (request.capabilityId != null) {
-                entityCard.capabilities.filter { it.id == request.capabilityId }
+                _entityCard.capabilities.filter { it.id == request.capabilityId }
             } else {
-                entityCard.capabilities
+                _entityCard.capabilities
             }
-            
+
             return CapabilityResponse(
                 id = request.id,
                 source = EntityReference(
-                    id = entityCard.id,
+                    id = _entityCard.id,
                     type = EntityType.AGENT
                 ),
                 target = request.source,
