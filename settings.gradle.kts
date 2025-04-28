@@ -60,6 +60,7 @@ include(":kastrax-examples")
 include(":kastrax-app")
 include(":kastrax-agent-templates")
 include(":kastrax-a2a")
+include(":kastrax-a2x")
 
 // Native modules - 暂时注释掉，避免构建错误
 // include(":kastrax-native")

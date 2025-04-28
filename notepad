@@ -27,3 +27,5 @@
 @native.md 按照计划，在  @graal-native 模块，实现相关功能，实现后更新，增加测试验证，验证通过后更新 @native.md 标记实现的功能，中文说明
 
 工作空间在 @kastrax-a2a @a2a.md 按照计划，同时参考https://github.com/google/A2A的相关代码，实现相关功能，实现后更新，增加测试验证，验证通过后更新 @a2a.md 标记实现的功能，中文说明
+
+工作空间在 kastrax-a2x @a2x.md 按照计划，同时参考https://github.com/google/A2A的相关代码，实现相关功能，实现后更新，增加测试验证，验证通过后更新 @a2x.md 标记实现的功能，中文说明
