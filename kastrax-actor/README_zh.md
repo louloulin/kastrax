@@ -18,6 +18,11 @@ kastrax-actor 是一个将 kastrax AI Agent 与 kactor Actor 模型结合的模�
 - [x] **工具调用机制**：支持 Agent 调用工具
 - [x] **协作模式**：支持 Agent 之间的协作
 
+### 分布式功能
+
+- [x] **远程 Actor 配置**：支持在远程服务器上部署和使用 Agent
+- [x] **集群支持**：支持创建和管理 Agent 集群
+
 ## 使用示例
 
 ### DSL 功能

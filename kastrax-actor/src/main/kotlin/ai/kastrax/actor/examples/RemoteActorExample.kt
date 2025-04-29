@@ -110,12 +110,34 @@ object RemoteActorExample {
      * 启动服务器
      */
     fun startServer() {
-        // 配置远程 Actor 系统
+        // 配置远程 Actor 系统 - 使用新的 API
+        val system = configureRemoteActorSystem(8090, "0.0.0.0")
+
+        // 注册 Agent
+        val mockAgent = RemoteMockAgent()
+        system.registerRemoteAgent(mockAgent, "remoteAssistant")
+
+        println("远程服务器已启动，监听端口: 8090")
+        println("按 Ctrl+C 停止服务器")
+
+        // 保持系统运行
+        runBlocking {
+            while (true) {
+                delay(1000)
+            }
+        }
+    }
+
+    /**
+     * 启动服务器（使用配置对象）
+     */
+    fun startServerWithConfig() {
+        // 配置远程 Actor 系统 - 使用配置对象
         val config = RemoteActorConfig(
             port = 8090,
             advertisedHostname = "localhost"
         )
-        val system = configureRemoteActorSystem("kastrax-remote-server", config)
+        val system = ai.kastrax.actor.remote.configureRemoteActorSystemWithConfig("kastrax-remote-server", config)
 
         // 注册 Agent
         val mockAgent = RemoteMockAgent()
@@ -136,12 +158,27 @@ object RemoteActorExample {
      * 连接到服务器
      */
     fun connectToServer() = runBlocking {
-        // 连接到远程系统
-        val remoteAgent = connectToRemoteSystem(remoteAddress("localhost", 8090))
+        // 连接到远程系统 - 使用新的 API
+        val remoteAgent = connectToRemoteSystem("localhost", 8090)
 
         // 发送消息给远程 Agent
-        val response = remoteAgent.generate("remoteAssistant", "你好，远程助手！")
-        println("远程助手回答: ${response.text}")
+        val response = remoteAgent.ask("remoteAssistant", AgentRequest("你好，远程助手！"))
+        println("远程助手回答: ${(response as AgentResponse).text}")
+    }
+
+    /**
+     * 连接到服务器（使用旧 API）
+     */
+    fun connectToServerWithOldApi() = runBlocking {
+        // 连接到远程系统 - 使用旧的 API
+        // 创建客户端系统
+        val clientSystem = ActorSystem("kastrax-client")
+        val remoteAddress = "localhost:8090"
+        val remoteAgent = ai.kastrax.actor.RemoteAgent(clientSystem, remoteAddress)
+
+        // 发送消息给远程 Agent
+        val response = remoteAgent.ask("remoteAssistant", AgentRequest("你好，远程助手！"))
+        println("远程助手回答: ${(response as AgentResponse).text}")
     }
 
     /**
@@ -151,10 +188,14 @@ object RemoteActorExample {
     fun main(args: Array<String>) {
         if (args.isEmpty() || args[0] == "server") {
             startServer()
+        } else if (args[0] == "server-config") {
+            startServerWithConfig()
         } else if (args[0] == "client") {
             connectToServer()
+        } else if (args[0] == "client-old") {
+            connectToServerWithOldApi()
         } else {
-            println("用法: RemoteActorExample [server|client]")
+            println("用法: RemoteActorExample [server|server-config|client|client-old]")
         }
     }
 }

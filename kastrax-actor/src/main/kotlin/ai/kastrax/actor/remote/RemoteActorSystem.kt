@@ -2,8 +2,10 @@ package ai.kastrax.actor.remote
 
 import actor.proto.ActorSystem
 import actor.proto.PID
+import actor.proto.remote.RemoteConfig as KactorRemoteConfig
 import ai.kastrax.actor.KastraxActor
 import ai.kastrax.actor.ActorAgentBuilder
+import ai.kastrax.actor.RemoteAgent
 import ai.kastrax.actor.actorAgent
 import ai.kastrax.core.agent.Agent
 import ai.kastrax.core.agent.agent
@@ -11,11 +13,48 @@ import ai.kastrax.core.agent.agent
 /**
  * 配置远程 Actor 系统
  *
+ * @param port 端口号
+ * @param hostname 主机名，默认为 "0.0.0.0"
+ * @return 配置好的 ActorSystem
+ */
+fun configureRemoteActorSystem(port: Int, hostname: String = "0.0.0.0"): ActorSystem {
+    // 创建 kactor 远程配置
+    val config = KactorRemoteConfig(
+        hostname = hostname,
+        port = port
+    )
+
+    // 创建 ActorSystem
+    val system = ActorSystem("kastrax-remote")
+
+    // 初始化远程系统
+    val remote = actor.proto.remote.Remote.create(system, config)
+    remote.start(hostname, port, config)
+
+    return system
+}
+
+/**
+ * 连接到远程 Actor 系统
+ *
+ * @param address 远程地址
+ * @param port 端口号
+ * @return RemoteAgent 对象
+ */
+fun connectToRemoteSystem(address: String, port: Int): RemoteAgent {
+    val system = ActorSystem("kastrax-client")
+    val remoteAddress = "$address:$port"
+    return RemoteAgent(system, remoteAddress)
+}
+
+/**
+ * 配置远程 Actor 系统（使用 RemoteActorConfig）
+ *
  * @param name 系统名称
  * @param config 远程配置
  * @return 配置好的 ActorSystem
  */
-fun configureRemoteActorSystem(name: String, config: RemoteActorConfig = RemoteActorConfig()): ActorSystem {
+fun configureRemoteActorSystemWithConfig(name: String, config: RemoteActorConfig = RemoteActorConfig()): ActorSystem {
     // 创建 kactor 远程配置
     val kactorConfig = config.toKactorRemoteConfig()
 
@@ -27,18 +66,6 @@ fun configureRemoteActorSystem(name: String, config: RemoteActorConfig = RemoteA
     remote.start(config.hostname, config.port, kactorConfig)
 
     return system
-}
-
-/**
- * 连接到远程 Actor 系统
- *
- * @param address 远程地址，格式为 "hostname:port"
- * @param systemName 本地系统名称
- * @return RemoteAgent 对象
- */
-fun connectToRemoteSystem(address: String, systemName: String = "kastrax-client"): RemoteAgent {
-    val system = ActorSystem(systemName)
-    return RemoteAgent(system, address)
 }
 
 /**
