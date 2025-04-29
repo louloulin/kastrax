@@ -61,6 +61,7 @@ include(":kastrax-app")
 include(":kastrax-agent-templates")
 include(":kastrax-a2a")
 include(":kastrax-a2x")
+include(":kastrax-actor")
 include(":kactor")
 
 // Include kactor subprojects
