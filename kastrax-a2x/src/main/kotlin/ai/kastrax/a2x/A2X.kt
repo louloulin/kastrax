@@ -2,9 +2,8 @@ package ai.kastrax.a2x
 
 import ai.kastrax.a2a.A2A
 import ai.kastrax.a2a.agent.A2AAgent
-import ai.kastrax.a2x.adapter.A2AEntityAdapter
-import ai.kastrax.a2x.adapter.DatabaseEntityAdapter
-import ai.kastrax.a2x.adapter.SystemEntityAdapter
+import ai.kastrax.a2x.adapter.*
+import ai.kastrax.a2x.adapter.APIConfig
 import ai.kastrax.a2x.client.A2XClient
 import ai.kastrax.a2x.client.A2XClientConfig
 import ai.kastrax.a2x.discovery.A2XDiscoveryService
@@ -92,6 +91,7 @@ class A2X private constructor() {
         registerEntityAdapter(EntityType.AGENT, A2AEntityAdapter())
         registerEntityAdapter(EntityType.SYSTEM, SystemEntityAdapter())
         registerEntityAdapter(EntityType.SYSTEM, DatabaseEntityAdapter())
+        registerEntityAdapter(EntityType.SYSTEM, APIEntityAdapter())
     }
 
     /**
@@ -130,6 +130,14 @@ class A2X private constructor() {
     fun adaptDatabaseConnector(databaseConnector: ai.kastrax.datasource.common.DatabaseConnector): Entity {
         val adapter = getEntityAdapter(EntityType.SYSTEM) ?: throw IllegalStateException("No adapter registered for SYSTEM entity type")
         return adapter.adapt(databaseConnector)
+    }
+
+    /**
+     * 适配 Web API 为 A2X 实体
+     */
+    fun adaptAPI(apiConfig: APIConfig): Entity {
+        val adapter = getEntityAdapter(EntityType.SYSTEM) ?: throw IllegalStateException("No adapter registered for SYSTEM entity type")
+        return adapter.adapt(apiConfig)
     }
 
     /**
@@ -373,6 +381,14 @@ class A2XDslBuilder {
      */
     fun database(databaseConnector: ai.kastrax.datasource.common.DatabaseConnector) {
         val entity = a2x.adaptDatabaseConnector(databaseConnector)
+        a2x.registerEntity(entity)
+    }
+
+    /**
+     * 注册 Web API
+     */
+    fun api(apiConfig: APIConfig) {
+        val entity = a2x.adaptAPI(apiConfig)
         a2x.registerEntity(entity)
     }
 

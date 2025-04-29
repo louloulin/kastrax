@@ -42,6 +42,7 @@ dependencies {
     implementation("io.ktor:ktor-client-core:$ktorVersion")
     implementation("io.ktor:ktor-client-cio:$ktorVersion")
     implementation("io.ktor:ktor-client-content-negotiation:$ktorVersion")
+    implementation("io.ktor:ktor-client-json:$ktorVersion")
 
     // Logging
     implementation("io.github.oshai:kotlin-logging-jvm:5.1.0")

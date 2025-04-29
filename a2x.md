@@ -95,7 +95,7 @@ A2X 的设计遵循以下原则：
 - **DatabaseAdapter**：与数据库和存储系统集成 (已实现: 完成了 DatabaseEntityAdapter 类，支持查询、执行和元数据操作)
 - **CloudAdapter**：与云服务和平台集成
 - **IoTAdapter**：与物联网设备和传感器集成
-- **APIAdapter**：与 Web API 和服务集成 (已实现: 完成了 A2XClient 类，支持与 Web API 交互)
+- **APIAdapter**：与 Web API 和服务集成 (已实现: 完成了 APIEntityAdapter 类，支持 GET、POST、PUT、DELETE、PATCH 请求，并支持多种认证方式)
 
 ## 6. 扩展功能
 
