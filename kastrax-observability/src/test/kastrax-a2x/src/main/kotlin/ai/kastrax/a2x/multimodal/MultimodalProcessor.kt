@@ -6,6 +6,7 @@ import ai.kastrax.a2x.semantic.RelationshipInferenceEngine
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import java.util.UUID
@@ -40,11 +41,6 @@ class MultimodalProcessor {
      * 当前融合策略
      */
     private var currentFusionStrategy: String = "simple"
-
-    init {
-        // 注册默认融合策略
-        registerFusionStrategy("simple", SimpleFusionStrategy())
-    }
 
     /**
      * 注册模态处理器
@@ -111,16 +107,30 @@ class MultimodalProcessor {
             if (processor != null) {
                 val result = processor.processInput(modalityInput)
                 results[modality] = result
+
+                // 提取实体
+                if (processor is EntityExtractingProcessor) {
+                    entities.addAll(processor.extractEntities(modalityInput))
+                }
             }
         }
 
+        // 推理实体间关系
+        val relationships = if (entities.isNotEmpty()) {
+            relationshipEngine.inferRelationships(entities, input.context)
+        } else {
+            emptyList()
+        }
+
         // 融合结果
-        val fusedResult = fuseResults(results, entities, emptyList(), input.context)
+        val fusedResult = fuseResults(results, entities, relationships, input.context)
 
         return MultimodalResult(
             id = input.id,
             modalityResults = results,
             fusedResult = fusedResult,
+            entities = entities,
+            relationships = relationships,
             context = input.context
         )
     }
@@ -144,9 +154,11 @@ class MultimodalProcessor {
      * 分析跨模态关系
      */
     fun analyzeCrossModalRelationships(
-        input: MultimodalInput
+        input: MultimodalInput,
+        context: Context? = null
     ): List<ModalityRelationship> {
         val modalityResults = mutableMapOf<String, ModalityResult>()
+        val entities = mutableListOf<ResolvedEntity>()
 
         // 处理每个模态的输入
         input.modalityInputs.forEach { (modality, modalityInput) ->
@@ -155,6 +167,11 @@ class MultimodalProcessor {
             if (processor != null) {
                 val result = processor.processInput(modalityInput)
                 modalityResults[modality] = result
+
+                // 提取实体
+                if (processor is EntityExtractingProcessor) {
+                    entities.addAll(processor.extractEntities(modalityInput))
+                }
             }
         }
 
@@ -174,7 +191,8 @@ class MultimodalProcessor {
                 // 分析关系
                 val relationship = analyzeModalityRelationship(
                     sourceModality, sourceResult,
-                    targetModality, targetResult
+                    targetModality, targetResult,
+                    context
                 )
 
                 relationships.add(relationship)
@@ -189,18 +207,21 @@ class MultimodalProcessor {
      */
     private fun analyzeModalityRelationship(
         sourceModality: String, sourceResult: ModalityResult,
-        targetModality: String, targetResult: ModalityResult
+        targetModality: String, targetResult: ModalityResult,
+        context: Context?
     ): ModalityRelationship {
         // 计算关系强度
         val strength = calculateModalityRelationshipStrength(
             sourceModality, sourceResult,
-            targetModality, targetResult
+            targetModality, targetResult,
+            context
         )
 
         // 确定关系类型
         val type = determineModalityRelationshipType(
             sourceModality, sourceResult,
-            targetModality, targetResult
+            targetModality, targetResult,
+            context
         )
 
         return ModalityRelationship(
@@ -210,8 +231,11 @@ class MultimodalProcessor {
             type = type,
             strength = strength,
             properties = buildJsonObject {
-                put("sourceResultId", sourceResult.id)
-                put("targetResultId", targetResult.id)
+                put("sourceResultId", JsonPrimitive(sourceResult.id))
+                put("targetResultId", JsonPrimitive(targetResult.id))
+                if (context != null) {
+                    put("contextId", JsonPrimitive(context.id))
+                }
             }
         )
     }
@@ -221,7 +245,8 @@ class MultimodalProcessor {
      */
     private fun calculateModalityRelationshipStrength(
         sourceModality: String, sourceResult: ModalityResult,
-        targetModality: String, targetResult: ModalityResult
+        targetModality: String, targetResult: ModalityResult,
+        context: Context?
     ): Double {
         // 简单实现，根据模态类型计算强度
         // 在实际应用中，可能需要更复杂的计算逻辑
@@ -241,7 +266,8 @@ class MultimodalProcessor {
      */
     private fun determineModalityRelationshipType(
         sourceModality: String, sourceResult: ModalityResult,
-        targetModality: String, targetResult: ModalityResult
+        targetModality: String, targetResult: ModalityResult,
+        context: Context?
     ): String {
         // 简单实现，根据模态类型确定关系类型
         // 在实际应用中，可能需要更复杂的逻辑
@@ -276,6 +302,16 @@ interface ModalityProcessor {
      * 处理输入
      */
     fun processInput(input: JsonElement): ModalityResult
+}
+
+/**
+ * 实体提取处理器接口
+ */
+interface EntityExtractingProcessor : ModalityProcessor {
+    /**
+     * 提取实体
+     */
+    fun extractEntities(input: JsonElement): List<ResolvedEntity>
 }
 
 /**
@@ -453,12 +489,72 @@ class TextProcessor : ModalityProcessor {
             }
         )
     }
+
+        val text = input.toString().replace("\"", "")
+        val entities = mutableListOf<ResolvedEntity>()
+
+        // 简单的实体提取逻辑，实际应用中可能需要更复杂的NLP处理
+        // 这里仅作为示例，提取一些常见实体类型
+
+        // 提取日期
+        val dateRegex = "\\b\\d{4}-\\d{2}-\\d{2}\\b".toRegex()
+        dateRegex.findAll(text).forEach { matchResult ->
+            val value = matchResult.value
+            val position = matchResult.range.first
+
+            entities.add(ResolvedEntity(
+                id = "entity-${UUID.randomUUID()}",
+                type = "date",
+                value = value,
+                position = position,
+                length = value.length,
+                confidence = 0.9,
+                properties = emptyMap()
+            ))
+        }
+
+        // 提取邮箱
+        val emailRegex = "\\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}\\b".toRegex()
+        emailRegex.findAll(text).forEach { matchResult ->
+            val value = matchResult.value
+            val position = matchResult.range.first
+
+            entities.add(ResolvedEntity(
+                id = "entity-${UUID.randomUUID()}",
+                type = "email",
+                value = value,
+                position = position,
+                length = value.length,
+                confidence = 0.95,
+                properties = emptyMap()
+            ))
+        }
+
+        // 提取URL
+        val urlRegex = "\\bhttps?://[^\\s]+\\b".toRegex()
+        urlRegex.findAll(text).forEach { matchResult ->
+            val value = matchResult.value
+            val position = matchResult.range.first
+
+            entities.add(ResolvedEntity(
+                id = "entity-${UUID.randomUUID()}",
+                type = "url",
+                value = value,
+                position = position,
+                length = value.length,
+                confidence = 0.9,
+                properties = emptyMap()
+            ))
+        }
+
+        return entities
+    }
 }
 
 /**
  * 图像处理器
  */
-class ImageProcessor : ModalityProcessor {
+class ImageProcessor : ModalityProcessor, EntityExtractingProcessor {
     override val modality: String = "image"
 
     override fun processInput(input: JsonElement): ModalityResult {
@@ -475,12 +571,52 @@ class ImageProcessor : ModalityProcessor {
             }
         )
     }
+
+    override fun extractEntities(input: JsonElement): List<ResolvedEntity> {
+        val imageUrl = input.toString().replace("\"", "")
+        val entities = mutableListOf<ResolvedEntity>()
+
+        // 模拟图像分析结果，实际应用中应该使用计算机视觉API或模型
+        // 这里仅作为示例，创建一些模拟的实体
+
+        // 模拟检测到的人脸
+        entities.add(ResolvedEntity(
+            id = "entity-${UUID.randomUUID()}",
+            type = "face",
+            value = "person",
+            position = 0,
+            length = 0,
+            confidence = 0.85,
+            properties = mapOf(
+                "modality" to JsonPrimitive("image"),
+                "url" to JsonPrimitive(imageUrl),
+                "boundingBox" to JsonPrimitive("100,100,200,200")
+            )
+        ))
+
+        // 模拟检测到的物体
+        entities.add(ResolvedEntity(
+            id = "entity-${UUID.randomUUID()}",
+            type = "object",
+            value = "car",
+            position = 0,
+            length = 0,
+            confidence = 0.78,
+            properties = mapOf(
+                "modality" to JsonPrimitive("image"),
+                "url" to JsonPrimitive(imageUrl),
+                "boundingBox" to JsonPrimitive("300,300,400,350")
+            )
+        ))
+
+        return entities
+    }
 }
 
 /**
  * 音频处理器
  */
-class AudioProcessor : ModalityProcessor {
+class AudioProcessor : ModalityProcessor, EntityExtractingProcessor {
     override val modality: String = "audio"
 
     override fun processInput(input: JsonElement): ModalityResult {
@@ -497,12 +633,54 @@ class AudioProcessor : ModalityProcessor {
             }
         )
     }
+
+    override fun extractEntities(input: JsonElement): List<ResolvedEntity> {
+        val audioUrl = input.toString().replace("\"", "")
+        val entities = mutableListOf<ResolvedEntity>()
+
+        // 模拟音频分析结果，实际应用中应该使用语音识别API或模型
+        // 这里仅作为示例，创建一些模拟的实体
+
+        // 模拟检测到的语音
+        entities.add(ResolvedEntity(
+            id = "entity-${UUID.randomUUID()}",
+            type = "speech",
+            value = "hello world",
+            position = 0,
+            length = 0,
+            confidence = 0.82,
+            properties = mapOf(
+                "modality" to JsonPrimitive("audio"),
+                "url" to JsonPrimitive(audioUrl),
+                "startTime" to JsonPrimitive("0.5"),
+                "endTime" to JsonPrimitive("2.3")
+            )
+        ))
+
+        // 模拟检测到的音乐
+        entities.add(ResolvedEntity(
+            id = "entity-${UUID.randomUUID()}",
+            type = "music",
+            value = "background music",
+            position = 0,
+            length = 0,
+            confidence = 0.75,
+            properties = mapOf(
+                "modality" to JsonPrimitive("audio"),
+                "url" to JsonPrimitive(audioUrl),
+                "startTime" to JsonPrimitive("0.0"),
+                "endTime" to JsonPrimitive("10.0")
+            )
+        ))
+
+        return entities
+    }
 }
 
 /**
  * 视频处理器
  */
-class VideoProcessor : ModalityProcessor {
+class VideoProcessor : ModalityProcessor, EntityExtractingProcessor {
     override val modality: String = "video"
 
     override fun processInput(input: JsonElement): ModalityResult {
@@ -518,6 +696,49 @@ class VideoProcessor : ModalityProcessor {
                 put("detected", "video detected")
             }
         )
+    }
+
+    override fun extractEntities(input: JsonElement): List<ResolvedEntity> {
+        val videoUrl = input.toString().replace("\"", "")
+        val entities = mutableListOf<ResolvedEntity>()
+
+        // 模拟视频分析结果，实际应用中应该使用视频分析API或模型
+        // 这里仅作为示例，创建一些模拟的实体
+
+        // 模拟检测到的场景
+        entities.add(ResolvedEntity(
+            id = "entity-${UUID.randomUUID()}",
+            type = "scene",
+            value = "outdoor",
+            position = 0,
+            length = 0,
+            confidence = 0.88,
+            properties = mapOf(
+                "modality" to JsonPrimitive("video"),
+                "url" to JsonPrimitive(videoUrl),
+                "startTime" to JsonPrimitive("0.0"),
+                "endTime" to JsonPrimitive("5.0")
+            )
+        ))
+
+        // 模拟检测到的动作
+        entities.add(ResolvedEntity(
+            id = "entity-${UUID.randomUUID()}",
+            type = "action",
+            value = "walking",
+            position = 0,
+            length = 0,
+            confidence = 0.79,
+            properties = mapOf(
+                "modality" to JsonPrimitive("video"),
+                "url" to JsonPrimitive(videoUrl),
+                "startTime" to JsonPrimitive("2.5"),
+                "endTime" to JsonPrimitive("8.0"),
+                "boundingBox" to JsonPrimitive("150,150,250,350")
+            )
+        ))
+
+        return entities
     }
 }
 
@@ -540,7 +761,7 @@ data class MultimodalInput(
      * 输入元数据
      */
     val metadata: Map<String, String> = emptyMap(),
-    
+
     /**
      * 上下文
      */
@@ -597,17 +818,17 @@ data class MultimodalResult(
      * 结果元数据
      */
     val metadata: Map<String, String> = emptyMap(),
-    
+
     /**
      * 提取的实体
      */
     val entities: List<ResolvedEntity> = emptyList(),
-    
+
     /**
      * 推理的关系
      */
     val relationships: List<ai.kastrax.a2x.semantic.Relationship> = emptyList(),
-    
+
     /**
      * 上下文
      */
@@ -623,27 +844,27 @@ data class ModalityRelationship(
      * 关系 ID
      */
     val id: String,
-    
+
     /**
      * 源模态
      */
     val sourceModality: String,
-    
+
     /**
      * 目标模态
      */
     val targetModality: String,
-    
+
     /**
      * 关系类型
      */
     val type: String,
-    
+
     /**
      * 关系强度
      */
     val strength: Double,
-    
+
     /**
      * 关系属性
      */

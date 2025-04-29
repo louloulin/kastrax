@@ -166,6 +166,13 @@ class SemanticService {
     }
 
     /**
+     * 更新上下文数据
+     */
+    fun updateContextData(contextId: String, data: JsonObject): Context? {
+        return contextManager.updateContextData(contextId, data)
+    }
+
+    /**
      * 添加消息到会话
      */
     fun addMessageToSession(sessionId: String, type: String, content: JsonObject): Session? {
