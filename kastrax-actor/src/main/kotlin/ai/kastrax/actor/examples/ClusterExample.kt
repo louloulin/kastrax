@@ -1,16 +1,20 @@
 package ai.kastrax.actor.examples
 
 import actor.proto.ActorSystem
+import actor.proto.PID
+import actor.proto.cluster.Cluster
+import actor.proto.cluster.Kind
+import actor.proto.fromProducer
+import actor.proto.requestAwait
 import ai.kastrax.actor.AgentRequest
 import ai.kastrax.actor.AgentResponse
+import ai.kastrax.actor.KastraxActor
 import ai.kastrax.actor.cluster.ClusterConfig
 import ai.kastrax.actor.cluster.configureCluster
 import ai.kastrax.actor.cluster.joinCluster
 import ai.kastrax.actor.cluster.leaveCluster
 import ai.kastrax.actor.cluster.getClusterMembers
-import ai.kastrax.actor.cluster.registerClusterAgent
-import ai.kastrax.actor.cluster.getClusterAgent
-import ai.kastrax.actor.cluster.broadcastToCluster
+import ai.kastrax.actor.cluster.getCluster
 import ai.kastrax.core.agent.Agent
 import ai.kastrax.core.agent.AgentGenerateOptions
 import ai.kastrax.core.agent.AgentResponse as CoreAgentResponse
@@ -114,15 +118,25 @@ object ClusterExample {
     fun startSeedNode() {
         // 配置集群
         val config = ClusterConfig(
+            hostname = "localhost",
             port = 8090,
             clusterName = "kastrax-demo-cluster",
             seeds = listOf("localhost:8090")
         )
         val system = configureCluster("seed-node", config)
 
-        // 注册 Agent
+        // 创建 Agent
         val seedAgent = ClusterMockAgent("种子节点代理")
-        system.registerClusterAgent(seedAgent, "assistant", "seed-assistant")
+
+        // 创建 Actor Props
+        val props = fromProducer { KastraxActor(seedAgent) }
+
+        // 获取集群实例
+        val cluster = system.getCluster()
+
+        // 注册 Kind
+        val kind = Kind("assistant", props)
+        cluster.registerKind(kind)
 
         // 加入集群
         system.joinCluster()
@@ -147,15 +161,25 @@ object ClusterExample {
     fun startWorkerNode(port: Int, name: String) {
         // 配置集群
         val config = ClusterConfig(
+            hostname = "localhost",
             port = port,
             clusterName = "kastrax-demo-cluster",
             seeds = listOf("localhost:8090")
         )
         val system = configureCluster(name, config)
 
-        // 注册 Agent
+        // 创建 Agent
         val workerAgent = ClusterMockAgent("$name-代理")
-        system.registerClusterAgent(workerAgent, "assistant", "$name-assistant")
+
+        // 创建 Actor Props
+        val props = fromProducer { KastraxActor(workerAgent) }
+
+        // 获取集群实例
+        val cluster = system.getCluster()
+
+        // 注册 Kind
+        val kind = Kind("assistant", props)
+        cluster.registerKind(kind)
 
         // 加入集群
         system.joinCluster()
@@ -180,6 +204,7 @@ object ClusterExample {
     fun startClient() = runBlocking {
         // 配置集群
         val config = ClusterConfig(
+            hostname = "localhost",
             port = 0, // 使用随机端口
             clusterName = "kastrax-demo-cluster",
             seeds = listOf("localhost:8090")
@@ -190,28 +215,28 @@ object ClusterExample {
         system.joinCluster()
 
         println("客户端已连接到集群")
-        
+
         // 获取集群成员
         val members = system.getClusterMembers()
         println("当前集群成员: $members")
 
-        // 获取任意一个助手 Agent
-        val assistantPid = system.getClusterAgent("assistant")
-        if (assistantPid != null) {
-            // 发送消息
-            val response = system.root.requestAwait<AgentResponse>(
-                assistantPid, 
-                AgentRequest("你好，集群助手！"), 
-                Duration.ofSeconds(5)
-            )
-            println("集群助手回答: ${response.text}")
-        } else {
-            println("找不到集群助手")
-        }
+        // 获取集群实例
+        val cluster = system.getCluster()
+
+        // 获取虚拟 Actor
+        val assistantPid = cluster.get("client-assistant", "assistant")
+
+        // 发送消息
+        val response = system.root.requestAwait<AgentResponse>(
+            assistantPid,
+            AgentRequest("你好，集群助手！"),
+            Duration.ofSeconds(5)
+        )
+        println("集群助手回答: ${response.text}")
 
         // 广播消息
         println("广播消息给所有助手...")
-        system.broadcastToCluster("assistant", AgentRequest("这是一条广播消息"))
+        cluster.pubSub.publish("assistant", AgentRequest("这是一条广播消息"))
 
         // 离开集群
         system.leaveCluster()

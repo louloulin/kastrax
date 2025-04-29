@@ -3,10 +3,12 @@ package ai.kastrax.actor.cluster
 import actor.proto.ActorSystem
 import actor.proto.PID
 import actor.proto.cluster.Cluster
+import actor.proto.cluster.Kind
+import actor.proto.fromProducer
 import ai.kastrax.actor.KastraxActor
-import ai.kastrax.actor.ActorAgentBuilder
 import ai.kastrax.actor.actorAgent
 import ai.kastrax.core.agent.Agent
+import kotlinx.coroutines.runBlocking
 
 /**
  * 配置集群 Actor 系统
@@ -22,37 +24,56 @@ fun configureCluster(name: String, config: ClusterConfig = ClusterConfig()): Act
     // 创建 ActorSystem
     val system = ActorSystem(name)
 
-    // 初始化集群
-    Cluster.get(system, kactorConfig)
+    // 创建集群
+    val cluster = Cluster.create(system, kactorConfig)
 
     return system
+}
+
+/**
+ * 获取集群实例
+ */
+fun ActorSystem.getCluster(): Cluster {
+    // 获取集群实例
+    val kactorConfig = ClusterConfig().toKactorClusterConfig()
+    return Cluster.create(this, kactorConfig)
 }
 
 /**
  * 加入集群
  */
 fun ActorSystem.joinCluster() {
-    // 获取集群实例并加入
-    val cluster = Cluster.get(this)
-    cluster.join()
+    // 获取集群实例
+    val cluster = getCluster()
+
+    // 启动集群成员
+    runBlocking {
+        cluster.startMember()
+    }
 }
 
 /**
  * 离开集群
  */
 fun ActorSystem.leaveCluster() {
-    // 获取集群实例并离开
-    val cluster = Cluster.get(this)
-    cluster.leave()
+    // 获取集群实例
+    val cluster = getCluster()
+
+    // 关闭集群
+    runBlocking {
+        cluster.shutdown(true)
+    }
 }
 
 /**
  * 获取集群成员列表
  */
 fun ActorSystem.getClusterMembers(): List<String> {
-    // 获取集群实例并返回成员列表
-    val cluster = Cluster.get(this)
-    return cluster.memberList.map { it.address }
+    // 获取集群实例
+    val cluster = getCluster()
+
+    // 返回成员列表
+    return cluster.memberList.getMembers().map { it.address() }
 }
 
 /**
@@ -65,28 +86,20 @@ fun ActorSystem.getClusterMembers(): List<String> {
  */
 fun ActorSystem.registerClusterAgent(agent: Agent, kind: String, id: String? = null): PID {
     // 获取集群实例
-    val cluster = Cluster.get(this)
-    
-    // 使用 actorAgent DSL 创建 Actor
-    val pid = this.actorAgent {
-        // 设置 Agent
-        agentBuilder.name = id ?: agent.name
-        
-        actor {
-            // 集群 Actor 特有的配置
-            oneForOneStrategy {
-                maxRetries = 5
-                withinTimeRange = java.time.Duration.ofMinutes(1)
-            }
-            // 使用无界邮箱，适合分布式通信
-            unboundedMailbox()
-        }
-    }
-    
-    // 注册到集群
-    cluster.registerMember(kind, pid)
-    
-    return pid
+    val cluster = getCluster()
+
+    // 创建 Actor Props
+    val props = fromProducer { KastraxActor(agent) }
+
+    // 创建 Kind
+    val actorKind = Kind(kind, props)
+
+    // 注册 Kind
+    cluster.registerKind(actorKind)
+
+    // 获取或创建虚拟 Actor
+    val actorId = id ?: agent.name
+    return runBlocking { cluster.get(actorId, kind) }
 }
 
 /**
@@ -98,15 +111,15 @@ fun ActorSystem.registerClusterAgent(agent: Agent, kind: String, id: String? = n
  */
 fun ActorSystem.getClusterAgent(kind: String, id: String? = null): PID? {
     // 获取集群实例
-    val cluster = Cluster.get(this)
-    
+    val cluster = getCluster()
+
     // 获取指定类型的 PID
     return if (id != null) {
-        cluster.get(kind, id)
+        runBlocking { cluster.get(id, kind) }
     } else {
-        // 如果没有指定 ID，则获取该类型的任意一个 PID
-        val members = cluster.getMembers(kind)
-        if (members.isNotEmpty()) members[0] else null
+        // 如果没有指定 ID，则返回 null
+        // 注意：kactor 不支持直接获取所有特定类型的 Actor
+        null
     }
 }
 
@@ -118,13 +131,8 @@ fun ActorSystem.getClusterAgent(kind: String, id: String? = null): PID? {
  */
 fun ActorSystem.broadcastToCluster(kind: String, message: Any) {
     // 获取集群实例
-    val cluster = Cluster.get(this)
-    
-    // 获取所有指定类型的 PID
-    val members = cluster.getMembers(kind)
-    
-    // 向所有成员发送消息
-    members.forEach { pid ->
-        this.root.send(pid, message)
-    }
+    val cluster = getCluster()
+
+    // 使用集群的 PubSub 发送广播消息
+    cluster.pubSub.publish(kind, message)
 }

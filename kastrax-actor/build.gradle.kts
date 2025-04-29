@@ -11,7 +11,7 @@ dependencies {
     implementation(project(":kactor:proto-actor"))
     implementation(project(":kactor:proto-mailbox"))
     implementation(project(":kactor:proto-remote"))
-    
+    implementation(project(":kactor:proto-cluster"))
     // Kotlin 协程
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
     
