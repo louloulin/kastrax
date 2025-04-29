@@ -8,7 +8,7 @@ kastrax-actor 是一个将 kastrax AI Agent 与 kactor Actor 模型结合的模�
 
 - [x] **KastraxActor 类**：实现了 kactor 的 Actor 接口，将 kastrax Agent 包装为 Actor
 - [x] **基本消息传递机制**：实现了 Agent 之间的消息传递
-- [x] **DSL 扩展**：支持创建 Actor 化的 Agent，直接复用现有的 agent DSL
+- [x] **DSL 扩展**：支持创建 Actor 化的 Agent，直接复用现有的 agent DSL，包括 Actor 化 Agent DSL、Agent 网络 DSL 和消息传递 DSL
 - [x] **基本示例和测试**：提供了基本使用示例和单元测试
 
 ### 高级功能
@@ -19,6 +19,16 @@ kastrax-actor 是一个将 kastrax AI Agent 与 kactor Actor 模型结合的模�
 - [x] **协作模式**：支持 Agent 之间的协作
 
 ## 使用示例
+
+### DSL 功能
+
+kastrax-actor 模块提供了三种 DSL，使得创建和管理 Actor 化的 Agent 变得更加简单和直观：
+
+1. **Actor 化 Agent DSL**：用于创建 Actor 化的 Agent，直接复用现有的 kastrax agent DSL
+2. **Agent 网络 DSL**：用于创建和管理 Agent 网络，支持添加 Agent 和设置协调者
+3. **消息传递 DSL**：用于在 Actor 之间传递消息，支持发送消息、请求-响应模式和流式请求
+
+有关 DSL 的详细信息，请参阅 [DSL 文档](docs/dsl-zh.md)。
 
 ### 基本使用
 
@@ -40,7 +50,7 @@ val agentPid = system.actorAgent {
             tool(calculatorTool)
         }
     }
-    
+
     // 这部分是 actor 特有的配置
     actor {
         // actor 特有的配置，如监督策略、邮箱类型等
@@ -89,7 +99,7 @@ val network = system.agentNetwork {
             }
         }
     }
-    
+
     // 创建专家 Agent
     agent("researcher") {
         agent {
@@ -98,7 +108,7 @@ val network = system.agentNetwork {
             model = deepSeek { /* 配置 */ }
         }
     }
-    
+
     // ... 添加更多 Agent
 }
 

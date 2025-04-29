@@ -18,6 +18,12 @@ import kotlinx.coroutines.runBlocking
 
 /**
  * Agent 网络示例
+ *
+ * 本示例展示了如何使用 Agent 网络功能，包括：
+ * 1. 创建 Agent 网络
+ * 2. 添加 Agent 到网络
+ * 3. 建立 Agent 之间的关系
+ * 4. 使用不同的协作协议
  */
 object AgentNetworkExample {
 
@@ -115,6 +121,9 @@ object AgentNetworkExample {
 
     /**
      * 专业化 Agent 实现
+     *
+     * 这是一个简单的 Agent 实现，用于演示目的。
+     * 在实际应用中，你可能会使用更复杂的 Agent 实现，如 DeepSeekAgent 或 AnthropicAgent。
      */
     private class SpecializedAgent(
         override val name: String,
@@ -129,7 +138,16 @@ object AgentNetworkExample {
 
         override suspend fun generate(prompt: String, options: AgentGenerateOptions): AgentResponse {
             // 模拟 Agent 响应
-            val sender = options.metadata["sender"] ?: "unknown"
+            val sender = options.metadata?.get("sender") ?: "unknown"
+
+            // 如果发送者是自己，返回简单响应以避免递归
+            if (sender == name) {
+                return AgentResponse(
+                    text = "[自我处理] $prompt",
+                    toolCalls = emptyList()
+                )
+            }
+
             val response = when {
                 prompt.contains("分析并分解任务") -> {
                     "1. 收集相关领域的最新研究和应用\n" +
@@ -164,7 +182,9 @@ object AgentNetworkExample {
         }
 
         override suspend fun stream(prompt: String, options: AgentStreamOptions): AgentResponse {
-            val response = generate(prompt, AgentGenerateOptions())
+            // 创建一个安全的选项对象，避免递归
+            val safeOptions = AgentGenerateOptions(metadata = null)
+            val response = generate(prompt, safeOptions)
             return AgentResponse(
                 text = response.text,
                 toolCalls = emptyList(),
