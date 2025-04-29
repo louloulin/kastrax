@@ -61,6 +61,26 @@ include(":kastrax-app")
 include(":kastrax-agent-templates")
 include(":kastrax-a2a")
 include(":kastrax-a2x")
+include(":kactor")
+
+// Include kactor subprojects
+include(":kactor:proto-mailbox")
+include(":kactor:proto-actor")
+include(":kactor:proto-router")
+include(":kactor:proto-remote")
+include(":kactor:proto-cluster")
+include(":kactor:proto-persistence")
+include(":kactor:proto-stream")
+include(":kactor:proto-benchmarks")
+include(":kactor:proto-plugin")
+include(":kactor:proto-plugin-examples")
+include(":kactor:proto-cluster-libp2p")
+include(":kactor:examples")
+include(":kactor:native-example")
+include(":kactor:simple-native")
+include(":kactor:benchmark-native")
+include(":kactor:native-minimal")
+// include(":kactor:dataflare") // 目录不存在
 
 // Native modules - 暂时注释掉，避免构建错误
 // include(":kastrax-native")
