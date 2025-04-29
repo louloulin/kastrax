@@ -1,6 +1,7 @@
 package ai.kastrax.actor
 
 import actor.proto.PID
+import ai.kastrax.actor.multimodal.MultimodalMessage
 import ai.kastrax.core.agent.AgentGenerateOptions
 import ai.kastrax.core.agent.AgentStreamOptions
 import ai.kastrax.core.llm.LlmToolCall
