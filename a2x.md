@@ -92,7 +92,7 @@ A2X 的设计遵循以下原则：
 适配器层提供与各种系统和服务的集成，包括：
 
 - **SystemAdapter**：与操作系统和平台集成 (已实现: 完成了 SystemEntityAdapter 类，支持系统信息、文件和进程操作)
-- **DatabaseAdapter**：与数据库和存储系统集成
+- **DatabaseAdapter**：与数据库和存储系统集成 (已实现: 完成了 DatabaseEntityAdapter 类，支持查询、执行和元数据操作)
 - **CloudAdapter**：与云服务和平台集成
 - **IoTAdapter**：与物联网设备和传感器集成
 - **APIAdapter**：与 Web API 和服务集成 (已实现: 完成了 A2XClient 类，支持与 Web API 交互)

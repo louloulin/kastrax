@@ -16,6 +16,7 @@ dependencies {
     // KastraX Core
     implementation(project(":kastrax-core"))
     implementation(project(":kastrax-a2a"))
+    implementation(project(":kastrax-datasource-common"))
 
     // Kotlin
     implementation(kotlin("stdlib"))

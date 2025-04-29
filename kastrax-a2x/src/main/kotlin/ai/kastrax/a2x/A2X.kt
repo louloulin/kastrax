@@ -3,6 +3,7 @@ package ai.kastrax.a2x
 import ai.kastrax.a2a.A2A
 import ai.kastrax.a2a.agent.A2AAgent
 import ai.kastrax.a2x.adapter.A2AEntityAdapter
+import ai.kastrax.a2x.adapter.DatabaseEntityAdapter
 import ai.kastrax.a2x.adapter.SystemEntityAdapter
 import ai.kastrax.a2x.client.A2XClient
 import ai.kastrax.a2x.client.A2XClientConfig
@@ -90,6 +91,7 @@ class A2X private constructor() {
         // 注册默认适配器
         registerEntityAdapter(EntityType.AGENT, A2AEntityAdapter())
         registerEntityAdapter(EntityType.SYSTEM, SystemEntityAdapter())
+        registerEntityAdapter(EntityType.SYSTEM, DatabaseEntityAdapter())
     }
 
     /**
@@ -120,6 +122,14 @@ class A2X private constructor() {
     fun adaptA2AAgent(a2aAgent: A2AAgent): Entity {
         val adapter = getEntityAdapter(EntityType.AGENT) ?: throw IllegalStateException("No adapter registered for AGENT entity type")
         return adapter.adapt(a2aAgent)
+    }
+
+    /**
+     * 适配数据库连接器为 A2X 实体
+     */
+    fun adaptDatabaseConnector(databaseConnector: ai.kastrax.datasource.common.DatabaseConnector): Entity {
+        val adapter = getEntityAdapter(EntityType.SYSTEM) ?: throw IllegalStateException("No adapter registered for SYSTEM entity type")
+        return adapter.adapt(databaseConnector)
     }
 
     /**
@@ -355,6 +365,14 @@ class A2XDslBuilder {
      */
     fun a2aAgent(a2aAgent: A2AAgent) {
         val entity = a2x.adaptA2AAgent(a2aAgent)
+        a2x.registerEntity(entity)
+    }
+
+    /**
+     * 注册数据库连接器
+     */
+    fun database(databaseConnector: ai.kastrax.datasource.common.DatabaseConnector) {
+        val entity = a2x.adaptDatabaseConnector(databaseConnector)
         a2x.registerEntity(entity)
     }
 
