@@ -1,0 +1,18 @@
+[
+  {
+    "name": "java.lang.System",
+    "methods": [
+      { "name": "getProperty", "parameterTypes": ["java.lang.String"] }
+    ]
+  },
+  {
+    "name": "java.lang.Runtime",
+    "methods": [
+      { "name": "getRuntime", "parameterTypes": [] },
+      { "name": "availableProcessors", "parameterTypes": [] },
+      { "name": "maxMemory", "parameterTypes": [] },
+      { "name": "totalMemory", "parameterTypes": [] },
+      { "name": "freeMemory", "parameterTypes": [] }
+    ]
+  }
+]

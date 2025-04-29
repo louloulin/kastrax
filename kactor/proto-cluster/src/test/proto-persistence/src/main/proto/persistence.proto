@@ -1,0 +1,49 @@
+syntax = "proto3";
+
+package actor.proto.persistence;
+
+option java_package = "actor.proto.persistence.proto";
+option java_outer_classname = "PersistenceProtos";
+option java_multiple_files = true;
+
+// Snapshot represents a persisted snapshot
+message Snapshot {
+    // The index of the snapshot
+    int32 index = 1;
+    
+    // The serialized data of the snapshot
+    bytes data = 2;
+    
+    // The type of the snapshot
+    string type = 3;
+}
+
+// Event represents a persisted event
+message Event {
+    // The index of the event
+    int32 index = 1;
+    
+    // The serialized data of the event
+    bytes data = 2;
+    
+    // The type of the event
+    string type = 3;
+}
+
+// ActorState represents the state of an actor
+message ActorState {
+    // The name of the actor
+    string actor_name = 1;
+    
+    // The events of the actor
+    repeated Event events = 2;
+    
+    // The snapshot of the actor
+    Snapshot snapshot = 3;
+}
+
+// PersistenceState represents the state of the persistence
+message PersistenceState {
+    // The actors in the persistence
+    repeated ActorState actors = 1;
+}

@@ -1,0 +1,113 @@
+package actor.proto.mailbox
+
+import java.util.*
+import java.util.concurrent.atomic.AtomicInteger
+
+private val emptyStats = arrayOf<MailboxStatistics>()
+typealias MailboxQueue = Queue<Any>
+class DefaultMailbox(private val systemMessages: MailboxQueue,
+                     private val userMailbox: MailboxQueue,
+                     private val stats: Array<MailboxStatistics> = emptyStats) : Mailbox {
+
+    private val status = AtomicInteger(MailboxStatus.IDLE)
+    private val sysCount = AtomicInteger(0)
+    private val userCount = AtomicInteger(0)
+    private lateinit var dispatcher: Dispatcher
+    private lateinit var invoker: MessageInvoker
+    private var suspended: Boolean = false
+
+    fun status(): Int = status.get()
+
+    override fun postUserMessage(msg: Any) {
+        // Handle MessageBatch - extract and post individual messages
+        if (msg is MessageBatch) {
+            val messages = msg.getMessages()
+            for (m in messages) {
+                postUserMessage(m)
+            }
+            // Also post the batch itself
+            postSingleUserMessage(msg)
+            return
+        }
+
+        // Handle normal message
+        postSingleUserMessage(msg)
+    }
+
+    private fun postSingleUserMessage(msg: Any) {
+        if (userMailbox.offer(msg)) {
+            userCount.incrementAndGet()
+            schedule()
+            for (stats in stats) stats.messagePosted(msg)
+        } else {
+            for (stats in stats) stats.messageDropped(msg)
+        }
+    }
+
+    override fun postSystemMessage(msg: Any) {
+        sysCount.incrementAndGet()
+        systemMessages.add(msg)
+        for (stats in stats) stats.messagePosted(msg)
+        schedule()
+    }
+
+    override fun registerHandlers(invoker: MessageInvoker, dispatcher: Dispatcher) {
+        this.invoker = invoker
+        this.dispatcher = dispatcher
+    }
+
+    override fun start() {
+        for (stats in stats) stats.mailboxStarted()
+    }
+
+    override suspend fun run() {
+        var msg: Any? = null
+        try {
+            for (i in 0 until dispatcher.throughput) {
+
+                if (sysCount.get() > 0) {
+                    msg = systemMessages.poll()
+                    sysCount.decrementAndGet()
+
+                    if (msg != null) {
+                        when (msg) {
+                            is SuspendMailbox -> suspended = true
+                            is ResumeMailbox -> suspended = false
+                        }
+                        invoker.invokeSystemMessage(msg as SystemMessage)
+                        for (stat in stats) stat.messageReceived(msg)
+                    }
+                }
+                if (!suspended && userCount.get() > 0) {
+                    msg = userMailbox.poll()
+                    userCount.decrementAndGet()
+                    if (msg == null) break
+                    else {
+                        invoker.invokeUserMessage(msg)
+                        for (stat in stats) stat.messageReceived(msg)
+                    }
+                } else {
+                    break
+                }
+            }
+        } catch (e: Exception) {
+            if (msg != null) invoker.escalateFailure(e, msg)
+        }
+
+        status.set(MailboxStatus.IDLE)
+        if (sysCount.get() > 0 || (!suspended && userCount.get() > 0)) {
+            schedule()
+        } else {
+            for (stat in stats) stat.mailboxEmpty()
+        }
+    }
+
+    private fun schedule() {
+        val wasIdle = status.compareAndSet(MailboxStatus.IDLE, MailboxStatus.BUSY)
+        if (wasIdle) {
+            dispatcher.schedule(this)
+        }
+    }
+}
+
+

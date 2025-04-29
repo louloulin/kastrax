@@ -1,0 +1,9 @@
+@plan.md 按计划，参考protoactor-go的代码实现计划的功能，并增加验证，验证通过后更新 @plan.md 标记实现的功能，并增加文档
+
+继续执行gradle build 分析问题，同时参考protoactor-go目录代码，优化整个protoactor-kotlin的实现
+
+按照计划 @plan2.md 实现相关功能，参考protoactor-go同时参考kotlin特性实现，增加测试验证，验证通过后更新 @plan2.md 标记实现的功能
+
+按照计划 @plan3.md 实现相关功能，参考protoactor-go同时参考kotlin特性实现，增加测试验证，验证通过后更新 @plan3.md  标记实现的功能
+
+按照计划 @p2p.md 实现相关功能 参考kotlin特性实现，增加测试验证，验证通过后更新 @p2p.md  标记实现的功能

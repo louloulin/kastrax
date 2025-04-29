@@ -1,0 +1,41 @@
+syntax = "proto3";
+package actor.proto.cluster;
+option java_package = "actor.proto.cluster";
+option java_outer_classname = "PubSubProtos";
+
+import "google/protobuf/any.proto";
+
+// PubSubMessage represents a message published to a topic
+message PubSubMessage {
+    string topic = 1;
+    google.protobuf.Any message = 2;
+}
+
+// PubSubBatch represents a batch of messages published to a topic
+message PubSubBatch {
+    repeated PubSubMessage messages = 1;
+}
+
+// SubscriptionRequest represents a request to subscribe to a topic
+message SubscriptionRequest {
+    string topic = 1;
+    string subscriber_id = 2;
+}
+
+// SubscriptionResponse represents a response to a subscription request
+message SubscriptionResponse {
+    bool success = 1;
+    string error_message = 2;
+}
+
+// UnsubscriptionRequest represents a request to unsubscribe from a topic
+message UnsubscriptionRequest {
+    string topic = 1;
+    string subscriber_id = 2;
+}
+
+// UnsubscriptionResponse represents a response to an unsubscription request
+message UnsubscriptionResponse {
+    bool success = 1;
+    string error_message = 2;
+}

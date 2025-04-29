@@ -1,0 +1,51 @@
+plugins {
+    id 'org.jetbrains.kotlin.jvm'
+}
+
+group = 'actor.proto'
+version = '0.1.0'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation project(':kactor:proto-actor')
+    implementation "org.jetbrains.kotlin:kotlin-stdlib"
+    implementation "org.jetbrains.kotlin:kotlin-reflect"
+    implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.4"
+
+    // PF4J - Plugin Framework for Java
+    implementation "org.pf4j:pf4j:3.9.0"
+
+    // GraalVM Polyglot API (optional)
+    compileOnly "org.graalvm.sdk:graal-sdk:22.3.0"
+
+    testImplementation "org.junit.jupiter:junit-jupiter-api:5.9.0"
+    testImplementation "org.junit.jupiter:junit-jupiter-engine:5.9.0"
+    testImplementation "org.mockito:mockito-core:4.8.0"
+    testImplementation "org.mockito.kotlin:mockito-kotlin:4.0.0"
+}
+
+test {
+    useJUnitPlatform()
+}
+
+compileKotlin {
+    kotlinOptions {
+        jvmTarget = '17'
+        freeCompilerArgs = ["-Xjsr305=strict"]
+    }
+}
+
+compileTestKotlin {
+    kotlinOptions {
+        jvmTarget = '17'
+        freeCompilerArgs = ["-Xjsr305=strict"]
+    }
+}
+
+compileJava {
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+}

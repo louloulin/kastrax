@@ -1,0 +1,71 @@
+[
+  {
+    "name": "actor.proto.Actor",
+    "allDeclaredMethods": true,
+    "allPublicMethods": true
+  },
+  {
+    "name": "actor.proto.ActorContext",
+    "allDeclaredFields": true,
+    "allDeclaredMethods": true,
+    "allPublicMethods": true
+  },
+  {
+    "name": "actor.proto.ActorSystem",
+    "allDeclaredFields": true,
+    "allDeclaredMethods": true,
+    "allPublicMethods": true
+  },
+  {
+    "name": "actor.proto.PID",
+    "allDeclaredFields": true,
+    "allDeclaredMethods": true,
+    "allPublicMethods": true
+  },
+  {
+    "name": "actor.proto.Props",
+    "allDeclaredFields": true,
+    "allDeclaredMethods": true,
+    "allPublicMethods": true
+  },
+  {
+    "name": "actor.proto.mailbox.DefaultMailbox",
+    "allDeclaredFields": true,
+    "allDeclaredMethods": true,
+    "allPublicMethods": true
+  },
+  {
+    "name": "actor.proto.examples.helloworld.HelloWorldKt",
+    "methods": [
+      { "name": "main", "parameterTypes": ["java.lang.String[]"] }
+    ]
+  },
+  {
+    "name": "actor.proto.examples.helloworld.HelloActor",
+    "allDeclaredFields": true,
+    "allDeclaredMethods": true,
+    "allPublicMethods": true
+  },
+  {
+    "name": "kotlin.coroutines.jvm.internal.BaseContinuationImpl",
+    "allDeclaredFields": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "kotlin.coroutines.jvm.internal.ContinuationImpl",
+    "allDeclaredFields": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "kotlin.coroutines.jvm.internal.DebugProbesKt",
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "kotlin.jvm.internal.Reflection",
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "kotlin.reflect.jvm.internal.ReflectionFactoryImpl",
+    "allDeclaredMethods": true
+  }
+]

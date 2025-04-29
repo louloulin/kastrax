@@ -1,0 +1,27 @@
+# Logs
+*.log
+
+# Package
+*.jar
+*.zip
+*.tar.gz
+*.rar
+
+# 但保留 libs 目录中的 JAR 文件
+!libs/**/*.jar
+
+# Gradle
+.gradle
+!gradle-wrapper.jar
+.gradletasknamecache
+build/
+
+# Intellij
+.idea/
+*.iml
+*.ipr
+*.iws
+out/
+
+# jvm-libp2p 源码目录
+jvm-libp2p/

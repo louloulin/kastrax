@@ -1,0 +1,24 @@
+name: simple-workflow
+description: A simple workflow for testing
+
+source:
+  type: file
+  config:
+    path: input/data.csv
+    format: csv
+    delimiter: ","
+    header: true
+
+processors:
+  - name: filter
+    type: filter
+    config:
+      condition: "age > 18"
+
+sink:
+  type: file
+  config:
+    path: output/result.csv
+    format: csv
+    delimiter: ","
+    header: true

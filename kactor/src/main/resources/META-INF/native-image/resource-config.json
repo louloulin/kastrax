@@ -1,0 +1,31 @@
+{
+  "resources": {
+    "includes": [
+      {
+        "pattern": "\\Qworkflows/.*\\E"
+      },
+      {
+        "pattern": "\\Qinput/.*\\E"
+      },
+      {
+        "pattern": "\\Qoutput/.*\\E"
+      },
+      {
+        "pattern": ".*\\.properties"
+      },
+      {
+        "pattern": ".*\\.yaml"
+      },
+      {
+        "pattern": ".*\\.csv"
+      },
+      {
+        "pattern": "META-INF/services/.*"
+      },
+      {
+        "pattern": "simplelogger.properties"
+      }
+    ]
+  },
+  "bundles": []
+}

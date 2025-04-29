@@ -1,0 +1,29 @@
+syntax = "proto3";
+package actor.proto.cluster;
+option java_package = "actor.proto.cluster";
+option java_outer_classname = "GossipProtos";
+
+import "google/protobuf/any.proto";
+
+// GossipState represents the state of a node in the gossip protocol
+message GossipState {
+    map<string, google.protobuf.Any> values = 1;
+    map<string, uint64> versions = 2;
+}
+
+// GossipUpdate represents an update to the gossip state
+message GossipUpdate {
+    string key = 1;
+    google.protobuf.Any value = 2;
+    uint64 version = 3;
+}
+
+// GossipRequest is a request for gossip state
+message GossipRequest {
+    GossipState state = 1;
+}
+
+// GossipResponse is a response to a gossip request
+message GossipResponse {
+    GossipState state = 1;
+}

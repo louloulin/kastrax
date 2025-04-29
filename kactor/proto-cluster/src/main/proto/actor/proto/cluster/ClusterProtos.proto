@@ -1,0 +1,66 @@
+syntax = "proto3";
+package actor.proto.cluster;
+option java_package = "actor.proto.cluster";
+option java_outer_classname = "ClusterProtos";
+
+import "actor/proto/ActorProtos.proto";
+
+// Member represents a node in the cluster
+message Member {
+    string id = 1;
+    string host = 2;
+    int32 port = 3;
+    map<string, string> labels = 4;
+    MemberStatus status = 5;
+    uint64 heartbeat = 6;
+}
+
+// MemberStatus represents the status of a member
+enum MemberStatus {
+    ALIVE = 0;
+    LEAVING = 1;
+    UNAVAILABLE = 2;
+}
+
+// ClusterTopology represents the current state of the cluster
+message ClusterTopology {
+    repeated string members = 1;
+    repeated string joined = 2;
+    repeated string left = 3;
+    repeated string blocked = 4;
+    uint64 topology_hash = 5;
+}
+
+// ClusterIdentity uniquely identifies an actor in the cluster
+message ClusterIdentity {
+    string identity = 1;
+    string kind = 2;
+}
+
+// ActivationRequest is sent to activate a virtual actor
+message ActivationRequest {
+    ClusterIdentity cluster_identity = 1;
+}
+
+// ActivationResponse is the response to an activation request
+message ActivationResponse {
+    actor.PID pid = 1;
+}
+
+// GrainRequest is a request to a grain
+message GrainRequest {
+    string method = 1;
+    bytes message_data = 2;
+    int32 message_type_id = 3;
+}
+
+// GrainResponse is a response from a grain
+message GrainResponse {
+    bytes message_data = 1;
+    int32 message_type_id = 2;
+}
+
+// GrainErrorResponse is an error response from a grain
+message GrainErrorResponse {
+    string error_message = 1;
+}

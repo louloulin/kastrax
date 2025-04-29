@@ -1,0 +1,7 @@
+# 列出所有扩展点实现
+actor.proto.plugin.passivation.PassivationPlugin$PassivationReceiveMiddleware
+actor.proto.plugin.passivation.PassivationPlugin$PassivationPropsDecorator
+actor.proto.plugin.persistence.PersistencePlugin$PersistentActorDecorator
+actor.proto.plugin.polyglot.GraalPlugin$JavaScriptReceiveMiddleware
+actor.proto.plugin.polyglot.GraalPlugin$JavaScriptSenderMiddleware
+actor.proto.plugin.polyglot.GraalPlugin$PythonReceiveMiddleware

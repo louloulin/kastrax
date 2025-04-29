@@ -1,0 +1,19 @@
+{
+  "resources": {
+    "includes": [
+      {
+        "pattern": ".*\\.properties"
+      },
+      {
+        "pattern": "META-INF/services/.*"
+      },
+      {
+        "pattern": "META-INF/native/.*"
+      },
+      {
+        "pattern": "org/slf4j/impl/StaticLoggerBinder.class"
+      }
+    ]
+  },
+  "bundles": []
+}
