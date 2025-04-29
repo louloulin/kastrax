@@ -132,7 +132,7 @@ object ClusterExample {
         val props = fromProducer { KastraxActor(seedAgent) }
 
         // 获取集群实例
-        val cluster = system.getCluster()
+        val cluster = system.getCluster(config)
 
         // 注册 Kind
         val kind = Kind("assistant", props)
@@ -175,7 +175,7 @@ object ClusterExample {
         val props = fromProducer { KastraxActor(workerAgent) }
 
         // 获取集群实例
-        val cluster = system.getCluster()
+        val cluster = system.getCluster(config)
 
         // 注册 Kind
         val kind = Kind("assistant", props)
@@ -221,7 +221,7 @@ object ClusterExample {
         println("当前集群成员: $members")
 
         // 获取集群实例
-        val cluster = system.getCluster()
+        val cluster = system.getCluster(config)
 
         // 获取虚拟 Actor
         val assistantPid = cluster.get("client-assistant", "assistant")

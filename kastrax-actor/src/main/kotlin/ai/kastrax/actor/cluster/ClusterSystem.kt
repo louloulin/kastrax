@@ -18,25 +18,38 @@ import kotlinx.coroutines.runBlocking
  * @return 配置好的 ActorSystem
  */
 fun configureCluster(name: String, config: ClusterConfig = ClusterConfig()): ActorSystem {
-    // 创建 kactor 集群配置
-    val kactorConfig = config.toKactorClusterConfig()
-
     // 创建 ActorSystem
     val system = ActorSystem(name)
 
-    // 创建集群
-    val cluster = Cluster.create(system, kactorConfig)
+    // 获取集群实例（会自动创建并缓存）
+    system.getCluster(config)
 
     return system
 }
 
 /**
- * 获取集群实例
+ * 集群实例缓存
  */
-fun ActorSystem.getCluster(): Cluster {
-    // 获取集群实例
-    val kactorConfig = ClusterConfig().toKactorClusterConfig()
-    return Cluster.create(this, kactorConfig)
+private val clusterCache = mutableMapOf<String, Cluster>()
+
+/**
+ * 获取集群实例
+ *
+ * @param config 集群配置，如果不提供则使用默认配置
+ * @return 集群实例
+ */
+fun ActorSystem.getCluster(config: ClusterConfig = ClusterConfig()): Cluster {
+    // 使用系统地址作为缓存键
+    val cacheKey = this.address
+
+    // 如果缓存中存在则直接返回
+    return clusterCache.getOrPut(cacheKey) {
+        // 创建 kactor 集群配置
+        val kactorConfig = config.toKactorClusterConfig()
+
+        // 创建集群实例
+        Cluster.create(this, kactorConfig)
+    }
 }
 
 /**
