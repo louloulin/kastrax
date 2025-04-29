@@ -1,9 +1,9 @@
 package ai.kastrax.actor
 
 import actor.proto.PID
-import ai.kastrax.agent.AgentGenerateOptions
-import ai.kastrax.agent.AgentStreamOptions
-import ai.kastrax.agent.ToolCall
+import ai.kastrax.core.agent.AgentGenerateOptions
+import ai.kastrax.core.agent.AgentStreamOptions
+import ai.kastrax.core.llm.LlmToolCall
 import kotlinx.serialization.json.JsonObject
 
 /**
@@ -30,7 +30,7 @@ data class AgentRequest(
  */
 data class AgentResponse(
     val text: String,
-    val toolCalls: List<ToolCall> = emptyList()
+    val toolCalls: List<LlmToolCall> = emptyList()
 ) : AgentMessage
 
 /**

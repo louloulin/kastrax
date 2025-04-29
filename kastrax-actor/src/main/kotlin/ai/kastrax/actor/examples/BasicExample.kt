@@ -1,11 +1,17 @@
 package ai.kastrax.actor.examples
 
 import actor.proto.ActorSystem
-import ai.kastrax.actor.actorAgent
-import ai.kastrax.actor.askMessage
-import ai.kastrax.actor.sendMessage
-import ai.kastrax.actor.streamMessage
-import ai.kastrax.integrations.deepseek.DeepSeekModel
+import actor.proto.fromProducer
+import ai.kastrax.actor.AgentRequest
+import ai.kastrax.actor.AgentResponse
+import ai.kastrax.core.agent.Agent
+import ai.kastrax.core.agent.AgentGenerateOptions
+import ai.kastrax.core.agent.AgentResponse as CoreAgentResponse
+import ai.kastrax.core.agent.AgentStreamOptions
+import ai.kastrax.core.agent.SessionMessage
+import ai.kastrax.core.llm.LlmToolCall
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.runBlocking
 import kotlin.time.Duration.Companion.minutes
 
@@ -15,76 +21,73 @@ import kotlin.time.Duration.Companion.minutes
 fun main() = runBlocking {
     // 创建 Actor 系统
     val system = ActorSystem("kastrax-system")
-    
-    // 创建 Actor 化的 Agent，直接复用现有的 agent DSL
-    val agentPid = system.actorAgent {
-        // 这部分是现有的 kastrax agent DSL
-        agent {
-            name = "助手"
-            instructions = "你是一个有帮助的助手。"
-            model = ai.kastrax.integrations.deepseek.deepSeek {
-                model(DeepSeekModel.DEEPSEEK_CHAT)
-                apiKey(System.getenv("DEEPSEEK_API_KEY") ?: "your-api-key-here")
-            }
-            tools {
-                tool("calculator") {
-                    description = "执行数学计算"
-                    input {
-                        field("expression", string()) {
-                            description = "要计算的表达式"
-                        }
-                    }
-                    output {
-                        field("result", number()) {
-                            description = "计算结果"
-                        }
-                    }
-                    execute { input ->
-                        val expression = input.getString("expression")
-                        val result = evaluateExpression(expression)
-                        jsonObject {
-                            "result" to result
-                        }
-                    }
-                }
-            }
-        }
-        
-        // 这部分是 actor 特有的配置
-        actor {
-            // actor 特有的配置，如监督策略、邮箱类型等
-            oneForOneStrategy {
-                maxRetries = 3
-                withinTimeRange = 1.minutes
-            }
-            unboundedMailbox()
-        }
-    }
-    
+
+    // 创建模拟 Agent
+    val mockAgent = MockAgent()
+
+    // 创建 Actor
+    val props = fromProducer { ai.kastrax.actor.KastraxActor(mockAgent) }
+    val agentPid = system.root.spawn(props)
+
     // 发送消息
-    system.sendMessage(agentPid, "你能帮我计算 2 + 2 吗？")
-    
+    system.root.send(agentPid, AgentRequest("你能帮我计算 2 + 2 吗？"))
+
     // 请求-响应模式
-    val response = system.askMessage(agentPid, "巴黎的人口是多少？")
-    println("回答: $response")
-    
-    // 流式请求
-    system.streamMessage(agentPid, "讲个故事") { chunk ->
-        print(chunk)
-    }
-    
+    val response = system.root.requestAwait<AgentResponse>(agentPid, AgentRequest("巴黎的人口是多少？"))
+    println("回答: ${response.text}")
+
     // 关闭系统
     system.shutdown()
 }
 
 /**
- * 简单的表达式计算函数
+ * 模拟 Agent 实现，用于测试
  */
-private fun evaluateExpression(expression: String): Double {
-    return try {
-        val sanitized = expression.replace("[^0-9+\\-*/().\\s]".toRegex(), "")
-        javax.script.ScriptEngineManager().getEngineByName("JavaScript").eval(sanitized).toString().toDouble()
-    } catch (e: Exception) {
-        throw IllegalArgumentException("无法计算表达式: $expression", e)
+class MockAgent : Agent {
+    override val name: String = "MockAgent"
+    override val versionManager = null
+
+    override suspend fun generate(prompt: String, options: AgentGenerateOptions): CoreAgentResponse {
+        return CoreAgentResponse(
+            text = "这是对“$prompt”的模拟响应",
+            toolCalls = emptyList()
+        )
+    }
+
+    override suspend fun generate(messages: List<ai.kastrax.core.llm.LlmMessage>, options: AgentGenerateOptions): CoreAgentResponse {
+        return generate(messages.lastOrNull()?.content ?: "", options)
+    }
+
+    override suspend fun stream(prompt: String, options: AgentStreamOptions): CoreAgentResponse {
+        return CoreAgentResponse(
+            text = "这是对“$prompt”的模拟流式响应",
+            textStream = flowOf("这", "是", "对", "“$prompt”", "的", "模拟", "流式", "响应")
+        )
+    }
+
+    override suspend fun reset() {
+        // 什么也不做
+    }
+
+    override suspend fun getState() = null
+
+    override suspend fun updateState(status: ai.kastrax.core.agent.AgentStatus) = null
+
+    override suspend fun createSession(title: String?, resourceId: String?, metadata: Map<String, String>) = null
+
+    override suspend fun getSession(sessionId: String) = null
+
+    override suspend fun createVersion(instructions: String, name: String?, description: String?, metadata: Map<String, String>, activateImmediately: Boolean) = null
+
+    override suspend fun getVersions(limit: Int, offset: Int) = emptyList<ai.kastrax.core.agent.version.AgentVersion>()
+
+    override suspend fun getActiveVersion() = null
+
+    override suspend fun activateVersion(versionId: String) = null
+
+    override suspend fun rollbackToVersion(versionId: String) = null
+
+    override suspend fun getSessionMessages(sessionId: String, limit: Int): List<SessionMessage>? {
+        return null
     }
 }

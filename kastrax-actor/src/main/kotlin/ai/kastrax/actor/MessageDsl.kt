@@ -1,10 +1,13 @@
 package ai.kastrax.actor
 
+import actor.proto.Actor
 import actor.proto.ActorSystem
+import actor.proto.Context
 import actor.proto.PID
 import actor.proto.Props
-import ai.kastrax.agent.AgentGenerateOptions
-import ai.kastrax.agent.AgentStreamOptions
+import actor.proto.fromProducer
+import ai.kastrax.core.agent.AgentGenerateOptions
+import ai.kastrax.core.agent.AgentStreamOptions
 
 /**
  * 发送消息给 Agent
@@ -50,10 +53,14 @@ fun ActorSystem.streamMessage(target: PID, prompt: String, options: AgentStreamO
  * @return 流处理 Actor 的 PID
  */
 private fun ActorSystem.spawnStreamHandler(onChunk: (String) -> Unit): PID {
-    val props = Props.fromFunc { ctx ->
-        when (val msg = ctx.message) {
-            is AgentStreamChunk -> onChunk(msg.chunk)
-            is AgentStreamComplete -> ctx.stop(ctx.self)
+    val props = fromProducer {
+        object : Actor {
+            override suspend fun Context.receive(msg: Any) {
+                when (msg) {
+                    is AgentStreamChunk -> onChunk(msg.chunk)
+                    is AgentStreamComplete -> ActorSystem.default().stop(self)
+                }
+            }
         }
     }
     return root.spawn(props)

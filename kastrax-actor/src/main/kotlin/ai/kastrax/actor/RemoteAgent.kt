@@ -2,8 +2,8 @@ package ai.kastrax.actor
 
 import actor.proto.ActorSystem
 import actor.proto.PID
-import kotlinx.coroutines.time.withTimeout
-import java.time.Duration
+import kotlinx.coroutines.withTimeout
+import kotlin.time.Duration
 
 /**
  * RemoteAgent 类，用于连接和操作远程 Agent
@@ -24,7 +24,7 @@ class RemoteAgent(
     fun connect(agentId: String): PID {
         return PID(address, agentId)
     }
-    
+
     /**
      * 发送消息给远程 Agent
      *
@@ -35,7 +35,7 @@ class RemoteAgent(
         val pid = connect(agentId)
         system.root.send(pid, message)
     }
-    
+
     /**
      * 请求-响应模式，向远程 Agent 发送请求并等待响应
      *
@@ -44,15 +44,10 @@ class RemoteAgent(
      * @param timeout 超时时间，默认为 30 秒
      * @return 远程 Agent 的响应
      */
-    suspend fun ask(agentId: String, message: AgentMessage, timeout: Duration = Duration.ofSeconds(30)): AgentMessage {
+    suspend fun ask(agentId: String, message: AgentMessage, timeout: Duration = Duration.parse("30s")): AgentMessage {
         val pid = connect(agentId)
-        return withTimeout(timeout.toKotlinDuration()) {
+        return withTimeout(timeout) {
             system.root.requestAwait<AgentMessage>(pid, message)
         }
     }
-}
-
-// 扩展函数，将 Java Duration 转换为 Kotlin Duration
-private fun Duration.toKotlinDuration(): kotlin.time.Duration {
-    return kotlin.time.Duration.parse("${this.seconds}s")
 }

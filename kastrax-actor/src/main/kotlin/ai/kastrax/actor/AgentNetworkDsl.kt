@@ -3,6 +3,7 @@ package ai.kastrax.actor
 import actor.proto.ActorSystem
 import actor.proto.PID
 import actor.proto.Props
+import actor.proto.fromProducer
 
 /**
  * Agent 网络，管理一组相关的 Agent
@@ -26,7 +27,7 @@ class AgentNetwork(
         val pid = agents[agentName] ?: throw IllegalArgumentException("Agent not found: $agentName")
         system.root.send(pid, message)
     }
-    
+
     /**
      * 发送消息给协调者
      *
@@ -35,7 +36,7 @@ class AgentNetwork(
     fun sendToCoordinator(message: AgentMessage) {
         coordinator?.let { system.root.send(it, message) }
     }
-    
+
     /**
      * 广播消息给所有 Agent
      *
@@ -44,7 +45,7 @@ class AgentNetwork(
     fun broadcast(message: AgentMessage) {
         agents.values.forEach { system.root.send(it, message) }
     }
-    
+
     /**
      * 请求-响应模式，向特定 Agent 发送请求并等待响应
      *
@@ -66,59 +67,55 @@ class AgentNetwork(
 class AgentNetworkBuilder(private val system: ActorSystem) {
     private val agents = mutableMapOf<String, PID>()
     private var coordinator: PID? = null
-    
+
     /**
      * 添加 Agent
      *
      * @param name Agent 名称
      * @param block 配置 Actor Agent 的代码块
      */
-    fun agent(name: String, block: ActorAgentBuilder.() -> Unit) {
+    fun agent(name: String, block: ai.kastrax.actor.ActorAgentBuilder.() -> Unit) {
         val builder = ActorAgentBuilder()
         builder.block()
         val agent = builder.agentBuilder.build()
-        
+
         // 创建 Props，应用 actor 配置
-        var props = Props.fromProducer { KastraxActor(agent) }
+        var props = fromProducer { KastraxActor(agent) }
             .withMailbox(builder.actorBuilder.mailbox)
-        
-        // 如果指定了 dispatcher，则应用它
-        builder.actorBuilder.dispatcher?.let {
-            props = props.withDispatcher(it)
-        }
-        
+            .withDispatcher(builder.actorBuilder.dispatcher)
+
         // 应用监督策略
-        props = props.withSupervisor(builder.actorBuilder.supervisionStrategy)
-        
+        builder.actorBuilder.supervisionStrategy?.let {
+            props = props.withChildSupervisorStrategy(it)
+        }
+
         val pid = system.root.spawnNamed(props, name)
         agents[name] = pid
     }
-    
+
     /**
      * 设置协调者
      *
      * @param block 配置协调者 Actor Agent 的代码块
      */
-    fun coordinator(block: ActorAgentBuilder.() -> Unit) {
+    fun coordinator(block: ai.kastrax.actor.ActorAgentBuilder.() -> Unit) {
         val builder = ActorAgentBuilder()
         builder.block()
         val agent = builder.agentBuilder.build()
-        
+
         // 创建 Props，应用 actor 配置
-        var props = Props.fromProducer { KastraxActor(agent) }
+        var props = fromProducer { KastraxActor(agent) }
             .withMailbox(builder.actorBuilder.mailbox)
-        
-        // 如果指定了 dispatcher，则应用它
-        builder.actorBuilder.dispatcher?.let {
-            props = props.withDispatcher(it)
-        }
-        
+            .withDispatcher(builder.actorBuilder.dispatcher)
+
         // 应用监督策略
-        props = props.withSupervisor(builder.actorBuilder.supervisionStrategy)
-        
+        builder.actorBuilder.supervisionStrategy?.let {
+            props = props.withChildSupervisorStrategy(it)
+        }
+
         coordinator = system.root.spawnNamed(props, "coordinator")
     }
-    
+
     /**
      * 构建网络
      *
