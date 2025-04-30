@@ -187,7 +187,12 @@ class ActorSystem(val name: String) {
      * @return The response from the actor
      */
     suspend fun <T> requestAsync(pid: PID, message: Any, timeout: Duration): T {
-        return root.requestAwait(pid, message, timeout)
+        // 创建一个 Future 并发送请求
+        val future = Future<T>(this, timeout)
+        val process = processRegistryImpl.get(pid)
+        val envelope = MessageEnvelope(message, future.pid, null)
+        process.sendUserMessage(pid, envelope)
+        return future.result()
     }
 
     /**

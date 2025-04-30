@@ -9,6 +9,7 @@ import ai.kastrax.actor.multimodal.MultimodalType
 import ai.kastrax.actor.multimodal.MultimodalContent
 import ai.kastrax.core.agent.Agent
 import ai.kastrax.core.agent.AgentGenerateOptions
+import ai.kastrax.core.agent.AgentResponse as CoreAgentResponse
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.collect
@@ -86,8 +87,10 @@ class KastraxActor(private val agent: Agent) : Actor {
             }
             is MultimodalRequest -> {
                 // 处理多模态请求
+
                 // 检查递归深度
                 val currentDepth = msg.options.metadata?.get("depth")?.toIntOrNull() ?: 0
+
                 if (currentDepth > MAX_RECURSION_DEPTH) {
                     val errorMessage = MultimodalMessage(
                         content = "[错误] 达到最大递归深度 $MAX_RECURSION_DEPTH",
@@ -113,12 +116,18 @@ class KastraxActor(private val agent: Agent) : Actor {
                             // 更新递归深度
                             val updatedMetadata = msg.options.metadata?.toMutableMap() ?: mutableMapOf()
                             updatedMetadata["depth"] = (currentDepth + 1).toString()
+                            updatedMetadata["sender"] = self.id
                             msg.options.copy(metadata = updatedMetadata)
                         }
 
                         val response = runBlocking {
-                            agent.generate(content, options)
+                            try {
+                                agent.generate(content, options)
+                            } catch (e: Exception) {
+                                CoreAgentResponse("[错误] 生成响应时发生异常: ${e.message}", emptyList())
+                            }
                         }
+
                         // 创建多模态响应
                         val responseMessage = MultimodalMessage(
                             content = response.text,

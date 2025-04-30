@@ -233,7 +233,12 @@ class RootContext(val actorSystem: ActorSystem) : SenderContext, SpawnerContext,
      * @return 响应
      */
     suspend fun <T> requestAwait(target: PID, message: Any, timeout: Duration): T {
-        return actorSystem.requestAsync(target, message, timeout)
+        // 创建一个 Future 并发送请求
+        val future = Future<T>(actorSystem, timeout)
+        val process = actorSystem.processRegistry().get(target)
+        val envelope = MessageEnvelope(message, future.pid, null)
+        process.sendUserMessage(target, envelope)
+        return future.result()
     }
 
     /**
