@@ -33,8 +33,8 @@ class RemoteActorSystemTest {
 
     @BeforeEach
     fun setup() {
-        // 生成固定端口和系统名称，避免随机端口导致的问题
-        testPort = 29099 // 使用固定端口以便调试
+        // 使用随机端口避免端口冲突
+        testPort = findAvailablePort() // 使用可用的随机端口
         serverSystemName = "server-system-test"
         clientSystemName = "client-system-test"
 
@@ -77,14 +77,14 @@ class RemoteActorSystemTest {
     @Timeout(value = 10, unit = TimeUnit.SECONDS)
     fun `should connect to remote actor system`() = runBlocking {
         // 连接到远程系统
-        val remoteAgent = connectToRemoteSystem("localhost", testPort, "client-test1-${java.util.UUID.randomUUID()}-${System.currentTimeMillis()}")
+        val remoteAgent = connectToRemoteSystem("127.0.0.1", testPort, "client-test1-${java.util.UUID.randomUUID()}-${System.currentTimeMillis()}")
 
         // 获取远程 Agent 的 PID
         val remotePid = remoteAgent.connect("remote-agent")
 
         // 验证 PID
         assertNotNull(remotePid)
-        assertEquals("localhost:$testPort", remotePid.address)
+        assertEquals("127.0.0.1:$testPort", remotePid.address)
         assertEquals("remote-agent", remotePid.id)
     }
 
@@ -123,6 +123,25 @@ class RemoteActorSystemTest {
             println("Test failed with exception: ${e.message}")
             e.printStackTrace()
             throw e
+        }
+    }
+
+    /**
+     * 查找可用的端口
+     *
+     * @return 可用的端口号
+     */
+    private fun findAvailablePort(): Int {
+        return try {
+            val serverSocket = java.net.ServerSocket(0)
+            val port = serverSocket.localPort
+            serverSocket.close()
+            port
+        } catch (e: Exception) {
+            // 如果无法获取随机端口，使用默认端口
+            val defaultPort = 29099 + (Math.random() * 1000).toInt()
+            println("Warning: Could not find available port, using default port: $defaultPort")
+            defaultPort
         }
     }
 }
