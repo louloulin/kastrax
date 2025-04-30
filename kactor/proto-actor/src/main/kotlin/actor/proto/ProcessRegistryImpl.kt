@@ -74,6 +74,9 @@ class ProcessRegistryImpl(val actorSystem: ActorSystem) {
         var currentId = originalId
         var attempt = 0
 
+        // 检查是否是远程地址
+        val isRemoteAddress = address != noHost && !address.startsWith("nonhost")
+
         while (true) {
             val pid = PID(address, currentId)
             pid.cachedProcess_ = process // 我们知道 pid 指向哪个进程
@@ -82,9 +85,14 @@ class ProcessRegistryImpl(val actorSystem: ActorSystem) {
                 return pid
             }
 
-            // 如果进程名称已存在，生成一个新的唯一名称
-            attempt++
-            currentId = "$originalId-${System.currentTimeMillis()}-${System.nanoTime() % 10000}-$attempt"
+            // 如果是远程地址，自动生成新名称
+            if (isRemoteAddress) {
+                attempt++
+                currentId = "$originalId-${System.currentTimeMillis()}-${System.nanoTime() % 10000}-$attempt"
+            } else {
+                // 如果是本地地址，抛出异常
+                throw ProcessNameExistException(id)
+            }
         }
     }
 

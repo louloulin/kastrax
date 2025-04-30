@@ -111,13 +111,17 @@ object Remote {
 
     private fun spawnActivator() {
         val props = fromProducer { Activator() }
-        activatorPid = spawnNamed(props, "activator")
+        // 使用唯一的名称避免冲突
+        val uniqueName = "activator-${System.currentTimeMillis()}-${System.nanoTime() % 10000}"
+        activatorPid = spawnNamed(props, uniqueName)
     }
 
     private fun spawnEndpointManager(config: RemoteConfig) {
         val props = fromProducer { EndpointManager(config) }
                 .withMailbox { newMpscUnboundedArrayMailbox(200) }
-        endpointManagerPid = spawnNamed(props, "endpointmanager")
+        // 使用唯一的名称避免冲突
+        val uniqueName = "endpointmanager-${System.currentTimeMillis()}-${System.nanoTime() % 10000}"
+        endpointManagerPid = spawnNamed(props, uniqueName)
         EventStream.subscribe({
             if (it is EndpointTerminatedEvent) {
                 send(endpointManagerPid, it)
@@ -125,7 +129,11 @@ object Remote {
         })
     }
 
-    fun activatorForAddress(address: String): PID = PID(address, "activator")
+    fun activatorForAddress(address: String): PID {
+        // 使用当前 activator 的 ID
+        val activatorId = activatorPid.id
+        return PID(address, activatorId)
+    }
 
     suspend fun spawn(address: String, kind: String, timeout: Duration): PID = spawnNamed(address, "", kind, timeout)
 
