@@ -14,14 +14,23 @@ import ai.kastrax.core.agent.agent
  * 配置远程 Actor 系统
  *
  * @param port 端口号
+ * @param systemName 系统名称
  * @param hostname 主机名，默认为 "0.0.0.0"
+ * @param advertisedHostname 对外公布的主机名，默认为 hostname
  * @return 配置好的 ActorSystem
  */
-fun configureRemoteActorSystem(port: Int, systemName: String, hostname: String = "0.0.0.0"): ActorSystem {
+fun configureRemoteActorSystem(port: Int, systemName: String, hostname: String = "0.0.0.0", advertisedHostname: String = hostname): ActorSystem {
+    println("Configuring remote actor system: name=$systemName, hostname=$hostname, port=$port, advertisedHostname=$advertisedHostname")
+
+    // 使用 127.0.0.1 而不是 localhost，避免主机名解析问题
+    val effectiveAdvertisedHostname = if (advertisedHostname == "localhost") "127.0.0.1" else advertisedHostname
+
     // 创建 kactor 远程配置
     val config = KactorRemoteConfig(
         hostname = hostname,
-        port = port
+        port = port,
+        advertisedHostname = effectiveAdvertisedHostname,
+        advertisedPort = port
     )
 
     // 创建 ActorSystem，使用传入的系统名称
@@ -30,6 +39,15 @@ fun configureRemoteActorSystem(port: Int, systemName: String, hostname: String =
     // 初始化远程系统
     val remote = actor.proto.remote.Remote.create(system, config)
     remote.start(hostname, port, config)
+
+    // 等待远程系统启动
+    Thread.sleep(1000)
+
+    // 记录远程系统的地址
+    val address = "$effectiveAdvertisedHostname:$port"
+    println("Remote system address: $address")
+
+    println("Remote actor system started: $systemName at $hostname:$port (advertised as $effectiveAdvertisedHostname:$port)")
 
     return system
 }
@@ -42,9 +60,12 @@ fun configureRemoteActorSystem(port: Int, systemName: String, hostname: String =
  * @return RemoteAgent 对象
  */
 fun connectToRemoteSystem(address: String, port: Int, systemName: String = "kastrax-client-${System.currentTimeMillis()}-${System.nanoTime() % 10000}"): RemoteAgent {
+    println("Connecting to remote system at $address:$port with client system name: $systemName")
     val system = ActorSystem(systemName)
     val remoteAddress = "$address:$port"
-    return RemoteAgent(system, remoteAddress)
+    val remoteAgent = RemoteAgent(system, remoteAddress)
+    println("Created remote agent connection to $remoteAddress")
+    return remoteAgent
 }
 
 /**

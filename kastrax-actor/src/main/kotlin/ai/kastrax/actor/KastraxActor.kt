@@ -34,20 +34,31 @@ class KastraxActor(private val agent: Agent) : Actor {
     }
     private val jobs = ConcurrentHashMap<String, Job>()
     override suspend fun Context.receive(msg: Any) {
+        println("KastraxActor received message: $msg from $sender, self=${self}")
+
         when (msg) {
+            is actor.proto.Started -> {
+                println("KastraxActor started: ${self}")
+            }
             is AgentRequest -> {
                 // 使用 kastrax Agent 处理请求
+                // 添加日志以便调试
+                println("KastraxActor processing AgentRequest: $msg from ${sender}, self=${self}")
+
                 // 添加安全检查，防止无限递归
                 val currentDepth = msg.options.metadata?.get("depth")?.toIntOrNull() ?: 0
 
                 // 如果递归深度超过最大值，返回错误消息
                 if (currentDepth > MAX_RECURSION_DEPTH) {
-                    respond(AgentResponse("[错误] 达到最大递归深度 $MAX_RECURSION_DEPTH", emptyList()))
+                    val errorResponse = AgentResponse("[错误] 达到最大递归深度 $MAX_RECURSION_DEPTH", emptyList())
+                    println("Responding with error due to max recursion depth: $errorResponse")
+                    respond(errorResponse)
                     return
                 }
 
                 val options = if (msg.options.metadata?.get("sender") == agent.name) {
                     // 如果发送者是自己，创建一个新的选项对象，避免递归
+                    println("Sender is self, creating new options to avoid recursion")
                     AgentGenerateOptions(metadata = mapOf(
                         "internal" to "true",
                         "depth" to (currentDepth + 1).toString()
@@ -56,14 +67,26 @@ class KastraxActor(private val agent: Agent) : Actor {
                     // 更新递归深度
                     val updatedMetadata = msg.options.metadata?.toMutableMap() ?: mutableMapOf()
                     updatedMetadata["depth"] = (currentDepth + 1).toString()
+                    println("Updated metadata for request: $updatedMetadata")
                     msg.options.copy(metadata = updatedMetadata)
                 }
 
-                val response = runBlocking {
-                    agent.generate(msg.prompt, options)
+                try {
+                    println("Generating response using agent: ${agent.name} for prompt: ${msg.prompt}")
+                    val response = runBlocking {
+                        agent.generate(msg.prompt, options)
+                    }
+                    // 发送响应
+                    val agentResponse = AgentResponse(response.text, response.toolCalls)
+                    println("Responding with: $agentResponse to ${sender}")
+                    respond(agentResponse)
+                    println("Response sent successfully to ${sender}")
+                } catch (e: Exception) {
+                    println("Error generating response: ${e.message}")
+                    e.printStackTrace()
+                    val errorResponse = AgentResponse("[错误] 生成响应时发生异常: ${e.message}", emptyList())
+                    respond(errorResponse)
                 }
-                // 发送响应
-                respond(AgentResponse(response.text, response.toolCalls))
             }
             is AgentStreamRequest -> {
                 // 处理流式请求
@@ -244,6 +267,14 @@ class KastraxActor(private val agent: Agent) : Actor {
             is PoisonPill -> {
                 // 优雅地关闭 Agent
                 ActorSystem.default().stop(self)
+            }
+            else -> {
+                println("KastraxActor received unknown message type: ${msg::class.simpleName}")
+                // 对于未知消息类型，返回错误响应
+                if (sender != null) {
+                    val errorResponse = AgentResponse("[错误] 不支持的消息类型: ${msg::class.simpleName}", emptyList())
+                    respond(errorResponse)
+                }
             }
         }
     }

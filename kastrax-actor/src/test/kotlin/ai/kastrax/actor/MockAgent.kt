@@ -18,7 +18,10 @@ class MockAgent : Agent {
     override val versionManager = null
 
     override suspend fun generate(prompt: String, options: AgentGenerateOptions): AgentResponse {
-        return AgentResponse("测试回复", emptyList())
+        println("MockAgent received generate request with prompt: $prompt and options: $options")
+        return AgentResponse("测试回复", emptyList()).also {
+            println("MockAgent returning response: $it")
+        }
     }
 
     override suspend fun generate(messages: List<LlmMessage>, options: AgentGenerateOptions): AgentResponse {

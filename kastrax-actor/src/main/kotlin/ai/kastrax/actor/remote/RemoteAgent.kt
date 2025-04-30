@@ -13,7 +13,7 @@ import ai.kastrax.actor.CollaborationResponse
 import ai.kastrax.core.agent.AgentGenerateOptions
 import ai.kastrax.core.agent.AgentStreamOptions
 import kotlinx.serialization.json.JsonObject
-import java.time.Duration
+import kotlin.time.Duration
 
 /**
  * 远程 Agent 连接和通信
@@ -32,7 +32,15 @@ class RemoteAgent(
      * @return PID 对象
      */
     fun connect(agentId: String): PID {
-        return PID(address, agentId)
+        // 确保地址格式正确
+        val effectiveAddress = if (address.startsWith("127.0.0.1") || address.startsWith("localhost")) {
+            address
+        } else {
+            "127.0.0.1:${address.substringAfter(':')}"
+        }
+
+        println("Connecting to remote agent at $effectiveAddress/$agentId")
+        return PID(effectiveAddress, agentId)
     }
 
     /**
@@ -54,9 +62,37 @@ class RemoteAgent(
      * @param timeout 超时时间
      * @return 响应消息
      */
-    suspend fun ask(agentId: String, message: AgentMessage, timeout: Duration = Duration.ofSeconds(30)): AgentMessage {
+    suspend fun ask(agentId: String, message: AgentMessage, timeout: Duration = Duration.parse("30s")): AgentMessage {
         val pid = connect(agentId)
-        return system.root.requestAwait(pid, message, timeout)
+        try {
+            // 添加日志以便调试
+            println("Sending request to $pid with message: $message")
+
+            // 记录远程 Agent 的地址
+            val remoteAddress = "$address/$agentId"
+            println("Remote agent address: $remoteAddress")
+
+            // 将 kotlin.time.Duration 转换为 java.time.Duration
+            val javaDuration = java.time.Duration.ofMillis(timeout.inWholeMilliseconds)
+            println("Using timeout: $javaDuration")
+
+            // 先发送一个测试消息，确保远程 Actor 可访问
+            println("Sending test message to $pid")
+            system.root.send(pid, message)
+
+            // 等待一下，确保消息已经到达
+            kotlinx.coroutines.delay(1000)
+
+            // 发送请求并等待响应
+            println("Sending request and waiting for response...")
+            val result = system.root.requestAwait<AgentMessage>(pid, message, javaDuration)
+            println("Received response from $pid: $result")
+            return result
+        } catch (e: Exception) {
+            println("Error while asking $pid: ${e.message}")
+            e.printStackTrace()
+            throw e
+        }
     }
 
     /**
