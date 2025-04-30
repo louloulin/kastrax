@@ -30,8 +30,16 @@ class KastraxActor(private val agent: Agent) : Actor {
         when (msg) {
             is AgentRequest -> {
                 // 使用 kastrax Agent 处理请求
+                // 添加安全检查，防止无限递归
+                val options = if (msg.options.metadata?.get("sender") == agent.name) {
+                    // 如果发送者是自己，创建一个新的选项对象，避免递归
+                    AgentGenerateOptions(metadata = mapOf("internal" to "true"))
+                } else {
+                    msg.options
+                }
+
                 val response = runBlocking {
-                    agent.generate(msg.prompt, msg.options)
+                    agent.generate(msg.prompt, options)
                 }
                 // 发送响应
                 respond(AgentResponse(response.text, response.toolCalls))
@@ -62,8 +70,17 @@ class KastraxActor(private val agent: Agent) : Actor {
                     MultimodalType.TEXT -> {
                         // 处理文本类型的多模态消息
                         val content = msg.message.content as? String ?: ""
+
+                        // 添加安全检查，防止无限递归
+                        val options = if (msg.options.metadata?.get("sender") == agent.name) {
+                            // 如果发送者是自己，创建一个新的选项对象，避免递归
+                            AgentGenerateOptions(metadata = mapOf("internal" to "true"))
+                        } else {
+                            msg.options
+                        }
+
                         val response = runBlocking {
-                            agent.generate(content, msg.options)
+                            agent.generate(content, options)
                         }
                         // 创建多模态响应
                         val responseMessage = MultimodalMessage(
@@ -152,10 +169,27 @@ class KastraxActor(private val agent: Agent) : Actor {
             }
             is CollaborationRequest -> {
                 // 处理与其他 Agent 的协作请求
+                // 添加安全检查，防止无限递归
+                if (msg.sender == agent.name) {
+                    // 如果发送者是自己，返回简单响应以避免递归
+                    respond(CollaborationResponse("[内部处理] ${msg.task}"))
+                    return
+                }
+
+                // 创建安全的元数据
+                val safeMetadata = msg.metadata.toMutableMap()
+                safeMetadata["max_depth"] = ((safeMetadata["max_depth"]?.toIntOrNull() ?: 0) + 1).toString()
+
+                // 检查最大递归深度
+                if ((safeMetadata["max_depth"]?.toIntOrNull() ?: 0) > 5) {
+                    respond(CollaborationResponse("[达到最大递归深度] 无法继续处理请求"))
+                    return
+                }
+
                 val collaborationResult = runBlocking {
                     agent.generate(
                         "处理来自 ${msg.sender} 的请求: ${msg.task}",
-                        AgentGenerateOptions(metadata = msg.metadata)
+                        AgentGenerateOptions(metadata = safeMetadata)
                     )
                 }
                 respond(CollaborationResponse(collaborationResult.text))

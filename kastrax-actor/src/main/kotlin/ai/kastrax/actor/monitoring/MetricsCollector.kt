@@ -154,16 +154,17 @@ class MetricsCollector(private val system: ActorSystem) {
      */
     fun monitorAgentNetwork(network: AgentNetwork) {
         // 注册网络指标聚合器
+        val topology = network.getTopology()
+
         registerAggregator("network.nodes") {
-            network.getTopology().getAllNodes().size.toDouble()
+            topology.getAllNodes().size.toDouble()
         }
 
         registerAggregator("network.edges") {
-            network.getTopology().getAllEdges().size.toDouble()
+            topology.getAllEdges().size.toDouble()
         }
 
         registerAggregator("network.density") {
-            val topology = network.getTopology()
             val nodes = topology.getAllNodes()
             val edges = topology.getAllEdges()
 
@@ -176,7 +177,6 @@ class MetricsCollector(private val system: ActorSystem) {
         }
 
         registerAggregator("network.avg_degree") {
-            val topology = network.getTopology()
             val nodes = topology.getAllNodes()
 
             val totalDegree = nodes.sumOf { node ->
@@ -453,28 +453,26 @@ class MetricsCollector(private val system: ActorSystem) {
                     const card = document.createElement('div');
                     card.className = 'metric-card';
 
-                    val chartId = "chart-${metricName.replace(".", "-")}"
+                    const chartId = 'chart-' + metricName.replace(/\./g, '-');
 
-                    card.innerHTML = `
-                        <h3>${metricName}</h3>
-                        <div class="chart-container">
-                            <canvas id="${chartId}"></canvas>
-                        </div>
-                        <table class="stats-table">
-                            <tr>
-                                <th>Min</th>
-                                <th>Avg</th>
-                                <th>Max</th>
-                                <th>Count</th>
-                            </tr>
-                            <tr>
-                                <td>${stats["min"]?.let { String.format("%.2f", it) } ?: "-"}</td>
-                                <td>${stats["avg"]?.let { String.format("%.2f", it) } ?: "-"}</td>
-                                <td>${stats["max"]?.let { String.format("%.2f", it) } ?: "-"}</td>
-                                <td>${stats["count"] ?: 0}</td>
-                            </tr>
-                        </table>
-                    `;
+                    card.innerHTML = '<h3>' + metricName + '</h3>' +
+                        '<div class="chart-container">' +
+                        '    <canvas id="' + chartId + '"></canvas>' +
+                        '</div>' +
+                        '<table class="stats-table">' +
+                        '    <tr>' +
+                        '        <th>Min</th>' +
+                        '        <th>Avg</th>' +
+                        '        <th>Max</th>' +
+                        '        <th>Count</th>' +
+                        '    </tr>' +
+                        '    <tr>' +
+                        '        <td>' + (stats.min ? stats.min.toFixed(2) : '-') + '</td>' +
+                        '        <td>' + (stats.avg ? stats.avg.toFixed(2) : '-') + '</td>' +
+                        '        <td>' + (stats.max ? stats.max.toFixed(2) : '-') + '</td>' +
+                        '        <td>' + (stats.count || 0) + '</td>' +
+                        '    </tr>' +
+                        '</table>';
 
                     metricsContainer.appendChild(card);
 

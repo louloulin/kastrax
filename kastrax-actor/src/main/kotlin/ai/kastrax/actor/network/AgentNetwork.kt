@@ -148,6 +148,15 @@ class AgentNetwork(
     }
 
     /**
+     * 获取网络拓扑结构
+     *
+     * @return 网络拓扑结构
+     */
+    fun getTopology(): NetworkTopology {
+        return topology
+    }
+
+    /**
      * 获取与指定 Agent 具有特定关系的所有 Agent
      *
      * @param id Agent ID

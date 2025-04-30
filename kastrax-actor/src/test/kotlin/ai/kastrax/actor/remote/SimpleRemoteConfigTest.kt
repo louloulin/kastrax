@@ -12,18 +12,19 @@ class SimpleRemoteConfigTest {
 
     @Test
     fun `should create remote actor system with new API`() {
-        // 生成随机端口
+        // 生成随机端口和系统名称
         val randomPort = 29094 + (Math.random() * 1000).toInt()
+        val randomName = "kastrax-remote-" + UUID.randomUUID().toString().substring(0, 8)
 
         // 创建远程 Actor 系统
-        val system = configureRemoteActorSystem(randomPort)
+        val system = configureRemoteActorSystem(randomPort, randomName)
 
         try {
             // 验证系统已创建
             assertNotNull(system)
 
             // 验证系统名称
-            assert(system.name == "kastrax-remote")
+            assert(system.name == randomName)
         } finally {
             // 关闭系统
             system.shutdown()

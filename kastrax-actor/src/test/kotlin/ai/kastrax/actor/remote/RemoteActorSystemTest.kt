@@ -23,16 +23,18 @@ class RemoteActorSystemTest {
     private lateinit var clientSystem: ActorSystem
     private lateinit var agentPid: PID
 
-    // 使用随机端口避免冲突
-    private val testPort = 28091
+    // 使用随机端口和系统名称避免冲突
+    private val testPort = 28091 + (Math.random() * 1000).toInt()
+    private val serverSystemName = "server-system-" + java.util.UUID.randomUUID().toString().substring(0, 8)
+    private val clientSystemName = "client-system-" + java.util.UUID.randomUUID().toString().substring(0, 8)
 
     @BeforeEach
     fun setup() {
         // 创建服务器系统
-        serverSystem = configureRemoteActorSystem(testPort)
+        serverSystem = configureRemoteActorSystem(testPort, serverSystemName)
 
         // 创建客户端系统
-        clientSystem = ActorSystem("client-system")
+        clientSystem = ActorSystem(clientSystemName)
 
         // 创建模拟 Agent
         val mockAgent = MockAgent()

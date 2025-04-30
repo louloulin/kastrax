@@ -579,35 +579,31 @@ class PerformanceDashboard(private val system: ActorSystem) {
 
                     let valueHtml = '';
                     if (metricInfo.type === 'COUNTER' || metricInfo.type === 'GAUGE') {
-                        valueHtml = `<div class="metric-value">${stats.value || 0}</div>`;
+                        valueHtml = '<div class="metric-value">' + (stats.value || 0) + '</div>';
                     } else {
-                        valueHtml = `
-                            <table class="stats-table">
-                                <tr>
-                                    <th>Count</th>
-                                    <th>Min</th>
-                                    <th>Avg</th>
-                                    <th>Max</th>
-                                    <th>P90</th>
-                                </tr>
-                                <tr>
-                                    <td>${stats.count || 0}</td>
-                                    <td>${stats.min ? stats.min.toFixed(2) : '-'}</td>
-                                    <td>${stats.avg ? stats.avg.toFixed(2) : '-'}</td>
-                                    <td>${stats.max ? stats.max.toFixed(2) : '-'}</td>
-                                    <td>${stats.p90 ? stats.p90.toFixed(2) : '-'}</td>
-                                </tr>
-                            </table>
-                        `;
+                        valueHtml = '<table class="stats-table">' +
+                            '<tr>' +
+                            '    <th>Count</th>' +
+                            '    <th>Min</th>' +
+                            '    <th>Avg</th>' +
+                            '    <th>Max</th>' +
+                            '    <th>P90</th>' +
+                            '</tr>' +
+                            '<tr>' +
+                            '    <td>' + (stats.count || 0) + '</td>' +
+                            '    <td>' + (stats.min ? stats.min.toFixed(2) : '-') + '</td>' +
+                            '    <td>' + (stats.avg ? stats.avg.toFixed(2) : '-') + '</td>' +
+                            '    <td>' + (stats.max ? stats.max.toFixed(2) : '-') + '</td>' +
+                            '    <td>' + (stats.p90 ? stats.p90.toFixed(2) : '-') + '</td>' +
+                            '</tr>' +
+                            '</table>';
                     }
 
                     const card = document.createElement('div');
                     card.className = 'metric-card';
-                    card.innerHTML = `
-                        <h3>${metricName}</h3>
-                        <p>${metricInfo.description}</p>
-                        ${valueHtml}
-                    `;
+                    card.innerHTML = '<h3>' + metricName + '</h3>' +
+                        '<p>' + metricInfo.description + '</p>' +
+                        valueHtml;
                     metricsContainer.appendChild(card);
                 });
 
@@ -620,13 +616,11 @@ class PerformanceDashboard(private val system: ActorSystem) {
                     const chartCard = document.createElement('div');
                     chartCard.className = 'chart-card';
 
-                    const chartId = `chart-${metricName.replace(/\./g, '-')}`;
-                    chartCard.innerHTML = `
-                        <h3>${metricName}</h3>
-                        <div class="chart-container">
-                            <canvas id="${chartId}"></canvas>
-                        </div>
-                    `;
+                    const chartId = 'chart-' + metricName.replace(/\./g, '-');
+                    chartCard.innerHTML = '<h3>' + metricName + '</h3>' +
+                        '<div class="chart-container">' +
+                        '    <canvas id="' + chartId + '"></canvas>' +
+                        '</div>';
                     chartsContainer.appendChild(chartCard);
 
                     const ctx = document.getElementById(chartId).getContext('2d');
