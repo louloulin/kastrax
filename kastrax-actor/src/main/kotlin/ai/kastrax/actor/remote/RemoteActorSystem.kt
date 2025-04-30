@@ -17,15 +17,15 @@ import ai.kastrax.core.agent.agent
  * @param hostname 主机名，默认为 "0.0.0.0"
  * @return 配置好的 ActorSystem
  */
-fun configureRemoteActorSystem(port: Int, hostname: String = "0.0.0.0"): ActorSystem {
+fun configureRemoteActorSystem(port: Int, systemName: String, hostname: String = "0.0.0.0"): ActorSystem {
     // 创建 kactor 远程配置
     val config = KactorRemoteConfig(
         hostname = hostname,
         port = port
     )
 
-    // 创建 ActorSystem
-    val system = ActorSystem("kastrax-remote")
+    // 创建 ActorSystem，使用传入的系统名称
+    val system = ActorSystem(systemName)
 
     // 初始化远程系统
     val remote = actor.proto.remote.Remote.create(system, config)
@@ -41,8 +41,8 @@ fun configureRemoteActorSystem(port: Int, hostname: String = "0.0.0.0"): ActorSy
  * @param port 端口号
  * @return RemoteAgent 对象
  */
-fun connectToRemoteSystem(address: String, port: Int): RemoteAgent {
-    val system = ActorSystem("kastrax-client")
+fun connectToRemoteSystem(address: String, port: Int, systemName: String = "kastrax-client-${System.currentTimeMillis()}-${System.nanoTime() % 10000}"): RemoteAgent {
+    val system = ActorSystem(systemName)
     val remoteAddress = "$address:$port"
     return RemoteAgent(system, remoteAddress)
 }

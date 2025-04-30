@@ -66,12 +66,22 @@ object ShardedProcessRegistry {
      * @throws ProcessNameExistException 如果 ID 已存在
      */
     fun put(id: String, process: Process): PID {
-        val pid = PID(address, id)
-        pid.cachedProcess_ = process // 我们知道 pid 指向哪个进程
-        if (processLookup.putIfAbsent(pid.id, process) != null) {
-            throw ProcessNameExistException(id)
+        val originalId = id
+        var currentId = originalId
+        var attempt = 0
+
+        while (true) {
+            val pid = PID(address, currentId)
+            pid.cachedProcess_ = process // 我们知道 pid 指向哪个进程
+
+            if (processLookup.putIfAbsent(pid.id, process) == null) {
+                return pid
+            }
+
+            // 如果进程名称已存在，生成一个新的唯一名称
+            attempt++
+            currentId = "$originalId-${System.currentTimeMillis()}-${System.nanoTime() % 10000}-$attempt"
         }
-        return pid
     }
 
     /**

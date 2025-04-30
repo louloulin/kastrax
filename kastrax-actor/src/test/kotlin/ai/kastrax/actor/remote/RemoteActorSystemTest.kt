@@ -24,12 +24,17 @@ class RemoteActorSystemTest {
     private lateinit var agentPid: PID
 
     // 使用随机端口和系统名称避免冲突
-    private val testPort = 28091 + (Math.random() * 1000).toInt() + (System.nanoTime() % 1000).toInt()
-    private val serverSystemName = "server-system-" + java.util.UUID.randomUUID().toString() + "-" + System.currentTimeMillis()
-    private val clientSystemName = "client-system-" + java.util.UUID.randomUUID().toString() + "-" + (System.currentTimeMillis() + 1)
+    private var testPort: Int = 0
+    private var serverSystemName: String = ""
+    private var clientSystemName: String = ""
 
     @BeforeEach
     fun setup() {
+        // 生成随机端口和系统名称
+        testPort = 28091 + (Math.random() * 1000).toInt() + (System.nanoTime() % 1000).toInt()
+        serverSystemName = "server-system-" + java.util.UUID.randomUUID().toString() + "-" + System.currentTimeMillis()
+        clientSystemName = "client-system-" + java.util.UUID.randomUUID().toString() + "-" + (System.currentTimeMillis() + 1)
+
         // 创建服务器系统
         serverSystem = configureRemoteActorSystem(testPort, serverSystemName)
 
@@ -55,7 +60,7 @@ class RemoteActorSystemTest {
     @Timeout(value = 10, unit = TimeUnit.SECONDS)
     fun `should connect to remote actor system`() = runBlocking {
         // 连接到远程系统
-        val remoteAgent = connectToRemoteSystem("localhost", testPort)
+        val remoteAgent = connectToRemoteSystem("localhost", testPort, "client-test1-${java.util.UUID.randomUUID()}-${System.currentTimeMillis()}")
 
         // 获取远程 Agent 的 PID
         val remotePid = remoteAgent.connect("remote-agent")
@@ -70,7 +75,7 @@ class RemoteActorSystemTest {
     @Timeout(value = 10, unit = TimeUnit.SECONDS)
     fun `should send message to remote agent`() = runBlocking {
         // 连接到远程系统
-        val remoteAgent = connectToRemoteSystem("localhost", testPort)
+        val remoteAgent = connectToRemoteSystem("localhost", testPort, "client-test2-${java.util.UUID.randomUUID()}-${System.currentTimeMillis()}")
 
         // 发送消息
         remoteAgent.send("remote-agent", AgentRequest("测试消息"))
