@@ -25,17 +25,37 @@ import java.util.concurrent.ConcurrentHashMap
  * @property agent kastrax Agent 实例
  */
 class KastraxActor(private val agent: Agent) : Actor {
+    companion object {
+        /**
+         * 最大递归深度，防止无限递归
+         */
+        private const val MAX_RECURSION_DEPTH = 5
+    }
     private val jobs = ConcurrentHashMap<String, Job>()
     override suspend fun Context.receive(msg: Any) {
         when (msg) {
             is AgentRequest -> {
                 // 使用 kastrax Agent 处理请求
                 // 添加安全检查，防止无限递归
+                val currentDepth = msg.options.metadata?.get("depth")?.toIntOrNull() ?: 0
+
+                // 如果递归深度超过最大值，返回错误消息
+                if (currentDepth > MAX_RECURSION_DEPTH) {
+                    respond(AgentResponse("[错误] 达到最大递归深度 $MAX_RECURSION_DEPTH", emptyList()))
+                    return
+                }
+
                 val options = if (msg.options.metadata?.get("sender") == agent.name) {
                     // 如果发送者是自己，创建一个新的选项对象，避免递归
-                    AgentGenerateOptions(metadata = mapOf("internal" to "true"))
+                    AgentGenerateOptions(metadata = mapOf(
+                        "internal" to "true",
+                        "depth" to (currentDepth + 1).toString()
+                    ))
                 } else {
-                    msg.options
+                    // 更新递归深度
+                    val updatedMetadata = msg.options.metadata?.toMutableMap() ?: mutableMapOf()
+                    updatedMetadata["depth"] = (currentDepth + 1).toString()
+                    msg.options.copy(metadata = updatedMetadata)
                 }
 
                 val response = runBlocking {
@@ -66,6 +86,17 @@ class KastraxActor(private val agent: Agent) : Actor {
             }
             is MultimodalRequest -> {
                 // 处理多模态请求
+                // 检查递归深度
+                val currentDepth = msg.options.metadata?.get("depth")?.toIntOrNull() ?: 0
+                if (currentDepth > MAX_RECURSION_DEPTH) {
+                    val errorMessage = MultimodalMessage(
+                        content = "[错误] 达到最大递归深度 $MAX_RECURSION_DEPTH",
+                        type = MultimodalType.TEXT
+                    )
+                    respond(MultimodalResponse(errorMessage))
+                    return
+                }
+
                 when (msg.message.type) {
                     MultimodalType.TEXT -> {
                         // 处理文本类型的多模态消息
@@ -74,9 +105,15 @@ class KastraxActor(private val agent: Agent) : Actor {
                         // 添加安全检查，防止无限递归
                         val options = if (msg.options.metadata?.get("sender") == agent.name) {
                             // 如果发送者是自己，创建一个新的选项对象，避免递归
-                            AgentGenerateOptions(metadata = mapOf("internal" to "true"))
+                            AgentGenerateOptions(metadata = mapOf(
+                                "internal" to "true",
+                                "depth" to (currentDepth + 1).toString()
+                            ))
                         } else {
-                            msg.options
+                            // 更新递归深度
+                            val updatedMetadata = msg.options.metadata?.toMutableMap() ?: mutableMapOf()
+                            updatedMetadata["depth"] = (currentDepth + 1).toString()
+                            msg.options.copy(metadata = updatedMetadata)
                         }
 
                         val response = runBlocking {
@@ -178,11 +215,12 @@ class KastraxActor(private val agent: Agent) : Actor {
 
                 // 创建安全的元数据
                 val safeMetadata = msg.metadata.toMutableMap()
-                safeMetadata["max_depth"] = ((safeMetadata["max_depth"]?.toIntOrNull() ?: 0) + 1).toString()
+                val currentDepth = safeMetadata["depth"]?.toIntOrNull() ?: 0
+                safeMetadata["depth"] = (currentDepth + 1).toString()
 
                 // 检查最大递归深度
-                if ((safeMetadata["max_depth"]?.toIntOrNull() ?: 0) > 5) {
-                    respond(CollaborationResponse("[达到最大递归深度] 无法继续处理请求"))
+                if (currentDepth >= MAX_RECURSION_DEPTH) {
+                    respond(CollaborationResponse("[达到最大递归深度 $MAX_RECURSION_DEPTH] 无法继续处理请求"))
                     return
                 }
 

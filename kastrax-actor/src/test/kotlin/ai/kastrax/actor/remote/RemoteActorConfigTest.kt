@@ -12,8 +12,8 @@ class RemoteActorConfigTest {
     @Test
     fun `should configure remote actor system with new API`() {
         // 使用唯一的系统名称和端口
-        val uniqueSystemName = "kastrax-remote-${System.currentTimeMillis()}"
-        val uniquePort = 28092 + (Math.random() * 1000).toInt()
+        val uniqueSystemName = "kastrax-remote-${System.currentTimeMillis()}-${System.nanoTime() % 10000}"
+        val uniquePort = 28092 + (Math.random() * 1000).toInt() + (System.nanoTime() % 1000).toInt()
 
         // 创建远程 Actor 系统
         val system = configureRemoteActorSystem(uniquePort, uniqueSystemName)
@@ -33,8 +33,8 @@ class RemoteActorConfigTest {
     @Test
     fun `should configure remote actor system with config object`() {
         // 使用唯一的系统名称和端口
-        val uniqueSystemName = "kastrax-remote-test-${System.currentTimeMillis()}"
-        val uniquePort = 28093 + (Math.random() * 1000).toInt()
+        val uniqueSystemName = "kastrax-remote-test-${System.currentTimeMillis()}-${System.nanoTime() % 10000}"
+        val uniquePort = 28093 + (Math.random() * 1000).toInt() + (System.nanoTime() % 1000).toInt()
 
         // 创建配置对象
         val config = RemoteActorConfig(

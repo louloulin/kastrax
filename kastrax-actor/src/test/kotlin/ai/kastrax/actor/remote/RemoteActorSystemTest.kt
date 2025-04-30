@@ -24,9 +24,9 @@ class RemoteActorSystemTest {
     private lateinit var agentPid: PID
 
     // 使用随机端口和系统名称避免冲突
-    private val testPort = 28091 + (Math.random() * 1000).toInt()
-    private val serverSystemName = "server-system-" + java.util.UUID.randomUUID().toString().substring(0, 8)
-    private val clientSystemName = "client-system-" + java.util.UUID.randomUUID().toString().substring(0, 8)
+    private val testPort = 28091 + (Math.random() * 1000).toInt() + (System.nanoTime() % 1000).toInt()
+    private val serverSystemName = "server-system-" + java.util.UUID.randomUUID().toString() + "-" + System.currentTimeMillis()
+    private val clientSystemName = "client-system-" + java.util.UUID.randomUUID().toString() + "-" + (System.currentTimeMillis() + 1)
 
     @BeforeEach
     fun setup() {

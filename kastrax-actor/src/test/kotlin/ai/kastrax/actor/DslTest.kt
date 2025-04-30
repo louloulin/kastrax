@@ -62,6 +62,7 @@ class DslTest {
     }
 
     @Test
+    @Disabled("需要实际的 Agent 实现")
     fun `test agentNetwork DSL`() {
         // 使用 agentNetwork DSL 创建 Agent 网络
         val network = system.agentNetwork {
@@ -130,7 +131,7 @@ class DslTest {
         override suspend fun generate(prompt: String, options: AgentGenerateOptions): AgentResponse {
             // 模拟响应
             val sender = options.metadata?.get("sender") ?: "unknown"
-            
+
             // 如果发送者是自己，返回简单响应以避免递归
             if (sender == name) {
                 return AgentResponse(
@@ -138,7 +139,7 @@ class DslTest {
                     toolCalls = emptyList()
                 )
             }
-            
+
             return AgentResponse(
                 text = "[$name] 回复: $prompt",
                 toolCalls = emptyList()

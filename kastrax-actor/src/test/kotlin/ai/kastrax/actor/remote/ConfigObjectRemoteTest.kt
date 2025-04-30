@@ -13,22 +13,22 @@ class ConfigObjectRemoteTest {
     @Test
     fun `should create remote actor system with config object`() {
         // 生成随机端口和系统名称
-        val randomPort = 31000 + (Math.random() * 1000).toInt()
-        val randomName = "kastrax-remote-" + UUID.randomUUID().toString().substring(0, 8)
-        
+        val randomPort = 31000 + (Math.random() * 1000).toInt() + (System.nanoTime() % 1000).toInt()
+        val randomName = "kastrax-remote-" + UUID.randomUUID().toString() + "-" + System.currentTimeMillis()
+
         // 创建配置对象
         val config = RemoteActorConfig(
             port = randomPort,
             advertisedHostname = "localhost"
         )
-        
+
         // 创建远程 Actor 系统
         val system = configureRemoteActorSystemWithConfig(randomName, config)
-        
+
         try {
             // 验证系统已创建
             assertNotNull(system)
-            
+
             // 验证系统名称
             assert(system.name == randomName)
         } finally {
