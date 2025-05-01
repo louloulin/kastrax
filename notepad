@@ -31,4 +31,6 @@
 工作空间在 kastrax-a2x @a2x.md 按照计划，同时参考https://github.com/google/A2A的相关代码，实现相关功能，实现后更新，增加测试验证，验证通过后更新 @a2x.md 标记实现的功能，中文说明
 
 工作空间在 kastrax-actor， @plan7.md 按照计划，分析kastrax和kactor的代码，综合思考后，实现相关功能，实现后更新，增加测试验证，验证通过后更新 @plan7.md 标记实现的功能，中文说明
+@kastra-doc.md 按这个文档编写计划，分析kastrax-doc的温文档代码结构，分析整个kastrax的代码实现，编写 文档到 kastrax-doc
+
 

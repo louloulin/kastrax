@@ -1,0 +1,631 @@
+# Tools System Overview
+
+The Kastrax tools system allows agents to interact with external systems, access data, and perform actions. This guide explains the tools system architecture and how to use it effectively.
+
+## Tools System Architecture
+
+The Kastrax tools system consists of several components:
+
+1. **Tool Definition**: How tools are defined and registered
+2. **Tool Execution**: How tools are executed by agents
+3. **Tool Parameters**: How tool parameters are defined and validated
+4. **Tool Results**: How tool results are processed and returned
+
+## Basic Tool Creation
+
+Here's a simple example of creating a tool:
+
+```kotlin
+import ai.kastrax.core.agent.agent
+import ai.kastrax.core.tools.tool
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.runBlocking
+
+fun createAgentWithTools() = agent {
+    name("ToolAgent")
+    description("An agent with tool capabilities")
+    
+    // Configure the LLM
+    model = deepSeek {
+        apiKey("your-deepseek-api-key")
+        model(DeepSeekModel.DEEPSEEK_CHAT)
+        temperature(0.7)
+    }
+    
+    // Add tools
+    tools {
+        // Simple tool with no parameters
+        tool("getCurrentTime") {
+            description("Get the current time")
+            parameters {}
+            execute {
+                val currentTime = java.time.LocalDateTime.now()
+                val formatter = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+                val formattedTime = currentTime.format(formatter)
+                "The current time is $formattedTime"
+            }
+        }
+        
+        // Tool with parameters
+        tool("calculateSum") {
+            description("Calculate the sum of two numbers")
+            parameters {
+                parameter("a", "The first number", Double::class)
+                parameter("b", "The second number", Double::class)
+            }
+            execute { params ->
+                val a = params["a"] as Double
+                val b = params["b"] as Double
+                val sum = a + b
+                "The sum of $a and $b is $sum"
+            }
+        }
+    }
+}
+
+fun main() = runBlocking {
+    val agent = createAgentWithTools()
+    
+    // Test the agent
+    println(agent.generate("What time is it now?").text)
+    println(agent.generate("Calculate the sum of 5.2 and 3.8").text)
+}
+```
+
+## Tool Parameters
+
+Tools can have parameters of various types:
+
+```kotlin
+tool("searchDatabase") {
+    description("Search a database for records")
+    parameters {
+        parameter("query", "The search query", String::class)
+        parameter("limit", "Maximum number of results", Int::class, optional = true, defaultValue = 10)
+        parameter("sortBy", "Field to sort by", String::class, optional = true)
+        parameter("ascending", "Sort in ascending order", Boolean::class, optional = true, defaultValue = true)
+    }
+    execute { params ->
+        val query = params["query"] as String
+        val limit = params["limit"] as Int
+        val sortBy = params["sortBy"] as String?
+        val ascending = params["ascending"] as Boolean
+        
+        // Perform database search
+        // ...
+        
+        "Found $limit results for query '$query'"
+    }
+}
+```
+
+## Tool Categories
+
+You can organize tools into categories:
+
+```kotlin
+tools {
+    // Math tools
+    category("Math") {
+        tool("add") {
+            description("Add two numbers")
+            parameters {
+                parameter("a", "First number", Double::class)
+                parameter("b", "Second number", Double::class)
+            }
+            execute { params ->
+                val a = params["a"] as Double
+                val b = params["b"] as Double
+                "Result: ${a + b}"
+            }
+        }
+        
+        tool("subtract") {
+            description("Subtract two numbers")
+            parameters {
+                parameter("a", "First number", Double::class)
+                parameter("b", "Second number", Double::class)
+            }
+            execute { params ->
+                val a = params["a"] as Double
+                val b = params["b"] as Double
+                "Result: ${a - b}"
+            }
+        }
+    }
+    
+    // Utility tools
+    category("Utilities") {
+        tool("getCurrentTime") {
+            description("Get the current time")
+            parameters {}
+            execute {
+                "Current time: ${java.time.LocalDateTime.now()}"
+            }
+        }
+    }
+}
+```
+
+## Asynchronous Tools
+
+For long-running operations, you can create asynchronous tools:
+
+```kotlin
+tool("fetchLargeDataset") {
+    description("Fetch a large dataset from an API")
+    parameters {
+        parameter("datasetId", "ID of the dataset", String::class)
+    }
+    executeAsync { params ->
+        val datasetId = params["datasetId"] as String
+        
+        // Simulate a long-running operation
+        kotlinx.coroutines.delay(2000)
+        
+        // Return the result
+        "Dataset $datasetId fetched successfully with 10,000 records"
+    }
+}
+```
+
+## Tool Error Handling
+
+You can handle errors in tools:
+
+```kotlin
+tool("divideNumbers") {
+    description("Divide two numbers")
+    parameters {
+        parameter("a", "Numerator", Double::class)
+        parameter("b", "Denominator", Double::class)
+    }
+    execute { params ->
+        val a = params["a"] as Double
+        val b = params["b"] as Double
+        
+        try {
+            if (b == 0.0) {
+                throw ArithmeticException("Division by zero")
+            }
+            "Result: ${a / b}"
+        } catch (e: Exception) {
+            "Error: ${e.message}"
+        }
+    }
+}
+```
+
+## Tool Validation
+
+You can add validation to tool parameters:
+
+```kotlin
+tool("sendEmail") {
+    description("Send an email")
+    parameters {
+        parameter("to", "Recipient email address", String::class) {
+            validate { email ->
+                if (!email.contains("@")) {
+                    throw IllegalArgumentException("Invalid email address")
+                }
+            }
+        }
+        parameter("subject", "Email subject", String::class) {
+            validate { subject ->
+                if (subject.length > 100) {
+                    throw IllegalArgumentException("Subject too long (max 100 characters)")
+                }
+            }
+        }
+        parameter("body", "Email body", String::class)
+    }
+    execute { params ->
+        val to = params["to"] as String
+        val subject = params["subject"] as String
+        val body = params["body"] as String
+        
+        // Send email logic
+        // ...
+        
+        "Email sent to $to"
+    }
+}
+```
+
+## Tool Permissions
+
+You can define permissions for tools:
+
+```kotlin
+tool("deleteFile") {
+    description("Delete a file")
+    permissions {
+        permission("file.delete", "Permission to delete files")
+    }
+    parameters {
+        parameter("path", "File path", String::class)
+    }
+    execute { params ->
+        val path = params["path"] as String
+        
+        // Check permissions
+        if (!hasPermission("file.delete")) {
+            return "Error: Permission denied"
+        }
+        
+        // Delete file logic
+        // ...
+        
+        "File $path deleted successfully"
+    }
+}
+```
+
+## Tool Composition
+
+You can compose tools from other tools:
+
+```kotlin
+// Define base tools
+val getCurrentTimeToolDef = toolDefinition("getCurrentTime") {
+    description("Get the current time")
+    parameters {}
+    execute {
+        val currentTime = java.time.LocalDateTime.now()
+        val formatter = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+        val formattedTime = currentTime.format(formatter)
+        "The current time is $formattedTime"
+    }
+}
+
+val getCurrentDateToolDef = toolDefinition("getCurrentDate") {
+    description("Get the current date")
+    parameters {}
+    execute {
+        val currentDate = java.time.LocalDate.now()
+        val formatter = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd")
+        val formattedDate = currentDate.format(formatter)
+        "The current date is $formattedDate"
+    }
+}
+
+// Compose a new tool
+val getDateTimeInfoToolDef = toolDefinition("getDateTimeInfo") {
+    description("Get current date and time information")
+    parameters {}
+    execute {
+        val timeResult = getCurrentTimeToolDef.execute(mapOf())
+        val dateResult = getCurrentDateToolDef.execute(mapOf())
+        "$dateResult\n$timeResult"
+    }
+}
+
+// Add the composed tool to an agent
+agent {
+    // ...
+    tools {
+        addTool(getDateTimeInfoToolDef)
+    }
+}
+```
+
+## External API Tools
+
+You can create tools that interact with external APIs:
+
+```kotlin
+tool("getWeather") {
+    description("Get weather information for a location")
+    parameters {
+        parameter("location", "City name or coordinates", String::class)
+    }
+    execute { params ->
+        val location = params["location"] as String
+        
+        // Make API request
+        val apiKey = "your-weather-api-key"
+        val url = "https://api.weatherapi.com/v1/current.json?key=$apiKey&q=$location"
+        
+        try {
+            val client = java.net.http.HttpClient.newBuilder().build()
+            val request = java.net.http.HttpRequest.newBuilder()
+                .uri(java.net.URI.create(url))
+                .GET()
+                .build()
+            
+            val response = client.send(request, java.net.http.HttpResponse.BodyHandlers.ofString())
+            
+            if (response.statusCode() == 200) {
+                // Parse JSON response
+                // This is a simplified example
+                val body = response.body()
+                "Weather information for $location: $body"
+            } else {
+                "Error fetching weather: ${response.statusCode()}"
+            }
+        } catch (e: Exception) {
+            "Error: ${e.message}"
+        }
+    }
+}
+```
+
+## File Operation Tools
+
+You can create tools for file operations:
+
+```kotlin
+tools {
+    category("FileOperations") {
+        tool("readFile") {
+            description("Read the contents of a file")
+            parameters {
+                parameter("path", "File path", String::class)
+            }
+            execute { params ->
+                val path = params["path"] as String
+                
+                try {
+                    val content = java.nio.file.Files.readString(java.nio.file.Path.of(path))
+                    "File content:\n$content"
+                } catch (e: Exception) {
+                    "Error reading file: ${e.message}"
+                }
+            }
+        }
+        
+        tool("writeFile") {
+            description("Write content to a file")
+            parameters {
+                parameter("path", "File path", String::class)
+                parameter("content", "Content to write", String::class)
+            }
+            execute { params ->
+                val path = params["path"] as String
+                val content = params["content"] as String
+                
+                try {
+                    java.nio.file.Files.writeString(java.nio.file.Path.of(path), content)
+                    "Content written to $path successfully"
+                } catch (e: Exception) {
+                    "Error writing to file: ${e.message}"
+                }
+            }
+        }
+    }
+}
+```
+
+## Database Tools
+
+You can create tools for database operations:
+
+```kotlin
+tools {
+    category("Database") {
+        tool("queryDatabase") {
+            description("Execute a SQL query")
+            parameters {
+                parameter("query", "SQL query", String::class)
+            }
+            execute { params ->
+                val query = params["query"] as String
+                
+                // This is a simplified example
+                // In a real application, you would use a proper database connection
+                try {
+                    // Execute query
+                    // ...
+                    
+                    "Query executed successfully. Results:\n..."
+                } catch (e: Exception) {
+                    "Error executing query: ${e.message}"
+                }
+            }
+        }
+    }
+}
+```
+
+## Tool Registration
+
+You can register tools from external sources:
+
+```kotlin
+// Define tools in a separate file
+object MathTools {
+    val addTool = toolDefinition("add") {
+        description("Add two numbers")
+        parameters {
+            parameter("a", "First number", Double::class)
+            parameter("b", "Second number", Double::class)
+        }
+        execute { params ->
+            val a = params["a"] as Double
+            val b = params["b"] as Double
+            "Result: ${a + b}"
+        }
+    }
+    
+    val subtractTool = toolDefinition("subtract") {
+        description("Subtract two numbers")
+        parameters {
+            parameter("a", "First number", Double::class)
+            parameter("b", "Second number", Double::class)
+        }
+        execute { params ->
+            val a = params["a"] as Double
+            val b = params["b"] as Double
+            "Result: ${a - b}"
+        }
+    }
+}
+
+// Register tools with an agent
+agent {
+    // ...
+    tools {
+        addTool(MathTools.addTool)
+        addTool(MathTools.subtractTool)
+    }
+}
+```
+
+## Complete Example
+
+Here's a complete example with various tools:
+
+```kotlin
+import ai.kastrax.core.agent.agent
+import ai.kastrax.core.tools.tool
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.runBlocking
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
+
+fun createToolAgent() = agent {
+    name("UtilityAssistant")
+    description("An assistant with various utility tools")
+    
+    // Configure the LLM
+    model = deepSeek {
+        apiKey("your-deepseek-api-key")
+        model(DeepSeekModel.DEEPSEEK_CHAT)
+        temperature(0.7)
+    }
+    
+    // Add tools
+    tools {
+        // Date and time tools
+        category("DateTime") {
+            tool("getCurrentTime") {
+                description("Get the current time")
+                parameters {}
+                execute {
+                    val currentTime = LocalDateTime.now()
+                    val formatter = DateTimeFormatter.ofPattern("HH:mm:ss")
+                    val formattedTime = currentTime.format(formatter)
+                    "The current time is $formattedTime"
+                }
+            }
+            
+            tool("getCurrentDate") {
+                description("Get the current date")
+                parameters {}
+                execute {
+                    val currentDate = LocalDateTime.now()
+                    val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
+                    val formattedDate = currentDate.format(formatter)
+                    "Today's date is $formattedDate"
+                }
+            }
+        }
+        
+        // Math tools
+        category("Math") {
+            tool("calculate") {
+                description("Perform a calculation")
+                parameters {
+                    parameter("expression", "Mathematical expression", String::class)
+                }
+                execute { params ->
+                    val expression = params["expression"] as String
+                    
+                    try {
+                        // This is a simplified example
+                        // In a real application, you would use a proper expression evaluator
+                        val result = when {
+                            expression.contains("+") -> {
+                                val parts = expression.split("+")
+                                val a = parts[0].trim().toDouble()
+                                val b = parts[1].trim().toDouble()
+                                a + b
+                            }
+                            expression.contains("-") -> {
+                                val parts = expression.split("-")
+                                val a = parts[0].trim().toDouble()
+                                val b = parts[1].trim().toDouble()
+                                a - b
+                            }
+                            expression.contains("*") -> {
+                                val parts = expression.split("*")
+                                val a = parts[0].trim().toDouble()
+                                val b = parts[1].trim().toDouble()
+                                a * b
+                            }
+                            expression.contains("/") -> {
+                                val parts = expression.split("/")
+                                val a = parts[0].trim().toDouble()
+                                val b = parts[1].trim().toDouble()
+                                if (b == 0.0) throw ArithmeticException("Division by zero")
+                                a / b
+                            }
+                            else -> throw IllegalArgumentException("Unsupported operation")
+                        }
+                        
+                        "Result: $result"
+                    } catch (e: Exception) {
+                        "Error calculating result: ${e.message}"
+                    }
+                }
+            }
+        }
+        
+        // Utility tools
+        category("Utilities") {
+            tool("generateRandomNumber") {
+                description("Generate a random number within a range")
+                parameters {
+                    parameter("min", "Minimum value", Int::class)
+                    parameter("max", "Maximum value", Int::class)
+                }
+                execute { params ->
+                    val min = params["min"] as Int
+                    val max = params["max"] as Int
+                    
+                    if (min >= max) {
+                        "Error: Minimum value must be less than maximum value"
+                    } else {
+                        val random = java.util.Random()
+                        val randomNumber = random.nextInt(max - min + 1) + min
+                        "Random number between $min and $max: $randomNumber"
+                    }
+                }
+            }
+            
+            tool("countWords") {
+                description("Count the number of words in a text")
+                parameters {
+                    parameter("text", "Text to analyze", String::class)
+                }
+                execute { params ->
+                    val text = params["text"] as String
+                    val wordCount = text.split("\\s+".toRegex()).filter { it.isNotEmpty() }.size
+                    "Word count: $wordCount"
+                }
+            }
+        }
+    }
+}
+
+fun main() = runBlocking {
+    val agent = createToolAgent()
+    
+    // Test the agent
+    println(agent.generate("What time is it now?").text)
+    println(agent.generate("Calculate 15.5 + 27.3").text)
+    println(agent.generate("Generate a random number between 1 and 100").text)
+    println(agent.generate("Count the words in 'The quick brown fox jumps over the lazy dog'").text)
+}
+```
+
+## Next Steps
+
+Now that you understand the tools system, you can:
+
+1. Learn about [Zod tools](./zod-tools.mdx)
+2. Explore [custom tool development](./custom-tools.mdx)
+3. Implement [tool chains](./tool-chains.mdx)
