@@ -24,7 +24,7 @@ fun main() = runBlocking {
     val memoryCompressor = LlmMemoryCompressor(llm)
     
     // 创建增强型内存，启用内存压缩
-    val memory = enhancedMemory {
+    val enhancedMemory = enhancedMemory {
         lastMessages(10)
         memoryCompressor(memoryCompressor)
         compressionConfig(
@@ -47,15 +47,15 @@ fun main() = runBlocking {
             当你看到对话摘要时，请参考摘要中的信息来保持对话的连贯性。
         """.trimIndent()
         model = llm
-        memory = memory
+        memory = enhancedMemory
     }
     
     // 创建一个新的对话线程
-    val threadId = memory.createThread("内存压缩示例对话")
+    val threadId = enhancedMemory.createThread("内存压缩示例对话")
     println("创建了新的对话线程: $threadId")
     
     // 添加系统消息
-    memory.saveMessage(
+    enhancedMemory.saveMessage(
         SimpleMessage(
             role = MessageRole.SYSTEM,
             content = "这是一个测试内存压缩功能的对话。"
@@ -87,7 +87,7 @@ fun main() = runBlocking {
         println("\n用户: $userMessage")
         
         // 保存用户消息
-        memory.saveMessage(
+        enhancedMemory.saveMessage(
             SimpleMessage(
                 role = MessageRole.USER,
                 content = userMessage
@@ -100,7 +100,7 @@ fun main() = runBlocking {
         println("助手: ${response.content}")
         
         // 获取当前消息数量
-        val messages = (memory as EnhancedMemory).getMessages(threadId, 100)
+        val messages = enhancedMemory.getMessages(threadId, 100)
         println("当前消息数量: ${messages.size}")
         
         // 检查是否有摘要消息
@@ -129,7 +129,7 @@ fun main() = runBlocking {
         println("\n用户: $userMessage")
         
         // 保存用户消息
-        memory.saveMessage(
+        enhancedMemory.saveMessage(
             SimpleMessage(
                 role = MessageRole.USER,
                 content = userMessage

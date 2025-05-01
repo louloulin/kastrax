@@ -2,7 +2,8 @@ package ai.kastrax.examples.agent
 
 import ai.kastrax.core.agent.*
 import ai.kastrax.core.tools.tool
-import ai.kastrax.integrations.openai.openAi
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.*
@@ -14,7 +15,7 @@ fun main() = runBlocking {
     // 创建会话管理器和状态管理器
     val sessionManager = InMemorySessionManager()
     val stateManager = InMemoryStateManager()
-    
+
     // 创建计算器工具
     val calculatorTool = tool {
         id = "calculator"
@@ -40,23 +41,28 @@ fun main() = runBlocking {
             }
         }
     }
-    
+
     // 创建Agent
     val agent = agent {
         name = "StateAwareAgent"
         instructions = "You are a helpful assistant with state management capabilities."
-        model = openAi("gpt-4o")
-        
+        model = deepSeek {
+            apiKey("sk-85e83081df28490b9ae63188f0cb4f79")
+            model(DeepSeekModel.DEEPSEEK_CHAT)
+            temperature(0.7)
+            maxTokens(2000)
+        }
+
         // 添加工具
         tools {
             tool(calculatorTool)
         }
-        
+
         // 添加会话管理器和状态管理器
         sessionManager(sessionManager)
         stateManager(stateManager)
     }
-    
+
     // 创建会话
     println("=== 创建会话 ===")
     val session = agent.createSession(
@@ -71,27 +77,27 @@ fun main() = runBlocking {
     println("会话标题: ${session?.title}")
     println("会话元数据: ${session?.metadata}")
     println()
-    
+
     // 获取当前状态
     println("=== 初始状态 ===")
     val initialState = agent.getState()
     println("初始状态: ${initialState?.status ?: "无状态"}")
     println()
-    
+
     // 生成响应
     println("=== 生成响应 ===")
     println("用户: 计算 25 + 17 的结果")
-    
+
     // 手动更新状态为思考中
     val thinkingState = agent.updateState(AgentStatus.THINKING)
     println("状态更新为: ${thinkingState?.status}")
-    
+
     // 生成响应
     val response = agent.generate(
         "计算 25 + 17 的结果",
         AgentGenerateOptions(threadId = session?.id)
     )
-    
+
     // 打印响应
     println("助手: ${response.text}")
     println("状态: ${response.state?.status}")
@@ -101,7 +107,7 @@ fun main() = runBlocking {
         println("工具结果: ${response.toolResults[response.toolCalls[0].id]?.result}")
     }
     println()
-    
+
     // 获取会话消息
     println("=== 会话消息 ===")
     val messages = agent.getSessionMessages(session?.id ?: "")
@@ -112,30 +118,30 @@ fun main() = runBlocking {
         println("时间: ${message.createdAt}")
         println()
     }
-    
+
     // 流式生成响应
     println("=== 流式生成响应 ===")
     println("用户: 计算 125 * 37 的结果")
-    
+
     // 流式生成
     val streamResponse = agent.stream(
         "计算 125 * 37 的结果",
         AgentStreamOptions(threadId = session?.id)
     )
-    
+
     // 处理流式响应
     print("助手: ")
     streamResponse.textStream?.collect { chunk ->
         print(chunk)
     }
     println("\n")
-    
+
     // 获取最终状态
     println("=== 最终状态 ===")
     val finalState = agent.getState()
     println("最终状态: ${finalState?.status}")
     println()
-    
+
     // 重置状态
     println("=== 重置状态 ===")
     agent.reset()

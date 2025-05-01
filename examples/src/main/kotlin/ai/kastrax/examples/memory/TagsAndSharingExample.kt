@@ -69,7 +69,7 @@ fun main() = runBlocking {
         ),
         SimpleMessage(
             role = MessageRole.ASSISTANT,
-            content = "是的，Java是一种强类型、面向对象的编程语言，具有"一次编写，到处运行"的特性，广泛用于企业级应用开发。"
+            content = "是的，Java是一种强类型、面向对象的编程语言，具有'一次编写，到处运行'的特性，广泛用于企业级应用开发。"
         ),
         SimpleMessage(
             role = MessageRole.USER,

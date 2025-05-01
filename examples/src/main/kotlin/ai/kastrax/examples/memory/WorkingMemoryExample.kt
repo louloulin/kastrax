@@ -19,7 +19,7 @@ fun main() = runBlocking {
     println("-------------------")
     
     // 创建增强型内存，启用工作内存
-    val memory = EnhancedMemoryBuilder()
+    val enhancedMemory = EnhancedMemoryBuilder()
         .lastMessages(10)
         .workingMemory(
             WorkingMemoryConfig(
@@ -49,11 +49,11 @@ fun main() = runBlocking {
             请更新工作内存中的相应部分。
         """.trimIndent()
         model = openAi("gpt-4o")
-        memory = memory
+        memory = enhancedMemory
     }
     
     // 创建一个新的对话线程
-    val threadId = memory.createThread("工作内存示例对话")
+    val threadId = enhancedMemory.createThread("工作内存示例对话")
     println("创建了新的对话线程: $threadId")
     
     // 模拟对话
@@ -68,7 +68,7 @@ fun main() = runBlocking {
         println("\n用户: $userMessage")
         
         // 保存用户消息
-        memory.saveMessage(
+        enhancedMemory.saveMessage(
             SimpleMessage(
                 role = MessageRole.USER,
                 content = userMessage
@@ -81,7 +81,7 @@ fun main() = runBlocking {
         println("助手: ${response.content}")
         
         // 查看当前工作内存
-        val workingMemory = (memory as EnhancedMemory).getWorkingMemorySystemMessage(threadId)
+        val workingMemory = enhancedMemory.getWorkingMemorySystemMessage(threadId)
         println("\n当前工作内存:")
         println(workingMemory?.substringAfter("# 工作内存\n以下是你的工作内存，包含关于用户和对话的重要信息。请在回答时参考这些信息。\n\n") ?: "无工作内存")
     }
@@ -121,7 +121,7 @@ fun main() = runBlocking {
         
         // 添加工作内存工具
         tools {
-            val workingMemoryTools = (toolCallMemory as EnhancedMemory).getWorkingMemoryTools()
+            val workingMemoryTools = toolCallMemory.getWorkingMemoryTools()
             workingMemoryTools.forEach { (name, tool) ->
                 tool(name, tool)
             }
@@ -156,7 +156,7 @@ fun main() = runBlocking {
         println("助手: ${response.content}")
         
         // 查看当前工作内存
-        val workingMemory = (toolCallMemory as EnhancedMemory).getWorkingMemorySystemMessage(toolCallThreadId)
+        val workingMemory = toolCallMemory.getWorkingMemorySystemMessage(toolCallThreadId)
         println("\n当前工作内存:")
         println(workingMemory?.substringAfter("# 工作内存\n你可以使用update_working_memory工具来更新工作内存。当前工作内存内容：\n\n") ?: "无工作内存")
     }
