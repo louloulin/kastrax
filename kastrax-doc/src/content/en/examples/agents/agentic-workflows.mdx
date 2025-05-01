@@ -1,18 +1,18 @@
 ---
-title: "Example: Calling Agentic Workflows | Agents | Mastra Docs"
-description: Example of creating AI workflows in Mastra, demonstrating integration of external APIs with LLM-powered planning.
+title: "Example: Calling Agentic Workflows | Agents | Kastrax Docs"
+description: Example of creating AI workflows in Kastrax, demonstrating integration of external APIs with LLM-powered planning.
 ---
 
 import { GithubLink } from "@/components/github-link";
 
-# Agentic Workflows
+# Agentic Workflows ✅
 
 When building AI applications, you often need to coordinate multiple steps that depend on each other's outputs. This example shows how to create an AI workflow that fetches weather data and uses it to suggest activities, demonstrating how to integrate external APIs with LLM-powered planning.
 
 ```ts showLineNumbers copy
-import { Mastra } from "@mastra/core";
-import { Agent } from "@mastra/core/agent";
-import { Step, Workflow } from "@mastra/core/workflows";
+import { Kastrax } from "@kastrax/core";
+import { Agent } from "@kastrax/core/agent";
+import { Step, Workflow } from "@kastrax/core/workflows";
 import { z } from "zod";
 import { openai } from "@ai-sdk/openai";
 
@@ -112,7 +112,7 @@ const planActivities = new Step({
   id: "plan-activities",
   description: "Suggests activities based on weather conditions",
   inputSchema: forecastSchema,
-  execute: async ({ context, mastra }) => {
+  execute: async ({ context, kastrax }) => {
     const forecast =
       context?.getStepResult<z.infer<typeof forecastSchema>>(
         "fetch-weather",
@@ -179,14 +179,14 @@ const weatherWorkflow = new Workflow({
 
 weatherWorkflow.commit();
 
-const mastra = new Mastra({
+const kastrax = new Kastrax({
   workflows: {
     weatherWorkflow,
   },
 });
 
 async function main() {
-  const { start } = mastra.getWorkflow("weatherWorkflow").createRun();
+  const { start } = kastrax.getWorkflow("weatherWorkflow").createRun();
 
   const result = await start({
     triggerData: {
@@ -203,6 +203,6 @@ main();
 
 <GithubLink
   link={
-    "https://github.com/mastra-ai/mastra/blob/main/examples/basics/agents/agentic-workflows"
+    "https://github.com/kastrax-ai/kastrax/blob/main/examples/basics/agents/agentic-workflows"
   }
 />

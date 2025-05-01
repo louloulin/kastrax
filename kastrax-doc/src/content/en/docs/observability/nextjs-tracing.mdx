@@ -1,9 +1,9 @@
 ---
-title: "Next.js Tracing | Mastra Observability Documentation"
+title: "Next.js Tracing | Kastrax Observability Documentation"
 description: "Set up OpenTelemetry tracing for Next.js applications"
 ---
 
-# Next.js Tracing
+# Next.js Tracing ✅
 
 Next.js requires additional configuration to enable OpenTelemetry tracing. 
 
@@ -23,14 +23,14 @@ const nextConfig: NextConfig = {
 export default nextConfig;
 ```
 
-### Step 2: Mastra Configuration
+### Step 2: Kastrax Configuration
 
-Configure your Mastra instance:
+Configure your Kastrax instance:
 
-```typescript filename="mastra.config.ts" copy
-import { Mastra } from "@mastra/core";
+```typescript filename="kastrax.config.ts" copy
+import { Kastrax } from "@kastrax/core";
 
-export const mastra = new Mastra({
+export const kastrax = new Kastrax({
   // ... other config
   telemetry: {
     serviceName: "your-project-name",
@@ -60,7 +60,7 @@ import {
   NodeSDK,
   ATTR_SERVICE_NAME,
   Resource,
-} from '@mastra/core/telemetry/otel-vendor';
+} from '@kastrax/core/telemetry/otel-vendor';
 import { LangfuseExporter } from 'langfuse-vercel';
 
 export function register() {
@@ -101,7 +101,7 @@ export function register() {
 
 ### Summary
 
-This setup will enable OpenTelemetry tracing for your Next.js application and Mastra operations.
+This setup will enable OpenTelemetry tracing for your Next.js application and Kastrax operations.
 
 For more details, see the documentation for:
 - [Next.js Instrumentation](https://nextjs.org/docs/app/building-your-application/optimizing/instrumentation)

@@ -1,13 +1,13 @@
 ---
-title: "Branching, Merging, Conditions | Workflows | Mastra Docs"
-description: "Control flow in Mastra workflows allows you to manage branching, merging, and conditions to construct workflows that meet your logic requirements."
+title: "Branching, Merging, Conditions | Workflows | Kastrax Docs"
+description: "Control flow in Kastrax workflows allows you to manage branching, merging, and conditions to construct workflows that meet your logic requirements."
 ---
 
-# Control Flow in Workflows: Branching, Merging, and Conditions
+# Control Flow in Workflows: Branching, Merging, and Conditions ✅
 
 When you create a multi-step process, you may need to run steps in parallel, chain them sequentially, or follow different paths based on outcomes. This page describes how you can manage branching, merging, and conditions to construct workflows that meet your logic requirements. The code snippets show the key patterns for structuring complex control flow.
 
-## Parallel Execution
+## Parallel Execution ✅
 
 You can run multiple steps at the same time if they don't depend on each other. This approach can speed up your workflow when steps perform independent tasks. The code below shows how to add two steps in parallel:
 
@@ -17,7 +17,7 @@ myWorkflow.step(fetchUserData).step(fetchOrderData);
 
 See the [Parallel Steps](../../examples/workflows/parallel-steps.mdx) example for more details.
 
-## Sequential Execution
+## Sequential Execution ✅
 
 Sometimes you need to run steps in strict order to ensure outputs from one step become inputs for the next. Use .then() to link dependent operations. The code below shows how to chain steps sequentially:
 
@@ -27,7 +27,7 @@ myWorkflow.step(fetchOrderData).then(validateData).then(processOrder);
 
 See the [Sequential Steps](../../examples/workflows/sequential-steps.mdx) example for more details.
 
-## Branching and Merging Paths
+## Branching and Merging Paths ✅
 
 When different outcomes require different paths, branching is helpful. You can also merge paths later once they complete. The code below shows how to branch after stepA and later converge on stepF:
 
@@ -51,9 +51,9 @@ In this example:
 
 See the [Branching Paths](../../examples/workflows/branching-paths.mdx) example for more details.
 
-## Merging Multiple Branches
+## Merging Multiple Branches ✅
 
-Sometimes you need a step to execute only after multiple other steps have completed. Mastra provides a compound `.after([])` syntax that allows you to specify multiple dependencies for a step.
+Sometimes you need a step to execute only after multiple other steps have completed. Kastrax provides a compound `.after([])` syntax that allows you to specify multiple dependencies for a step.
 
 ```typescript
 myWorkflow
@@ -98,9 +98,9 @@ myWorkflow
   .step(finalStep)
 ```
 
-## Cyclical Dependencies and Loops
+## Cyclical Dependencies and Loops ✅
 
-Workflows often need to repeat steps until certain conditions are met. Mastra provides two powerful methods for creating loops: `until` and `while`. These methods offer an intuitive way to implement repetitive tasks.
+Workflows often need to repeat steps until certain conditions are met. Kastrax provides two powerful methods for creating loops: `until` and `while`. These methods offer an intuitive way to implement repetitive tasks.
 
 ### Using Manual Cyclical Dependencies (Legacy Approach)
 
@@ -266,7 +266,7 @@ When using reference-based conditions, you can use these comparison operators:
 | `$lt`    | Less than |
 | `$lte`   | Less than or equal to |
 
-## Conditions
+## Conditions ✅
 
 Use the when property to control whether a step runs based on data from previous steps. Below are three ways to specify conditions.
 
@@ -331,9 +331,9 @@ myWorkflow.step(
 );
 ```
 
-## Data Access Patterns
+## Data Access Patterns ✅
 
-Mastra provides several ways to pass data between steps:
+Kastrax provides several ways to pass data between steps:
 
 1. **Context Object** - Access step results directly through the context object
 2. **Variable Mapping** - Explicitly map outputs from one step to inputs of another
@@ -349,8 +349,8 @@ The `getStepResult` method provides a type-safe way to access step results. This
 
 For better type safety, you can provide a type parameter to `getStepResult`:
 
-```typescript showLineNumbers filename="src/mastra/workflows/get-step-result.ts" copy
-import { Step, Workflow } from "@mastra/core/workflows";
+```typescript showLineNumbers filename="src/kastrax/workflows/get-step-result.ts" copy
+import { Step, Workflow } from "@kastrax/core/workflows";
 import { z } from "zod";
 
 const fetchUserStep = new Step({
@@ -387,8 +387,8 @@ const analyzeDataStep = new Step({
 
 The most type-safe approach is to reference the step directly in the `getStepResult` call:
 
-```typescript showLineNumbers filename="src/mastra/workflows/step-reference.ts" copy
-import { Step, Workflow } from "@mastra/core/workflows";
+```typescript showLineNumbers filename="src/kastrax/workflows/step-reference.ts" copy
+import { Step, Workflow } from "@kastrax/core/workflows";
 import { z } from "zod";
 
 // Define step with output schema
@@ -441,8 +441,8 @@ Variable mapping is an explicit way to define data flow between steps.
 This approach makes dependencies clear and provides good type safety.
 The data injected into the step is available in the `context.inputData` object, and typed based on the `inputSchema` of the step.
 
-```typescript showLineNumbers filename="src/mastra/workflows/variable-mapping.ts" copy
-import { Step, Workflow } from "@mastra/core/workflows";
+```typescript showLineNumbers filename="src/kastrax/workflows/variable-mapping.ts" copy
+import { Step, Workflow } from "@kastrax/core/workflows";
 import { z } from "zod";
 
 const fetchUserStep = new Step({
@@ -501,8 +501,8 @@ For more details on variable mapping, see the [Data Mapping with Workflow Variab
 The context object provides direct access to all step results and their outputs. This approach is more flexible but requires careful handling to maintain type safety.
 You can access step results directly through the `context.steps` object:
 
-```typescript showLineNumbers filename="src/mastra/workflows/context-access.ts" copy
-import { Step, Workflow } from "@mastra/core/workflows";
+```typescript showLineNumbers filename="src/kastrax/workflows/context-access.ts" copy
+import { Step, Workflow } from "@kastrax/core/workflows";
 import { z } from "zod";
 
 const processOrderStep = new Step({
@@ -539,8 +539,8 @@ workflow
 For comprehensive type safety across your entire workflow, you can define types for all steps and pass them to the Workflow
 This allows you to get type safety for the context object on conditions, and on step results in the final workflow output.
 
-```typescript showLineNumbers filename="src/mastra/workflows/workflow-typing.ts" copy
-import { Step, Workflow } from "@mastra/core/workflows";
+```typescript showLineNumbers filename="src/kastrax/workflows/workflow-typing.ts" copy
+import { Step, Workflow } from "@kastrax/core/workflows";
 import { z } from "zod";
 
 
@@ -593,8 +593,8 @@ workflow
 
 In addition to step results, you can access the original trigger data that started the workflow:
 
-```typescript showLineNumbers filename="src/mastra/workflows/trigger-data.ts" copy
-import { Step, Workflow } from "@mastra/core/workflows";
+```typescript showLineNumbers filename="src/kastrax/workflows/trigger-data.ts" copy
+import { Step, Workflow } from "@kastrax/core/workflows";
 import { z } from "zod";
 
 // Define trigger schema
@@ -633,8 +633,8 @@ workflow
 
 The data injected into the step is available in the `context.inputData` object, and typed based on the `inputSchema` of the step.
 
-```typescript showLineNumbers filename="src/mastra/workflows/resume-data.ts" copy
-import { Step, Workflow } from "@mastra/core/workflows";
+```typescript showLineNumbers filename="src/kastrax/workflows/resume-data.ts" copy
+import { Step, Workflow } from "@kastrax/core/workflows";
 import { z } from "zod";
 
 const processOrderStep = new Step({
@@ -683,8 +683,8 @@ console.log({resumedResult});
 
 You can get typed access to the results of a workflow by injecting the step types into the `Workflow` type params:
 
-```typescript showLineNumbers filename="src/mastra/workflows/get-results.ts" copy
-import { Workflow } from "@mastra/core/workflows";
+```typescript showLineNumbers filename="src/kastrax/workflows/get-results.ts" copy
+import { Workflow } from "@kastrax/core/workflows";
 
 const fetchUserStep = new Step({
   id: "fetchUser",

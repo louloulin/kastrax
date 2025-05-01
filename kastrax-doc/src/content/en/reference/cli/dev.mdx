@@ -1,13 +1,13 @@
 ---
-title: "`mastra dev` Reference | Local Development | Mastra CLI"
-description: Documentation for the mastra dev command, which starts a development server for agents, tools, and workflows.
+title: "`kastrax dev` Reference | Local Development | Kastrax CLI"
+description: Documentation for the kastrax dev command, which starts a development server for agents, tools, and workflows.
 ---
 
-# `mastra dev` Reference
+# `kastrax dev` Reference ✅
 
-The `mastra dev` command starts a development server that exposes REST routes for your agents, tools, and workflows,
+The `kastrax dev` command starts a development server that exposes REST routes for your agents, tools, and workflows,
 
-## Parameters
+## Parameters ✅
 
 <PropertiesTable
   content={[
@@ -15,7 +15,7 @@ The `mastra dev` command starts a development server that exposes REST routes fo
       name: "--dir",
       type: "string",
       description:
-        "Specifies the path to your Mastra folder (containing agents, tools, and workflows). Defaults to the current working directory.",
+        "Specifies the path to your Kastrax folder (containing agents, tools, and workflows). Defaults to the current working directory.",
       isOptional: true,
     },
     {
@@ -28,18 +28,18 @@ The `mastra dev` command starts a development server that exposes REST routes fo
   ]}
 />
 
-## Routes
+## Routes ✅
 
-Starting the server with `mastra dev` exposes a set of REST routes by default:
+Starting the server with `kastrax dev` exposes a set of REST routes by default:
 
 ### System Routes
 - **GET `/api`**: Get API status.
 
 ### Agent Routes
 
-Agents are expected to be exported from `src/mastra/agents`.
+Agents are expected to be exported from `src/kastrax/agents`.
 
-- **GET `/api/agents`**: Lists the registered agents found in your Mastra folder.
+- **GET `/api/agents`**: Lists the registered agents found in your Kastrax folder.
 - **GET `/api/agents/:agentId`**: Get agent by ID.
 - **GET `/api/agents/:agentId/evals/ci`**: Get CI evals by agent ID.
 - **GET `/api/agents/:agentId/evals/live`**: Get live evals by agent ID.
@@ -54,7 +54,7 @@ Agents are expected to be exported from `src/mastra/agents`.
 
 ### Tool Routes
 
-Tools are expected to be exported from `src/mastra/tools` (or the configured tools directory).
+Tools are expected to be exported from `src/kastrax/tools` (or the configured tools directory).
 
 - **GET `/api/tools`**: Get all tools.
 - **GET `/api/tools/:toolId`**: Get tool by ID.
@@ -62,7 +62,7 @@ Tools are expected to be exported from `src/mastra/tools` (or the configured too
 
 ### Workflow Routes
 
-Workflows are expected to be exported from `src/mastra/workflows` (or the configured workflows directory).
+Workflows are expected to be exported from `src/kastrax/workflows` (or the configured workflows directory).
 
 - **GET `/api/workflows`**: Get all workflows.
 - **GET `/api/workflows/:workflowId`**: Get workflow by ID.
@@ -106,15 +106,15 @@ Workflows are expected to be exported from `src/mastra/workflows` (or the config
 - **GET `/openapi.json`**: Returns an auto-generated OpenAPI specification for your project's routes.
 - **GET `/swagger-ui`**: Access Swagger UI for API documentation.
 
-## Additional Notes
+## Additional Notes ✅
 
-The port defaults to 4111. Both the port and hostname can be configured via the mastra server config. See [Launch Development Server](/docs/local-dev/mastra-dev#launch-development-server) for configuration details.
+The port defaults to 4111. Both the port and hostname can be configured via the kastrax server config. See [Launch Development Server](/docs/local-dev/kastrax-dev#launch-development-server) for configuration details.
 
 Make sure you have your environment variables set up in your `.env.development` or `.env` file for any providers you use (e.g., `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, etc.).
 
 ### Example request
 
-To test an agent after running `mastra dev`:
+To test an agent after running `kastrax dev`:
 
 ```bash
 curl -X POST http://localhost:4111/api/agents/myAgent/generate \

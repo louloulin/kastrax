@@ -1,19 +1,19 @@
 ---
-title: "Reference: Agent.getInstructions() | Agents | Mastra Docs"
-description: "Documentation for the `.getInstructions()` method in Mastra agents, which retrieves the instructions that guide the agent's behavior."
+title: "Reference: Agent.getInstructions() | Agents | Kastrax Docs"
+description: "Documentation for the `.getInstructions()` method in Kastrax agents, which retrieves the instructions that guide the agent's behavior."
 ---
 
-# Agent.getInstructions()
+# Agent.getInstructions() ✅
 
 The `getInstructions()` method retrieves the instructions configured for an agent, resolving them if they're a function. These instructions guide the agent's behavior and define its capabilities and constraints.
 
-## Syntax
+## Syntax ✅
 
 ```typescript
 getInstructions({ runtimeContext }: { runtimeContext?: RuntimeContext } = {}): string | Promise<string>
 ```
 
-## Parameters
+## Parameters ✅
 
 <br />
 <PropertiesTable
@@ -27,11 +27,11 @@ getInstructions({ runtimeContext }: { runtimeContext?: RuntimeContext } = {}): s
   ]}
 />
 
-## Return Value
+## Return Value ✅
 
 Returns a string or a Promise that resolves to a string containing the agent's instructions.
 
-## Description
+## Description ✅
 
 The `getInstructions()` method is used to access the instructions that guide an agent's behavior. It resolves the instructions, which can be either directly provided as a string or returned from a function.
 
@@ -41,12 +41,12 @@ Instructions are a critical component of an agent's configuration as they define
 - Constraints on the agent's behavior
 - Context for handling user requests
 
-## Examples
+## Examples ✅
 
 ### Basic Usage
 
 ```typescript
-import { Agent } from "@mastra/core/agent";
+import { Agent } from "@kastrax/core/agent";
 import { openai } from '@ai-sdk/openai';
 
 // Create an agent with static instructions
@@ -64,8 +64,8 @@ console.log(instructions); // "You are a helpful assistant that provides concise
 ### Using with RuntimeContext
 
 ```typescript
-import { Agent } from "@mastra/core/agent";
-import { RuntimeContext } from "@mastra/core/runtime-context";
+import { Agent } from "@kastrax/core/agent";
+import { RuntimeContext } from "@kastrax/core/runtime-context";
 import { openai } from '@ai-sdk/openai';
 
 // Create an agent with dynamic instructions

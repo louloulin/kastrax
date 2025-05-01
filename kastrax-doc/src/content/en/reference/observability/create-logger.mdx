@@ -1,9 +1,9 @@
 ---
-title: "Reference: createLogger() | Mastra Observability Docs"
+title: "Reference: createLogger() | Kastrax Observability Docs"
 description: Documentation for the createLogger function, which instantiates a logger based on a given configuration.
 ---
 
-# createLogger()
+# createLogger() ✅
 
 The `createLogger()` function is used to instantiate a logger based on a given configuration. You can create console-based, file-based, or Upstash Redis-based loggers by specifying the type and any additional parameters relevant to that type.
 
@@ -12,17 +12,17 @@ The `createLogger()` function is used to instantiate a logger based on a given c
 #### Console Logger (Development)
 
 ```typescript showLineNumbers copy
-const consoleLogger = createLogger({ name: "Mastra", level: "debug" });
+const consoleLogger = createLogger({ name: "Kastrax", level: "debug" });
 consoleLogger.info("App started");
 ```
 
 #### File Transport (Structured Logs)
 
 ```typescript showLineNumbers copy
-import { FileTransport } from "@mastra/loggers/file";
+import { FileTransport } from "@kastrax/loggers/file";
 
 const fileLogger = createLogger({
-  name: "Mastra",
+  name: "Kastrax",
   transports: { file: new FileTransport({ path: "test-dir/test.log" }) },
   level: "warn",
 });
@@ -35,10 +35,10 @@ fileLogger.warn("Low disk space", {
 #### Upstash Logger (Remote Log Drain)
 
 ```typescript showLineNumbers copy
-import { UpstashTransport } from "@mastra/loggers/upstash";
+import { UpstashTransport } from "@kastrax/loggers/upstash";
 
 const logger = createLogger({
-  name: "Mastra",
+  name: "Kastrax",
   transports: {
     upstash: new UpstashTransport({
       listName: "production-logs",

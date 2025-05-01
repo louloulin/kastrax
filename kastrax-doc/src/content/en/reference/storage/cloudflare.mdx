@@ -1,22 +1,22 @@
 ---
-title: "Cloudflare Storage | Storage System | Mastra Core"
-description: Documentation for the Cloudflare KV storage implementation in Mastra.
+title: "Cloudflare Storage | Storage System | Kastrax Core"
+description: Documentation for the Cloudflare KV storage implementation in Kastrax.
 ---
 
-# Cloudflare Storage
+# Cloudflare Storage ✅
 
 The Cloudflare KV storage implementation provides a globally distributed, serverless key-value store solution using Cloudflare Workers KV.
 
-## Installation
+## Installation ✅
 
 ```bash copy
-npm install @mastra/cloudflare@latest
+npm install @kastrax/cloudflare@latest
 ```
 
-## Usage
+## Usage ✅
 
 ```typescript copy showLineNumbers
-import { CloudflareStore } from "@mastra/cloudflare";
+import { CloudflareStore } from "@kastrax/cloudflare";
 
 // --- Example 1: Using Workers Binding ---
 const storageWorkers = new CloudflareStore({
@@ -36,7 +36,7 @@ const storageRest = new CloudflareStore({
 });
 ```
 
-## Parameters
+## Parameters ✅
 
 <PropertiesTable
   content={[

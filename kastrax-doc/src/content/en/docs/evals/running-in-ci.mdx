@@ -1,20 +1,20 @@
 ---
 title: "Running in CI"
-description: "Learn how to run Mastra evals in your CI/CD pipeline to monitor agent quality over time."
+description: "Learn how to run Kastrax evals in your CI/CD pipeline to monitor agent quality over time."
 ---
 
-# Running Evals in CI
+# Running Evals in CI ✅
 
 Running evals in your CI pipeline helps bridge this gap by providing quantifiable metrics for measuring agent quality over time.
 
-## Setting Up CI Integration
+## Setting Up CI Integration ✅
 
 We support any testing framework that supports ESM modules. For example, you can use [Vitest](https://vitest.dev/), [Jest](https://jestjs.io/) or [Mocha](https://mochajs.org/) to run evals in your CI/CD pipeline.
 
-```typescript copy showLineNumbers filename="src/mastra/agents/index.test.ts"
+```typescript copy showLineNumbers filename="src/kastrax/agents/index.test.ts"
 import { describe, it, expect } from 'vitest';
-import { evaluate } from "@mastra/evals";
-import { ToneConsistencyMetric } from "@mastra/evals/nlp";
+import { evaluate } from "@kastrax/evals";
+import { ToneConsistencyMetric } from "@kastrax/evals/nlp";
 import { myAgent } from './index';
 
 describe('My Agent', () => {
@@ -27,16 +27,16 @@ describe('My Agent', () => {
 });
 ```
 
-You will need to configure a testSetup and globalSetup script for your testing framework to capture the eval results. It allows us to show these results in your mastra dashboard.
+You will need to configure a testSetup and globalSetup script for your testing framework to capture the eval results. It allows us to show these results in your kastrax dashboard.
 
-## Framework Configuration
+## Framework Configuration ✅
 
 ### Vitest Setup
 
 Add these files to your project to run evals in your CI/CD pipeline:
 
 ```typescript copy showLineNumbers filename="globalSetup.ts"
-import { globalSetup } from '@mastra/evals';
+import { globalSetup } from '@kastrax/evals';
 
 export default function setup() {
   globalSetup()
@@ -45,7 +45,7 @@ export default function setup() {
 
 ```typescript copy showLineNumbers filename="testSetup.ts"
 import { beforeAll } from 'vitest';
-import { attachListeners } from '@mastra/evals';
+import { attachListeners } from '@kastrax/evals';
 
 beforeAll(async () => {
   await attachListeners();
@@ -63,18 +63,18 @@ export default defineConfig({
 })
 ```
 
-## Storage Configuration
+## Storage Configuration ✅
 
-To store eval results in Mastra Storage and capture results in the Mastra dashboard:
+To store eval results in Kastrax Storage and capture results in the Kastrax dashboard:
 
 ```typescript copy showLineNumbers filename="testSetup.ts"
 import { beforeAll } from 'vitest';
-import { attachListeners } from '@mastra/evals';
-import { mastra } from './your-mastra-setup';
+import { attachListeners } from '@kastrax/evals';
+import { kastrax } from './your-kastrax-setup';
 
 beforeAll(async () => {
-  // Store evals in Mastra Storage (requires storage to be enabled)
-  await attachListeners(mastra);
+  // Store evals in Kastrax Storage (requires storage to be enabled)
+  await attachListeners(kastrax);
 });
 ```
 

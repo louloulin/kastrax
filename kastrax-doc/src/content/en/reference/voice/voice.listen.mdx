@@ -1,17 +1,17 @@
 ---
-title: "Reference: voice.listen() | Voice Providers | Mastra Docs"
-description: "Documentation for the listen() method available in all Mastra voice providers, which converts speech to text."
+title: "Reference: voice.listen() | Voice Providers | Kastrax Docs"
+description: "Documentation for the listen() method available in all Kastrax voice providers, which converts speech to text."
 ---
 
-# voice.listen()
+# voice.listen() ✅
 
-The `listen()` method is a core function available in all Mastra voice providers that converts speech to text. It takes an audio stream as input and returns the transcribed text.
+The `listen()` method is a core function available in all Kastrax voice providers that converts speech to text. It takes an audio stream as input and returns the transcribed text.
 
-## Usage Example
+## Usage Example ✅
 
 ```typescript
-import { OpenAIVoice } from "@mastra/voice-openai";
-import { getMicrophoneStream } from "@mastra/node-audio";
+import { OpenAIVoice } from "@kastrax/voice-openai";
+import { getMicrophoneStream } from "@kastrax/node-audio";
 import { createReadStream } from "fs";
 import path from "path";
 
@@ -42,7 +42,7 @@ const transcriptWithOptions = await voice.listen(audioStream, {
 });
 ```
 
-## Parameters
+## Parameters ✅
 
 <PropertiesTable
   content={[
@@ -61,14 +61,14 @@ const transcriptWithOptions = await voice.listen(audioStream, {
   ]}
 />
 
-## Return Value
+## Return Value ✅
 
 Returns one of the following:
 - `Promise<string>`: A promise that resolves to the transcribed text
 - `Promise<NodeJS.ReadableStream>`: A promise that resolves to a stream of transcribed text (for streaming transcription)
 - `Promise<void>`: For real-time providers that emit 'writing' events instead of returning text directly
 
-## Provider-Specific Options
+## Provider-Specific Options ✅
 
 Each voice provider may support additional options specific to their implementation. Here are some examples:
 
@@ -140,7 +140,7 @@ Each voice provider may support additional options specific to their implementat
   ]}
 />
 
-## Realtime Voice Providers
+## Realtime Voice Providers ✅
 
 When using realtime voice providers like `OpenAIRealtimeVoice`, the `listen()` method behaves differently:
 
@@ -148,8 +148,8 @@ When using realtime voice providers like `OpenAIRealtimeVoice`, the `listen()` m
 - You need to register an event listener to receive the transcription
 
 ```typescript
-import { OpenAIRealtimeVoice } from "@mastra/voice-openai-realtime";
-import { getMicrophoneStream } from "@mastra/node-audio";
+import { OpenAIRealtimeVoice } from "@kastrax/voice-openai-realtime";
+import { getMicrophoneStream } from "@kastrax/node-audio";
 
 const voice = new OpenAIRealtimeVoice();
 await voice.connect();
@@ -164,14 +164,14 @@ const microphoneStream = getMicrophoneStream();
 await voice.listen(microphoneStream);
 ```
 
-## Using with CompositeVoice
+## Using with CompositeVoice ✅
 
 When using `CompositeVoice`, the `listen()` method delegates to the configured listening provider:
 
 ```typescript
-import { CompositeVoice } from "@mastra/core/voice";
-import { OpenAIVoice } from "@mastra/voice-openai";
-import { PlayAIVoice } from "@mastra/voice-playai";
+import { CompositeVoice } from "@kastrax/core/voice";
+import { OpenAIVoice } from "@kastrax/voice-openai";
+import { PlayAIVoice } from "@kastrax/voice-playai";
 
 const voice = new CompositeVoice({
   listenProvider: new OpenAIVoice(),
@@ -182,7 +182,7 @@ const voice = new CompositeVoice({
 const transcript = await voice.listen(audioStream);
 ```
 
-## Notes
+## Notes ✅
 
 - Not all voice providers support speech-to-text functionality (e.g., PlayAI, Speechify)
 - The behavior of `listen()` may vary slightly between providers, but all implementations follow the same basic interface
@@ -191,7 +191,7 @@ const transcript = await voice.listen(audioStream);
 - Some providers support streaming transcription, where text is returned as it's transcribed
 - For best performance, consider closing or ending the audio stream when you're done with it
 
-## Related Methods
+## Related Methods ✅
 
 - [voice.speak()](./voice.speak) - Converts text to speech
 - [voice.send()](./voice.send) - Sends audio data to the voice provider in real-time

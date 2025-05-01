@@ -1,15 +1,15 @@
 ---
-title: "Example: Human in the Loop | Workflows | Mastra Docs"
-description: Example of using Mastra to create workflows with human intervention points.
+title: "Example: Human in the Loop | Workflows | Kastrax Docs"
+description: Example of using Kastrax to create workflows with human intervention points.
 ---
 
 import { GithubLink } from '@/components/github-link';
 
-# Human in the Loop Workflow
+# Human in the Loop Workflow ✅
 
 Human-in-the-loop workflows allow you to pause execution at specific points to collect user input, make decisions, or perform actions that require human judgment. This example demonstrates how to create a workflow with human intervention points.
 
-## How It Works
+## How It Works ✅
 
 1. A workflow step can **suspend** execution using the `suspend()` function, optionally passing a payload with context for the human decision maker.
 2. When the workflow is **resumed**, the human input is passed in the `context` parameter of the `resume()` call.
@@ -18,13 +18,13 @@ Human-in-the-loop workflows allow you to pause execution at specific points to c
 
 This pattern allows for safe, type-checked human intervention in automated workflows.
 
-## Interactive Terminal Example Using Inquirer
+## Interactive Terminal Example Using Inquirer ✅
 
 This example demonstrates how to use the [Inquirer](https://www.npmjs.com/package/@inquirer/prompts) library to collect user input directly from the terminal when a workflow is suspended, creating a truly interactive human-in-the-loop experience.
 
 ```ts showLineNumbers copy
-import { Mastra } from '@mastra/core';
-import { Step, Workflow } from '@mastra/core/workflows';
+import { Kastrax } from '@kastrax/core';
+import { Step, Workflow } from '@kastrax/core/workflows';
 import { z } from 'zod';
 import { confirm, input, select } from '@inquirer/prompts';
 
@@ -200,7 +200,7 @@ recommendationWorkflow
 .commit();
 
 // Register the workflow
-const mastra = new Mastra({
+const kastrax = new Kastrax({
   workflows: { recommendationWorkflow },
 });
 ```
@@ -208,7 +208,7 @@ const mastra = new Mastra({
 ```ts showLineNumbers copy
 // Example of using the workflow with Inquirer prompts
 async function runRecommendationWorkflow() {
-  const registeredWorkflow = mastra.getWorkflow('recommendationWorkflow');
+  const registeredWorkflow = kastrax.getWorkflow('recommendationWorkflow');
   const run = registeredWorkflow.createRun();
 
   console.log('Starting product recommendation workflow...');
@@ -292,13 +292,13 @@ async function runRecommendationWorkflow() {
 runRecommendationWorkflow().catch(console.error);
 ```
 
-## Advanced Example with Multiple User Inputs
+## Advanced Example with Multiple User Inputs ✅
 
 This example demonstrates a more complex workflow that requires multiple human intervention points, such as in a content moderation system.
 
 ```ts showLineNumbers copy
-import { Mastra } from '@mastra/core';
-import { Step, Workflow } from '@mastra/core/workflows';
+import { Kastrax } from '@kastrax/core';
+import { Step, Workflow } from '@kastrax/core/workflows';
 import { z } from 'zod';
 import { select, input } from '@inquirer/prompts';
 
@@ -486,13 +486,13 @@ contentModerationWorkflow
   .commit();
 
 // Register the workflow
-const mastra = new Mastra({
+const kastrax = new Kastrax({
   workflows: { contentModerationWorkflow },
 });
 
 // Example of using the workflow with Inquirer prompts
 async function runModerationDemo() {
-  const registeredWorkflow = mastra.getWorkflow('contentModerationWorkflow');
+  const registeredWorkflow = kastrax.getWorkflow('contentModerationWorkflow');
   const run = registeredWorkflow.createRun();
 
   // Start the workflow with content that needs review
@@ -584,7 +584,7 @@ function simulateContentAnalysis(content: string): number {
 runModerationDemo().catch(console.error);
 ```
 
-## Key Concepts
+## Key Concepts ✅
 
 1. **Suspension Points** - Use the `suspend()` function within a step's execute to pause workflow execution.
 
@@ -684,6 +684,6 @@ Human-in-the-loop workflows are powerful for building systems that blend automat
 <br />
 <GithubLink
   link={
-    "https://github.com/mastra-ai/mastra/blob/main/examples/basics/workflows/human-in-the-loop"
+    "https://github.com/kastrax-ai/kastrax/blob/main/examples/basics/workflows/human-in-the-loop"
   }
 />

@@ -1,17 +1,17 @@
 ---
-title: "Reference: OpenAI Realtime Voice | Voice Providers | Mastra Docs"
+title: "Reference: OpenAI Realtime Voice | Voice Providers | Kastrax Docs"
 description: "Documentation for the OpenAIRealtimeVoice class, providing real-time text-to-speech and speech-to-text capabilities via WebSockets."
 ---
 
-# OpenAI Realtime Voice
+# OpenAI Realtime Voice ✅
 
 The OpenAIRealtimeVoice class provides real-time voice interaction capabilities using OpenAI's WebSocket-based API. It supports real time speech to speech, voice activity detection, and event-based audio streaming.
 
-## Usage Example
+## Usage Example ✅
 
 ```typescript
-import { OpenAIRealtimeVoice } from "@mastra/voice-openai-realtime";
-import { playAudio, getMicrophoneStream } from "@mastra/node-audio";
+import { OpenAIRealtimeVoice } from "@kastrax/voice-openai-realtime";
+import { playAudio, getMicrophoneStream } from "@kastrax/node-audio";
 
 // Initialize with default configuration using environment variables
 const voice = new OpenAIRealtimeVoice();
@@ -61,7 +61,7 @@ await voice.send(microphoneStream);
 voice.connect();
 ```
 
-## Configuration
+## Configuration ✅
 
 ### Constructor Options
 
@@ -184,7 +184,7 @@ voice.connect();
   ]}
 />
 
-## Methods
+## Methods ✅
 
 ### connect()
 
@@ -350,7 +350,7 @@ Removes a previously registered event listener.
 
 Returns: `void`
 
-## Events
+## Events ✅
 
 The OpenAIRealtimeVoice class emits the following events:
 
@@ -408,7 +408,7 @@ You can also listen to [OpenAI Realtime utility events](https://github.com/opena
   ]}
 />
 
-## Available Voices
+## Available Voices ✅
 
 The following voice options are available:
 
@@ -421,7 +421,7 @@ The following voice options are available:
 - `shimmer`: Bright and energetic
 - `verse`: Versatile and expressive
 
-## Notes
+## Notes ✅
 
 - API keys can be provided via constructor options or the `OPENAI_API_KEY` environment variable
 - The OpenAI Realtime Voice API uses WebSockets for real-time communication

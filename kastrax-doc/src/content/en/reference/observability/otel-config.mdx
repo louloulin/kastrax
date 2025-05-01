@@ -1,16 +1,16 @@
 ---
-title: "Reference: OtelConfig | Mastra Observability Docs"
+title: "Reference: OtelConfig | Kastrax Observability Docs"
 description: Documentation for the OtelConfig object, which configures OpenTelemetry instrumentation, tracing, and exporting behavior.
 ---
 
-# `OtelConfig`
+# `OtelConfig` ✅
 
 The `OtelConfig` object is used to configure OpenTelemetry instrumentation, tracing, and exporting behavior within your application. By adjusting its properties, you can control how telemetry data (such as traces) is collected, sampled, and exported. 
 
-To use the `OtelConfig` within Mastra, pass it as the value of the `telemetry` key when initializing Mastra. This will configure Mastra to use your custom OpenTelemetry settings for tracing and instrumentation.
+To use the `OtelConfig` within Kastrax, pass it as the value of the `telemetry` key when initializing Kastrax. This will configure Kastrax to use your custom OpenTelemetry settings for tracing and instrumentation.
 
 ```typescript showLineNumbers copy
-import { Mastra } from 'mastra';
+import { Kastrax } from 'kastrax';
 
 const otelConfig: OtelConfig = {
   serviceName: 'my-awesome-service',

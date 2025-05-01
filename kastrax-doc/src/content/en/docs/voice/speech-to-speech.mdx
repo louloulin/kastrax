@@ -1,16 +1,16 @@
 ---
-title: Speech-to-Speech Capabilities in Mastra | Mastra Docs
-description: Overview of speech-to-speech capabilities in Mastra, including real-time interactions and event-driven architecture.
+title: Speech-to-Speech Capabilities in Kastrax | Kastrax Docs
+description: Overview of speech-to-speech capabilities in Kastrax, including real-time interactions and event-driven architecture.
 ---
 
-# Speech-to-Speech Capabilities in Mastra
+# Speech-to-Speech Capabilities in Kastrax ✅
 
-## Introduction
+## Introduction ✅
 
-Speech-to-Speech (STS) in Mastra provides a standardized interface for real-time interactions across multiple providers.  
+Speech-to-Speech (STS) in Kastrax provides a standardized interface for real-time interactions across multiple providers.  
 STS enables continuous bidirectional audio communication through listening to events from Realtime models. Unlike separate TTS and STT operations, STS maintains an open connection that processes speech continuously in both directions.
 
-## Configuration
+## Configuration ✅
 
 - **`chatModel`**: Configuration for the realtime model.
   - **`apiKey`**: Your OpenAI API key. Falls back to the `OPENAI_API_KEY` environment variable.
@@ -40,12 +40,12 @@ const voice = new OpenAIRealtimeVoice({
 const voice = new OpenAIRealtimeVoice();
 ```
 
-## Using STS
+## Using STS ✅
 
 ```typescript
-import { Agent } from "@mastra/core/agent";
-import { OpenAIRealtimeVoice } from "@mastra/voice-openai-realtime";
-import { playAudio, getMicrophoneStream } from "@mastra/node-audio";
+import { Agent } from "@kastrax/core/agent";
+import { OpenAIRealtimeVoice } from "@kastrax/voice-openai-realtime";
+import { playAudio, getMicrophoneStream } from "@kastrax/node-audio";
 
 const agent = new Agent({
   name: 'Agent',

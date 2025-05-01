@@ -1,0 +1,387 @@
+---
+title: "Creating Your First Agent | Getting Started | Kastrax Docs"
+description: "Learn how to create your first AI agent using Kastrax, including basic configuration, memory, and tools."
+---
+
+# Creating Your First Kastrax Agent ✅
+
+This guide will walk you through creating your first agent using the Kastrax framework. We'll build a simple conversational agent that can respond to user queries.
+
+## Basic Agent Structure ✅
+
+In Kastrax, agents are created using a DSL (Domain Specific Language) that makes it easy to define their behavior. Here's the basic structure of a Kastrax agent:
+
+```kotlin
+val myAgent = agent {
+    name("MyFirstAgent")
+    description("A simple conversational agent")
+    
+    model = deepSeek {
+        apiKey("your-api-key")
+        model(DeepSeekModel.DEEPSEEK_CHAT)
+        temperature(0.7)
+    }
+    
+    // Optional components
+    memory(...)
+    tools(...)
+}
+```
+
+## Step-by-Step Guide ✅
+
+Let's create a simple conversational agent step by step:
+
+### 1. Create the Agent File ✅
+
+Create a new Kotlin file in your project, for example `src/main/kotlin/com/example/agents/ConversationAgent.kt`:
+
+```kotlin
+package com.example.agents
+
+import ai.kastrax.core.agent.agent
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.runBlocking
+
+/**
+ * A simple conversational agent that can respond to user queries.
+ */
+class ConversationAgent {
+    companion object {
+        @JvmStatic
+        fun main(args: Array<String>) = runBlocking {
+            // Create the agent
+            val conversationAgent = createConversationAgent()
+            
+            // Test the agent
+            val response = conversationAgent.generate("Hello! Can you introduce yourself?")
+            println("Agent response: ${response.text}")
+        }
+    }
+}
+
+/**
+ * Creates a simple conversational agent.
+ */
+fun createConversationAgent() = agent {
+    name("ConversationAgent")
+    description("A friendly conversational agent that can chat with users")
+    
+    // Define the system prompt
+    systemPrompt("""
+        You are a helpful, friendly assistant. Your goal is to have engaging conversations with users.
+        
+        Guidelines:
+        - Be polite and respectful
+        - Provide concise but informative responses
+        - Ask follow-up questions to keep the conversation going
+        - If you don't know something, admit it rather than making up information
+    """.trimIndent())
+    
+    // Configure the LLM
+    model = deepSeek {
+        apiKey("your-deepseek-api-key") // Replace with your actual API key
+        model(DeepSeekModel.DEEPSEEK_CHAT)
+        temperature(0.7)
+        maxTokens(1000)
+    }
+}
+```
+
+### 2. Run the Agent ✅
+
+You can run the agent directly from your IDE or using Gradle:
+
+```bash
+gradle run -PmainClass=com.example.agents.ConversationAgent
+```
+
+You should see output similar to:
+
+```
+Agent response: Hello! I'm your friendly assistant, and I'm here to chat with you. 
+It's nice to meet you! I can help answer questions, discuss various topics, or just 
+have a casual conversation. Is there anything specific you'd like to talk about today?
+```
+
+## Adding Memory ✅
+
+Let's enhance our agent by adding memory so it can remember previous interactions:
+
+```kotlin
+import ai.kastrax.core.agent.agent
+import ai.kastrax.core.memory.memory
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.runBlocking
+
+fun createConversationAgentWithMemory() = agent {
+    name("ConversationAgentWithMemory")
+    description("A friendly conversational agent with memory capabilities")
+    
+    systemPrompt("""
+        You are a helpful, friendly assistant. Your goal is to have engaging conversations with users.
+        
+        Guidelines:
+        - Be polite and respectful
+        - Provide concise but informative responses
+        - Ask follow-up questions to keep the conversation going
+        - If you don't know something, admit it rather than making up information
+        - Remember important details about the user
+    """.trimIndent())
+    
+    // Configure the LLM
+    model = deepSeek {
+        apiKey("your-deepseek-api-key")
+        model(DeepSeekModel.DEEPSEEK_CHAT)
+        temperature(0.7)
+        maxTokens(1000)
+    }
+    
+    // Add memory
+    memory = memory {
+        workingMemory(true)
+        conversationHistory(20) // Remember last 20 messages
+    }
+}
+```
+
+## Adding Tools ✅
+
+Now, let's add a simple tool to our agent that can fetch the current time:
+
+```kotlin
+import ai.kastrax.core.agent.agent
+import ai.kastrax.core.memory.memory
+import ai.kastrax.core.tools.tool
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.runBlocking
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
+
+fun createConversationAgentWithTools() = agent {
+    name("ConversationAgentWithTools")
+    description("A friendly conversational agent with tools")
+    
+    systemPrompt("""
+        You are a helpful, friendly assistant. Your goal is to have engaging conversations with users.
+        
+        Guidelines:
+        - Be polite and respectful
+        - Provide concise but informative responses
+        - Ask follow-up questions to keep the conversation going
+        - If you don't know something, admit it rather than making up information
+        - Use your tools when appropriate
+    """.trimIndent())
+    
+    // Configure the LLM
+    model = deepSeek {
+        apiKey("your-deepseek-api-key")
+        model(DeepSeekModel.DEEPSEEK_CHAT)
+        temperature(0.7)
+        maxTokens(1000)
+    }
+    
+    // Add tools
+    tools {
+        tool("getCurrentTime") {
+            description("Get the current time")
+            parameters {}
+            execute {
+                val currentTime = LocalDateTime.now()
+                val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+                val formattedTime = currentTime.format(formatter)
+                "The current time is $formattedTime"
+            }
+        }
+    }
+}
+```
+
+## Testing the Agent with a Conversation ✅
+
+Let's create a simple function to have a conversation with our agent:
+
+```kotlin
+import ai.kastrax.core.agent.Agent
+import kotlinx.coroutines.runBlocking
+
+suspend fun conversationTest(agent: Agent) {
+    val conversation = listOf(
+        "Hello! My name is Alice.",
+        "What can you help me with?",
+        "What time is it right now?",
+        "Thank you! Can you remember my name?",
+        "Goodbye!"
+    )
+    
+    for (message in conversation) {
+        println("\nUser: $message")
+        val response = agent.generate(message)
+        println("Agent: ${response.text}")
+    }
+}
+
+fun main() = runBlocking {
+    val agent = createConversationAgentWithTools()
+    conversationTest(agent)
+}
+```
+
+## Complete Example ✅
+
+Here's a complete example that puts everything together:
+
+```kotlin
+package com.example.agents
+
+import ai.kastrax.core.agent.Agent
+import ai.kastrax.core.agent.agent
+import ai.kastrax.core.memory.memory
+import ai.kastrax.core.tools.tool
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.runBlocking
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
+
+/**
+ * A complete example of a conversational agent with memory and tools.
+ */
+class CompleteAgentExample {
+    companion object {
+        @JvmStatic
+        fun main(args: Array<String>) = runBlocking {
+            // Create the agent
+            val agent = createCompleteAgent()
+            
+            // Test with a conversation
+            conversationTest(agent)
+        }
+        
+        /**
+         * Creates a complete agent with memory and tools.
+         */
+        fun createCompleteAgent() = agent {
+            name("CompleteAgent")
+            description("A friendly conversational agent with memory and tools")
+            
+            systemPrompt("""
+                You are a helpful, friendly assistant. Your goal is to have engaging conversations with users.
+                
+                Guidelines:
+                - Be polite and respectful
+                - Provide concise but informative responses
+                - Ask follow-up questions to keep the conversation going
+                - If you don't know something, admit it rather than making up information
+                - Remember important details about the user
+                - Use your tools when appropriate
+            """.trimIndent())
+            
+            // Configure the LLM
+            model = deepSeek {
+                apiKey("your-deepseek-api-key")
+                model(DeepSeekModel.DEEPSEEK_CHAT)
+                temperature(0.7)
+                maxTokens(1000)
+            }
+            
+            // Add memory
+            memory = memory {
+                workingMemory(true)
+                conversationHistory(20)
+            }
+            
+            // Add tools
+            tools {
+                tool("getCurrentTime") {
+                    description("Get the current time")
+                    parameters {}
+                    execute {
+                        val currentTime = LocalDateTime.now()
+                        val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+                        val formattedTime = currentTime.format(formatter)
+                        "The current time is $formattedTime"
+                    }
+                }
+            }
+        }
+        
+        /**
+         * Tests the agent with a conversation.
+         */
+        suspend fun conversationTest(agent: Agent) {
+            val conversation = listOf(
+                "Hello! My name is Alice.",
+                "What can you help me with?",
+                "What time is it right now?",
+                "Thank you! Can you remember my name?",
+                "Goodbye!"
+            )
+            
+            for (message in conversation) {
+                println("\nUser: $message")
+                val response = agent.generate(message)
+                println("Agent: ${response.text}")
+            }
+        }
+    }
+}
+```
+
+## Understanding the Code ✅
+
+Let's break down the key components of our agent:
+
+### Agent Configuration ✅
+
+```kotlin
+agent {
+    name("CompleteAgent")
+    description("A friendly conversational agent with memory and tools")
+    
+    systemPrompt("...")
+    
+    model = deepSeek { ... }
+}
+```
+
+This defines the basic properties of the agent, including its name, description, system prompt, and the LLM it uses.
+
+### Memory Configuration ✅
+
+```kotlin
+memory = memory {
+    workingMemory(true)
+    conversationHistory(20)
+}
+```
+
+This configures the agent's memory system, enabling working memory and conversation history with a capacity of 20 messages.
+
+### Tool Configuration ✅
+
+```kotlin
+tools {
+    tool("getCurrentTime") {
+        description("Get the current time")
+        parameters {}
+        execute {
+            // Tool implementation
+        }
+    }
+}
+```
+
+This adds a tool to the agent that can get the current time. The tool has a name, description, parameters (none in this case), and an execution function.
+
+## Next Steps ✅
+
+Now that you've created your first agent, you can:
+
+1. Explore different [agent architectures](../agents/architectures.mdx)
+2. Learn about [memory systems](../memory/overview.mdx)
+3. Create [custom tools](../tools/custom-tools.mdx)
+4. Build [agent workflows](../workflows/overview.mdx)

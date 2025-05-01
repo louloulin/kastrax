@@ -1,15 +1,15 @@
-# Memory with Upstash
+# Memory with Upstash ✅
 
-This example demonstrates how to use Mastra's memory system with Upstash as the storage backend.
+This example demonstrates how to use Kastrax's memory system with Upstash as the storage backend.
 
-## Setup
+## Setup ✅
 
 First, set up the memory system with Upstash storage and vector capabilities:
 
 ```typescript
-import { Memory } from "@mastra/memory";
-import { UpstashStore, UpstashVector } from "@mastra/upstash";
-import { Agent } from "@mastra/core/agent";
+import { Memory } from "@kastrax/memory";
+import { UpstashStore, UpstashVector } from "@kastrax/upstash";
+import { Agent } from "@kastrax/core/agent";
 import { openai } from "@ai-sdk/openai";
 
 // Initialize memory with Upstash storage and vector search
@@ -41,7 +41,7 @@ const chefAgent = new Agent({
 });
 ```
 
-## Environment Setup
+## Environment Setup ✅
 
 Make sure to set up your Upstash credentials in the environment variables:
 
@@ -50,7 +50,7 @@ UPSTASH_REDIS_REST_URL=your-redis-url
 UPSTASH_REDIS_REST_TOKEN=your-redis-token
 ```
 
-## Usage Example
+## Usage Example ✅
 
 ```typescript
 import { randomUUID } from "crypto";

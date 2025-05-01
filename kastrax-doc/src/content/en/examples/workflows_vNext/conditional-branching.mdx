@@ -1,21 +1,21 @@
 ---
-title: "Example: Conditional Branching | Workflows | Mastra Docs"
-description: Example of using Mastra to create conditional branches in workflows using the `branch` statement .
+title: "Example: Conditional Branching | Workflows | Kastrax Docs"
+description: Example of using Kastrax to create conditional branches in workflows using the `branch` statement .
 ---
 
 import { GithubLink } from "@/components/github-link";
 
-# Workflow with Conditional Branching
+# Workflow with Conditional Branching ✅
 
 Workflows often need to follow different paths based on some condition.
 This example demonstrates how to use the `branch` construct to create conditional flows within your workflows.
 
 
-## Define Planning Agent
+## Define Planning Agent ✅
 Define a planning agent which leverages an LLM call to plan activities given a location and corresponding weather conditions.
 
 ```ts showLineNumbers copy filename="agents/planning-agent.ts"
-import { Agent } from '@mastra/core/agent'
+import { Agent } from '@kastrax/core/agent'
 import { openai } from '@ai-sdk/openai'
 
 const llm = openai('gpt-4o')
@@ -69,7 +69,7 @@ const planningAgent = new Agent({
 export { planningAgent }
 ```
 
-## Define Weather Workflow
+## Define Weather Workflow ✅
 Define the weather workflow with 3 steps: one to fetch the weather via a network call, one to plan activities, and another to plan only indoor activities.
 Both using the planning agent.
 
@@ -172,7 +172,7 @@ const planActivities = createStep({
   outputSchema: z.object({
     activities: z.string(),
   }),
-  execute: async ({ inputData, mastra }) => {
+  execute: async ({ inputData, kastrax }) => {
     console.log('planActivities')
     const forecast = inputData
 
@@ -184,7 +184,7 @@ const planActivities = createStep({
       ${JSON.stringify(forecast, null, 2)}
       `
 
-    const agent = mastra?.getAgent('planningAgent')
+    const agent = kastrax?.getAgent('planningAgent')
     if (!agent) {
       throw new Error('Planning agent not found')
     }
@@ -217,7 +217,7 @@ const planIndoorActivities = createStep({
   outputSchema: z.object({
     activities: z.string(),
   }),
-  execute: async ({ inputData, mastra }) => {
+  execute: async ({ inputData, kastrax }) => {
     console.log('planIndoorActivities')
     const forecast = inputData
 
@@ -227,7 +227,7 @@ const planIndoorActivities = createStep({
 
     const prompt = `In case it rains, plan indoor activities for ${forecast.location} on ${forecast.date}`
 
-    const agent = mastra?.getAgent('planningAgent')
+    const agent = kastrax?.getAgent('planningAgent')
     if (!agent) {
       throw new Error('Planning agent not found')
     }
@@ -283,12 +283,12 @@ export { weatherWorkflow }
 ```
 
 ```ts showLineNumbers copy filename="index.ts"
-import { Mastra } from '@mastra/core/mastra'
-import { createLogger } from '@mastra/core/logger'
+import { Kastrax } from '@kastrax/core/kastrax'
+import { createLogger } from '@kastrax/core/logger'
 import { weatherWorkflow } from './workflows'
 import { planningAgent } from './agents'
 
-const mastra = new Mastra({
+const kastrax = new Kastrax({
   vnext_workflows: {
     weatherWorkflow,
   },
@@ -296,25 +296,25 @@ const mastra = new Mastra({
     planningAgent,
   },
   logger: createLogger({
-    name: 'Mastra',
+    name: 'Kastrax',
     level: 'info',
   }),
 })
 
-export { mastra }
+export { kastrax }
 ```
 
-## Register Agent and Workflow instances with Mastra class
-Register the agents and workflow with the mastra instance.
+## Register Agent and Workflow instances with Kastrax class ✅
+Register the agents and workflow with the kastrax instance.
 This is critical for enabling access to the agents within the workflow.
 
 ```ts showLineNumbers copy filename="index.ts"
-import { Mastra } from '@mastra/core/mastra'
-import { createLogger } from '@mastra/core/logger'
+import { Kastrax } from '@kastrax/core/kastrax'
+import { createLogger } from '@kastrax/core/logger'
 import { weatherWorkflow } from './workflows'
 import { planningAgent } from './agents'
 
-const mastra = new Mastra({
+const kastrax = new Kastrax({
   vnext_workflows: {
     weatherWorkflow,
   },
@@ -322,21 +322,21 @@ const mastra = new Mastra({
     planningAgent,
   },
   logger: createLogger({
-    name: 'Mastra',
+    name: 'Kastrax',
     level: 'info',
   }),
 })
 
-export { mastra }
+export { kastrax }
 ```
 
-## Execute the weather workflow
-Here, we'll get the weather workflow from the mastra instance, then create a run and execute the created run with the required inputData.
+## Execute the weather workflow ✅
+Here, we'll get the weather workflow from the kastrax instance, then create a run and execute the created run with the required inputData.
 
 ```ts showLineNumbers copy filename="exec.ts"
-import { mastra } from "./"
+import { kastrax } from "./"
 
-const workflow = mastra.vnext_getWorkflow('weatherWorkflow')
+const workflow = kastrax.vnext_getWorkflow('weatherWorkflow')
 const run = workflow.createRun()
 
 const result = await run.start({ inputData: { city: 'New York' } })
@@ -349,6 +349,6 @@ console.dir(result, { depth: null })
 <br />
 <br />
 <GithubLink
-  link={'https://github.com/mastra-ai/mastra/blob/main/examples/basics/workflows/conditional-branching'}
+  link={'https://github.com/kastrax-ai/kastrax/blob/main/examples/basics/workflows/conditional-branching'}
 />
 

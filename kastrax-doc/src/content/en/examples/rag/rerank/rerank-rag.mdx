@@ -1,26 +1,26 @@
 ---
-title: "Example: Re-ranking Results with Tools | Retrieval | RAG | Mastra Docs"
-description: Example of implementing a RAG system with re-ranking in Mastra using OpenAI embeddings and PGVector for vector storage.
+title: "Example: Re-ranking Results with Tools | Retrieval | RAG | Kastrax Docs"
+description: Example of implementing a RAG system with re-ranking in Kastrax using OpenAI embeddings and PGVector for vector storage.
 ---
 
 import { GithubLink } from "@/components/github-link";
 
-# Re-ranking Results with Tools
+# Re-ranking Results with Tools ✅
 
-This example demonstrates how to use Mastra's vector query tool to implement a Retrieval-Augmented Generation (RAG) system with re-ranking using OpenAI embeddings and PGVector for vector storage.
+This example demonstrates how to use Kastrax's vector query tool to implement a Retrieval-Augmented Generation (RAG) system with re-ranking using OpenAI embeddings and PGVector for vector storage.
 
-## Overview
+## Overview ✅
 
-The system implements RAG with re-ranking using Mastra and OpenAI. Here's what it does:
+The system implements RAG with re-ranking using Kastrax and OpenAI. Here's what it does:
 
-1. Sets up a Mastra agent with gpt-4o-mini for response generation
+1. Sets up a Kastrax agent with gpt-4o-mini for response generation
 2. Creates a vector query tool with re-ranking capabilities
 3. Chunks text documents into smaller segments and creates embeddings from them
 4. Stores them in a PostgreSQL vector database
 5. Retrieves and re-ranks relevant chunks based on queries
-6. Generates context-aware responses using the Mastra agent
+6. Generates context-aware responses using the Kastrax agent
 
-## Setup
+## Setup ✅
 
 ### Environment Setup
 
@@ -37,16 +37,16 @@ Then, import the necessary dependencies:
 
 ```typescript copy showLineNumbers filename="index.ts"
 import { openai } from "@ai-sdk/openai";
-import { Mastra } from "@mastra/core";
-import { Agent } from "@mastra/core/agent";
-import { PgVector } from "@mastra/pg";
-import { MDocument, createVectorQueryTool } from "@mastra/rag";
+import { Kastrax } from "@kastrax/core";
+import { Agent } from "@kastrax/core/agent";
+import { PgVector } from "@kastrax/pg";
+import { MDocument, createVectorQueryTool } from "@kastrax/rag";
 import { embedMany } from "ai";
 ```
 
-## Vector Query Tool Creation with Re-ranking
+## Vector Query Tool Creation with Re-ranking ✅
 
-Using createVectorQueryTool imported from @mastra/rag, you can create a tool that can query the vector database and re-rank results:
+Using createVectorQueryTool imported from @kastrax/rag, you can create a tool that can query the vector database and re-rank results:
 
 ```typescript copy showLineNumbers{8} filename="index.ts"
 const vectorQueryTool = createVectorQueryTool({
@@ -59,9 +59,9 @@ const vectorQueryTool = createVectorQueryTool({
 });
 ```
 
-## Agent Configuration
+## Agent Configuration ✅
 
-Set up the Mastra agent that will handle the responses:
+Set up the Kastrax agent that will handle the responses:
 
 ```typescript copy showLineNumbers{17} filename="index.ts"
 export const ragAgent = new Agent({
@@ -76,21 +76,21 @@ export const ragAgent = new Agent({
 });
 ```
 
-## Instantiate PgVector and Mastra
+## Instantiate PgVector and Kastrax ✅
 
-Instantiate PgVector and Mastra with the components:
+Instantiate PgVector and Kastrax with the components:
 
 ```typescript copy showLineNumbers{29} filename="index.ts"
 const pgVector = new PgVector(process.env.POSTGRES_CONNECTION_STRING!);
 
-export const mastra = new Mastra({
+export const kastrax = new Kastrax({
   agents: { ragAgent },
   vectors: { pgVector },
 });
-const agent = mastra.getAgent("ragAgent");
+const agent = kastrax.getAgent("ragAgent");
 ```
 
-## Document Processing
+## Document Processing ✅
 
 Create a document and process it into chunks:
 
@@ -124,7 +124,7 @@ const chunks = await doc1.chunk({
 });
 ```
 
-## Creating and Storing Embeddings
+## Creating and Storing Embeddings ✅
 
 Generate embeddings for the chunks and store them in the vector database:
 
@@ -134,7 +134,7 @@ const { embeddings } = await embedMany({
   values: chunks.map(chunk => chunk.text),
 });
 
-const vectorStore = mastra.getVector("pgVector");
+const vectorStore = kastrax.getVector("pgVector");
 await vectorStore.createIndex({
   indexName: "embeddings",
   dimension: 1536,
@@ -147,7 +147,7 @@ await vectorStore.upsert({
 });
 ```
 
-## Querying with Re-ranking
+## Querying with Re-ranking ✅
 
 Try different queries to see how the re-ranking affects results:
 
@@ -175,6 +175,6 @@ console.log('Response:', answerThree.text);
 <br />
 <GithubLink
   link={
-    "https://github.com/mastra-ai/mastra/blob/main/examples/basics/rag/rerank-rag"
+    "https://github.com/kastrax-ai/kastrax/blob/main/examples/basics/rag/rerank-rag"
   }
 /> 

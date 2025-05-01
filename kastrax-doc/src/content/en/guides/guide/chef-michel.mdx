@@ -1,34 +1,34 @@
 ---
-title: "Building an AI Chef Assistant | Mastra Agent Guides"
-description: Guide on creating a Chef Assistant agent in Mastra to help users cook meals with available ingredients.
+title: "Building an AI Chef Assistant | Kastrax Agent Guides"
+description: Guide on creating a Chef Assistant agent in Kastrax to help users cook meals with available ingredients.
 ---
 
 import { Steps } from "nextra/components";
 import YouTube from "@/components/youtube";
 
-# Agents Guide: Building a Chef Assistant
+# Agents Guide: Building a Chef Assistant ✅
 
 In this guide, we'll walk through creating a "Chef Assistant" agent that helps users cook meals with available ingredients.
 
 <YouTube id="_tZhOqHCrF0" />
 
-## Prerequisites
+## Prerequisites ✅
 
 - Node.js installed
-- Mastra installed: `npm install @mastra/core@latest`
+- Kastrax installed: `npm install @kastrax/core@latest`
 
 ---
 
-## Create the Agent
+## Create the Agent ✅
 
 <Steps>
 ### Define the Agent
 
-Create a new file `src/mastra/agents/chefAgent.ts` and define your agent:
+Create a new file `src/kastrax/agents/chefAgent.ts` and define your agent:
 
-```ts copy filename="src/mastra/agents/chefAgent.ts"
+```ts copy filename="src/kastrax/agents/chefAgent.ts"
 import { openai } from "@ai-sdk/openai";
-import { Agent } from "@mastra/core/agent";
+import { Agent } from "@kastrax/core/agent";
 
 export const chefAgent = new Agent({
   name: "chef-agent",
@@ -41,7 +41,7 @@ export const chefAgent = new Agent({
 
 ---
 
-## Set Up Environment Variables
+## Set Up Environment Variables ✅
 
 Create a `.env` file in your project root and add your OpenAI API key:
 
@@ -51,16 +51,16 @@ OPENAI_API_KEY=your_openai_api_key
 
 ---
 
-## Register the Agent with Mastra
+## Register the Agent with Kastrax ✅
 
 In your main file, register the agent:
 
-```ts copy filename="src/mastra/index.ts"
-import { Mastra } from "@mastra/core";
+```ts copy filename="src/kastrax/index.ts"
+import { Kastrax } from "@kastrax/core";
 
 import { chefAgent } from "./agents/chefAgent";
 
-export const mastra = new Mastra({
+export const kastrax = new Kastrax({
   agents: { chefAgent },
 });
 ```
@@ -69,7 +69,7 @@ export const mastra = new Mastra({
 
 </Steps >
 
-## Interacting with the Agent
+## Interacting with the Agent ✅
 
 <Steps>
 ### Generating Text Responses
@@ -192,23 +192,23 @@ Query: I want to make lasagna, can you generate a lasagna recipe for me?
 
 </Steps >
 
-## Running the Agent Server
+## Running the Agent Server ✅
 
 <Steps>
 
-### Using `mastra dev`
+### Using `kastrax dev`
 
-You can run your agent as a service using the `mastra dev` command:
+You can run your agent as a service using the `kastrax dev` command:
 
 ```bash copy
-mastra dev
+kastrax dev
 ```
 
 This will start a server exposing endpoints to interact with your registered agents.
 
 ### Accessing the Chef Assistant API
 
-By default, `mastra dev` runs on `http://localhost:4111`. Your Chef Assistant agent will be available at:
+By default, `kastrax dev` runs on `http://localhost:4111`. Your Chef Assistant agent will be available at:
 
 ```
 POST http://localhost:4111/api/agents/chefAgent/generate

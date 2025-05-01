@@ -1,18 +1,18 @@
 ---
-title: "Agent Tool Selection | Agent Documentation | Mastra"
+title: "Agent Tool Selection | Agent Documentation | Kastrax"
 description: Tools are typed functions that can be executed by agents or workflows, with built-in integration access and parameter validation. Each tool has a schema that defines its inputs, an executor function that implements its logic, and access to configured integrations.
 ---
 
-# Agent Tool Selection
+# Agent Tool Selection ✅
 
 Tools are typed functions that can be executed by agents or workflows, with built-in integration access and parameter validation. Each tool has a schema that defines its inputs, an executor function that implements its logic, and access to configured integrations.
 
-## Creating Tools
+## Creating Tools ✅
 
 In this section, we'll walk through the process of creating a tool that can be used by your agents. Let's create a simple tool that fetches current weather information for a given city.
 
-```typescript filename="src/mastra/tools/weatherInfo.ts" copy
-import { createTool } from "@mastra/core/tools";
+```typescript filename="src/kastrax/tools/weatherInfo.ts" copy
+import { createTool } from "@kastrax/core/tools";
 import { z } from "zod";
 
 const getWeatherInfo = async (city: string) => {
@@ -36,12 +36,12 @@ export const weatherInfo = createTool({
 });
 ```
 
-## Adding Tools to an Agent
+## Adding Tools to an Agent ✅
 
 Now we'll add the tool to an agent. We'll create an agent that can answer questions about the weather and configure it to use our `weatherInfo` tool.
 
-```typescript filename="src/mastra/agents/weatherAgent.ts"
-import { Agent } from "@mastra/core/agent";
+```typescript filename="src/kastrax/agents/weatherAgent.ts"
+import { Agent } from "@kastrax/core/agent";
 import { openai } from "@ai-sdk/openai";
 import * as tools from "../tools/weatherInfo";
 
@@ -56,28 +56,28 @@ export const weatherAgent = new Agent<typeof tools>({
 });
 ```
 
-## Registering the Agent
+## Registering the Agent ✅
 
-We need to initialize Mastra with our agent.
+We need to initialize Kastrax with our agent.
 
 ```typescript filename="src/index.ts"
-import { Mastra } from "@mastra/core";
+import { Kastrax } from "@kastrax/core";
 import { weatherAgent } from "./agents/weatherAgent";
 
-export const mastra = new Mastra({
+export const kastrax = new Kastrax({
   agents: { weatherAgent },
 });
 ```
 
-This registers your agent with Mastra, making it available for use.
+This registers your agent with Kastrax, making it available for use.
 
-## Abort Signals
+## Abort Signals ✅
 
 The abort signals from `generate` and `stream` (text generation) are forwarded to the tool execution. You can access them in the second parameter of the execute function and e.g. abort long-running computations or forward them to fetch calls inside tools.
 
 ```typescript
-import { Agent } from "@mastra/core/agent";
-import { createTool } from "@mastra/core/tools";
+import { Agent } from "@kastrax/core/agent";
+import { createTool } from "@kastrax/core/tools";
 import { z } from "zod";
 
 const agent = new Agent({
@@ -102,15 +102,15 @@ const result = await agent.generate("What is the weather in San Francisco?", {
 });
 ```
 
-## Injecting Request/User-Specific Variables
+## Injecting Request/User-Specific Variables ✅
 
 We support dependency injection for tools and workflows. You can pass a runtimeContext directly to your `generate` or `stream` function calls, or inject it using [server middleware](/docs/deployment/server#Middleware).
 
 Here's an example where we change the temperature scale between Fahrenheit and Celsius:
 
 ```typescript filename="src/agents/weather-agent.ts"
-import { Agent } from "@mastra/core/agent";
-import { createTool } from "@mastra/core/tools";
+import { Agent } from "@kastrax/core/agent";
+import { createTool } from "@kastrax/core/tools";
 import { z } from "zod";
 
 export const agent = new Agent({
@@ -151,21 +151,21 @@ const result = await agent.generate("What is the weather in San Francisco?", {
 });
 ```
 
-## Debugging Tools
+## Debugging Tools ✅
 
 You can test tools using Vitest or any other testing framework. Writing unit tests for your tools ensures they behave as expected and helps catch errors early.
 
-## Calling an Agent with a Tool
+## Calling an Agent with a Tool ✅
 
 Now we can call the agent, and it will use the tool to fetch the weather information.
 
-## Example: Interacting with the Agent
+## Example: Interacting with the Agent ✅
 
 ```typescript filename="src/index.ts"
-import { mastra } from "./index";
+import { kastrax } from "./index";
 
 async function main() {
-  const agent = mastra.getAgent("weatherAgent");
+  const agent = kastrax.getAgent("weatherAgent");
   const response = await agent.generate(
     "What's the weather like in New York City today?",
   );
@@ -178,11 +178,11 @@ main();
 
 The agent will use the `weatherInfo` tool to get the current weather in New York City and respond accordingly.
 
-## Vercel AI SDK Tool Format
+## Vercel AI SDK Tool Format ✅
 
-Mastra supports tools created using the Vercel AI SDK format. You can import and use these tools directly:
+Kastrax supports tools created using the Vercel AI SDK format. You can import and use these tools directly:
 
-```typescript filename="src/mastra/tools/vercelTool.ts" copy
+```typescript filename="src/kastrax/tools/vercelTool.ts" copy
 import { tool } from "ai";
 import { z } from "zod";
 
@@ -199,13 +199,13 @@ export const weatherInfo = tool({
 });
 ```
 
-You can use Vercel tools alongside Mastra tools in your agents:
+You can use Vercel tools alongside Kastrax tools in your agents:
 
-```typescript filename="src/mastra/agents/weatherAgent.ts"
-import { Agent } from "@mastra/core/agent";
+```typescript filename="src/kastrax/agents/weatherAgent.ts"
+import { Agent } from "@kastrax/core/agent";
 import { openai } from "@ai-sdk/openai";
 import { weatherInfo } from "../tools/vercelTool";
-import * as mastraTools from "../tools/mastraTools";
+import * as kastraxTools from "../tools/kastraxTools";
 
 export const weatherAgent = new Agent({
   name: "Weather Agent",
@@ -214,14 +214,14 @@ export const weatherAgent = new Agent({
   model: openai("gpt-4"),
   tools: {
     weatherInfo, // Vercel tool
-    ...mastraTools, // Mastra tools
+    ...kastraxTools, // Kastrax tools
   },
 });
 ```
 
 Both tool formats will work seamlessly within your agent's workflow.
 
-## Tool Design Best Practices
+## Tool Design Best Practices ✅
 
 When creating tools for your agents, following these guidelines will help ensure reliable and intuitive tool usage:
 
@@ -281,8 +281,8 @@ Tools are more likely to be used effectively when:
 
 Following these practices helps ensure your tools are discoverable and usable by agents while maintaining clean separation between purpose (main description) and implementation details (parameter schemas).
 
-## Model Context Protocol (MCP) Tools
+## Model Context Protocol (MCP) Tools ✅
 
-Mastra also supports tools from MCP-compatible servers through the `@mastra/mcp` package. MCP provides a standardized way for AI models to discover and interact with external tools and resources. This makes it easy to integrate third-party tools into your agents without writing custom integrations.
+Kastrax also supports tools from MCP-compatible servers through the `@kastrax/mcp` package. MCP provides a standardized way for AI models to discover and interact with external tools and resources. This makes it easy to integrate third-party tools into your agents without writing custom integrations.
 
 For detailed information about using MCP tools, including configuration options and best practices, see our [MCP guide](/docs/agents/mcp-guide).

@@ -1,22 +1,22 @@
 ---
 title: Turn Taking
-description: Example of using Mastra to create a multi-agent debate with turn-taking conversation flow.
+description: Example of using Kastrax to create a multi-agent debate with turn-taking conversation flow.
 ---
 
 import { GithubLink } from '@/components/github-link';
 
-# AI Debate with Turn Taking
+# AI Debate with Turn Taking ✅
 
-The following code snippets demonstrate how to implement a multi-agent conversation system with turn-taking using Mastra. This example creates a debate between two AI agents (an optimist and a skeptic) who discuss a user-provided topic, taking turns to respond to each other's points.
+The following code snippets demonstrate how to implement a multi-agent conversation system with turn-taking using Kastrax. This example creates a debate between two AI agents (an optimist and a skeptic) who discuss a user-provided topic, taking turns to respond to each other's points.
 
-## Creating Agents with Voice Capabilities
+## Creating Agents with Voice Capabilities ✅
 
 First, we need to create two agents with distinct personalities and voice capabilities:
 
-```typescript filename="src/mastra/agents/index.ts"
+```typescript filename="src/kastrax/agents/index.ts"
 import { openai } from '@ai-sdk/openai';
-import { Agent } from '@mastra/core/agent';
-import { OpenAIVoice } from '@mastra/voice-openai';
+import { Agent } from '@kastrax/core/agent';
+import { OpenAIVoice } from '@kastrax/voice-openai';
 
 export const optimistAgent = new Agent({
     name: "Optimist",
@@ -37,34 +37,34 @@ export const skepticAgent = new Agent({
 });
 ```
 
-## Registering the Agents with Mastra
+## Registering the Agents with Kastrax ✅
 
-Next, register both agents with your Mastra instance:
+Next, register both agents with your Kastrax instance:
 
-```typescript filename="src/mastra/index.ts"
-import { createLogger } from '@mastra/core/logger';
-import { Mastra } from '@mastra/core/mastra';
+```typescript filename="src/kastrax/index.ts"
+import { createLogger } from '@kastrax/core/logger';
+import { Kastrax } from '@kastrax/core/kastrax';
 import { optimistAgent, skepticAgent } from './agents';
 
-export const mastra = new Mastra({
+export const kastrax = new Kastrax({
   agents: { 
     optimistAgent,
     skepticAgent 
   },
   logger: createLogger({
-    name: 'Mastra',
+    name: 'Kastrax',
     level: 'info',
   }),
 });
 ```
 
-## Managing Turn-Taking in the Debate
+## Managing Turn-Taking in the Debate ✅
 
 This example demonstrates how to manage the turn-taking flow between agents, ensuring each agent responds to the previous agent's statements:
 
 ```typescript filename="src/debate/turn-taking.ts"
-import { mastra } from "../../mastra";
-import { playAudio, Recorder } from "@mastra/node-audio";
+import { kastrax } from "../../kastrax";
+import { playAudio, Recorder } from "@kastrax/node-audio";
 import * as p from "@clack/prompts";
 
 // Helper function to format text with line wrapping
@@ -101,7 +101,7 @@ async function processTurn(
   topic: string,
   previousResponse: string = ""
 ) {
-  const agent = mastra.getAgent(agentName);
+  const agent = kastrax.getAgent(agentName);
   const spinner = p.spinner();
   spinner.start(`${agent.name} is thinking...`);
 
@@ -203,7 +203,7 @@ export async function runDebate(topic: string, turns: number = 3) {
 }
 ```
 
-## Running the Debate from the Command Line
+## Running the Debate from the Command Line ✅
 
 Here's a simple script to run the debate from the command line:
 
@@ -259,7 +259,7 @@ main().catch((error) => {
 });
 ```
 
-## Creating a Web Interface for the Debate
+## Creating a Web Interface for the Debate ✅
 
 For web applications, you can create a simple Next.js component that allows users to start a debate and listen to the agents' responses:
 
@@ -267,9 +267,9 @@ For web applications, you can create a simple Next.js component that allows user
 'use client';
 
 import { useState, useRef } from 'react';
-import { MastraClient } from '@mastra/client-js';
+import { KastraxClient } from '@kastrax/client-js';
 
-const mastraClient = new MastraClient({
+const kastraxClient = new KastraxClient({
   baseUrl: process.env.NEXT_PUBLIC_MASTRA_URL || 'http://localhost:4111',
 });
 
@@ -289,8 +289,8 @@ export default function DebateInterface() {
     setResponses([]);
     
     try {
-      const optimist = mastraClient.getAgent('optimistAgent');
-      const skeptic = mastraClient.getAgent('skepticAgent');
+      const optimist = kastraxClient.getAgent('optimistAgent');
+      const skeptic = kastraxClient.getAgent('skepticAgent');
       
       const newResponses = [];
       let optimistResponse = "";
@@ -347,7 +347,7 @@ export default function DebateInterface() {
     
     try {
       setIsPlaying(true);
-      const agentClient = mastraClient.getAgent(agent === 'Optimist' ? 'optimistAgent' : 'skepticAgent');
+      const agentClient = kastraxClient.getAgent(agent === 'Optimist' ? 'optimistAgent' : 'skepticAgent');
       
       const audioResponse = await agentClient.voice.speak(text);
       
@@ -452,7 +452,7 @@ export default function DebateInterface() {
 }
 ```
 
-This example demonstrates how to create a multi-agent conversation system with turn-taking using Mastra. The agents engage in a debate on a user-chosen topic, with each agent responding to the previous agent's statements. The system also converts each agent's responses to speech, providing an immersive debate experience.
+This example demonstrates how to create a multi-agent conversation system with turn-taking using Kastrax. The agents engage in a debate on a user-chosen topic, with each agent responding to the previous agent's statements. The system also converts each agent's responses to speech, providing an immersive debate experience.
 
 You can view the complete implementation of the AI Debate with Turn Taking on our GitHub repository.
 
@@ -463,6 +463,6 @@ You can view the complete implementation of the AI Debate with Turn Taking on ou
 <br />
 <GithubLink
   link={
-    "https://github.com/mastra-ai/voice-examples/tree/main/text-to-speech/turn-taking"
+    "https://github.com/kastrax-ai/voice-examples/tree/main/text-to-speech/turn-taking"
   }
 /> 

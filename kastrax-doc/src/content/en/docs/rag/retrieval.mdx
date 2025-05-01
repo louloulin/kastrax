@@ -1,17 +1,17 @@
 ---
-title: "Retrieval, Semantic Search, Reranking | RAG | Mastra Docs"
-description: Guide on retrieval processes in Mastra's RAG systems, including semantic search, filtering, and re-ranking.
+title: "Retrieval, Semantic Search, Reranking | RAG | Kastrax Docs"
+description: Guide on retrieval processes in Kastrax's RAG systems, including semantic search, filtering, and re-ranking.
 ---
 
 import { Tabs } from "nextra/components";
 
-## Retrieval in RAG Systems
+## Retrieval in RAG Systems ✅
 
 After storing embeddings, you need to retrieve relevant chunks to answer user queries. 
 
-Mastra provides flexible retrieval options with support for semantic search, filtering, and re-ranking.
+Kastrax provides flexible retrieval options with support for semantic search, filtering, and re-ranking.
 
-## How Retrieval Works
+## How Retrieval Works ✅
 
 1. The user's query is converted to an embedding using the same model used for document embeddings
 2. This embedding is compared to stored embeddings using vector similarity
@@ -20,14 +20,14 @@ Mastra provides flexible retrieval options with support for semantic search, fil
   - Re-ranked for better relevance
   - Processed through a knowledge graph
 
-## Basic Retrieval
+## Basic Retrieval ✅
 
 The simplest approach is direct semantic search. This method uses vector similarity to find chunks that are semantically similar to the query:
 
 ```ts showLineNumbers copy
 import { openai } from "@ai-sdk/openai";
 import { embed } from "ai";
-import { PgVector } from "@mastra/pg";
+import { PgVector } from "@kastrax/pg";
 
 // Convert query to embedding
 const { embedding } = await embed({
@@ -67,11 +67,11 @@ Results include both the text content and a similarity score:
 
 For an example of how to use the basic retrieval method, see the [Retrieve Results](../../examples/rag/query/retrieve-results.mdx) example.
 
-## Advanced Retrieval options
+## Advanced Retrieval options ✅
 
 ### Metadata Filtering
 
-Filter results based on metadata fields to narrow down the search space. This is useful when you have documents from different sources, time periods, or with specific attributes. Mastra provides a unified MongoDB-style query syntax that works across all supported vector stores.
+Filter results based on metadata fields to narrow down the search space. This is useful when you have documents from different sources, time periods, or with specific attributes. Kastrax provides a unified MongoDB-style query syntax that works across all supported vector stores.
 
 For detailed information about available operators and syntax, see the [Metadata Filters Reference](/reference/rag/metadata-filters).
 
@@ -178,7 +178,7 @@ When implementing filtering, these prompts are required in the agent's instructi
   <Tabs.Tab>
 ```ts showLineNumbers copy
 import { openai } from '@ai-sdk/openai';
-import { PGVECTOR_PROMPT } from "@mastra/pg";
+import { PGVECTOR_PROMPT } from "@kastrax/pg";
 
 export const ragAgent = new Agent({
   name: 'RAG Agent',
@@ -195,7 +195,7 @@ export const ragAgent = new Agent({
 <Tabs.Tab>
 ```ts filename="vector-store.ts" showLineNumbers copy
 import { openai } from '@ai-sdk/openai';
-import { PINECONE_PROMPT } from "@mastra/pinecone";
+import { PINECONE_PROMPT } from "@kastrax/pinecone";
 
 export const ragAgent = new Agent({
   name: 'RAG Agent',
@@ -212,7 +212,7 @@ export const ragAgent = new Agent({
 <Tabs.Tab>
 ```ts filename="vector-store.ts" showLineNumbers copy
 import { openai } from '@ai-sdk/openai';
-import { QDRANT_PROMPT } from "@mastra/qdrant";
+import { QDRANT_PROMPT } from "@kastrax/qdrant";
 
 export const ragAgent = new Agent({
   name: 'RAG Agent',
@@ -229,7 +229,7 @@ export const ragAgent = new Agent({
 <Tabs.Tab>
 ```ts filename="vector-store.ts" showLineNumbers copy
 import { openai } from '@ai-sdk/openai';
-import { CHROMA_PROMPT } from "@mastra/chroma";
+import { CHROMA_PROMPT } from "@kastrax/chroma";
 
 export const ragAgent = new Agent({
   name: 'RAG Agent',
@@ -246,7 +246,7 @@ export const ragAgent = new Agent({
 <Tabs.Tab>
 ```ts filename="vector-store.ts" showLineNumbers copy
 import { openai } from '@ai-sdk/openai';
-import { ASTRA_PROMPT } from "@mastra/astra";
+import { ASTRA_PROMPT } from "@kastrax/astra";
 
 export const ragAgent = new Agent({
   name: 'RAG Agent',
@@ -263,7 +263,7 @@ export const ragAgent = new Agent({
 <Tabs.Tab>
 ```ts filename="vector-store.ts" showLineNumbers copy
 import { openai } from '@ai-sdk/openai';
-import { LIBSQL_PROMPT } from "@mastra/libsql";
+import { LIBSQL_PROMPT } from "@kastrax/libsql";
 
 export const ragAgent = new Agent({
   name: 'RAG Agent',
@@ -280,7 +280,7 @@ export const ragAgent = new Agent({
 <Tabs.Tab>
 ```ts filename="vector-store.ts" showLineNumbers copy
 import { openai } from '@ai-sdk/openai';
-import { UPSTASH_PROMPT } from "@mastra/upstash";
+import { UPSTASH_PROMPT } from "@kastrax/upstash";
 
 export const ragAgent = new Agent({
   name: 'RAG Agent',
@@ -297,7 +297,7 @@ export const ragAgent = new Agent({
 <Tabs.Tab>
 ```ts filename="vector-store.ts" showLineNumbers copy
 import { openai } from '@ai-sdk/openai';
-import { VECTORIZE_PROMPT } from "@mastra/vectorize";
+import { VECTORIZE_PROMPT } from "@kastrax/vectorize";
 
 export const ragAgent = new Agent({
   name: 'RAG Agent',
@@ -314,7 +314,7 @@ export const ragAgent = new Agent({
 <Tabs.Tab>
 ```ts filename="vector-store.ts" showLineNumbers copy
 import { openai } from '@ai-sdk/openai';
-import { MONGODB_PROMPT } from "@mastra/mongodb";
+import { MONGODB_PROMPT } from "@kastrax/mongodb";
 
 export const ragAgent = new Agent({
   name: 'RAG Agent',
@@ -342,7 +342,7 @@ Here's how to use re-ranking:
 
 ```ts showLineNumbers copy
 import { openai } from "@ai-sdk/openai";
-import { rerank } from "@mastra/rag";
+import { rerank } from "@kastrax/rag";
 
 // Get initial results from vector search
 const initialResults = await pgVector.query({

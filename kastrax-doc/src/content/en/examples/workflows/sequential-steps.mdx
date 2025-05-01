@@ -1,15 +1,15 @@
 ---
-title: "Example: Sequential Steps | Workflows | Mastra Docs"
-description: Example of using Mastra to chain workflow steps in a specific sequence, passing data between them.
+title: "Example: Sequential Steps | Workflows | Kastrax Docs"
+description: Example of using Kastrax to chain workflow steps in a specific sequence, passing data between them.
 ---
 
 import { GithubLink } from "@/components/github-link";
 
-# Workflow with Sequential Steps
+# Workflow with Sequential Steps ✅
 
 Workflow can be chained to run one after another in a specific sequence.
 
-## Control Flow Diagram
+## Control Flow Diagram ✅
 
 This example shows how to chain workflow steps by using the `then` method demonstrating how to pass data between sequential steps and execute them in order.
 
@@ -21,12 +21,12 @@ Here's the control flow diagram:
   width={600}
 />
 
-## Creating the Steps
+## Creating the Steps ✅
 
 Let's start by creating the steps and initializing the workflow.
 
 ```ts showLineNumbers copy
-import { Step, Workflow } from "@mastra/core/workflows";
+import { Step, Workflow } from "@kastrax/core/workflows";
 import { z } from "zod";
 
 const stepOne = new Step({
@@ -67,7 +67,7 @@ const myWorkflow = new Workflow({
 });
 ```
 
-## Chaining the Steps and Executing the Workflow
+## Chaining the Steps and Executing the Workflow ✅
 
 Now let's chain the steps together.
 
@@ -89,6 +89,6 @@ const res = await start({ triggerData: { inputValue: 90 } });
 <br />
 <GithubLink
   link={
-    "https://github.com/mastra-ai/mastra/blob/main/examples/basics/workflows/workflow-with-sequential-steps"
+    "https://github.com/kastrax-ai/kastrax/blob/main/examples/basics/workflows/workflow-with-sequential-steps"
   }
 />

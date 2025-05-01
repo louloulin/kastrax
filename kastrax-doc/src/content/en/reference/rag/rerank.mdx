@@ -1,9 +1,9 @@
 ---
-title: "Reference: Rerank | Document Retrieval | RAG | Mastra Docs"
-description: Documentation for the rerank function in Mastra, which provides advanced reranking capabilities for vector search results.
+title: "Reference: Rerank | Document Retrieval | RAG | Kastrax Docs"
+description: Documentation for the rerank function in Kastrax, which provides advanced reranking capabilities for vector search results.
 ---
 
-# rerank()
+# rerank() ✅
 
 The `rerank()` function provides advanced reranking capabilities for vector search results by combining semantic relevance, vector similarity, and position-based scoring. 
 
@@ -16,11 +16,11 @@ function rerank(
 ): Promise<RerankResult[]>
 ```
 
-## Usage Example
+## Usage Example ✅
 
 ```typescript
 import { openai } from "@ai-sdk/openai";
-import { rerank } from "@mastra/rag";
+import { rerank } from "@kastrax/rag";
 
 const model = openai("gpt-4o-mini");
 
@@ -39,7 +39,7 @@ const rerankedResults = await rerank(
 );
 ```
 
-## Parameters
+## Parameters ✅
 
 <PropertiesTable
   content={[
@@ -57,7 +57,7 @@ const rerankedResults = await rerank(
     },
     {
       name: "model",
-      type: "MastraLanguageModel",
+      type: "KastraxLanguageModel",
       description: "The language Model to use for reranking",
       isOptional: false,
     },
@@ -135,7 +135,7 @@ The rerank function accepts any LanguageModel from the Vercel AI SDK. When using
   ]}
 />
 
-## Returns
+## Returns ✅
 
 The function returns an array of `RerankResult` objects:
 
@@ -207,6 +207,6 @@ The function returns an array of `RerankResult` objects:
   ]}
 />
 
-## Related
+## Related ✅
 
 - [createVectorQueryTool](../tools/vector-query-tool)

@@ -1,13 +1,13 @@
 ---
-title: "Event-Driven Workflows | Mastra Docs"
-description: "Learn how to create event-driven workflows using afterEvent and resumeWithEvent methods in Mastra."
+title: "Event-Driven Workflows | Kastrax Docs"
+description: "Learn how to create event-driven workflows using afterEvent and resumeWithEvent methods in Kastrax."
 ---
 
-# Event-Driven Workflows
+# Event-Driven Workflows ✅
 
-Mastra provides built-in support for event-driven workflows through the `afterEvent` and `resumeWithEvent` methods. These methods allow you to create workflows that pause execution while waiting for specific events to occur, then resume with the event data when it's available.
+Kastrax provides built-in support for event-driven workflows through the `afterEvent` and `resumeWithEvent` methods. These methods allow you to create workflows that pause execution while waiting for specific events to occur, then resume with the event data when it's available.
 
-## Overview
+## Overview ✅
 
 Event-driven workflows are useful for scenarios where:
 
@@ -16,12 +16,12 @@ Event-driven workflows are useful for scenarios where:
 - Asynchronous operations need to be coordinated
 - Long-running processes need to break up execution across different services
 
-## Defining Events
+## Defining Events ✅
 
 Before using event-driven methods, you must define the events your workflow will listen for in the workflow configuration:
 
 ```typescript
-import { Workflow } from '@mastra/core/workflows';
+import { Workflow } from '@kastrax/core/workflows';
 import { z } from 'zod';
 
 const workflow = new Workflow({
@@ -49,7 +49,7 @@ const workflow = new Workflow({
 
 Each event must have a name and a schema that defines the structure of data expected when the event occurs.
 
-## afterEvent()
+## afterEvent() ✅
 
 The `afterEvent` method creates a suspension point in your workflow that automatically waits for a specific event.
 
@@ -69,7 +69,7 @@ Returns the workflow instance for method chaining.
 
 ### How It Works
 
-When `afterEvent` is called, Mastra:
+When `afterEvent` is called, Kastrax:
 
 1. Creates a special step with ID `__eventName_event`
 2. Configures this step to automatically suspend workflow execution
@@ -86,7 +86,7 @@ workflow
   .commit();
 ```
 
-## resumeWithEvent()
+## resumeWithEvent() ✅
 
 The `resumeWithEvent` method resumes a suspended workflow by providing data for a specific event.
 
@@ -107,7 +107,7 @@ Returns a Promise that resolves to the workflow execution results after resumpti
 
 ### How It Works
 
-When `resumeWithEvent` is called, Mastra:
+When `resumeWithEvent` is called, Kastrax:
 
 1. Validates the event data against the schema defined for that event
 2. Loads the workflow snapshot
@@ -134,7 +134,7 @@ const result = await run.resumeWithEvent('approvalReceived', {
 console.log(result.results);
 ```
 
-## Accessing Event Data
+## Accessing Event Data ✅
 
 When a workflow is resumed with event data, that data is available in the step context as `context.inputData.resumedEvent`:
 
@@ -153,7 +153,7 @@ const processApprovalStep = new Step({
 });
 ```
 
-## Multiple Events
+## Multiple Events ✅
 
 You can create workflows that wait for multiple different events at various points:
 
@@ -169,12 +169,12 @@ workflow
 
 When resuming a workflow with multiple event suspension points, you need to provide the correct event name and data for the current suspension point.
 
-## Practical Example
+## Practical Example ✅
 
 This example shows a complete workflow that requires both approval and document upload:
 
 ```typescript
-import { Workflow, Step } from '@mastra/core/workflows';
+import { Workflow, Step } from '@kastrax/core/workflows';
 import { z } from 'zod';
 
 // Define steps
@@ -257,11 +257,11 @@ export { requestWorkflow };
 
 ```typescript
 import { requestWorkflow } from './workflows';
-import { mastra } from './mastra';
+import { kastrax } from './kastrax';
 
 async function runWorkflow() {
   // Get the workflow
-  const workflow = mastra.getWorkflow('document-request-workflow');
+  const workflow = kastrax.getWorkflow('document-request-workflow');
   const run = workflow.createRun();
 
   // Start the workflow
@@ -286,7 +286,7 @@ async function runWorkflow() {
 runWorkflow().catch(console.error);
 ```
 
-## Best Practices
+## Best Practices ✅
 
 1. **Define Clear Event Schemas**: Use Zod to create precise schemas for event data validation
 2. **Use Descriptive Event Names**: Choose event names that clearly communicate their purpose
@@ -295,7 +295,7 @@ runWorkflow().catch(console.error);
 5. **Consider Timeouts**: Implement timeout mechanisms for events that may never occur
 6. **Document Events**: Clearly document the events your workflow depends on for other developers
 
-## Related
+## Related ✅
 
 - [Suspend and Resume in Workflows](../../docs/workflows/suspend-and-resume.mdx)
 - [Workflow Class Reference](./workflow.mdx)

@@ -1,17 +1,17 @@
 ---
-title: "Reference: voice.close() | Voice Providers | Mastra Docs"
+title: "Reference: voice.close() | Voice Providers | Kastrax Docs"
 description: "Documentation for the close() method available in voice providers, which disconnects from real-time voice services."
 ---
 
-# voice.close()
+# voice.close() ✅
 
 The `close()` method disconnects from a real-time voice service and cleans up resources. This is important for properly ending voice sessions and preventing resource leaks.
 
-## Usage Example
+## Usage Example ✅
 
 ```typescript
-import { OpenAIRealtimeVoice } from "@mastra/voice-openai-realtime";
-import { getMicrophoneStream } from "@mastra/node-audio";
+import { OpenAIRealtimeVoice } from "@kastrax/voice-openai-realtime";
+import { getMicrophoneStream } from "@kastrax/node-audio";
 
 // Initialize a real-time voice provider
 const voice = new OpenAIRealtimeVoice({
@@ -39,15 +39,15 @@ setTimeout(() => {
 }, 60000); // End after 1 minute
 ```
 
-## Parameters
+## Parameters ✅
 
 This method does not accept any parameters.
 
-## Return Value
+## Return Value ✅
 
 This method does not return a value.
 
-## Notes
+## Notes ✅
 
 - Always call `close()` when you're done with a real-time voice session to free up resources
 - After calling `close()`, you'll need to call `connect()` again if you want to start a new session

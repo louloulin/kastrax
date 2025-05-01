@@ -1,16 +1,16 @@
 ---
-title: "Reference: ElevenLabs Voice | Voice Providers | Mastra Docs"
+title: "Reference: ElevenLabs Voice | Voice Providers | Kastrax Docs"
 description: "Documentation for the ElevenLabs voice implementation, offering high-quality text-to-speech capabilities with multiple voice models and natural-sounding synthesis."
 ---
 
-# ElevenLabs
+# ElevenLabs ✅
 
-The ElevenLabs voice implementation in Mastra provides high-quality text-to-speech (TTS) and speech-to-text (STT) capabilities using the ElevenLabs API.
+The ElevenLabs voice implementation in Kastrax provides high-quality text-to-speech (TTS) and speech-to-text (STT) capabilities using the ElevenLabs API.
 
-## Usage Example
+## Usage Example ✅
 
 ```typescript
-import { ElevenLabsVoice } from "@mastra/voice-elevenlabs";
+import { ElevenLabsVoice } from "@kastrax/voice-elevenlabs";
 
 // Initialize with default configuration (uses ELEVENLABS_API_KEY environment variable)
 const voice = new ElevenLabsVoice();
@@ -31,7 +31,7 @@ const audioStream = await voice.speak("Hello, world!");
 const speakers = await voice.getSpeakers();
 ```
 
-## Constructor Parameters
+## Constructor Parameters ✅
 
 <PropertiesTable
   content={[
@@ -72,7 +72,7 @@ const speakers = await voice.getSpeakers();
   ]}
 />
 
-## Methods
+## Methods ✅
 
 ### speak()
 
@@ -208,7 +208,7 @@ The options object supports the following properties:
 
 Returns: `Promise<string>` - A Promise that resolves to the transcribed text
 
-## Important Notes
+## Important Notes ✅
 
 1. An ElevenLabs API key is required. Set it via the `ELEVENLABS_API_KEY` environment variable or pass it in the constructor.
 2. The default speaker is set to Aria (ID: '9BWtsMINqrJLrRacOk9x').

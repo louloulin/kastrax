@@ -1,20 +1,20 @@
 ---
-title: "Storing Embeddings in A Vector Database | Mastra Docs"
-description: Guide on vector storage options in Mastra, including embedded and dedicated vector databases for similarity search.
+title: "Storing Embeddings in A Vector Database | Kastrax Docs"
+description: Guide on vector storage options in Kastrax, including embedded and dedicated vector databases for similarity search.
 ---
 
 import { Tabs } from "nextra/components";
 
-## Storing Embeddings in A Vector Database
+## Storing Embeddings in A Vector Database ✅
 
-After generating embeddings, you need to store them in a database that supports vector similarity search. Mastra provides a consistent interface for storing and querying embeddings across different vector databases.
+After generating embeddings, you need to store them in a database that supports vector similarity search. Kastrax provides a consistent interface for storing and querying embeddings across different vector databases.
 
-## Supported Databases
+## Supported Databases ✅
 
 <Tabs items={['Pg Vector', 'Pinecone', 'Qdrant', 'Chroma', 'Astra', 'LibSQL', 'Upstash', 'Cloudflare', 'MongoDB']}>
   <Tabs.Tab>
   ```ts filename="vector-store.ts" showLineNumbers copy
-  import { PgVector } from '@mastra/pg';
+  import { PgVector } from '@kastrax/pg';
 
   const store = new PgVector(process.env.POSTGRES_CONNECTION_STRING)
   await store.createIndex({
@@ -36,7 +36,7 @@ After generating embeddings, you need to store them in a database that supports 
 </Tabs.Tab>
 <Tabs.Tab>
   ```ts filename="vector-store.ts" showLineNumbers copy
-  import { PineconeVector } from '@mastra/pinecone'
+  import { PineconeVector } from '@kastrax/pinecone'
 
   const store = new PineconeVector(process.env.PINECONE_API_KEY)
   await store.createIndex({
@@ -52,7 +52,7 @@ After generating embeddings, you need to store them in a database that supports 
 </Tabs.Tab>
 <Tabs.Tab>
   ```ts filename="vector-store.ts" showLineNumbers copy
-  import { QdrantVector } from '@mastra/qdrant'
+  import { QdrantVector } from '@kastrax/qdrant'
 
   const store = new QdrantVector({
     url: process.env.QDRANT_URL,
@@ -71,7 +71,7 @@ After generating embeddings, you need to store them in a database that supports 
 </Tabs.Tab>
 <Tabs.Tab>
   ```ts filename="vector-store.ts" showLineNumbers copy
-  import { ChromaVector } from '@mastra/chroma'
+  import { ChromaVector } from '@kastrax/chroma'
 
   const store = new ChromaVector()
   await store.createIndex({
@@ -87,7 +87,7 @@ After generating embeddings, you need to store them in a database that supports 
 </Tabs.Tab>
 <Tabs.Tab>
   ```ts filename="vector-store.ts" showLineNumbers copy
-  import { AstraVector } from '@mastra/astra'
+  import { AstraVector } from '@kastrax/astra'
 
   const store = new AstraVector({
     token: process.env.ASTRA_DB_TOKEN,
@@ -107,7 +107,7 @@ After generating embeddings, you need to store them in a database that supports 
 </Tabs.Tab>
 <Tabs.Tab>
   ```ts filename="vector-store.ts" showLineNumbers copy
-import { LibSQLVector } from "@mastra/core/vector/libsql";
+import { LibSQLVector } from "@kastrax/core/vector/libsql";
 
   const store = new LibSQLVector({
     connectionUrl: process.env.DATABASE_URL,
@@ -126,7 +126,7 @@ import { LibSQLVector } from "@mastra/core/vector/libsql";
 </Tabs.Tab>
 <Tabs.Tab>
   ```ts filename="vector-store.ts" showLineNumbers copy
-  import { UpstashVector } from '@mastra/upstash'
+  import { UpstashVector } from '@kastrax/upstash'
 
   const store = new UpstashVector({
     url: process.env.UPSTASH_URL,
@@ -145,7 +145,7 @@ import { LibSQLVector } from "@mastra/core/vector/libsql";
 </Tabs.Tab>
 <Tabs.Tab>
   ```ts filename="vector-store.ts" showLineNumbers copy
-  import { CloudflareVector } from '@mastra/vectorize'
+  import { CloudflareVector } from '@kastrax/vectorize'
 
   const store = new CloudflareVector({
     accountId: process.env.CF_ACCOUNT_ID,
@@ -164,7 +164,7 @@ import { LibSQLVector } from "@mastra/core/vector/libsql";
 </Tabs.Tab>
 <Tabs.Tab>
   ```ts filename="vector-store.ts" showLineNumbers copy
-  import { MongoDBVector } from '@mastra/mongodb'
+  import { MongoDBVector } from '@kastrax/mongodb'
 
   const store = new MongoDBVector({
     url: process.env.MONGODB_URL,
@@ -183,7 +183,7 @@ import { LibSQLVector } from "@mastra/core/vector/libsql";
 </Tabs.Tab>
 </Tabs>
 
-## Using Vector Storage
+## Using Vector Storage ✅
 
 Once initialized, all vector stores share the same interface for creating indexes, upserting embeddings, and querying.
 
@@ -318,7 +318,7 @@ The upsert operation:
 
 For complete examples of upserting embeddings in different vector stores, see the [Upsert Embeddings](../../examples/rag/upsert/upsert-embeddings.mdx) guide.
 
-## Adding Metadata
+## Adding Metadata ✅
 
 Vector stores support rich metadata (any JSON-serializable fields) for filtering and organization. Since metadata is stored with no fixed schema, use consistent field naming to avoid unexpected query results.
 
@@ -355,7 +355,7 @@ Key metadata considerations:
 - Only include fields you plan to filter or sort by - extra fields add overhead
 - Add timestamps (e.g., 'createdAt', 'lastUpdated') to track content freshness
 
-## Best Practices
+## Best Practices ✅
 
 - Create indexes before bulk insertions
 - Use batch operations for large insertions (the upsert method handles batching automatically)

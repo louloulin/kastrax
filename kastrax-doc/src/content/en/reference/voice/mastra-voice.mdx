@@ -1,19 +1,19 @@
 ---
-title: "Reference: MastraVoice | Voice Providers | Mastra Docs"
-description: "Documentation for the MastraVoice abstract base class, which defines the core interface for all voice services in Mastra, including speech-to-speech capabilities."
+title: "Reference: KastraxVoice | Voice Providers | Kastrax Docs"
+description: "Documentation for the KastraxVoice abstract base class, which defines the core interface for all voice services in Kastrax, including speech-to-speech capabilities."
 ---
 
-# MastraVoice
+# KastraxVoice ✅
 
-The MastraVoice class is an abstract base class that defines the core interface for voice services in Mastra. All voice provider implementations (like OpenAI, Deepgram, PlayAI, Speechify) extend this class to provide their specific functionality. The class now includes support for real-time speech-to-speech capabilities through WebSocket connections.
+The KastraxVoice class is an abstract base class that defines the core interface for voice services in Kastrax. All voice provider implementations (like OpenAI, Deepgram, PlayAI, Speechify) extend this class to provide their specific functionality. The class now includes support for real-time speech-to-speech capabilities through WebSocket connections.
 
-## Usage Example
+## Usage Example ✅
 
 ```typescript
-import { MastraVoice } from "@mastra/core/voice";
+import { KastraxVoice } from "@kastrax/core/voice";
 
 // Create a voice provider implementation
-class MyVoiceProvider extends MastraVoice {
+class MyVoiceProvider extends KastraxVoice {
   constructor(config: { 
     speechModel?: BuiltInModelConfig; 
     listeningModel?: BuiltInModelConfig; 
@@ -76,7 +76,7 @@ class MyVoiceProvider extends MastraVoice {
 }
 ```
 
-## Constructor Parameters
+## Constructor Parameters ✅
 
 <PropertiesTable
   content={[
@@ -163,9 +163,9 @@ class MyVoiceProvider extends MastraVoice {
   ]}
 />
 
-## Abstract Methods
+## Abstract Methods ✅
 
-These methods must be implemented by unknown class extending MastraVoice.
+These methods must be implemented by unknown class extending KastraxVoice.
 
 ### speak()
 
@@ -222,7 +222,7 @@ Purpose:
 - Providers can include additional metadata about each voice
 - Used to discover available voices for text-to-speech conversion
 
-## Optional Methods
+## Optional Methods ✅
 
 These methods have default implementations but can be overridden by voice providers that support speech-to-speech capabilities.
 
@@ -325,9 +325,9 @@ Purpose:
 - Removes a previously registered event listener
 - Used to clean up event handlers when they're no longer needed
 
-## Event System
+## Event System ✅
 
-The MastraVoice class includes an event system for real-time communication. Standard event types include:
+The KastraxVoice class includes an event system for real-time communication. Standard event types include:
 
 <PropertiesTable
   content={[
@@ -349,7 +349,7 @@ The MastraVoice class includes an event system for real-time communication. Stan
   ]}
 />
 
-## Protected Properties
+## Protected Properties ✅
 
 <PropertiesTable
   content={[
@@ -380,13 +380,13 @@ The MastraVoice class includes an event system for real-time communication. Stan
   ]}
 />
 
-## Telemetry Support
+## Telemetry Support ✅
 
-MastraVoice includes built-in telemetry support through the `traced` method, which wraps method calls with performance tracking and error monitoring.
+KastraxVoice includes built-in telemetry support through the `traced` method, which wraps method calls with performance tracking and error monitoring.
 
-## Notes
+## Notes ✅
 
-- MastraVoice is an abstract class and cannot be instantiated directly
+- KastraxVoice is an abstract class and cannot be instantiated directly
 - Implementations must provide concrete implementations for all abstract methods
 - The class provides a consistent interface across different voice service providers
 - Speech-to-speech capabilities are optional and provider-specific

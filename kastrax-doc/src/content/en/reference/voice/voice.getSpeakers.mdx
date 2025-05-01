@@ -1,19 +1,19 @@
 ---
-title: "Reference: voice.getSpeakers() | Voice Providers | Mastra Docs"
+title: "Reference: voice.getSpeakers() | Voice Providers | Kastrax Docs"
 description: "Documentation for the getSpeakers() method available in voice providers, which retrieves available voice options."
 ---
 
 import { Tabs } from "nextra/components";
 
-# voice.getSpeakers()
+# voice.getSpeakers() ✅
 
 The `getSpeakers()` method retrieves a list of available voice options (speakers) from the voice provider. This allows applications to present users with voice choices or programmatically select the most appropriate voice for different contexts.
 
-## Usage Example
+## Usage Example ✅
 
 ```typescript
-import { OpenAIVoice } from "@mastra/voice-openai";
-import { ElevenLabsVoice } from "@mastra/voice-elevenlabs";
+import { OpenAIVoice } from "@kastrax/voice-openai";
+import { ElevenLabsVoice } from "@kastrax/voice-elevenlabs";
 
 // Initialize voice providers
 const openaiVoice = new OpenAIVoice();
@@ -37,11 +37,11 @@ await openaiVoice.speak(text, { speaker: openaiSpeakers[2].voiceId });
 await elevenLabsVoice.speak(text, { speaker: elevenLabsSpeakers[0].voiceId });
 ```
 
-## Parameters
+## Parameters ✅
 
 This method does not accept any parameters.
 
-## Return Value
+## Return Value ✅
 
 <PropertiesTable
   content={[
@@ -53,7 +53,7 @@ This method does not accept any parameters.
   ]}
 />
 
-## Provider-Specific Metadata
+## Provider-Specific Metadata ✅
 
 Different voice providers return different metadata for their voices:
 
@@ -274,7 +274,7 @@ Different voice providers return different metadata for their voices:
   </Tabs.Tab>
 </Tabs>
 
-## Notes
+## Notes ✅
 
 - The available voices vary significantly between providers
 - Some providers may require authentication to retrieve the full list of voices

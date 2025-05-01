@@ -1,26 +1,26 @@
 ---
-title: "Example: Using the Vector Query Tool | RAG | Mastra Docs"
-description: Example of implementing a basic RAG system in Mastra using OpenAI embeddings and PGVector for vector storage.
+title: "Example: Using the Vector Query Tool | RAG | Kastrax Docs"
+description: Example of implementing a basic RAG system in Kastrax using OpenAI embeddings and PGVector for vector storage.
 ---
 
 import { GithubLink } from "@/components/github-link";
 
-# Using the Vector Query Tool
+# Using the Vector Query Tool ✅
 
 This example demonstrates how to implement and use `createVectorQueryTool` for semantic search in a RAG system. It shows how to configure the tool, manage vector storage, and retrieve relevant context effectively.
 
-## Overview
+## Overview ✅
 
-The system implements RAG using Mastra and OpenAI. Here's what it does:
+The system implements RAG using Kastrax and OpenAI. Here's what it does:
 
-1. Sets up a Mastra agent with gpt-4o-mini for response generation
+1. Sets up a Kastrax agent with gpt-4o-mini for response generation
 2. Creates a vector query tool to manage vector store interactions
 3. Uses existing embeddings to retrieve relevant context
-4. Generates context-aware responses using the Mastra agent
+4. Generates context-aware responses using the Kastrax agent
 
 > **Note**: To learn how to create and store embeddings, see the [Upsert Embeddings](/examples/rag/upsert/upsert-embeddings) guide.
 
-## Setup
+## Setup ✅
 
 ### Environment Setup
 
@@ -37,13 +37,13 @@ Import the necessary dependencies:
 
 ```typescript copy showLineNumbers filename="src/index.ts"
 import { openai } from '@ai-sdk/openai';
-import { Mastra } from '@mastra/core';
-import { Agent } from '@mastra/core/agent';
-import { createVectorQueryTool } from '@mastra/rag';
-import { PgVector } from '@mastra/pg';
+import { Kastrax } from '@kastrax/core';
+import { Agent } from '@kastrax/core/agent';
+import { createVectorQueryTool } from '@kastrax/rag';
+import { PgVector } from '@kastrax/pg';
 ```
 
-## Vector Query Tool Creation
+## Vector Query Tool Creation ✅
 
 Create a tool that can query the vector database:
 
@@ -55,9 +55,9 @@ const vectorQueryTool = createVectorQueryTool({
 });
 ```
 
-## Agent Configuration
+## Agent Configuration ✅
 
-Set up the Mastra agent that will handle the responses:
+Set up the Kastrax agent that will handle the responses:
 
 ```typescript copy showLineNumbers{13} filename="src/index.ts"
 export const ragAgent = new Agent({
@@ -71,22 +71,22 @@ export const ragAgent = new Agent({
 });
 ```
 
-## Instantiate PgVector and Mastra
+## Instantiate PgVector and Kastrax ✅
 
-Instantiate PgVector and Mastra with all components:
+Instantiate PgVector and Kastrax with all components:
 
 ```typescript copy showLineNumbers{23} filename="src/index.ts"
 const pgVector = new PgVector(process.env.POSTGRES_CONNECTION_STRING!);
 
-export const mastra = new Mastra({
+export const kastrax = new Kastrax({
   agents: { ragAgent },
   vectors: { pgVector },
 });
 
-const agent = mastra.getAgent('ragAgent');
+const agent = kastrax.getAgent('ragAgent');
 ```
 
-## Example Usage
+## Example Usage ✅
 
 ```typescript copy showLineNumbers{32} filename="src/index.ts"
 const prompt = `
@@ -106,6 +106,6 @@ console.log(completion.text);
 <br />
 <GithubLink
   link={
-    "https://github.com/mastra-ai/mastra/blob/main/examples/basics/rag/basic-rag"
+    "https://github.com/kastrax-ai/kastrax/blob/main/examples/basics/rag/basic-rag"
   }
 />

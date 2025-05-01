@@ -1,17 +1,17 @@
 ---
-title: "Example: Using a Tool as a Step | Workflows | Mastra Docs"
-description: Example of using Mastra to integrate a custom tool as a step in a workflow.
+title: "Example: Using a Tool as a Step | Workflows | Kastrax Docs"
+description: Example of using Kastrax to integrate a custom tool as a step in a workflow.
 ---
 
 import { GithubLink } from '@/components/github-link';
 
-# Tool as a Workflow step
+# Tool as a Workflow step ✅
 
 This example demonstrates how to create and integrate a custom tool as a workflow step, showing how to define input/output schemas and implement the tool's execution logic.
 
 ```ts showLineNumbers copy
-import { createTool } from '@mastra/core/tools';
-import { Workflow } from '@mastra/core/workflows';
+import { createTool } from '@kastrax/core/tools';
+import { Workflow } from '@kastrax/core/workflows';
 import { z } from 'zod';
 
 const crawlWebpage = createTool({
@@ -46,4 +46,4 @@ console.log(res.results);
 <hr className="dark:border-[#404040] border-gray-300" />
 <br />
 <br />
-<GithubLink link={'https://github.com/mastra-ai/mastra/blob/main/examples/basics/workflows/tool-as-workflow-step'} />
+<GithubLink link={'https://github.com/kastrax-ai/kastrax/blob/main/examples/basics/workflows/tool-as-workflow-step'} />

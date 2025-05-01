@@ -1,19 +1,19 @@
 ---
-title: "Reference: MastraMCPClient | Tool Discovery | Mastra Docs"
-description: API Reference for MastraMCPClient - A client implementation for the Model Context Protocol.
+title: "Reference: KastraxMCPClient | Tool Discovery | Kastrax Docs"
+description: API Reference for KastraxMCPClient - A client implementation for the Model Context Protocol.
 ---
 
-# MastraMCPClient (Deprecated)
+# KastraxMCPClient (Deprecated) ✅
 
-The `MastraMCPClient` class provides a client implementation for interacting with Model Context Protocol (MCP) servers. It handles connection management, resource discovery, and tool execution through the MCP protocol.
+The `KastraxMCPClient` class provides a client implementation for interacting with Model Context Protocol (MCP) servers. It handles connection management, resource discovery, and tool execution through the MCP protocol.
 
-## Deprecation notice
+## Deprecation notice ✅
 
-`MastraMCPClient` is being deprecated in favour of [`MCPClient`](./mcp-client). Rather than having two different interfaces for managing a single MCP server vs multiple MCP servers, we opted to recommend using the interface to manage multiple even when using a single MCP server.
+`KastraxMCPClient` is being deprecated in favour of [`MCPClient`](./mcp-client). Rather than having two different interfaces for managing a single MCP server vs multiple MCP servers, we opted to recommend using the interface to manage multiple even when using a single MCP server.
 
-## Constructor
+## Constructor ✅
 
-Creates a new instance of the MastraMCPClient.
+Creates a new instance of the KastraxMCPClient.
 
 ```typescript
 constructor({
@@ -24,7 +24,7 @@ constructor({
     timeout = 60000,
 }: {
     name: string;
-    server: MastraMCPServerDefinition;
+    server: KastraxMCPServerDefinition;
     capabilities?: ClientCapabilities;
     version?: string;
     timeout?: number;
@@ -50,7 +50,7 @@ constructor({
     },
     {
       name: "server",
-      type: "MastraMCPServerDefinition",
+      type: "KastraxMCPServerDefinition",
       description:
         "Configuration parameters for either a stdio server connection or an SSE server connection. Can include log handler and server logs configuration.",
     },
@@ -71,7 +71,7 @@ constructor({
   ]}
 />
 
-### MastraMCPServerDefinition
+### KastraxMCPServerDefinition
 
 MCP servers can be configured using this definition. The client automatically detects the transport type based on the provided parameters:
 
@@ -180,7 +180,7 @@ The `LogHandler` function takes a `LogMessage` object as its parameter and retur
   ]}
 />
 
-## Methods
+## Methods ✅
 
 ### connect()
 
@@ -208,28 +208,28 @@ async resources(): Promise<ListResourcesResult>
 
 ### tools()
 
-Fetches and initializes available tools from the server, converting them into Mastra-compatible tool formats.
+Fetches and initializes available tools from the server, converting them into Kastrax-compatible tool formats.
 
 ```typescript
 async tools(): Promise<Record<string, Tool>>
 ```
 
-Returns an object mapping tool names to their corresponding Mastra tool implementations.
+Returns an object mapping tool names to their corresponding Kastrax tool implementations.
 
-## Examples
+## Examples ✅
 
-### Using with Mastra Agent
+### Using with Kastrax Agent
 
 #### Example with Stdio Server
 
 ```typescript
-import { Agent } from "@mastra/core/agent";
-import { MastraMCPClient } from "@mastra/mcp";
+import { Agent } from "@kastrax/core/agent";
+import { KastraxMCPClient } from "@kastrax/mcp";
 import { openai } from "@ai-sdk/openai";
 
 // Initialize the MCP client using mcp/fetch as an example https://hub.docker.com/r/mcp/fetch
 // Visit https://github.com/docker/mcp-servers for other reference docker mcp servers
-const fetchClient = new MastraMCPClient({
+const fetchClient = new KastraxMCPClient({
   name: "fetch",
   server: {
     command: "docker",
@@ -240,7 +240,7 @@ const fetchClient = new MastraMCPClient({
   },
 });
 
-// Create a Mastra Agent
+// Create a Kastrax Agent
 const agent = new Agent({
   name: "Fetch agent",
   instructions:
@@ -262,7 +262,7 @@ try {
 
   // Use the agent with the MCP tools
   const response = await agent.generate(
-    "Tell me about mastra.ai/docs. Tell me generally what this page is and the content it includes.",
+    "Tell me about kastrax.ai/docs. Tell me generally what this page is and the content it includes.",
     {
       toolsets: {
         fetch: tools,
@@ -283,7 +283,7 @@ try {
 
 ```typescript
 // Initialize the MCP client using an SSE server
-const sseClient = new MastraMCPClient({
+const sseClient = new KastraxMCPClient({
   name: "sse-client",
   server: {
     url: new URL("https://your-mcp-server.com/sse"),
@@ -323,7 +323,7 @@ When using SSE connections with authentication or custom headers, you need to co
 The `eventSourceInit` configuration allows you to customize the underlying fetch request used for the SSE connection, ensuring your authentication headers are properly included.
 Without `eventSourceInit`, authentication headers specified in `requestInit` won't be included in the connection request, leading to 401 Unauthorized errors.
 
-## Related Information
+## Related Information ✅
 
 - For managing multiple MCP servers in your application, see the [MCPClient documentation](./mcp-client)
 - For more details about the Model Context Protocol, see the [@modelcontextprotocol/sdk documentation](https://github.com/modelcontextprotocol/typescript-sdk).

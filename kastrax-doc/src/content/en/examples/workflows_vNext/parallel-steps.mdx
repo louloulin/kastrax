@@ -1,21 +1,21 @@
 ---
-title: "Example: Parallel Execution | Workflows | Mastra Docs"
-description: Example of using Mastra to execute multiple independent tasks in parallel within a workflow.
+title: "Example: Parallel Execution | Workflows | Kastrax Docs"
+description: Example of using Kastrax to execute multiple independent tasks in parallel within a workflow.
 ---
 
 import { GithubLink } from "@/components/github-link";
 
-# Parallel Execution with Steps
+# Parallel Execution with Steps ✅
 
 When building AI applications, you often need to process multiple independent tasks simultaneously to improve efficiency.
 We make this functionality a core part of workflows through the `.parallel` method.
 
 
-## Define Planning Agent
+## Define Planning Agent ✅
 Define a planning agent which leverages an LLM call to plan activities given a location and corresponding weather conditions.
 
 ```ts showLineNumbers copy filename="agents/planning-agent.ts"
-import { Agent } from '@mastra/core/agent'
+import { Agent } from '@kastrax/core/agent'
 import { openai } from '@ai-sdk/openai'
 
 const llm = openai('gpt-4o')
@@ -70,11 +70,11 @@ export { planningAgent }
 ```
 
 
-## Define Synthesize Agent
+## Define Synthesize Agent ✅
 Define a synthesize agent which takes planned indoor and outdoor activities and provides a full report on the day.
 
 ```ts showLineNumbers copy filename="agents/synthesize-agent.ts"
-import { Agent } from '@mastra/core/agent'
+import { Agent } from '@kastrax/core/agent'
 import { openai } from '@ai-sdk/openai'
 
 const llm = openai('gpt-4o')
@@ -93,14 +93,14 @@ export { synthesizeAgent }
 
 
 
-## Define Parallel Workflow
+## Define Parallel Workflow ✅
 Here, we'll define a workflow which orchestrates a parallel -> sequential flow between the planning steps and the synthesize step.
 
 ```ts showLineNumbers copy filename="workflows/parallel-workflow.ts"
-import { Step, Workflow } from '@mastra/core/workflows'
+import { Step, Workflow } from '@kastrax/core/workflows'
 import { z } from 'zod'
 import { activityPlannerAgent } from '../agents'
-import { createStep, createWorkflow } from '@mastra/core/workflows/vNext'
+import { createStep, createWorkflow } from '@kastrax/core/workflows/vNext'
 
 const forecastSchema = z.object({
   date: z.string(),
@@ -172,8 +172,8 @@ const planActivities = createStep({
   outputSchema: z.object({
     activities: z.string(),
   }),
-  execute: async ({ inputData, mastra }) => {
-    console.log('mastra', mastra)
+  execute: async ({ inputData, kastrax }) => {
+    console.log('kastrax', kastrax)
     console.log('planActivities', inputData)
     const forecast = inputData
 
@@ -185,7 +185,7 @@ const planActivities = createStep({
       ${JSON.stringify(forecast, null, 2)}
       `
 
-    const agent = mastra?.getAgent('planningAgent')
+    const agent = kastrax?.getAgent('planningAgent')
     if (!agent) {
       throw new Error('Planning agent not found')
     }
@@ -241,7 +241,7 @@ const planIndoorActivities = createStep({
   outputSchema: z.object({
     activities: z.string(),
   }),
-  execute: async ({ inputData, mastra }) => {
+  execute: async ({ inputData, kastrax }) => {
     console.log('planIndoorActivities', inputData)
     const forecast = inputData
 
@@ -251,7 +251,7 @@ const planIndoorActivities = createStep({
 
     const prompt = `In case it rains, plan indoor activities for ${forecast.location} on ${forecast.date}`
 
-    const agent = mastra?.getAgent('planningAgent')
+    const agent = kastrax?.getAgent('planningAgent')
     if (!agent) {
       throw new Error('Planning agent not found')
     }
@@ -290,7 +290,7 @@ const sythesizeStep = createStep({
   outputSchema: z.object({
     activities: z.string(),
   }),
-  execute: async ({ inputData, mastra }) => {
+  execute: async ({ inputData, kastrax }) => {
     console.log('sythesizeStep', inputData)
     const indoorActivities = inputData?.['plan-indoor-activities']
     const outdoorActivities = inputData?.['plan-activities']
@@ -303,7 +303,7 @@ const sythesizeStep = createStep({
 
       There is a chance of rain so be prepared to do indoor activities if needed.`
 
-    const agent = mastra?.getAgent('synthesizeAgent')
+    const agent = kastrax?.getAgent('synthesizeAgent')
     if (!agent) {
       throw new Error('Planning agent not found')
     }
@@ -346,17 +346,17 @@ export { weatherWorkflow }
 ```
 
 
-## Register Agent and Workflow instances with Mastra class
-Register the agents and workflow with the mastra instance.
+## Register Agent and Workflow instances with Kastrax class ✅
+Register the agents and workflow with the kastrax instance.
 This is critical for enabling access to the agents within the workflow.
 
 ```ts showLineNumbers copy filename="index.ts"
-import { Mastra } from '@mastra/core/mastra'
-import { createLogger } from '@mastra/core/logger'
+import { Kastrax } from '@kastrax/core/kastrax'
+import { createLogger } from '@kastrax/core/logger'
 import { weatherWorkflow } from './workflows'
 import { planningAgent, synthesizeAgent } from './agents'
 
-const mastra = new Mastra({
+const kastrax = new Kastrax({
   vnext_workflows: {
     weatherWorkflow,
   },
@@ -365,21 +365,21 @@ const mastra = new Mastra({
 	  synthesizeAgent
   },
   logger: createLogger({
-    name: 'Mastra',
+    name: 'Kastrax',
     level: 'info',
   }),
 })
 
-export { mastra }
+export { kastrax }
 ```
 
-## Execute the weather workflow
-Here, we'll get the weather workflow from the mastra instance, then create a run and execute the created run with the required inputData.
+## Execute the weather workflow ✅
+Here, we'll get the weather workflow from the kastrax instance, then create a run and execute the created run with the required inputData.
 
 ```ts showLineNumbers copy filename="exec.ts"
-import { mastra } from "./"
+import { kastrax } from "./"
 
-const workflow = mastra.vnext_getWorkflow('weatherWorkflow')
+const workflow = kastrax.vnext_getWorkflow('weatherWorkflow')
 const run = workflow.createRun()
 
 const result = await run.start({ inputData: { city: 'Ibiza' } })
@@ -393,6 +393,6 @@ console.dir(result, { depth: null })
 <br />
 <GithubLink
   link={
-    "https://github.com/mastra-ai/mastra/blob/main/examples/basics/workflows/parallel-steps"
+    "https://github.com/kastrax-ai/kastrax/blob/main/examples/basics/workflows/parallel-steps"
   }
 />

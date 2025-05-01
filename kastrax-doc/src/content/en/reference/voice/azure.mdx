@@ -1,16 +1,16 @@
 ---
-title: "Reference: Azure Voice | Voice Providers | Mastra Docs"
+title: "Reference: Azure Voice | Voice Providers | Kastrax Docs"
 description: "Documentation for the AzureVoice class, providing text-to-speech and speech-to-text capabilities using Azure Cognitive Services."
 ---
 
-# Azure
+# Azure ✅
 
-The AzureVoice class in Mastra provides text-to-speech and speech-to-text capabilities using Microsoft Azure Cognitive Services.
+The AzureVoice class in Kastrax provides text-to-speech and speech-to-text capabilities using Microsoft Azure Cognitive Services.
 
-## Usage Example
+## Usage Example ✅
 
 ```typescript
-import { AzureVoice } from '@mastra/voice-azure';
+import { AzureVoice } from '@kastrax/voice-azure';
 
 // Initialize with configuration
 const voice = new AzureVoice({
@@ -40,7 +40,7 @@ const text = await voice.listen(audioStream, {
 });
 ```
 
-## Configuration
+## Configuration ✅
 
 ### Constructor Options
 
@@ -92,7 +92,7 @@ const text = await voice.listen(audioStream, {
   ]}
 />
 
-## Methods
+## Methods ✅
 
 ### speak()
 
@@ -206,7 +206,7 @@ Returns an array of available voice options, where each node contains:
   ]}
 />
 
-## Notes
+## Notes ✅
 
 - API keys can be provided via constructor options or environment variables (AZURE_SPEECH_KEY and AZURE_SPEECH_REGION)
 - Azure offers a wide range of neural voices across many languages

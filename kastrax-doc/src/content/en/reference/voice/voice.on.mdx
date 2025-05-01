@@ -1,17 +1,17 @@
 ---
-title: "Reference: voice.on() | Voice Providers | Mastra Docs"
+title: "Reference: voice.on() | Voice Providers | Kastrax Docs"
 description: "Documentation for the on() method available in voice providers, which registers event listeners for voice events."
 ---
 
-# voice.on()
+# voice.on() ✅
 
 The `on()` method registers event listeners for various voice events. This is particularly important for real-time voice providers, where events are used to communicate transcribed text, audio responses, and other state changes.
 
-## Usage Example
+## Usage Example ✅
 
 ```typescript
-import { OpenAIRealtimeVoice } from "@mastra/voice-openai-realtime";
-import Speaker from "@mastra/node-speaker";
+import { OpenAIRealtimeVoice } from "@kastrax/voice-openai-realtime";
+import Speaker from "@kastrax/node-speaker";
 import chalk from "chalk";
 
 // Initialize a real-time voice provider
@@ -51,7 +51,7 @@ voice.on("error", ({ message, code, details }) => {
 });
 ```
 
-## Parameters
+## Parameters ✅
 <br/>
 <PropertiesTable
   content={[
@@ -70,11 +70,11 @@ voice.on("error", ({ message, code, details }) => {
   ]}
 />
 
-## Return Value
+## Return Value ✅
 
 This method does not return a value.
 
-## Events
+## Events ✅
 
 For a comprehensive list of events and their payload structures, see the [Voice Events](./voice.events) documentation.
 
@@ -89,14 +89,14 @@ Common events include:
 
 Different voice providers may support different sets of events with varying payload structures.
 
-## Using with CompositeVoice
+## Using with CompositeVoice ✅
 
 When using `CompositeVoice`, the `on()` method delegates to the configured real-time provider:
 
 ```typescript
-import { CompositeVoice } from "@mastra/core/voice";
-import { OpenAIRealtimeVoice } from "@mastra/voice-openai-realtime";
-import Speaker from "@mastra/node-speaker";
+import { CompositeVoice } from "@kastrax/core/voice";
+import { OpenAIRealtimeVoice } from "@kastrax/voice-openai-realtime";
+import Speaker from "@kastrax/node-speaker";
 
 const speaker = new Speaker({
   sampleRate: 24100,  // Audio sample rate in Hz - standard for high-quality audio on MacBook Pro
@@ -118,7 +118,7 @@ voice.on("speaker", (stream) => {
 });
 ```
 
-## Notes
+## Notes ✅
 
 - This method is primarily used with real-time voice providers that support event-based communication
 - If called on a voice provider that doesn't support events, it will log a warning and do nothing

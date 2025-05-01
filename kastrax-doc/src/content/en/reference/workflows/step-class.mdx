@@ -1,12 +1,12 @@
 ---
-title: "Reference: Step | Building Workflows | Mastra Docs"
+title: "Reference: Step | Building Workflows | Kastrax Docs"
 description: Documentation for the Step class, which defines individual units of work within a workflow.
 ---
-# Step
+# Step ✅
 
 The Step class defines individual units of work within a workflow, encapsulating execution logic, data validation, and input/output handling.
 
-## Usage
+## Usage ✅
 
 ```typescript
 const processOrder = new Step({
@@ -28,7 +28,7 @@ const processOrder = new Step({
 });
 ```
 
-## Constructor Parameters
+## Constructor Parameters ✅
 
 <PropertiesTable
   content={[
@@ -85,14 +85,14 @@ const processOrder = new Step({
       description: "Function to suspend step execution"
     },
     {
-      name: "mastra",
-      type: "Mastra",
-      description: "Access to Mastra instance"
+      name: "kastrax",
+      type: "Kastrax",
+      description: "Access to Kastrax instance"
     }
   ]}
 />
 
-## Related
+## Related ✅
 
 - [Workflow Reference](./workflow.mdx)
 - [Step Configuration Guide](../../docs/workflows/steps.mdx)

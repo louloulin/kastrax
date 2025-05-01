@@ -1,31 +1,31 @@
 ---
-title: "Reference: createTool() | Tools | Agents | Mastra Docs"
-description: Documentation for the createTool function in Mastra, which creates custom tools for agents and workflows.
+title: "Reference: createTool() | Tools | Agents | Kastrax Docs"
+description: Documentation for the createTool function in Kastrax, which creates custom tools for agents and workflows.
 ---
 
-# `createTool()`
+# `createTool()` ✅
 
-The `createTool()` function creates typed tools that can be executed by agents or workflows. Tools have built-in schema validation, execution context, and integration with the Mastra ecosystem.
+The `createTool()` function creates typed tools that can be executed by agents or workflows. Tools have built-in schema validation, execution context, and integration with the Kastrax ecosystem.
 
-## Overview
+## Overview ✅
 
-Tools are a fundamental building block in Mastra that allow agents to interact with external systems, perform computations, and access data. Each tool has:
+Tools are a fundamental building block in Kastrax that allow agents to interact with external systems, perform computations, and access data. Each tool has:
 
 - A unique identifier
 - A description that helps the AI understand when and how to use the tool
 - Optional input and output schemas for validation
 - An execution function that implements the tool's logic
 
-## Example Usage
+## Example Usage ✅
 
 ```ts filename="src/tools/stock-tools.ts" showLineNumbers copy
-import { createTool } from "@mastra/core/tools";
+import { createTool } from "@kastrax/core/tools";
 import { z } from "zod";
 
 // Helper function to fetch stock data
 const getStockPrice = async (symbol: string) => {
   const response = await fetch(
-    `https://mastra-stock-data.vercel.app/api/stock-data?symbol=${symbol}`
+    `https://kastrax-stock-data.vercel.app/api/stock-data?symbol=${symbol}`
   );
   const data = await response.json();
   return data.prices["4. close"];
@@ -73,7 +73,7 @@ export const threadInfoTool = createTool({
 });
 ```
 
-## API Reference
+## API Reference ✅
 
 ### Parameters
 
@@ -120,10 +120,10 @@ export const threadInfoTool = createTool({
               description: "Identifier for the user or resource interacting with the tool"
             },
             {
-              name: "mastra",
-              type: "Mastra",
+              name: "kastrax",
+              type: "Kastrax",
               isOptional: true,
-              description: "Reference to the Mastra instance, if available"
+              description: "Reference to the Kastrax instance, if available"
             },
           ]
         },
@@ -209,7 +209,7 @@ export const threadInfoTool = createTool({
   ]}
 />
 
-## Type Safety
+## Type Safety ✅
 
 The `createTool()` function provides full type safety through TypeScript generics:
 
@@ -219,7 +219,7 @@ The `createTool()` function provides full type safety through TypeScript generic
 
 This ensures that your tools are type-safe throughout your application.
 
-## Best Practices
+## Best Practices ✅
 
 1. **Descriptive IDs**: Use clear, action-oriented IDs like `getWeatherForecast` or `searchDatabase`
 2. **Detailed Descriptions**: Provide comprehensive descriptions that explain when and how to use the tool

@@ -1,29 +1,29 @@
 ---
 title: "Netlify Deployer"
-description: "Documentation for the NetlifyDeployer class, which deploys Mastra applications to Netlify Functions."
+description: "Documentation for the NetlifyDeployer class, which deploys Kastrax applications to Netlify Functions."
 ---
 
-# NetlifyDeployer
+# NetlifyDeployer ✅
 
-The NetlifyDeployer deploys Mastra applications to Netlify Functions, handling site creation, configuration, and deployment processes. It extends the abstract Deployer class to provide Netlify-specific deployment functionality.
+The NetlifyDeployer deploys Kastrax applications to Netlify Functions, handling site creation, configuration, and deployment processes. It extends the abstract Deployer class to provide Netlify-specific deployment functionality.
 
-## Usage Example
+## Usage Example ✅
 
 ```typescript
-import { Mastra } from '@mastra/core';
-import { NetlifyDeployer } from '@mastra/deployer-netlify';
+import { Kastrax } from '@kastrax/core';
+import { NetlifyDeployer } from '@kastrax/deployer-netlify';
 
-const mastra = new Mastra({
+const kastrax = new Kastrax({
   deployer: new NetlifyDeployer({
     scope: 'your-team-slug',
     projectName: 'your-project-name',
     token: 'your-netlify-token'
   }),
-  // ... other Mastra configuration options
+  // ... other Kastrax configuration options
 });
 ```
 
-## Parameters
+## Parameters ✅
 
 ### Constructor Parameters
 
@@ -56,22 +56,22 @@ const mastra = new Mastra({
 The NetlifyDeployer handles environment variables from multiple sources:
 
 1. **Environment Files**: Variables from `.env.production` and `.env` files.
-2. **Configuration**: Variables passed through the Mastra configuration.
+2. **Configuration**: Variables passed through the Kastrax configuration.
 3. **Netlify Dashboard**: Variables can also be managed through Netlify's web interface.
 
 
-## Build Mastra Project
+## Build Kastrax Project ✅
 
-To build your Mastra project for Netlify deployment:
+To build your Kastrax project for Netlify deployment:
 
 ```bash
-npx mastra build
+npx kastrax build
 ```
 
-The build process generates the following output structure in the `.mastra/output` directory:
+The build process generates the following output structure in the `.kastrax/output` directory:
 
 ```
-.mastra/output/
+.kastrax/output/
 ├── netlify/
 │   └── functions/
 │       └── api/
@@ -81,7 +81,7 @@ The build process generates the following output structure in the `.mastra/outpu
 
 ### Netlify Configuration
 
-The NetlifyDeployer automatically generates a `netlify.toml` configuration file in `.mastra/output` with the following settings:
+The NetlifyDeployer automatically generates a `netlify.toml` configuration file in `.kastrax/output` with the following settings:
 
 ```toml
 [functions]
@@ -95,22 +95,22 @@ status = 200
 to = "/.netlify/functions/api/:splat"
 ```
 
-## Deployment Options
+## Deployment Options ✅
 
-After building, you can deploy your Mastra application `.mastra/output` to Netlify using any of these methods:
+After building, you can deploy your Kastrax application `.kastrax/output` to Netlify using any of these methods:
 
 1. **Netlify CLI**: Deploy directly using Netlify's official CLI tool
    - Install the CLI: `npm install -g netlify-cli`
-   - Navigate to the output directory: `cd .mastra/output`
+   - Navigate to the output directory: `cd .kastrax/output`
    - Deploy with functions directory specified: `netlify deploy --dir . --functions ./netlify/functions`
    - For production deployment add `--prod` flag: `netlify deploy --prod --dir . --functions ./netlify/functions`
 
 2. **Netlify Dashboard**: Connect your Git repository or drag-and-drop the build output through the Netlify dashboard
 
-3. **Netlify Dev**: Run your Mastra application locally with Netlify's development environment
+3. **Netlify Dev**: Run your Kastrax application locally with Netlify's development environment
 
-> You can also run `netlify dev` in your output directory `.mastra/output` to test your Mastra application locally.
+> You can also run `netlify dev` in your output directory `.kastrax/output` to test your Kastrax application locally.
 
-## Platform Documentation
+## Platform Documentation ✅
 
 - [Netlify](https://docs.netlify.com/)

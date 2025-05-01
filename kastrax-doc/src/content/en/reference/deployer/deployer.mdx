@@ -1,16 +1,16 @@
 ---
-title: "Mastra Deployer"
-description: Documentation for the Deployer abstract class, which handles packaging and deployment of Mastra applications.
+title: "Kastrax Deployer"
+description: Documentation for the Deployer abstract class, which handles packaging and deployment of Kastrax applications.
 ---
 
-# Deployer
+# Deployer ✅
 
-The Deployer handles the deployment of Mastra applications by packaging code, managing environment files, and serving applications using the Hono framework. Concrete implementations must define the deploy method for specific deployment targets.
+The Deployer handles the deployment of Kastrax applications by packaging code, managing environment files, and serving applications using the Hono framework. Concrete implementations must define the deploy method for specific deployment targets.
 
-## Usage Example
+## Usage Example ✅
 
 ```typescript
-import { Deployer } from "@mastra/deployer";
+import { Deployer } from "@kastrax/deployer";
 
 // Create a custom deployer by extending the abstract Deployer class
 class CustomDeployer extends Deployer {
@@ -24,7 +24,7 @@ class CustomDeployer extends Deployer {
     await this.prepare(outputDirectory);
     
     // Bundle the application
-    await this._bundle('server.ts', 'mastra.ts', outputDirectory);
+    await this._bundle('server.ts', 'kastrax.ts', outputDirectory);
     
     // Custom deployment logic
     // ...
@@ -32,7 +32,7 @@ class CustomDeployer extends Deployer {
 }
 ```
 
-## Parameters
+## Parameters ✅
 
 ### Constructor Parameters
 
@@ -66,7 +66,7 @@ class CustomDeployer extends Deployer {
   ]}
 />
 
-## Methods
+## Methods ✅
 
 <PropertiesTable
   content={[
@@ -83,7 +83,7 @@ class CustomDeployer extends Deployer {
   ]}
 />
 
-## Inherited Methods from Bundler
+## Inherited Methods from Bundler ✅
 
 The Deployer class inherits the following key methods from the Bundler class:
 
@@ -106,13 +106,13 @@ The Deployer class inherits the following key methods from the Bundler class:
     },
     {
       name: "_bundle",
-      type: "(serverFile: string, mastraEntryFile: string, outputDirectory: string, bundleLocation?: string) => Promise<void>",
-      description: "Bundles the application using the specified server and Mastra entry files.",
+      type: "(serverFile: string, kastraxEntryFile: string, outputDirectory: string, bundleLocation?: string) => Promise<void>",
+      description: "Bundles the application using the specified server and Kastrax entry files.",
     },
   ]}
 />
 
-## Core Concepts
+## Core Concepts ✅
 
 ### Deployment Lifecycle
 

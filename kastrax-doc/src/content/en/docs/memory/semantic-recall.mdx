@@ -1,8 +1,8 @@
-# Semantic Recall
+# Semantic Recall ✅
 
-If you ask your friend what they did last weekend, they will search in their memory for events associated with "last weekend" and then tell you what they did. That's sort of like how semantic recall works in Mastra.
+If you ask your friend what they did last weekend, they will search in their memory for events associated with "last weekend" and then tell you what they did. That's sort of like how semantic recall works in Kastrax.
 
-## How Semantic Recall Works
+## How Semantic Recall Works ✅
 
 Semantic recall is RAG-based search that helps agents maintain context across longer interactions when messages are no longer within [recent conversation history](./overview.mdx#conversation-history).
 
@@ -11,7 +11,7 @@ It uses vector embeddings of messages for similarity search, integrates with var
 <br />
 <img
   src="/image/semantic-recall.png"
-  alt="Diagram showing Mastra Memory semantic recall"
+  alt="Diagram showing Kastrax Memory semantic recall"
   width={800}
 />
 
@@ -19,105 +19,188 @@ When it's enabled, new messages are used to query a vector DB for semantically s
 
 After getting a response from the LLM, all new messages (user, assistant, and tool calls/results) are inserted into the vector DB to be recalled in later interactions.
 
-## Quick Start
+## Quick Start ✅
 
-Semantic recall is enabled by default, so if you give your agent memory it will be included:
+Here's a minimal example of setting up an agent with semantic recall:
 
-```typescript {9}
-import { Agent } from "@mastra/core/agent";
-import { Memory } from "@mastra/memory";
-import { openai } from "@ai-sdk/openai";
+```kotlin
+import ai.kastrax.core.agent.agent
+import ai.kastrax.core.memory.memory
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.runBlocking
 
-const agent = new Agent({
-  name: "SupportAgent",
-  instructions: "You are a helpful support agent.",
-  model: openai("gpt-4o"),
-  memory: new Memory(),
-});
+fun main() = runBlocking {
+    // Create agent with semantic recall enabled
+    val myAgent = agent {
+        name("AgentWithSemanticRecall")
+        description("An agent that uses semantic recall")
+        
+        // Configure the LLM
+        model = deepSeek {
+            apiKey("your-deepseek-api-key")
+            model(DeepSeekModel.DEEPSEEK_CHAT)
+            temperature(0.7)
+        }
+        
+        // Configure memory with semantic recall enabled
+        memory = memory {
+            conversationHistory(10) // Remember last 10 messages
+            semanticMemory(true) // Enable semantic recall
+            semanticMemoryModel("all-MiniLM-L6-v2") // Embedding model for semantic search
+        }
+    }
+    
+    // Use the agent
+    val response = myAgent.generate("Tell me about quantum computing")
+    println(response.text)
+}
 ```
 
-## Recall configuration
+## Configuration Options ✅
 
-The two main parameters that control semantic recall behavior are:
+Semantic recall can be configured with several options:
 
-1. **topK**: How many semantically similar messages to retrieve
-2. **messageRange**: How much surrounding context to include with each match
-
-```typescript {5-6}
-const agent = new Agent({
-  memory: new Memory({
-    options: {
-      semanticRecall: {
-        topK: 3, // Retrieve 3 most similar messages
-        messageRange: 2, // Include 2 messages before and after each match
-      },
-    },
-  }),
-});
+```kotlin
+memory = memory {
+    // Enable semantic memory
+    semanticMemory(true)
+    
+    // Specify the embedding model
+    semanticMemoryModel("all-MiniLM-L6-v2")
+    
+    // Set the number of similar memories to retrieve
+    semanticMemoryTopK(5)
+    
+    // Set the similarity threshold (0.0 to 1.0)
+    semanticMemorySimilarityThreshold(0.7)
+    
+    // Configure the vector store
+    semanticMemoryVectorStore(InMemoryVectorStore())
+    // Or use a persistent store
+    // semanticMemoryVectorStore(ChromaVectorStore("memory_db"))
+}
 ```
 
-### Storage configuration
+## How Semantic Recall Enhances Conversations ✅
 
-Semantic recall relies on a [storage and vector db](/reference/memory/Memory#parameters) to store messages and their embeddings.
+Semantic recall helps agents maintain context in several ways:
 
-```ts {8-17}
-import { Memory } from "@mastra/memory";
-import { Agent } from "@mastra/core/agent";
-import { LibSQLStore, LibSQLVector } from "@mastra/libsql";
+1. **Long-Term Memory**: Agents can recall information from much earlier in the conversation, beyond the recent history limit.
 
-const agent = new Agent({
-  memory: new Memory({
-    // this is the default storage db if omitted
-    storage: new LibSQLStore({
-      url: "file:./local.db",
-    }),
-    // this is the default vector db if omitted
-    vector: new LibSQLVector({
-      connectionUrl: "file:./local.db",
-    }),
-  }),
-});
+2. **Contextual Relevance**: Only the most relevant past messages are recalled, based on semantic similarity to the current query.
+
+3. **Knowledge Persistence**: Important information is preserved even as the conversation evolves through different topics.
+
+4. **Natural Conversation Flow**: Users don't need to repeat information they've already shared, creating a more natural experience.
+
+## Example: Long Conversation Agent ✅
+
+Here's a complete example of an agent that uses semantic recall to maintain context in a long conversation:
+
+```kotlin
+import ai.kastrax.core.agent.agent
+import ai.kastrax.core.memory.memory
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    // Create agent with semantic recall
+    val longConversationAgent = agent {
+        name("LongConversationAgent")
+        description("An agent that maintains context in long conversations")
+        
+        // Configure the LLM
+        model = deepSeek {
+            apiKey("your-deepseek-api-key")
+            model(DeepSeekModel.DEEPSEEK_CHAT)
+            temperature(0.7)
+        }
+        
+        // Configure memory
+        memory = memory {
+            conversationHistory(5) // Only keep 5 recent messages
+            semanticMemory(true) // Enable semantic recall
+            semanticMemoryModel("all-MiniLM-L6-v2")
+            semanticMemoryTopK(3) // Retrieve top 3 similar memories
+        }
+    }
+    
+    // Simulate a long conversation
+    val conversation = listOf(
+        "Hi, my name is Alice and I'm a physicist working on quantum computing.",
+        "I'm specifically interested in quantum error correction.",
+        "What's the weather like today?",
+        "Back to quantum computing, what are the latest developments in quantum error correction?",
+        "Do you remember what field I work in?",
+        "What was my name again?"
+    )
+    
+    // Run the conversation
+    for (message in conversation) {
+        println("\nUser: $message")
+        val response = longConversationAgent.generate(message)
+        println("Agent: ${response.text}")
+    }
+}
 ```
 
-**Storage/vector code Examples**:
+In this example, even though the conversation history only keeps the 5 most recent messages, the agent can still recall that the user's name is Alice and that she works in quantum computing when asked later in the conversation.
 
-- [LibSQL](/examples/memory/memory-with-libsql)
-- [Postgres](/examples/memory/memory-with-pg)
-- [Upstash](/examples/memory/memory-with-upstash)
+## Vector Stores ✅
 
-### Embedder configuration
+Kastrax supports multiple vector stores for semantic recall:
 
-Semantic recall relies an [embedding model](/reference/memory/Memory#embedder) to convert messages into embeddings. By default Mastra uses FastEmbed but you can specify another [embedding model](https://sdk.vercel.ai/image/ai-sdk-core/embeddings).
+### In-Memory Vector Store ✅
 
-```ts {7}
-import { Memory } from "@mastra/memory";
-import { Agent } from "@mastra/core/agent";
-import { openai } from "@ai-sdk/openai";
-
-const agent = new Agent({
-  memory: new Memory({
-    embedder: openai.embedding("text-embedding-3-small"),
-  }),
-});
+```kotlin
+memory = memory {
+    semanticMemory(true)
+    semanticMemoryVectorStore(InMemoryVectorStore())
+}
 ```
 
-### Disabling
+### Chroma Vector Store ✅
 
-There is a performance impact to using semantic recall. New messages are converted into embeddings and used to query a vector database before new messages are sent to the LLM.
-
-Semantic recall is enabled by default but can be disabled when not needed:
-
-```typescript {4}
-const agent = new Agent({
-  memory: new Memory({
-    options: {
-      semanticRecall: false,
-    },
-  }),
-});
+```kotlin
+memory = memory {
+    semanticMemory(true)
+    semanticMemoryVectorStore(ChromaVectorStore(
+        collectionName = "agent_memories",
+        url = "http://localhost:8000"
+    ))
+}
 ```
 
-You might want to disable semantic recall in scenarios like:
+### FAISS Vector Store ✅
 
-- When conversation history provide sufficient context for the current conversation.
-- In performance-sensitive applications, like realtime two-way audio, where the added latency of creating embeddings and running vector queries is noticeable.
+```kotlin
+memory = memory {
+    semanticMemory(true)
+    semanticMemoryVectorStore(FAISSVectorStore(
+        indexPath = "faiss_index",
+        dimensions = 384
+    ))
+}
+```
+
+## Best Practices ✅
+
+1. **Balance History and Recall**: Use a smaller conversation history (5-10 messages) when using semantic recall to avoid redundancy.
+
+2. **Choose the Right Embedding Model**: Select an embedding model that balances performance and quality for your use case.
+
+3. **Tune Similarity Threshold**: Adjust the similarity threshold based on your needs - lower values recall more but may include less relevant information.
+
+4. **Persistent Storage**: For production applications, use a persistent vector store like Chroma or FAISS.
+
+5. **Combine with Working Memory**: Use semantic recall alongside working memory for the best results.
+
+## Next Steps ✅
+
+Now that you understand semantic recall, you can:
+
+1. Learn about [working memory](./working-memory.mdx)
+2. Explore [memory processors](./memory-processors.mdx)
+3. Implement [custom memory storage](./implementations.mdx)

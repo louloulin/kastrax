@@ -1,19 +1,19 @@
 ---
 title: Speech to Speech
-description: Example of using Mastra to create a speech to speech application.
+description: Example of using Kastrax to create a speech to speech application.
 ---
 
 import { GithubLink } from '@/components/github-link';
 
-# Call Analysis with Mastra
+# Call Analysis with Kastrax ✅
 
-This guide demonstrates how to build a complete voice conversation system with analytics using Mastra. The example includes real-time speech-to-speech conversation, recording management, and integration with Roark Analytics for call analysis.
+This guide demonstrates how to build a complete voice conversation system with analytics using Kastrax. The example includes real-time speech-to-speech conversation, recording management, and integration with Roark Analytics for call analysis.
 
-## Overview
+## Overview ✅
 
-The system creates a voice conversation with a Mastra agent, records the entire interaction, uploads the recording to Cloudinary for storage, and then sends the conversation data to Roark Analytics for detailed call analysis.
+The system creates a voice conversation with a Kastrax agent, records the entire interaction, uploads the recording to Cloudinary for storage, and then sends the conversation data to Roark Analytics for detailed call analysis.
 
-## Setup
+## Setup ✅
 
 ### Prerequisites
 
@@ -41,22 +41,22 @@ Install the required dependencies:
 npm install
 ```
 
-## Implementation
+## Implementation ✅
 
-### Creating the Mastra Agent
+### Creating the Kastrax Agent
 
 First, we define our agent with voice capabilities:
 
-```ts filename="speech-to-speech/call-analysis/src/mastra/agents/index.ts" copy
+```ts filename="speech-to-speech/call-analysis/src/kastrax/agents/index.ts" copy
 import { openai } from '@ai-sdk/openai';
-import { Agent } from '@mastra/core/agent';
-import { createTool } from '@mastra/core/tools';
-import { OpenAIRealtimeVoice } from '@mastra/voice-openai-realtime';
+import { Agent } from '@kastrax/core/agent';
+import { createTool } from '@kastrax/core/tools';
+import { OpenAIRealtimeVoice } from '@kastrax/voice-openai-realtime';
 import { z } from 'zod';
 
 // Have the agent do something
 export const speechToSpeechServer = new Agent({
-    name: 'mastra',
+    name: 'kastrax',
     instructions: 'You are a helpful assistant.',
     voice: new OpenAIRealtimeVoice(),
     model: openai('gpt-4o'),
@@ -74,15 +74,15 @@ export const speechToSpeechServer = new Agent({
 });
 ```
 
-### Initializing Mastra
+### Initializing Kastrax
 
-Register the agent with Mastra:
+Register the agent with Kastrax:
 
-```ts filename="speech-to-speech/call-analysis/src/mastra/index.ts" copy
-import { Mastra } from '@mastra/core';
+```ts filename="speech-to-speech/call-analysis/src/kastrax/index.ts" copy
+import { Kastrax } from '@kastrax/core';
 import { speechToSpeechServer } from './agents';
 
-export const mastra = new Mastra({
+export const kastrax = new Kastrax({
     agents: {
         speechToSpeechServer,
     }
@@ -117,7 +117,7 @@ The main application orchestrates the conversation flow, recording, and analytic
 import { Roark } from '@roarkanalytics/sdk';
 import chalk from 'chalk';
 
-import { mastra } from './mastra';
+import { kastrax } from './kastrax';
 import { createConversation, formatToolInvocations } from './utils';
 import { uploadToCloudinary } from './upload';
 import fs from 'fs';
@@ -128,7 +128,7 @@ const client = new Roark({
 
 async function speechToSpeechServerExample() {
     const { start, stop } = createConversation({
-        mastra,
+        kastrax,
         recordingPath: './speech-to-speech-server.mp3',
         providerOptions: {},
         initialMessage: 'Howdy partner',
@@ -171,7 +171,7 @@ async function speechToSpeechServerExample() {
 speechToSpeechServerExample().catch(console.error)
 ```
 
-## Conversation Utilities
+## Conversation Utilities ✅
 
 The `utils.ts` file contains helper functions for managing the conversation, including:
 
@@ -180,7 +180,7 @@ The `utils.ts` file contains helper functions for managing the conversation, inc
 3. Processing tool invocations
 4. Managing conversation lifecycle events
 
-## Running the Example
+## Running the Example ✅
 
 Start the conversation with:
 
@@ -189,13 +189,13 @@ npm run dev
 ```
 
 The application will:
-1. Start a real-time voice conversation with the Mastra agent
+1. Start a real-time voice conversation with the Kastrax agent
 2. Record the entire conversation
 3. Upload the recording to Cloudinary when the conversation ends
 4. Send the conversation data to Roark Analytics for analysis
 5. Display the analysis results
 
-## Key Features
+## Key Features ✅
 
 - **Real-time Speech-to-Speech**: Uses OpenAI's voice models for natural conversation
 - **Conversation Recording**: Captures the entire conversation for later analysis
@@ -203,7 +203,7 @@ The application will:
 - **Analytics Integration**: Sends conversation data to Roark Analytics for detailed analysis
 - **Cloud Storage**: Uploads recordings to Cloudinary for secure storage and access
 
-## Customization
+## Customization ✅
 
 You can customize this example by:
 - Modifying the agent's instructions and capabilities
@@ -211,9 +211,9 @@ You can customize this example by:
 - Changing the conversation flow or initial message
 - Extending the analytics integration with custom metadata
 
-To view the full example code, see the [Github repository](https://github.com/mastra-ai/voice-examples/tree/main/speech-to-speech/call-analysis).
+To view the full example code, see the [Github repository](https://github.com/kastrax-ai/voice-examples/tree/main/speech-to-speech/call-analysis).
 
 <br />
 <br />
 
-<GithubLink link="https://github.com/mastra-ai/voice-examples/tree/main/speech-to-speech/call-analysis" />
+<GithubLink link="https://github.com/kastrax-ai/voice-examples/tree/main/speech-to-speech/call-analysis" />

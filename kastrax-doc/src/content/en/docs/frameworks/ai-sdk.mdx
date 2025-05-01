@@ -1,22 +1,22 @@
 ---
 title: "Using with Vercel AI SDK"
-description: "Learn how Mastra leverages the Vercel AI SDK library and how you can leverage it further with Mastra"
+description: "Learn how Kastrax leverages the Vercel AI SDK library and how you can leverage it further with Kastrax"
 ---
 
 import Image from "next/image";
 
-# Using with Vercel AI SDK
+# Using with Vercel AI SDK ✅
 
-Mastra leverages AI SDK's model routing (a unified interface on top of OpenAI, Anthropic, etc), structured output, and tool calling.
+Kastrax leverages AI SDK's model routing (a unified interface on top of OpenAI, Anthropic, etc), structured output, and tool calling.
 
-We explain this in greater detail in [this blog post](https://mastra.ai/blog/using-ai-sdk-with-mastra)
+We explain this in greater detail in [this blog post](https://kastrax.ai/blog/using-ai-sdk-with-kastrax)
 
-## Mastra + AI SDK
+## Kastrax + AI SDK ✅
 
-Mastra acts as a layer on top of AI SDK to help teams productionize their proof-of-concepts quickly and easily.
+Kastrax acts as a layer on top of AI SDK to help teams productionize their proof-of-concepts quickly and easily.
 
 <Image
-  src="/image/mastra-ai-sdk.png"
+  src="/image/kastrax-ai-sdk.png"
   alt="Agent interaction trace showing spans, LLM calls, and tool executions"
   style={{ maxWidth: "800px", width: "100%", margin: "8px 0" }}
   className="nextra-image rounded-md py-8"
@@ -25,13 +25,13 @@ Mastra acts as a layer on top of AI SDK to help teams productionize their proof-
   height={400}
 />
 
-## Model routing
+## Model routing ✅
 
-When creating agents in Mastra, you can specify any AI SDK-supported model:
+When creating agents in Kastrax, you can specify any AI SDK-supported model:
 
 ```typescript
 import { openai } from "@ai-sdk/openai";
-import { Agent } from "@mastra/core/agent";
+import { Agent } from "@kastrax/core/agent";
 
 const agent = new Agent({
   name: "WeatherAgent",
@@ -42,9 +42,9 @@ const agent = new Agent({
 const result = await agent.generate("What is the weather like?");
 ```
 
-## AI SDK Hooks
+## AI SDK Hooks ✅
 
-Mastra is compatible with AI SDK's hooks for seamless frontend integration:
+Kastrax is compatible with AI SDK's hooks for seamless frontend integration:
 
 ### useChat
 
@@ -52,15 +52,15 @@ The `useChat` hook enables real-time chat interactions in your frontend applicat
 
 - Works with agent data streams i.e. `.toDataStreamResponse()`
 - The useChat `api` defaults to `/api/chat`
-- Works with the Mastra REST API agent stream endpoint `{MASTRA_BASE_URL}/agents/:agentId/stream` for data streams,
+- Works with the Kastrax REST API agent stream endpoint `{MASTRA_BASE_URL}/agents/:agentId/stream` for data streams,
   i.e. no structured output is defined.
 
 ```typescript filename="app/api/chat/route.ts" copy
-import { mastra } from "@/src/mastra";
+import { kastrax } from "@/src/kastrax";
 
 export async function POST(req: Request) {
   const { messages } = await req.json();
-  const myAgent = mastra.getAgent("weatherAgent");
+  const myAgent = kastrax.getAgent("weatherAgent");
   const stream = await myAgent.stream(messages);
 
   return stream.toDataStreamResponse();
@@ -102,15 +102,15 @@ For single-turn completions, use the `useCompletion` hook:
 
 - Works with agent data streams i.e. `.toDataStreamResponse()`
 - The useCompletion `api` defaults to `/api/completion`
-- Works with the Mastra REST API agent stream endpoint `{MASTRA_BASE_URL}/agents/:agentId/stream` for data streams,
+- Works with the Kastrax REST API agent stream endpoint `{MASTRA_BASE_URL}/agents/:agentId/stream` for data streams,
   i.e. no structured output is defined.
 
 ```typescript filename="app/api/completion/route.ts" copy
-import { mastra } from "@/src/mastra";
+import { kastrax } from "@/src/kastrax";
 
 export async function POST(req: Request) {
   const { messages } = await req.json();
-  const myAgent = mastra.getAgent("weatherAgent");
+  const myAgent = kastrax.getAgent("weatherAgent");
   const stream = await myAgent.stream(messages);
 
   return stream.toDataStreamResponse();
@@ -150,15 +150,15 @@ export function CompletionComponent() {
 For consuming text streams that represent JSON objects and parsing them into a complete object based on a schema.
 
 - Works with agent text streams i.e. `.toTextStreamResponse()`
-- Works with the Mastra REST API agent stream endpoint `{MASTRA_BASE_URL}/agents/:agentId/stream` for text streams,
+- Works with the Kastrax REST API agent stream endpoint `{MASTRA_BASE_URL}/agents/:agentId/stream` for text streams,
   i.e. structured output is defined.
 
 ```typescript filename="app/api/use-object/route.ts" copy
-import { mastra } from "@/src/mastra";
+import { kastrax } from "@/src/kastrax";
 
 export async function POST(req: Request) {
   const { messages } = await req.json();
-  const myAgent = mastra.getAgent("weatherAgent");
+  const myAgent = kastrax.getAgent("weatherAgent");
   const stream = await myAgent.stream(messages, {
     output: z.object({
       weather: z.string(),
@@ -189,39 +189,39 @@ export default function Page() {
 }
 ```
 
-## Tool Calling
+## Tool Calling ✅
 
 ### AI SDK Tool Format
 
-Mastra supports tools created using the AI SDK format, so you can use
-them directly with Mastra agents. See our tools doc on [Vercel AI SDK Tool Format
+Kastrax supports tools created using the AI SDK format, so you can use
+them directly with Kastrax agents. See our tools doc on [Vercel AI SDK Tool Format
 ](/docs/agents/adding-tools#vercel-ai-sdk-tool-format) for more details.
 
 ### Client-side tool calling
 
-Mastra leverages AI SDK's tool calling, so what applies in AI SDK applies here still.
-[Agent Tools](/docs/agents/adding-tools) in Mastra are 100% percent compatible with AI SDK tools.
+Kastrax leverages AI SDK's tool calling, so what applies in AI SDK applies here still.
+[Agent Tools](/docs/agents/adding-tools) in Kastrax are 100% percent compatible with AI SDK tools.
 
-Mastra tools also expose an optional `execute` async function. It is optional because you might want to forward tool calls to the client or to a queue instead of executing them in the same process.
+Kastrax tools also expose an optional `execute` async function. It is optional because you might want to forward tool calls to the client or to a queue instead of executing them in the same process.
 
 One way to then leverage client-side tool calling is to use the `@ai-sdk/react` `useChat` hook's `onToolCall` property for
 client-side tool execution
 
-## Custom DataStream
+## Custom DataStream ✅
 In certain scenarios you need to write custom data, message annotations to an agent's dataStream.
 This can be useful for:
 
 - Streaming additional data to the client
 - Passing progress info back to the client in real time
 
-Mastra integrates well with AI SDK to make this possible
+Kastrax integrates well with AI SDK to make this possible
 
 ### CreateDataStream
 The `createDataStream` function allows you to stream additional data to the client
 
 ```typescript  copy
     import { createDataStream } from "ai"
-    import { Agent } from '@mastra/core/agent';
+    import { Agent } from '@kastrax/core/agent';
 
     export const weatherAgent = new Agent({
       name: 'Weather Agent',
@@ -249,7 +249,7 @@ The `createDataStream` function allows you to stream additional data to the clie
         // Write annotation
         dataStream.writeMessageAnnotation({ type: 'status', value: 'processing' });
   
-        //mastra agent stream
+        //kastrax agent stream
         const agentStream = await weatherAgent.stream('What is the weather')
 
         // Merge agent stream
@@ -263,12 +263,12 @@ The `createDataStream` function allows you to stream additional data to the clie
 The `createDataStreamResponse` function creates a Response object that streams data to the client
 
 ```typescript filename="app/api/chat/route.ts" copy
-import { mastra } from "@/src/mastra";
+import { kastrax } from "@/src/kastrax";
 
 export async function POST(req: Request) {
   const { messages } = await req.json();
-  const myAgent = mastra.getAgent("weatherAgent");
-  //mastra agent stream
+  const myAgent = kastrax.getAgent("weatherAgent");
+  //kastrax agent stream
   const agentStream = await myAgent.stream(messages);
 
   const response = createDataStreamResponse({

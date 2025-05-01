@@ -1,22 +1,22 @@
 ---
-title: "Reference: MongoDB Vector Store | Vector Databases | RAG | Mastra Docs"
-description: Documentation for the MongoDBVector class in Mastra, which provides vector search using MongoDB Atlas and Atlas Vector Search.
+title: "Reference: MongoDB Vector Store | Vector Databases | RAG | Kastrax Docs"
+description: Documentation for the MongoDBVector class in Kastrax, which provides vector search using MongoDB Atlas and Atlas Vector Search.
 ---
 
-# MongoDB Vector Store
+# MongoDB Vector Store ✅
 
 The `MongoDBVector` class provides vector search using [MongoDB Atlas Vector Search](https://www.mongodb.com/docs/atlas/atlas-vector-search/). It enables efficient similarity search and metadata filtering within your MongoDB collections.
 
-## Installation
+## Installation ✅
 
 ```bash copy
-npm install @mastra/mongodb
+npm install @kastrax/mongodb
 ```
 
-## Usage Example
+## Usage Example ✅
 
 ```typescript copy showLineNumbers
-import { MongoDBVector } from '@mastra/mongodb';
+import { MongoDBVector } from '@kastrax/mongodb';
 
 const store = new MongoDBVector({
   url: process.env.MONGODB_URL,
@@ -24,7 +24,7 @@ const store = new MongoDBVector({
 });
 ```
 
-## Constructor Options
+## Constructor Options ✅
 
 <PropertiesTable
   content={[
@@ -47,7 +47,7 @@ const store = new MongoDBVector({
   ]}
 />
 
-## Methods
+## Methods ✅
 
 ### createIndex()
 
@@ -261,7 +261,7 @@ Deletes a specific vector entry from an index by its ID.
 
 Closes the MongoDB client connection. Should be called when done using the store.
 
-## Response Types
+## Response Types ✅
 
 Query results are returned in this format:
 
@@ -274,7 +274,7 @@ interface QueryResult {
 }
 ```
 
-## Error Handling
+## Error Handling ✅
 
 The store throws typed errors that can be caught:
 
@@ -298,12 +298,12 @@ try {
 }
 ```
 
-## Best Practices
+## Best Practices ✅
 
 - Index metadata fields used in filters for optimal query performance.
 - Use consistent field naming in metadata to avoid unexpected query results.
 - Regularly monitor index and collection statistics to ensure efficient search.
 
-## Related
+## Related ✅
 
 - [Metadata Filters](./metadata-filters)

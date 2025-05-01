@@ -1,20 +1,20 @@
 ---
-title: "Reference: MCPClient | Tool Management | Mastra Docs"
+title: "Reference: MCPClient | Tool Management | Kastrax Docs"
 description: API Reference for MCPClient - A class for managing multiple Model Context Protocol servers and their tools.
 ---
 
-# MCPClient
+# MCPClient ✅
 
-The `MCPClient` class provides a way to manage multiple MCP server connections and their tools in a Mastra application. It handles connection lifecycle, tool namespacing, and provides convenient access to tools across all configured servers.
+The `MCPClient` class provides a way to manage multiple MCP server connections and their tools in a Kastrax application. It handles connection lifecycle, tool namespacing, and provides convenient access to tools across all configured servers.
 
-## Constructor
+## Constructor ✅
 
 Creates a new instance of the MCPClient class.
 
 ```typescript
 constructor({
   id?: string;
-  servers: Record<string, MastraMCPServerDefinition>;
+  servers: Record<string, KastraxMCPServerDefinition>;
   timeout?: number;
 }: MCPClientOptions)
 ```
@@ -33,7 +33,7 @@ constructor({
     },
     {
       name: "servers",
-      type: "Record<string, MastraMCPServerDefinition>",
+      type: "Record<string, KastraxMCPServerDefinition>",
       description:
         "A map of server configurations, where each key is a unique server identifier and the value is the server configuration.",
     },
@@ -47,9 +47,9 @@ constructor({
   ]}
 />
 
-### MastraMCPServerDefinition
+### KastraxMCPServerDefinition
 
-Each server in the `servers` map is configured using the `MastraMCPServerDefinition` type. The `MastraMCPClient` used internally automatically detects the transport type based on the provided parameters:
+Each server in the `servers` map is configured using the `KastraxMCPServerDefinition` type. The `KastraxMCPClient` used internally automatically detects the transport type based on the provided parameters:
 
 -   If `command` is provided, it uses the Stdio transport.
 -   If `url` is provided, it first attempts to use the Streamable HTTP transport and falls back to the legacy SSE transport if the initial connection fails.
@@ -121,7 +121,7 @@ Each server in the `servers` map is configured using the `MastraMCPServerDefinit
   ]}
 />
 
-## Methods
+## Methods ✅
 
 ### getTools()
 
@@ -151,13 +151,13 @@ Disconnects from all MCP servers and cleans up resources.
 async disconnect(): Promise<void>
 ```
 
-## Examples
+## Examples ✅
 
 ### Basic Usage
 
 ```typescript
-import { MCPClient } from "@mastra/mcp";
-import { Agent } from "@mastra/core/agent";
+import { MCPClient } from "@kastrax/mcp";
+import { Agent } from "@kastrax/core/agent";
 import { openai } from "@ai-sdk/openai";
 
 const mcp = new MCPClient({
@@ -191,8 +191,8 @@ const agent = new Agent({
 ### Using Toolsets in generate() or stream()
 
 ```typescript
-import { Agent } from "@mastra/core/agent";
-import { MCPClient } from "@mastra/mcp";
+import { Agent } from "@kastrax/core/agent";
+import { MCPClient } from "@kastrax/mcp";
 import { openai } from "@ai-sdk/openai";
 
 // Create the agent first, without any tools
@@ -233,7 +233,7 @@ const response = await agent.stream(
 );
 ```
 
-## Resource Management
+## Resource Management ✅
 
 The `MCPClient` class includes built-in memory leak prevention for managing multiple instances:
 
@@ -277,7 +277,7 @@ const mcp4 = new MCPClient({
 });
 ```
 
-## Server Lifecycle
+## Server Lifecycle ✅
 
 MCPClient handles server connections gracefully:
 
@@ -285,6 +285,6 @@ MCPClient handles server connections gracefully:
 2. Graceful server shutdown to prevent error messages during development
 3. Proper cleanup of resources when disconnecting
 
-## Related Information
+## Related Information ✅
 
 - For more about the Model Context Protocol, see the [@modelcontextprotocol/sdk documentation](https://github.com/modelcontextprotocol/typescript-sdk)

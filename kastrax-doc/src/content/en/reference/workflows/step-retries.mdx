@@ -1,15 +1,15 @@
 ---
-title: "Step Retries | Error Handling | Mastra Docs"
-description: "Automatically retry failed steps in Mastra workflows with configurable retry policies."
+title: "Step Retries | Error Handling | Kastrax Docs"
+description: "Automatically retry failed steps in Kastrax workflows with configurable retry policies."
 ---
 
-# Step Retries
+# Step Retries ✅
 
-Mastra provides built-in retry mechanisms to handle transient failures in workflow steps. This allows workflows to recover gracefully from temporary issues without requiring manual intervention.
+Kastrax provides built-in retry mechanisms to handle transient failures in workflow steps. This allows workflows to recover gracefully from temporary issues without requiring manual intervention.
 
-## Overview
+## Overview ✅
 
-When a step in a workflow fails (throws an exception), Mastra can automatically retry the step execution based on a configurable retry policy. This is useful for handling:
+When a step in a workflow fails (throws an exception), Kastrax can automatically retry the step execution based on a configurable retry policy. This is useful for handling:
 
 - Network connectivity issues
 - Service unavailability
@@ -17,7 +17,7 @@ When a step in a workflow fails (throws an exception), Mastra can automatically 
 - Temporary resource constraints
 - Other transient failures
 
-## Default Behavior
+## Default Behavior ✅
 
 By default, steps do not retry when they fail. This means:
 
@@ -25,7 +25,7 @@ By default, steps do not retry when they fail. This means:
 - If it fails, it will immediately mark the step as failed
 - The workflow will continue to execute any subsequent steps that don't depend on the failed step
 
-## Configuration Options
+## Configuration Options ✅
 
 Retries can be configured at two levels:
 
@@ -60,7 +60,7 @@ const fetchDataStep = new Step({
 });
 ```
 
-## Retry Parameters
+## Retry Parameters ✅
 
 The `retryConfig` object supports the following parameters:
 
@@ -69,9 +69,9 @@ The `retryConfig` object supports the following parameters:
 | `attempts` | number | 0 | The number of retry attempts (in addition to the initial attempt) |
 | `delay` | number | 1000 | Time in milliseconds to wait between retries |
 
-## How Retries Work
+## How Retries Work ✅
 
-When a step fails, Mastra's retry mechanism:
+When a step fails, Kastrax's retry mechanism:
 
 1. Checks if the step has retry attempts remaining
 2. If attempts remain:
@@ -85,12 +85,12 @@ When a step fails, Mastra's retry mechanism:
 
 During retry attempts, the workflow execution remains active but paused for the specific step that is being retried.
 
-## Examples
+## Examples ✅
 
 ### Basic Retry Example
 
 ```typescript
-import { Workflow, Step } from '@mastra/core/workflows';
+import { Workflow, Step } from '@kastrax/core/workflows';
 
 // Define a step that might fail
 const unreliableApiStep = new Step({
@@ -123,7 +123,7 @@ workflow
 ### Workflow-level Retries with Step Override
 
 ```typescript
-import { Workflow, Step } from '@mastra/core/workflows';
+import { Workflow, Step } from '@kastrax/core/workflows';
 
 // Create a workflow with default retry configuration
 const workflow = new Workflow({
@@ -172,9 +172,9 @@ workflow
   .commit();
 ```
 
-## Monitoring Retries
+## Monitoring Retries ✅
 
-You can monitor retry attempts in your logs. Mastra logs retry-related events at the `debug` level:
+You can monitor retry attempts in your logs. Kastrax logs retry-related events at the `debug` level:
 
 ```
 [DEBUG] Step fetchData failed (runId: abc-123)
@@ -184,7 +184,7 @@ You can monitor retry attempts in your logs. Mastra logs retry-related events at
 [DEBUG] Step fetchData pending (runId: abc-123)
 ```
 
-## Best Practices
+## Best Practices ✅
 
 1. **Use Retries for Transient Failures**: Only configure retries for operations that might experience transient failures. For deterministic errors (like validation failures), retries won't help.
 
@@ -196,7 +196,7 @@ You can monitor retry attempts in your logs. Mastra logs retry-related events at
 
 5. **Consider Backoff Strategies**: For more advanced scenarios, consider implementing exponential backoff in your step's logic for operations that might be rate-limited.
 
-## Related
+## Related ✅
 
 - [Step Class Reference](./step-class.mdx)
 - [Workflow Configuration](./workflow.mdx)

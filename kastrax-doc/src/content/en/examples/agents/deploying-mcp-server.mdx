@@ -1,31 +1,31 @@
 ---
-title: "Example: Deploying an MCPServer | Agents | Mastra Docs"
-description: Example of setting up, building, and deploying a Mastra MCPServer using the stdio transport and publishing it to NPM.
+title: "Example: Deploying an MCPServer | Agents | Kastrax Docs"
+description: Example of setting up, building, and deploying a Kastrax MCPServer using the stdio transport and publishing it to NPM.
 ---
 
 import { GithubLink } from "@/components/github-link";
 
-# Example: Deploying an MCPServer
+# Example: Deploying an MCPServer ✅
 
-This example guides you through setting up a basic Mastra MCPServer using the stdio transport, building it, and preparing it for deployment, such as publishing to NPM.
+This example guides you through setting up a basic Kastrax MCPServer using the stdio transport, building it, and preparing it for deployment, such as publishing to NPM.
 
-## Install Dependencies
+## Install Dependencies ✅
 
 Install the necessary packages:
 
 ```bash
-pnpm add @mastra/mcp @mastra/core tsup
+pnpm add @kastrax/mcp @kastrax/core tsup
 ```
 
-## Set up MCP Server
+## Set up MCP Server ✅
 
-1.  Create a file for your stdio server, for example, `/src/mastra/stdio.ts`.
+1.  Create a file for your stdio server, for example, `/src/kastrax/stdio.ts`.
 
-2.  Add the following code to the file. Remember to import your actual Mastra tools and name the server appropriately.
+2.  Add the following code to the file. Remember to import your actual Kastrax tools and name the server appropriately.
 
-    ```typescript filename="src/mastra/stdio.ts" copy
+    ```typescript filename="src/kastrax/stdio.ts" copy
     #!/usr/bin/env node
-    import { MCPServer } from "@mastra/mcp";
+    import { MCPServer } from "@kastrax/mcp";
     import { weatherTool } from "./tools";
 
     const server = new MCPServer({
@@ -46,7 +46,7 @@ pnpm add @mastra/mcp @mastra/core tsup
   {
     "bin": "dist/stdio.js",
     "scripts": {
-      "build:mcp": "tsup src/mastra/stdio.ts --format esm --no-splitting --dts && chmod +x dist/stdio.js"
+      "build:mcp": "tsup src/kastrax/stdio.ts --format esm --no-splitting --dts && chmod +x dist/stdio.js"
     }
   }
   ```
@@ -59,7 +59,7 @@ pnpm add @mastra/mcp @mastra/core tsup
 
     This will compile your server code and make the output file executable.
 
-## Deploying to NPM
+## Deploying to NPM ✅
 
 To make your MCP server available for others (or yourself) to use via `npx` or as a dependency, you can publish it to NPM.
 
@@ -73,12 +73,12 @@ To make your MCP server available for others (or yourself) to use via `npx` or a
 
     For more details on publishing packages, refer to the [NPM documentation](https://docs.npmjs.com/creating-and-publishing-scoped-public-packages).
 
-## Use the Deployed MCP Server
+## Use the Deployed MCP Server ✅
 
 Once published, your MCP server can be used by an `MCPClient` by specifying the command to run your package. You can also use any other MCP client like Claude desktop, Cursor, or Windsurf.
 
 ```typescript
-import { MCPClient } from "@mastra/mcp";
+import { MCPClient } from "@kastrax/mcp";
 
 const mcp = new MCPClient({
   servers: {

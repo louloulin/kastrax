@@ -1,30 +1,30 @@
 ---
-title: "Reference: LangWatch Integration | Mastra Observability Docs"
-description: Documentation for integrating LangWatch with Mastra, a specialized observability platform for LLM applications.
+title: "Reference: LangWatch Integration | Kastrax Observability Docs"
+description: Documentation for integrating LangWatch with Kastrax, a specialized observability platform for LLM applications.
 ---
 
-# LangWatch
+# LangWatch ✅
 
 LangWatch is a specialized observability platform for LLM applications.
 
-## Configuration
+## Configuration ✅
 
-To use LangWatch with Mastra, configure these environment variables:
+To use LangWatch with Kastrax, configure these environment variables:
 
 ```env
 LANGWATCH_API_KEY=your_api_key
 LANGWATCH_PROJECT_ID=your_project_id
 ```
 
-## Implementation
+## Implementation ✅
 
-Here's how to configure Mastra to use LangWatch:
+Here's how to configure Kastrax to use LangWatch:
 
 ```typescript
-import { Mastra } from "@mastra/core";
+import { Kastrax } from "@kastrax/core";
 import { LangWatchExporter } from "langwatch";
 
-export const mastra = new Mastra({
+export const kastrax = new Kastrax({
   // ... other config
   telemetry: {
     serviceName: "your-service-name",
@@ -40,6 +40,6 @@ export const mastra = new Mastra({
 });
 ```
 
-## Dashboard
+## Dashboard ✅
 
 Access your LangWatch dashboard at [app.langwatch.ai](https://app.langwatch.ai)

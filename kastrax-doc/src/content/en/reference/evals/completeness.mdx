@@ -1,16 +1,16 @@
 ---
-title: "Reference: Completeness | Metrics | Evals | Mastra Docs"
-description: Documentation for the Completeness Metric in Mastra, which evaluates how thoroughly LLM outputs cover key elements present in the input.
+title: "Reference: Completeness | Metrics | Evals | Kastrax Docs"
+description: Documentation for the Completeness Metric in Kastrax, which evaluates how thoroughly LLM outputs cover key elements present in the input.
 ---
 
-# CompletenessMetric
+# CompletenessMetric ✅
 
 The `CompletenessMetric` class evaluates how thoroughly an LLM's output covers the key elements present in the input. It analyzes nouns, verbs, topics, and terms to determine coverage and provides a detailed completeness score.
 
-## Basic Usage
+## Basic Usage ✅
 
 ```typescript
-import { CompletenessMetric } from "@mastra/evals/nlp";
+import { CompletenessMetric } from "@kastrax/evals/nlp";
 
 const metric = new CompletenessMetric();
 
@@ -23,7 +23,7 @@ console.log(result.score); // Coverage score from 0-1
 console.log(result.info); // Object containing detailed metrics about element coverage
 ```
 
-## measure() Parameters
+## measure() Parameters ✅
 
 <PropertiesTable
   content={[
@@ -42,7 +42,7 @@ console.log(result.info); // Object containing detailed metrics about element co
   ]}
 />
 
-## Returns
+## Returns ✅
 
 <PropertiesTable
   content={[
@@ -101,7 +101,7 @@ console.log(result.info); // Object containing detailed metrics about element co
   ]}
 />
 
-## Element Extraction Details
+## Element Extraction Details ✅
 
 The metric extracts and analyzes several types of elements:
 - Nouns: Key objects, concepts, and entities
@@ -116,7 +116,7 @@ The extraction process includes:
 - Special handling of short words (3 characters or less)
 - Deduplication of elements
 
-## Scoring Details
+## Scoring Details ✅
 
 The metric evaluates completeness through linguistic element coverage analysis.
 
@@ -142,10 +142,10 @@ Final score: `(covered_elements / total_input_elements) * scale`
 - 0.1-0.3: Low coverage - missing most key elements
 - 0.0: No coverage - output lacks all input elements
 
-## Example with Analysis
+## Example with Analysis ✅
 
 ```typescript
-import { CompletenessMetric } from "@mastra/evals/nlp";
+import { CompletenessMetric } from "@kastrax/evals/nlp";
 
 const metric = new CompletenessMetric();
 
@@ -166,7 +166,7 @@ const result = await metric.measure(
 // }
 ```
 
-## Related
+## Related ✅
 
 - [Answer Relevancy Metric](./answer-relevancy)
 - [Content Similarity Metric](./content-similarity)

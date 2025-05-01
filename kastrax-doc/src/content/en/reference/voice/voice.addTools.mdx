@@ -1,17 +1,17 @@
 ---
-title: "Reference: voice.addTools() | Voice Providers | Mastra Docs"
+title: "Reference: voice.addTools() | Voice Providers | Kastrax Docs"
 description: "Documentation for the addTools() method available in voice providers, which equips voice models with function calling capabilities."
 ---
 
-# voice.addTools()
+# voice.addTools() ✅
 
 The `addTools()` method equips a voice provider with tools (functions) that can be called by the model during real-time interactions. This enables voice assistants to perform actions like searching for information, making calculations, or interacting with external systems.
 
-## Usage Example
+## Usage Example ✅
 
 ```typescript
-import { OpenAIRealtimeVoice } from "@mastra/voice-openai-realtime";
-import { createTool } from "@mastra/core/tools";
+import { OpenAIRealtimeVoice } from "@kastrax/voice-openai-realtime";
+import { createTool } from "@kastrax/core/tools";
 import { z } from "zod";
 
 // Define tools
@@ -49,7 +49,7 @@ voice.addTools({
 await voice.connect();
 ```
 
-## Parameters
+## Parameters ✅
 <br/>
 <PropertiesTable
   content={[
@@ -62,13 +62,13 @@ await voice.connect();
   ]}
 />
 
-## Return Value
+## Return Value ✅
 
 This method does not return a value.
 
-## Notes
+## Notes ✅
 
-- Tools must follow the Mastra tool format with name, description, input schema, and execute function
+- Tools must follow the Kastrax tool format with name, description, input schema, and execute function
 - This method is primarily used with real-time voice providers that support function calling
 - If called on a voice provider that doesn't support tools, it will log a warning and do nothing
 - Tools added with this method are typically combined with any tools provided by an associated Agent

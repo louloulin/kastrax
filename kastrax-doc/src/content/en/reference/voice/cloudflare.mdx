@@ -1,16 +1,16 @@
 ---
-title: "Reference: Cloudflare Voice | Voice Providers | Mastra Docs"
+title: "Reference: Cloudflare Voice | Voice Providers | Kastrax Docs"
 description: "Documentation for the CloudflareVoice class, providing text-to-speech capabilities using Cloudflare Workers AI."
 ---
 
-# Cloudflare
+# Cloudflare ✅
 
-The CloudflareVoice class in Mastra provides text-to-speech capabilities using Cloudflare Workers AI. This provider specializes in efficient, low-latency speech synthesis suitable for edge computing environments.
+The CloudflareVoice class in Kastrax provides text-to-speech capabilities using Cloudflare Workers AI. This provider specializes in efficient, low-latency speech synthesis suitable for edge computing environments.
 
-## Usage Example
+## Usage Example ✅
 
 ```typescript
-import { CloudflareVoice } from '@mastra/voice-cloudflare';
+import { CloudflareVoice } from '@kastrax/voice-cloudflare';
 
 // Initialize with configuration
 const voice = new CloudflareVoice({
@@ -32,7 +32,7 @@ const speakers = await voice.getSpeakers();
 console.log(speakers);
 ```
 
-## Configuration
+## Configuration ✅
 
 ### Constructor Options
 
@@ -80,7 +80,7 @@ console.log(speakers);
   ]}
 />
 
-## Methods
+## Methods ✅
 
 ### speak()
 
@@ -134,7 +134,7 @@ Returns an array of available voice options, where each node contains:
   ]}
 />
 
-## Notes
+## Notes ✅
 
 - API tokens can be provided via constructor options or environment variables (CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID)
 - Cloudflare Workers AI is optimized for edge computing with low latency
@@ -143,7 +143,7 @@ Returns an array of available voice options, where each node contains:
 - For production use, ensure your Cloudflare account has the appropriate Workers AI subscription
 - Voice options are more limited compared to some other providers, but performance at the edge is excellent
 
-## Related Providers
+## Related Providers ✅
 
 If you need speech-to-text capabilities in addition to text-to-speech, consider using one of these providers:
 

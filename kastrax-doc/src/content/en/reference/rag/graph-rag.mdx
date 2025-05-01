@@ -1,16 +1,16 @@
 ---
-title: "Reference: GraphRAG | Graph-based RAG | RAG | Mastra Docs"
-description: Documentation for the GraphRAG class in Mastra, which implements a graph-based approach to retrieval augmented generation.
+title: "Reference: GraphRAG | Graph-based RAG | RAG | Kastrax Docs"
+description: Documentation for the GraphRAG class in Kastrax, which implements a graph-based approach to retrieval augmented generation.
 ---
 
-# GraphRAG
+# GraphRAG ✅
 
 The `GraphRAG` class implements a graph-based approach to retrieval augmented generation. It creates a knowledge graph from document chunks where nodes represent documents and edges represent semantic relationships, enabling both direct similarity matching and discovery of related content through graph traversal.
 
-## Basic Usage
+## Basic Usage ✅
 
 ```typescript
-import { GraphRAG } from "@mastra/rag";
+import { GraphRAG } from "@kastrax/rag";
 
 const graphRag = new GraphRAG({
   dimension: 1536,
@@ -29,7 +29,7 @@ const results = await graphRag.query({
 });
 ```
 
-## Constructor Parameters
+## Constructor Parameters ✅
 
 <PropertiesTable
   content={[
@@ -50,7 +50,7 @@ const results = await graphRag.query({
   ]}
 />
 
-## Methods
+## Methods ✅
 
 ### createGraph
 
@@ -157,7 +157,7 @@ Returns an array of `RankedNode` objects, where each node contains:
   ]}
 />
 
-## Advanced Example
+## Advanced Example ✅
 
 ```typescript
 const graphRag = new GraphRAG({
@@ -177,6 +177,6 @@ const results = await graphRag.query({
 });
 ```
 
-## Related
+## Related ✅
 
 - [createGraphRAGTool](../tools/graph-rag-tool)

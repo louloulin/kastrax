@@ -1,16 +1,16 @@
 ---
-title: "Reference: run.watch() | Workflows | Mastra Docs"
+title: "Reference: run.watch() | Workflows | Kastrax Docs"
 description: Documentation for the `.watch()` method in workflows, which monitors the status of a workflow run.
 ---
 
-# run.watch()
+# run.watch() ✅
 
-The `.watch()` function subscribes to state changes on a mastra run, allowing you to monitor execution progress and react to state updates.
+The `.watch()` function subscribes to state changes on a kastrax run, allowing you to monitor execution progress and react to state updates.
 
-## Usage Example
+## Usage Example ✅
 
 ```typescript
-import { Workflow } from "@mastra/core/workflows";
+import { Workflow } from "@kastrax/core/workflows";
 
 const workflow = new Workflow({
   name: "document-processor"
@@ -33,7 +33,7 @@ await run.start({
 unsubscribe();
 ```
 
-## Parameters
+## Parameters ✅
 
 <PropertiesTable
   content={[
@@ -77,7 +77,7 @@ unsubscribe();
   ]}
 />
 
-## Returns
+## Returns ✅
 
 <PropertiesTable
   content={[
@@ -89,7 +89,7 @@ unsubscribe();
   ]}
 />
 
-## Additional Examples
+## Additional Examples ✅
 
 Monitor specific step completion:
 

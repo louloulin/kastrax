@@ -1,11 +1,11 @@
 ---
-title: "Using Workflows with Agents and Tools | Workflows (vNext) | Mastra Docs"
-description: "Steps in Mastra workflows (vNext) provide a structured way to manage operations by defining inputs, outputs, and execution logic."
+title: "Using Workflows with Agents and Tools | Workflows (vNext) | Kastrax Docs"
+description: "Steps in Kastrax workflows (vNext) provide a structured way to manage operations by defining inputs, outputs, and execution logic."
 ---
 
-## Agent as a step
+## Agent as a step ✅
 
-vNext workflows can use Mastra agents directly as steps using `createStep(agent)`:
+vNext workflows can use Kastrax agents directly as steps using `createStep(agent)`:
 
 ```typescript
 // Agent defined elsewhere
@@ -15,8 +15,8 @@ const myAgent = new Agent({
   model: openai("gpt-4"),
 });
 
-// Create Mastra instance with agent
-const mastra = new Mastra({
+// Create Kastrax instance with agent
+const kastrax = new Kastrax({
   agents: {
     myAgent,
   },
@@ -39,9 +39,9 @@ myWorkflow
   .commit();
 ```
 
-## Tools as a step
+## Tools as a step ✅
 
-vNext workflows can use Mastra tools directly as steps using `createStep(tool)`:
+vNext workflows can use Kastrax tools directly as steps using `createStep(tool)`:
 
 ```typescript
 const myTool = createTool({
@@ -57,12 +57,12 @@ const myTool = createTool({
 myWorkflow.then(createStep(myTool)).then(finalStep).commit();
 ```
 
-## Workflow as a tool in an agent
+## Workflow as a tool in an agent ✅
 
 ```typescript
-import { Agent } from "@mastra/core/agent";
-import { createTool } from "@mastra/core/tools";
-import { createWorkflow, createStep } from "@mastra/core/workflows/vNext";
+import { Agent } from "@kastrax/core/agent";
+import { createTool } from "@kastrax/core/tools";
+import { createWorkflow, createStep } from "@kastrax/core/workflows/vNext";
 
 const weatherWorkflow = createWorkflow({
   steps: [fetchWeather, planActivities],
@@ -86,8 +86,8 @@ const activityPlannerTool = createTool({
   outputSchema: z.object({
     activities: z.array(z.string()),
   }),
-  execute: async ({ context, mastra }) => {
-    const plannerWorkflow = mastra?.getWorkflow("my-workflow");
+  execute: async ({ context, kastrax }) => {
+    const plannerWorkflow = kastrax?.getWorkflow("my-workflow");
     if (!plannerWorkflow) {
       throw new Error("Planner workflow not found");
     }
@@ -118,7 +118,7 @@ const activityPlannerAgent = new Agent({
   tools: { activityPlannerTool },
 });
 
-export const mastra = new Mastra({
+export const kastrax = new Kastrax({
   vnext_workflows: {
     "my-workflow": myWorkflow,
   },

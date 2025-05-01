@@ -1,22 +1,22 @@
 ---
-title: "Example: Speech to Text | Voice | Mastra Docs"
-description: Example of using Mastra to create a speech to text application.
+title: "Example: Speech to Text | Voice | Kastrax Docs"
+description: Example of using Kastrax to create a speech to text application.
 ---
 
 import { GithubLink } from '@/components/github-link';
 
-# Smart Voice Memo App
+# Smart Voice Memo App ✅
 
-The following code snippets provide example implementations of Speech-to-Text (STT) functionality in a smart voice memo application using Next.js with direct integration of Mastra. For more details on integrating Mastra with Next.js, please refer to our [Integrate with Next.js](/docs/frameworks/next-js) documentation.
+The following code snippets provide example implementations of Speech-to-Text (STT) functionality in a smart voice memo application using Next.js with direct integration of Kastrax. For more details on integrating Kastrax with Next.js, please refer to our [Integrate with Next.js](/docs/frameworks/next-js) documentation.
 
-## Creating an Agent with STT Capabilities
+## Creating an Agent with STT Capabilities ✅
 
 The following example shows how to initialize a voice-enabled agent with OpenAI's STT capabilities:
 
-```typescript filename="src/mastra/agents/index.ts"
+```typescript filename="src/kastrax/agents/index.ts"
 import { openai } from '@ai-sdk/openai';
-import { Agent } from '@mastra/core/agent';
-import { OpenAIVoice } from '@mastra/voice-openai';
+import { Agent } from '@kastrax/core/agent';
+import { OpenAIVoice } from '@kastrax/voice-openai';
 
 const instructions = `
 You are an AI note assistant tasked with providing concise, structured summaries of their content... // omitted for brevity
@@ -30,31 +30,31 @@ export const noteTakerAgent = new Agent({
 });
 ```
 
-## Registering the Agent with Mastra
+## Registering the Agent with Kastrax ✅
 
-This snippet demonstrates how to register the STT-enabled agent with your Mastra instance:
+This snippet demonstrates how to register the STT-enabled agent with your Kastrax instance:
 
-```typescript filename="src/mastra/index.ts"
-import { createLogger } from '@mastra/core/logger';
-import { Mastra } from '@mastra/core/mastra';
+```typescript filename="src/kastrax/index.ts"
+import { createLogger } from '@kastrax/core/logger';
+import { Kastrax } from '@kastrax/core/kastrax';
 
 import { noteTakerAgent } from './agents';
 
-export const mastra = new Mastra({
+export const kastrax = new Kastrax({
   agents: { noteTakerAgent }, // Register the note taker agent
   logger: createLogger({
-    name: 'Mastra',
+    name: 'Kastrax',
     level: 'info',
   }),
 });
 ```
 
-## Processing Audio for Transcription
+## Processing Audio for Transcription ✅
 
 The following code shows how to receive audio from a web request and use the agent's STT capabilities to transcribe it:
 
 ```typescript filename="app/api/audio/route.ts"
-import { mastra } from '@/src/mastra'; // Import the Mastra instance
+import { kastrax } from '@/src/kastrax'; // Import the Kastrax instance
 import { Readable } from 'node:stream';
 
 export async function POST(req: Request) {
@@ -65,8 +65,8 @@ export async function POST(req: Request) {
   const buffer = Buffer.from(arrayBuffer);
   const readable = Readable.from(buffer);
 
-  // Get the note taker agent from the Mastra instance
-  const noteTakerAgent = mastra.getAgent('noteTakerAgent');
+  // Get the note taker agent from the Kastrax instance
+  const noteTakerAgent = kastrax.getAgent('noteTakerAgent');
  
   // Transcribe the audio file
   const text = await noteTakerAgent.voice?.listen(readable);
@@ -86,6 +86,6 @@ You can view the complete implementation of the Smart Voice Memo App on our GitH
 <br />
 <GithubLink
   link={
-    "https://github.com/mastra-ai/voice-examples/tree/main/speech-to-text/voice-memo-app"
+    "https://github.com/kastrax-ai/voice-examples/tree/main/speech-to-text/voice-memo-app"
   }
 />

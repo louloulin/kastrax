@@ -1,13 +1,13 @@
 ---
-title: "Runtime variables - dependency injection | Workflows | Mastra Docs"
-description: Learn how to use Mastra's dependency injection system to provide runtime configuration to workflows and steps.
+title: "Runtime variables - dependency injection | Workflows | Kastrax Docs"
+description: Learn how to use Kastrax's dependency injection system to provide runtime configuration to workflows and steps.
 ---
 
-# Workflow Runtime Variables
+# Workflow Runtime Variables ✅
 
-Mastra provides a powerful dependency injection system that enables you to configure your workflows and steps with runtime variables. This feature is essential for creating flexible and reusable workflows that can adapt their behavior based on runtime configuration.
+Kastrax provides a powerful dependency injection system that enables you to configure your workflows and steps with runtime variables. This feature is essential for creating flexible and reusable workflows that can adapt their behavior based on runtime configuration.
 
-## Overview
+## Overview ✅
 
 The dependency injection system allows you to:
 
@@ -16,10 +16,10 @@ The dependency injection system allows you to:
 3. Modify workflow behavior without changing the underlying code
 4. Share configuration across multiple steps within the same workflow
 
-## Basic Usage
+## Basic Usage ✅
 
 ```typescript
-const myWorkflow = mastra.getWorkflow("myWorkflow");
+const myWorkflow = kastrax.getWorkflow("myWorkflow");
 const { runId, start, resume } = myWorkflow.createRun();
 
 // Define your runtimeContext's type structure
@@ -37,13 +37,13 @@ await start({
 });
 ```
 
-## Using with REST API
+## Using with REST API ✅
 
 Here's how to dynamically set a multiplier value from an HTTP header:
 
 ```typescript filename="src/index.ts"
-import { Mastra } from "@mastra/core";
-import { RuntimeContext } from "@mastra/core/di";
+import { Kastrax } from "@kastrax/core";
+import { RuntimeContext } from "@kastrax/core/di";
 import { workflow as myWorkflow } from "./workflows";
 
 // Define runtimeContext type with clear, descriptive types
@@ -51,7 +51,7 @@ type WorkflowRuntimeContext = {
   multiplier: number;
 };
 
-export const mastra = new Mastra({
+export const kastrax = new Kastrax({
   workflows: {
     myWorkflow,
   },
@@ -76,12 +76,12 @@ export const mastra = new Mastra({
 });
 ```
 
-## Creating Steps with Variables
+## Creating Steps with Variables ✅
 
 Steps can access runtimeContext variables and must conform to the workflow's runtimeContext type:
 
 ```typescript
-import { Step } from "@mastra/core/workflow";
+import { Step } from "@kastrax/core/workflow";
 import { z } from "zod";
 
 // Define step input/output types
@@ -124,7 +124,7 @@ const stepOne = new Step({
 });
 ```
 
-## Error Handling
+## Error Handling ✅
 
 When working with runtime variables in workflows, it's important to handle potential errors:
 
@@ -145,7 +145,7 @@ if (typeof multiplier !== "number" || multiplier <= 0) {
 }
 ```
 
-## Best Practices
+## Best Practices ✅
 
 1. **Type Safety**: Always define proper types for your runtimeContext and step inputs/outputs
 2. **Validation**: Validate all inputs and runtimeContext variables before using them

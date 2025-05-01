@@ -1,33 +1,33 @@
 ---
-title: "Example: Metadata Extraction | Retrieval | RAG | Mastra Docs"
-description: Example of extracting and utilizing metadata from documents in Mastra for enhanced document processing and retrieval.
+title: "Example: Metadata Extraction | Retrieval | RAG | Kastrax Docs"
+description: Example of extracting and utilizing metadata from documents in Kastrax for enhanced document processing and retrieval.
 ---
 
 import { GithubLink } from "@/components/github-link";
 
-# Metadata Extraction
+# Metadata Extraction ✅
 
-This example demonstrates how to extract and utilize metadata from documents using Mastra's document processing capabilities.
+This example demonstrates how to extract and utilize metadata from documents using Kastrax's document processing capabilities.
 The extracted metadata can be used for document organization, filtering, and enhanced retrieval in RAG systems.
 
-## Overview
+## Overview ✅
 
 The system demonstrates metadata extraction in two ways:
 
 1. Direct metadata extraction from a document
 2. Chunking with metadata extraction
 
-## Setup
+## Setup ✅
 
 ### Dependencies
 
 Import the necessary dependencies:
 
 ```typescript copy showLineNumbers filename="src/index.ts"
-import { MDocument } from '@mastra/rag';
+import { MDocument } from '@kastrax/rag';
 ```
 
-## Document Creation
+## Document Creation ✅
 
 Create a document from text content:
 
@@ -47,7 +47,7 @@ For optimal results, experts recommend at least 150 minutes of moderate exercise
 per week.`);
 ```
 
-## 1. Direct Metadata Extraction
+## 1. Direct Metadata Extraction ✅
 
 Extract metadata directly from the document:
 
@@ -76,7 +76,7 @@ console.log('Extracted Metadata:', meta);
 // }
 ```
 
-## 2. Chunking with Metadata
+## 2. Chunking with Metadata ✅
 
 Combine document chunking with metadata extraction:
 
@@ -116,6 +116,6 @@ console.log('Chunk Metadata:', metaTwo);
 <br />
 <GithubLink
   link={
-    "https://github.com/mastra-ai/mastra/blob/main/examples/basics/rag/metadata-extraction"
+    "https://github.com/kastrax-ai/kastrax/blob/main/examples/basics/rag/metadata-extraction"
   }
 /> 

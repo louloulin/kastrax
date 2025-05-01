@@ -1,17 +1,17 @@
 ---
-title: "Reference: Prompt Alignment | Metrics | Evals | Mastra Docs"
-description: Documentation for the Prompt Alignment Metric in Mastra, which evaluates how well LLM outputs adhere to given prompt instructions.
+title: "Reference: Prompt Alignment | Metrics | Evals | Kastrax Docs"
+description: Documentation for the Prompt Alignment Metric in Kastrax, which evaluates how well LLM outputs adhere to given prompt instructions.
 ---
 
-# PromptAlignmentMetric
+# PromptAlignmentMetric ✅
 
 The `PromptAlignmentMetric` class evaluates how strictly an LLM's output follows a set of given prompt instructions. It uses a judge-based system to verify each instruction is followed exactly and provides detailed reasoning for any deviations.
 
-## Basic Usage
+## Basic Usage ✅
 
 ```typescript
 import { openai } from "@ai-sdk/openai";
-import { PromptAlignmentMetric } from "@mastra/evals/llm";
+import { PromptAlignmentMetric } from "@kastrax/evals/llm";
 
 // Configure the model for evaluation
 const model = openai("gpt-4o-mini");
@@ -36,7 +36,7 @@ console.log(result.score); // Alignment score from 0-1
 console.log(result.info.reason); // Explanation of the score
 ```
 
-## Constructor Parameters
+## Constructor Parameters ✅
 
 <PropertiesTable
   content={[
@@ -76,7 +76,7 @@ console.log(result.info.reason); // Explanation of the score
   ]}
 />
 
-## measure() Parameters
+## measure() Parameters ✅
 
 <PropertiesTable
   content={[
@@ -95,7 +95,7 @@ console.log(result.info.reason); // Explanation of the score
   ]}
 />
 
-## Returns
+## Returns ✅
 
 <PropertiesTable
   content={[
@@ -126,7 +126,7 @@ console.log(result.info.reason); // Explanation of the score
   ]}
 />
 
-## Scoring Details
+## Scoring Details ✅
 
 The metric evaluates instruction alignment through:
 - Applicability assessment for each instruction
@@ -180,11 +180,11 @@ Final score: `(followed_instructions / applicable_instructions) * scale`
 - 0.1-0.3: Limited compliance with applicable instructions
 - 0.0: No applicable instructions followed
 
-## Example with Analysis
+## Example with Analysis ✅
 
 ```typescript
 import { openai } from "@ai-sdk/openai";
-import { PromptAlignmentMetric } from "@mastra/evals/llm";
+import { PromptAlignmentMetric } from "@kastrax/evals/llm";
 
 // Configure the model for evaluation
 const model = openai("gpt-4o-mini");
@@ -232,7 +232,7 @@ const result2 = await metric.measure(
 // }
 ```
 
-## Related
+## Related ✅
 
 - [Answer Relevancy Metric](./answer-relevancy)
 - [Keyword Coverage Metric](./keyword-coverage)

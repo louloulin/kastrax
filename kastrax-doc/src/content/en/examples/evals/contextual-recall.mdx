@@ -1,15 +1,15 @@
 ---
-title: "Example: Contextual Recall | Evals | Mastra Docs"
+title: "Example: Contextual Recall | Evals | Kastrax Docs"
 description: Example of using the Contextual Recall metric to evaluate how well responses incorporate context information.
 ---
 
 import { GithubLink } from "@/components/github-link";
 
-# Contextual Recall
+# Contextual Recall ✅
 
-This example demonstrates how to use Mastra's Contextual Recall metric to evaluate how effectively responses incorporate information from provided context.
+This example demonstrates how to use Kastrax's Contextual Recall metric to evaluate how effectively responses incorporate information from provided context.
 
-## Overview
+## Overview ✅
 
 The example shows how to:
 
@@ -18,7 +18,7 @@ The example shows how to:
 3. Analyze recall scores
 4. Handle different recall levels
 
-## Setup
+## Setup ✅
 
 ### Environment Setup
 
@@ -34,10 +34,10 @@ Import the necessary dependencies:
 
 ```typescript copy showLineNumbers filename="src/index.ts"
 import { openai } from '@ai-sdk/openai';
-import { ContextualRecallMetric } from '@mastra/evals/llm';
+import { ContextualRecallMetric } from '@kastrax/evals/llm';
 ```
 
-## Example Usage
+## Example Usage ✅
 
 ### High Recall Example
 
@@ -137,7 +137,7 @@ console.log('Metric Result:', {
 // Metric Result: { score: 0, reason: 'None of the output is supported by the context.' }
 ```
 
-## Understanding the Results
+## Understanding the Results ✅
 
 The metric provides:
 
@@ -161,6 +161,6 @@ The metric provides:
 <br />
 <GithubLink
   link={
-    "https://github.com/mastra-ai/mastra/blob/main/examples/basics/evals/contextual-recall"
+    "https://github.com/kastrax-ai/kastrax/blob/main/examples/basics/evals/contextual-recall"
   }
 />

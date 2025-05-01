@@ -1,24 +1,24 @@
 ---
-title: "Creating a new Project | Mastra Local Development Docs"
-description: "Create new Mastra projects or add Mastra to existing Node.js applications using the CLI"
+title: "Creating a new Project | Kastrax Local Development Docs"
+description: "Create new Kastrax projects or add Kastrax to existing Node.js applications using the CLI"
 ---
 
-# Creating a new project
+# Creating a new project ✅
 
-You can create a new project using the `create-mastra` package:
-
-```bash npm2yarn copy
-npm create mastra@latest 
-```
-
-You can also create a new project by using the `mastra` CLI directly:
+You can create a new project using the `create-kastrax` package:
 
 ```bash npm2yarn copy
-npm install -g mastra@latest 
-mastra create
+npm create kastrax@latest 
 ```
 
-## Interactive Setup
+You can also create a new project by using the `kastrax` CLI directly:
+
+```bash npm2yarn copy
+npm install -g kastrax@latest 
+kastrax create
+```
+
+## Interactive Setup ✅
 
 Running commands without arguments starts a CLI prompt for:
 
@@ -28,9 +28,9 @@ Running commands without arguments starts a CLI prompt for:
 3. API key setup
 4. Example code inclusion
 
-## Non-Interactive Setup
+## Non-Interactive Setup ✅
 
-To initialize mastra in non-interactive mode use the following command arguments:
+To initialize kastrax in non-interactive mode use the following command arguments:
 
 ```bash
 Arguments:
@@ -47,8 +47,8 @@ Generated project structure:
 ```
 my-project/
 ├── src/
-│   └── mastra/
-│       └── index.ts    # Mastra entry point
+│   └── kastrax/
+│       └── index.ts    # Kastrax entry point
 ├── package.json
 └── tsconfig.json
 ```

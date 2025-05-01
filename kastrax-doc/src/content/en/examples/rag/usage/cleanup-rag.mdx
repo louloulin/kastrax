@@ -1,20 +1,20 @@
 ---
-title: "Example: Optimizing Information Density | RAG | Mastra Docs"
-description: Example of implementing a RAG system in Mastra to optimize information density and deduplicate data using LLM-based processing.
+title: "Example: Optimizing Information Density | RAG | Kastrax Docs"
+description: Example of implementing a RAG system in Kastrax to optimize information density and deduplicate data using LLM-based processing.
 ---
 
 import { GithubLink } from "@/components/github-link";
 
-# Optimizing Information Density
+# Optimizing Information Density ✅
 
-This example demonstrates how to implement a Retrieval-Augmented Generation (RAG) system using Mastra, OpenAI embeddings, and PGVector for vector storage.
+This example demonstrates how to implement a Retrieval-Augmented Generation (RAG) system using Kastrax, OpenAI embeddings, and PGVector for vector storage.
 The system uses an agent to clean the initial chunks to optimize information density and deduplicate data.
 
-## Overview
+## Overview ✅
 
-The system implements RAG using Mastra and OpenAI, this time optimizing information density through LLM-based processing. Here's what it does:
+The system implements RAG using Kastrax and OpenAI, this time optimizing information density through LLM-based processing. Here's what it does:
 
-1. Sets up a Mastra agent with gpt-4o-mini that can handle both querying and cleaning documents
+1. Sets up a Kastrax agent with gpt-4o-mini that can handle both querying and cleaning documents
 2. Creates vector query and document chunking tools for the agent to use
 3. Processes the initial document:
    - Chunks text documents into smaller segments
@@ -27,7 +27,7 @@ The system implements RAG using Mastra and OpenAI, this time optimizing informat
    - Updates the vector store with optimized data
 6. Performs the same query again to demonstrate improved response quality
 
-## Setup
+## Setup ✅
 
 ### Environment Setup
 
@@ -44,18 +44,18 @@ Then, import the necessary dependencies:
 
 ```typescript copy showLineNumbers filename="index.ts"
 import { openai } from '@ai-sdk/openai';
-import { Mastra } from "@mastra/core";
-import { Agent } from "@mastra/core/agent";
-import { PgVector } from "@mastra/pg";
-import { MDocument, createVectorQueryTool, createDocumentChunkerTool } from "@mastra/rag";
+import { Kastrax } from "@kastrax/core";
+import { Agent } from "@kastrax/core/agent";
+import { PgVector } from "@kastrax/pg";
+import { MDocument, createVectorQueryTool, createDocumentChunkerTool } from "@kastrax/rag";
 import { embedMany } from "ai";
 ```
 
-## Tool Creation
+## Tool Creation ✅
 
 ### Vector Query Tool
 
-Using createVectorQueryTool imported from @mastra/rag, you can create a tool that can query the vector database.
+Using createVectorQueryTool imported from @kastrax/rag, you can create a tool that can query the vector database.
 
 ```typescript copy showLineNumbers{8} filename="index.ts"
 const vectorQueryTool = createVectorQueryTool({
@@ -67,7 +67,7 @@ const vectorQueryTool = createVectorQueryTool({
 
 ### Document Chunker Tool
 
-Using createDocumentChunkerTool imported from @mastra/rag, you can create a tool that chunks the document and sends the chunks to your agent.
+Using createDocumentChunkerTool imported from @kastrax/rag, you can create a tool that chunks the document and sends the chunks to your agent.
 
 ```typescript copy showLineNumbers{14} filename="index.ts"
 const doc = MDocument.fromText(yourText);
@@ -83,9 +83,9 @@ const documentChunkerTool = createDocumentChunkerTool({
 });
 ```
 
-## Agent Configuration
+## Agent Configuration ✅
 
-Set up a single Mastra agent that can handle both querying and cleaning:
+Set up a single Kastrax agent that can handle both querying and cleaning:
 
 ```typescript copy showLineNumbers{26} filename="index.ts"
 const ragAgent = new Agent({
@@ -104,21 +104,21 @@ const ragAgent = new Agent({
 });
 ```
 
-## Instantiate PgVector and Mastra
+## Instantiate PgVector and Kastrax ✅
 
-Instantiate PgVector and Mastra with the components:
+Instantiate PgVector and Kastrax with the components:
 
 ```typescript copy showLineNumbers{41} filename="index.ts"
 const pgVector = new PgVector(process.env.POSTGRES_CONNECTION_STRING!);
 
-export const mastra = new Mastra({
+export const kastrax = new Kastrax({
   agents: { ragAgent },
   vectors: { pgVector },
 });
-const agent = mastra.getAgent('ragAgent');
+const agent = kastrax.getAgent('ragAgent');
 ```
 
-## Document Processing
+## Document Processing ✅
 
 Chunk the initial document and create embeddings:
 
@@ -135,7 +135,7 @@ const { embeddings } = await embedMany({
   values: chunks.map(chunk => chunk.text),
 });
 
-const vectorStore = mastra.getVector("pgVector");
+const vectorStore = kastrax.getVector("pgVector");
 await vectorStore.createIndex({
   indexName: "embeddings",
   dimension: 1536,
@@ -148,7 +148,7 @@ await vectorStore.upsert({
 });
 ```
 
-## Initial Query
+## Initial Query ✅
 
 Let's try querying the raw data to establish a baseline:
 
@@ -160,7 +160,7 @@ console.log('\nQuery:', query);
 console.log('Response:', originalResponse.text);
 ```
 
-## Data Optimization
+## Data Optimization ✅
 
 After seeing the initial results, we can clean the data to improve quality:
 
@@ -196,7 +196,7 @@ await vectorStore.upsert({
 });
 ```
 
-## Optimized Query
+## Optimized Query ✅
 
 Query the data again after cleaning to observe any differences in the response:
 
@@ -214,6 +214,6 @@ console.log('Response:', cleanedResponse.text);
 <br />
 <GithubLink
   link={
-    "https://github.com/mastra-ai/mastra/blob/main/examples/basics/rag/cleanup-rag"
+    "https://github.com/kastrax-ai/kastrax/blob/main/examples/basics/rag/cleanup-rag"
   }
 />

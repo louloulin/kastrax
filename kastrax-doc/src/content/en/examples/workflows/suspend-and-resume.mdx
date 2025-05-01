@@ -1,19 +1,19 @@
 ---
-title: "Example: Suspend and Resume | Workflows | Mastra Docs"
-description: Example of using Mastra to suspend and resume workflow steps during execution.
+title: "Example: Suspend and Resume | Workflows | Kastrax Docs"
+description: Example of using Kastrax to suspend and resume workflow steps during execution.
 ---
 
 import { GithubLink } from '@/components/github-link';
 
-# Workflow with Suspend and Resume
+# Workflow with Suspend and Resume ✅
 
 Workflow steps can be suspended and resumed at any point in the workflow execution. This example demonstrates how to suspend a workflow step and resume it later.
 
-## Basic Example
+## Basic Example ✅
 
 ```ts showLineNumbers copy
-import { Mastra } from '@mastra/core';
-import { Step, Workflow } from '@mastra/core/workflows';
+import { Kastrax } from '@kastrax/core';
+import { Step, Workflow } from '@kastrax/core/workflows';
 import { z } from 'zod';
 
 const stepOne = new Step({
@@ -66,12 +66,12 @@ myWorkflow
 
 ```ts showLineNumbers copy
 // Register the workflow
-export const mastra = new Mastra({
+export const kastrax = new Kastrax({
   workflows: { registeredWorkflow: myWorkflow },
 })
 
-// Get registered workflow from Mastra
-const registeredWorkflow = mastra.getWorkflow('registeredWorkflow');
+// Get registered workflow from Kastrax
+const registeredWorkflow = kastrax.getWorkflow('registeredWorkflow');
 const { runId, start } = registeredWorkflow.createRun();
 
 // Start watching the workflow before executing it
@@ -95,13 +95,13 @@ myWorkflow.watch(async ({ context, activePaths }) => {
 await start({ triggerData: { inputValue: 45 } });
 ```
 
-## Advanced Example with Multiple Suspension Points Using async/await pattern and suspend payloads
+## Advanced Example with Multiple Suspension Points Using async/await pattern and suspend payloads ✅
 
 This example demonstrates a more complex workflow with multiple suspension points using the async/await pattern. It simulates a content generation workflow that requires human intervention at different stages.
 
 ```ts showLineNumbers copy
-import { Mastra } from '@mastra/core';
-import { Step, Workflow } from '@mastra/core/workflows';
+import { Kastrax } from '@kastrax/core';
+import { Step, Workflow } from '@kastrax/core/workflows';
 import { z } from 'zod';
 
 // Step 1: Get user input
@@ -256,7 +256,7 @@ contentWorkflow
 
 ```ts showLineNumbers copy  
 // Register the workflow
-const mastra = new Mastra({
+const kastrax = new Kastrax({
   workflows: { contentWorkflow },
 });
 
@@ -287,7 +287,7 @@ function calculateCompletenessScore(_: string = '') {
 
 // Usage example
 async function runWorkflow() {
-  const workflow = mastra.getWorkflow('contentWorkflow');
+  const workflow = kastrax.getWorkflow('contentWorkflow');
   const { runId, start } = workflow.createRun();
 
   let finalResult: any;
@@ -362,5 +362,5 @@ console.log('Final workflow result:', result);
 <br />
 <br />
 <GithubLink
-  link={'https://github.com/mastra-ai/mastra/blob/main/examples/basics/workflows/workflow-with-parallel-steps'}
+  link={'https://github.com/kastrax-ai/kastrax/blob/main/examples/basics/workflows/workflow-with-parallel-steps'}
 />

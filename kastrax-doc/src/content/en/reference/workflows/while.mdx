@@ -1,13 +1,13 @@
 ---
-title: "Reference: Workflow.while() | Looping in Workflows | Mastra Docs"
-description: "Documentation for the `.while()` method in Mastra workflows, which repeats a step as long as a specified condition remains true."
+title: "Reference: Workflow.while() | Looping in Workflows | Kastrax Docs"
+description: "Documentation for the `.while()` method in Kastrax workflows, which repeats a step as long as a specified condition remains true."
 ---
 
-# Workflow.while()
+# Workflow.while() ✅
 
 The `.while()` method repeats a step as long as a specified condition remains true. This creates a loop that continues executing the specified step until the condition becomes false.
 
-## Usage
+## Usage ✅
 
 ```typescript
 workflow
@@ -16,7 +16,7 @@ workflow
   .then(finalStep);
 ```
 
-## Parameters
+## Parameters ✅
 
 <PropertiesTable
   content={[
@@ -35,7 +35,7 @@ workflow
   ]}
 />
 
-## Condition Types
+## Condition Types ✅
 
 ### Function Condition
 
@@ -68,7 +68,7 @@ workflow
   .then(finalStep);
 ```
 
-## Comparison Operators
+## Comparison Operators ✅
 
 When using reference-based conditions, you can use these comparison operators:
 
@@ -81,7 +81,7 @@ When using reference-based conditions, you can use these comparison operators:
 | `$lt`    | Less than | `{ $lt: 20 }` |
 | `$lte`   | Less than or equal to | `{ $lte: 15 }` |
 
-## Returns
+## Returns ✅
 
 <PropertiesTable
   content={[
@@ -93,10 +93,10 @@ When using reference-based conditions, you can use these comparison operators:
   ]}
 />
 
-## Example
+## Example ✅
 
 ```typescript
-import { Workflow, Step } from '@mastra/core';
+import { Workflow, Step } from '@kastrax/core';
 import { z } from 'zod';
 
 // Create a step that increments a counter
@@ -161,7 +161,7 @@ const result = await run.start({ triggerData: { startValue: 0, targetValue: 5 } 
 // Will increment from 0 to 4, then stop and execute finalStep
 ```
 
-## Related
+## Related ✅
 
 - [.until()](./until.mdx) - Loop until a condition becomes true
 - [Control Flow Guide](../../docs/workflows/control-flow.mdx)

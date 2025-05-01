@@ -1,16 +1,16 @@
 ---
-title: "Reference: createDocumentChunkerTool() | Tools | Mastra Docs"
-description: Documentation for the Document Chunker Tool in Mastra, which splits documents into smaller chunks for efficient processing and retrieval.
+title: "Reference: createDocumentChunkerTool() | Tools | Kastrax Docs"
+description: Documentation for the Document Chunker Tool in Kastrax, which splits documents into smaller chunks for efficient processing and retrieval.
 ---
 
-# createDocumentChunkerTool()
+# createDocumentChunkerTool() ✅
 
 The `createDocumentChunkerTool()` function creates a tool for splitting documents into smaller chunks for efficient processing and retrieval. It supports different chunking strategies and configurable parameters.
 
-## Basic Usage
+## Basic Usage ✅
 
 ```typescript
-import { createDocumentChunkerTool, MDocument } from "@mastra/rag";
+import { createDocumentChunkerTool, MDocument } from "@kastrax/rag";
 
 const document = new MDocument({
   text: "Your document content here...",
@@ -30,7 +30,7 @@ const chunker = createDocumentChunkerTool({
 const { chunks } = await chunker.execute();
 ```
 
-## Parameters
+## Parameters ✅
 
 <PropertiesTable
   content={[
@@ -85,7 +85,7 @@ const { chunks } = await chunker.execute();
   ]}
 />
 
-## Returns
+## Returns ✅
 
 <PropertiesTable
   content={[
@@ -97,7 +97,7 @@ const { chunks } = await chunker.execute();
   ]}
 />
 
-## Example with Custom Parameters
+## Example with Custom Parameters ✅
 
 ```typescript
 const technicalDoc = new MDocument({
@@ -126,16 +126,16 @@ chunks.forEach((chunk, index) => {
 });
 ```
 
-## Tool Details
+## Tool Details ✅
 
-The chunker is created as a Mastra tool with the following properties:
+The chunker is created as a Kastrax tool with the following properties:
 
 - **Tool ID**: `Document Chunker {strategy} {size}`
 - **Description**: `Chunks document using {strategy} strategy with size {size} and {overlap} overlap`
 - **Input Schema**: Empty object (no additional inputs required)
 - **Output Schema**: Object containing the chunks array
 
-## Related
+## Related ✅
 
 - [MDocument](../rag/document.mdx)
 - [createVectorQueryTool](./vector-query-tool) 

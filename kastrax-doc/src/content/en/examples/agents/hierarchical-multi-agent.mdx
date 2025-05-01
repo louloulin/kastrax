@@ -1,11 +1,11 @@
 ---
-title: "Example: Hierarchical Multi-Agent System | Agents | Mastra"
-description: Example of creating a hierarchical multi-agent system using Mastra, where agents interact through tool functions.
+title: "Example: Hierarchical Multi-Agent System | Agents | Kastrax"
+description: Example of creating a hierarchical multi-agent system using Kastrax, where agents interact through tool functions.
 ---
 
 import { GithubLink } from "@/components/github-link";
 
-# Hierarchical Multi-Agent System
+# Hierarchical Multi-Agent System ✅
 
 This example demonstrates how to create a hierarchical multi-agent system where agents interact through tool functions, with one agent coordinating the work of others.
 
@@ -83,7 +83,7 @@ const publisherAgent = new Agent({
   tools: { copywriterTool, editorTool },
 });
 
-const mastra = new Mastra({
+const kastrax = new Kastrax({
   agents: { publisherAgent },
 });
 ```
@@ -92,7 +92,7 @@ To use the entire system:
 
 ```ts showLineNumbers copy
 async function main() {
-  const agent = mastra.getAgent("publisherAgent");
+  const agent = kastrax.getAgent("publisherAgent");
   const result = await agent.generate(
     "Write a blog post about React JavaScript frameworks. Only return the final edited copy.",
   );
@@ -110,6 +110,6 @@ main();
 
 <GithubLink
   link={
-    "https://github.com/mastra-ai/mastra/blob/main/examples/basics/agents/hierarchical-multi-agent"
+    "https://github.com/kastrax-ai/kastrax/blob/main/examples/basics/agents/hierarchical-multi-agent"
   }
 />

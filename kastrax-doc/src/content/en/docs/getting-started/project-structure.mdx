@@ -1,30 +1,30 @@
 ---
-title: "Local Project Structure | Getting Started | Mastra Docs"
-description: Guide on organizing folders and files in Mastra, including best practices and recommended structures.
+title: "Local Project Structure | Getting Started | Kastrax Docs"
+description: Guide on organizing folders and files in Kastrax, including best practices and recommended structures.
 ---
 
 import { FileTree } from 'nextra/components';
 
-# Project Structure
+# Project Structure ✅
 
-This page provides a guide for organizing folders and files in Mastra. Mastra is a modular framework, and you can use any of the modules separately or together.
+This page provides a guide for organizing folders and files in Kastrax. Kastrax is a modular framework, and you can use any of the modules separately or together.
 
 You could write everything in a single file (as we showed in the quick start), or separate each agent, tool, and workflow into their own files.
 
 We don't enforce a specific folder structure, but we do recommend some best practices, and the CLI will scaffold a project with a sensible structure.
 
-## Using the CLI
+## Using the CLI ✅
 
-`mastra init` is an interactive CLI that allows you to:
+`kastrax init` is an interactive CLI that allows you to:
 
-- **Choose a directory for Mastra files**: Specify where you want the Mastra files to be placed (default is `src/mastra`).
+- **Choose a directory for Kastrax files**: Specify where you want the Kastrax files to be placed (default is `src/kastrax`).
 - **Select components to install**: Choose which components you want to include in your project:
   - Agents
   - Tools
   - Workflows
 - **Select a default LLM provider**: Choose from supported providers like OpenAI, Anthropic, Groq, Google or Cerebras.
 - **Include example code**: Decide whether to include example code to help you get started.
-- **Install Mastra docs MCP server**: Make your AI IDE a Mastra expert
+- **Install Kastrax docs MCP server**: Make your AI IDE a Kastrax expert
 
 ### Example Project Structure
 
@@ -33,7 +33,7 @@ Assuming you select all components and include example code, your project struct
 <FileTree>
   <FileTree.Folder name="root" defaultOpen>
     <FileTree.Folder name="src" defaultOpen>
-      <FileTree.Folder name="mastra" defaultOpen>
+      <FileTree.Folder name="kastrax" defaultOpen>
         <FileTree.Folder name="agents" defaultOpen>
           <FileTree.File name="index.ts" />
         </FileTree.Folder>
@@ -53,7 +53,7 @@ Assuming you select all components and include example code, your project struct
 ```
 root/
 ├── src/
-│   └── mastra/
+│   └── kastrax/
 │       ├── agents/
 │       │   └── index.ts
 │       ├── tools/
@@ -68,14 +68,14 @@ root/
 
 | Folder                 | Description                          |
 | ---------------------- | ------------------------------------ |
-| `src/mastra`           | Core application folder              |
-| `src/mastra/agents`    | Agent configurations and definitions |
-| `src/mastra/tools`     | Custom tool definitions              |
-| `src/mastra/workflows` | Workflow definitions                 |
+| `src/kastrax`           | Core application folder              |
+| `src/kastrax/agents`    | Agent configurations and definitions |
+| `src/kastrax/tools`     | Custom tool definitions              |
+| `src/kastrax/workflows` | Workflow definitions                 |
 
 ### Top-level Files
 
 | File                  | Description                        |
 | --------------------- | ---------------------------------- |
-| `src/mastra/index.ts` | Main configuration file for Mastra |
+| `src/kastrax/index.ts` | Main configuration file for Kastrax |
 | `.env`                | Environment variables              |

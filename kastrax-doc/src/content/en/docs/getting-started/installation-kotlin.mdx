@@ -1,0 +1,220 @@
+---
+title: "Installing Kastrax | Getting Started | Kastrax Docs"
+description: "Guide on installing Kastrax and setting up the necessary prerequisites for your Kotlin project."
+---
+
+# Installing Kastrax ✅
+
+This guide will help you set up a new Kastrax project from scratch.
+
+## Prerequisites ✅
+
+Before you begin, make sure you have the following installed:
+
+- **JDK 17 or later**: Kastrax requires Java 17+
+- **Kotlin 2.0 or later**: Kastrax is built with Kotlin
+- **Gradle 8.0 or later**: For building and managing dependencies
+
+## Creating a New Project ✅
+
+### Option 1: Using Gradle ✅
+
+1. Create a new Gradle project:
+
+```bash
+mkdir my-kastrax-project
+cd my-kastrax-project
+gradle init --type kotlin-application
+```
+
+2. Configure your `build.gradle.kts` file:
+
+```kotlin
+plugins {
+    kotlin("jvm") version "2.1.10"
+    kotlin("plugin.serialization") version "2.1.10"
+    application
+}
+
+group = "com.example"
+version = "1.0-SNAPSHOT"
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    // Kastrax Core
+    implementation("ai.kastrax:kastrax-core:0.1.0")
+    
+    // Optional modules based on your needs
+    implementation("ai.kastrax:kastrax-memory-impl:0.1.0")
+    implementation("ai.kastrax:kastrax-integrations-deepseek:0.1.0")
+    
+    // Testing
+    testImplementation(kotlin("test"))
+}
+
+application {
+    mainClass.set("com.example.MainKt")
+}
+```
+
+### Option 2: Using the Kastrax CLI (Coming Soon) 🚧
+
+In the future, you'll be able to use the Kastrax CLI to create a new project:
+
+```bash
+# This is a preview of future functionality
+kastrax init my-kastrax-project
+cd my-kastrax-project
+```
+
+## API Keys Setup ✅
+
+Kastrax supports multiple LLM providers. You'll need to set up API keys for the providers you want to use:
+
+### DeepSeek (Recommended) ✅
+
+```kotlin
+val llm = deepSeek {
+    apiKey("your-deepseek-api-key")
+    model(DeepSeekModel.DEEPSEEK_CHAT)
+}
+```
+
+### OpenAI ✅
+
+```kotlin
+val llm = openAi {
+    apiKey("your-openai-api-key")
+    model("gpt-4o")
+}
+```
+
+### Anthropic ✅
+
+```kotlin
+val llm = anthropic {
+    apiKey("your-anthropic-api-key")
+    model("claude-3-opus")
+}
+```
+
+## Project Structure ✅
+
+A typical Kastrax project has the following structure:
+
+```
+my-kastrax-project/
+├── build.gradle.kts
+├── settings.gradle.kts
+├── src/
+│   ├── main/
+│   │   ├── kotlin/
+│   │   │   └── com/
+│   │   │       └── example/
+│   │   │           ├── Main.kt
+│   │   │           ├── agents/
+│   │   │           │   └── MyAgent.kt
+│   │   │           ├── tools/
+│   │   │           │   └── MyTools.kt
+│   │   │           └── workflows/
+│   │   │               └── MyWorkflow.kt
+│   │   └── resources/
+│   │       └── application.conf
+│   └── test/
+│       └── kotlin/
+│           └── com/
+│               └── example/
+│                   └── AgentTest.kt
+└── gradle/
+    └── wrapper/
+        ├── gradle-wrapper.jar
+        └── gradle-wrapper.properties
+```
+
+## Verifying Installation ✅
+
+Create a simple agent to verify your installation:
+
+```kotlin
+// src/main/kotlin/com/example/Main.kt
+package com.example
+
+import ai.kastrax.core.agent.agent
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    val myAgent = agent {
+        name("TestAgent")
+        description("A simple test agent")
+        
+        model = deepSeek {
+            apiKey("your-deepseek-api-key")
+            model(DeepSeekModel.DEEPSEEK_CHAT)
+            temperature(0.7)
+        }
+    }
+    
+    val response = myAgent.generate("Hello, world!")
+    println(response.text)
+}
+```
+
+Run your application:
+
+```bash
+gradle run
+```
+
+If everything is set up correctly, you should see a response from your agent.
+
+## Dependency Management ✅
+
+Kastrax is modular, allowing you to include only the components you need:
+
+| Module | Description | Dependency |
+|--------|-------------|------------|
+| kastrax-core | Core agent functionality | `ai.kastrax:kastrax-core:0.1.0` |
+| kastrax-memory-api | Memory system API | `ai.kastrax:kastrax-memory-api:0.1.0` |
+| kastrax-memory-impl | Memory system implementations | `ai.kastrax:kastrax-memory-impl:0.1.0` |
+| kastrax-rag | Retrieval-augmented generation | `ai.kastrax:kastrax-rag:0.1.0` |
+| kastrax-integrations-deepseek | DeepSeek LLM integration | `ai.kastrax:kastrax-integrations-deepseek:0.1.0` |
+| kastrax-integrations-openai | OpenAI integration | `ai.kastrax:kastrax-integrations-openai:0.1.0` |
+| kastrax-integrations-anthropic | Anthropic integration | `ai.kastrax:kastrax-integrations-anthropic:0.1.0` |
+
+## Configuration ✅
+
+You can configure Kastrax using an `application.conf` file in your resources directory:
+
+```hocon
+kastrax {
+  # Default LLM provider
+  default-llm-provider = "deepseek"
+  
+  # Memory configuration
+  memory {
+    default-storage = "sqlite"
+    sqlite {
+      database = "kastrax-memory.db"
+    }
+  }
+  
+  # Logging configuration
+  logging {
+    level = "INFO"
+    format = "json"
+  }
+}
+```
+
+## Next Steps ✅
+
+Now that you have set up your Kastrax project, you can:
+
+1. [Create your first agent](./first-agent.mdx)
+2. [Explore the examples](./examples.mdx)
+3. [Learn about agent architectures](../agents/architectures.mdx)

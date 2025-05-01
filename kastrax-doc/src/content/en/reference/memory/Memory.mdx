@@ -1,12 +1,12 @@
-# Memory Class Reference
+# Memory Class Reference ✅
 
-The `Memory` class provides a robust system for managing conversation history and thread-based message storage in Mastra. It enables persistent storage of conversations, semantic search capabilities, and efficient message retrieval. By default, it uses LibSQL for storage and vector search, and FastEmbed for embeddings.
+The `Memory` class provides a robust system for managing conversation history and thread-based message storage in Kastrax. It enables persistent storage of conversations, semantic search capabilities, and efficient message retrieval. By default, it uses LibSQL for storage and vector search, and FastEmbed for embeddings.
 
-## Basic Usage
+## Basic Usage ✅
 
 ```typescript copy showLineNumbers
-import { Memory } from "@mastra/memory";
-import { Agent } from "@mastra/core/agent";
+import { Memory } from "@kastrax/memory";
+import { Agent } from "@kastrax/core/agent";
 
 const agent = new Agent({
   memory: new Memory(),
@@ -14,12 +14,12 @@ const agent = new Agent({
 });
 ```
 
-## Custom Configuration
+## Custom Configuration ✅
 
 ```typescript copy showLineNumbers
-import { Memory } from "@mastra/memory";
-import { LibSQLStore, LibSQLVector } from "@mastra/libsql";
-import { Agent } from "@mastra/core/agent";
+import { Memory } from "@kastrax/memory";
+import { LibSQLStore, LibSQLVector } from "@kastrax/libsql";
+import { Agent } from "@kastrax/core/agent";
 
 const memory = new Memory({
   // Optional storage configuration - libsql will be used by default
@@ -51,7 +51,7 @@ const memory = new Memory({
     workingMemory: {
       enabled: true,
       template: `
-# User
+# User ✅
 - First Name:
 - Last Name:
 `,
@@ -98,7 +98,7 @@ By default, Memory uses FastEmbed with the `bge-small-en-v1.5` model, which prov
 For environments where local embedding isn't supported, you can use an API-based embedder:
 
 ```typescript {6}
-import { Memory } from "@mastra/memory";
+import { Memory } from "@kastrax/memory";
 import { openai } from "@ai-sdk/openai";
 
 const agent = new Agent({
@@ -108,21 +108,21 @@ const agent = new Agent({
 });
 ```
 
-Mastra supports many embedding models through the [Vercel AI SDK](https://sdk.vercel.ai/docs/ai-sdk-core/embeddings), including options from OpenAI, Google, Mistral, and Cohere.
+Kastrax supports many embedding models through the [Vercel AI SDK](https://sdk.vercel.ai/docs/ai-sdk-core/embeddings), including options from OpenAI, Google, Mistral, and Cohere.
 
-## Parameters
+## Parameters ✅
 
 <PropertiesTable
   content={[
     {
       name: "storage",
-      type: "MastraStorage",
+      type: "KastraxStorage",
       description: "Storage implementation for persisting memory data",
       isOptional: true,
     },
     {
       name: "vector",
-      type: "MastraVector",
+      type: "KastraxVector",
       description: "Vector store for semantic search capabilities",
       isOptional: true,
     },

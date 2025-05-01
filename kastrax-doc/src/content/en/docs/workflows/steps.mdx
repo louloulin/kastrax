@@ -1,20 +1,20 @@
 ---
-title: "Creating Steps and Adding to Workflows | Mastra Docs"
-description: "Steps in Mastra workflows provide a structured way to manage operations by defining inputs, outputs, and execution logic."
+title: "Creating Steps and Adding to Workflows | Kastrax Docs"
+description: "Steps in Kastrax workflows provide a structured way to manage operations by defining inputs, outputs, and execution logic."
 ---
 
-# Defining Steps in a Workflow
+# Defining Steps in a Workflow ✅
 
 When you build a workflow, you typically break down operations into smaller tasks that can be linked and reused. Steps provide a structured way to manage these tasks by defining inputs, outputs, and execution logic.
 
 The code below shows how to define these steps inline or separately.
 
-## Inline Step Creation
+## Inline Step Creation ✅
 
 You can create steps directly within your workflow using `.step()` and `.then()`. This code shows how to define, link, and execute two steps in sequence.
 
-```typescript showLineNumbers filename="src/mastra/workflows/index.ts" copy
-import { Step, Workflow, Mastra } from "@mastra/core";
+```typescript showLineNumbers filename="src/kastrax/workflows/index.ts" copy
+import { Step, Workflow, Kastrax } from "@kastrax/core";
 import { z } from "zod";
 
 export const myWorkflow = new Workflow({
@@ -52,18 +52,18 @@ myWorkflow
     }),
   ).commit();
 
-  // Register the workflow with Mastra
-  export const mastra = new Mastra({
+  // Register the workflow with Kastrax
+  export const kastrax = new Kastrax({
     workflows: { myWorkflow },
   });
 ```
 
-## Creating Steps Separately
+## Creating Steps Separately ✅
 
 If you prefer to manage your step logic in separate entities, you can define steps outside and then add them to your workflow. This code shows how to define steps independently and link them afterward.
 
-```typescript showLineNumbers filename="src/mastra/workflows/index.ts" copy
-import { Step, Workflow, Mastra } from "@mastra/core";
+```typescript showLineNumbers filename="src/kastrax/workflows/index.ts" copy
+import { Step, Workflow, Kastrax } from "@kastrax/core";
 import { z } from "zod";
 
 // Define steps separately
@@ -101,8 +101,8 @@ const myWorkflow = new Workflow({
 myWorkflow.step(stepOne).then(stepTwo);
 myWorkflow.commit();
 
-// Register the workflow with Mastra
-export const mastra = new Mastra({
+// Register the workflow with Kastrax
+export const kastrax = new Kastrax({
   workflows: { myWorkflow },
 });
 ```

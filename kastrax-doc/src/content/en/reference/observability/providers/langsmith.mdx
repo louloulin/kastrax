@@ -1,17 +1,17 @@
 ---
-title: "Reference: LangSmith Integration | Mastra Observability Docs"
-description: Documentation for integrating LangSmith with Mastra, a platform for debugging, testing, evaluating, and monitoring LLM applications.
+title: "Reference: LangSmith Integration | Kastrax Observability Docs"
+description: Documentation for integrating LangSmith with Kastrax, a platform for debugging, testing, evaluating, and monitoring LLM applications.
 ---
 
-# LangSmith
+# LangSmith ✅
 
 LangSmith is LangChain's platform for debugging, testing, evaluating, and monitoring LLM applications.
 
 > **Note**: Currently, this integration only traces AI-related calls in your application. Other types of operations are not captured in the telemetry data.
 
-## Configuration
+## Configuration ✅
 
-To use LangSmith with Mastra, you'll need to configure the following environment variables:
+To use LangSmith with Kastrax, you'll need to configure the following environment variables:
 
 ```env
 LANGSMITH_TRACING=true
@@ -20,15 +20,15 @@ LANGSMITH_API_KEY=your-api-key
 LANGSMITH_PROJECT=your-project-name
 ```
 
-## Implementation
+## Implementation ✅
 
-Here's how to configure Mastra to use LangSmith:
+Here's how to configure Kastrax to use LangSmith:
 
 ```typescript
-import { Mastra } from "@mastra/core";
+import { Kastrax } from "@kastrax/core";
 import { AISDKExporter } from "langsmith/vercel";
 
-export const mastra = new Mastra({
+export const kastrax = new Kastrax({
   // ... other config
   telemetry: {
     serviceName: "your-service-name",
@@ -41,7 +41,7 @@ export const mastra = new Mastra({
 });
 ```
 
-## Dashboard
+## Dashboard ✅
 
 Access your traces and analytics in the LangSmith dashboard at [smith.langchain.com](https://smith.langchain.com)
 

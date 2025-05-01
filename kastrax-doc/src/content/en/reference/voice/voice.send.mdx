@@ -1,18 +1,18 @@
 ---
-title: "Reference: voice.send() | Voice Providers | Mastra Docs"
+title: "Reference: voice.send() | Voice Providers | Kastrax Docs"
 description: "Documentation for the send() method available in real-time voice providers, which streams audio data for continuous processing."
 ---
 
-# voice.send()
+# voice.send() ✅
 
 The `send()` method streams audio data in real-time to voice providers for continuous processing. This method is essential for real-time speech-to-speech conversations, allowing you to send microphone input directly to the AI service.
 
-## Usage Example
+## Usage Example ✅
 
 ```typescript
-import { OpenAIRealtimeVoice } from "@mastra/voice-openai-realtime";
-import Speaker from "@mastra/node-speaker";
-import { getMicrophoneStream } from "@mastra/node-audio";
+import { OpenAIRealtimeVoice } from "@kastrax/voice-openai-realtime";
+import Speaker from "@kastrax/node-speaker";
+import { getMicrophoneStream } from "@kastrax/node-audio";
 
 const speaker = new Speaker({
   sampleRate: 24100,  // Audio sample rate in Hz - standard for high-quality audio on MacBook Pro
@@ -52,7 +52,7 @@ const audioBuffer = getAudioBuffer(); // Assume this returns Int16Array
 await voice.send(audioBuffer);
 ```
 
-## Parameters
+## Parameters ✅
 <br/>
 <PropertiesTable
   content={[
@@ -65,12 +65,12 @@ await voice.send(audioBuffer);
   ]}
 />
 
-## Return Value
+## Return Value ✅
 
 Returns a `Promise<void>` that resolves when the audio data has been accepted by the voice provider.
 
 
-## Notes
+## Notes ✅
 
 - This method is only implemented by real-time voice providers that support speech-to-speech capabilities
 - If called on a voice provider that doesn't support this functionality, it will log a warning and resolve immediately

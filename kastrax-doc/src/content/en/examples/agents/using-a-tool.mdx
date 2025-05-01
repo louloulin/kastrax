@@ -1,18 +1,18 @@
 ---
-title: "Example: Giving an Agent a Tool | Agents | Mastra Docs"
-description: Example of creating an AI agent in Mastra that uses a dedicated tool to provide weather information.
+title: "Example: Giving an Agent a Tool | Agents | Kastrax Docs"
+description: Example of creating an AI agent in Kastrax that uses a dedicated tool to provide weather information.
 ---
 
 import { GithubLink } from "@/components/github-link";
 
-# Example: Giving an Agent a Tool
+# Example: Giving an Agent a Tool ✅
 
 When building AI agents, you often need to integrate external data sources or functionality to enhance their capabilities. This example shows how to create an AI agent that uses a dedicated weather tool to provide accurate weather information for specific locations.
 
 ```ts showLineNumbers copy
-import { Mastra } from "@mastra/core";
-import { Agent } from "@mastra/core/agent";
-import { createTool } from "@mastra/core/tools";
+import { Kastrax } from "@kastrax/core";
+import { Agent } from "@kastrax/core/agent";
+import { createTool } from "@kastrax/core/tools";
 import { openai } from "@ai-sdk/openai";
 import { z } from "zod";
 
@@ -122,12 +122,12 @@ Use the weatherTool to fetch current weather data.`,
   tools: { weatherTool },
 });
 
-const mastra = new Mastra({
+const kastrax = new Kastrax({
   agents: { weatherAgent },
 });
 
 async function main() {
-  const agent = await mastra.getAgent("weatherAgent");
+  const agent = await kastrax.getAgent("weatherAgent");
   const result = await agent.generate("What is the weather in London?");
   console.log(result.text);
 }
@@ -143,6 +143,6 @@ main();
 
 <GithubLink
   link={
-    "https://github.com/mastra-ai/mastra/blob/main/examples/basics/agents/using-a-tool"
+    "https://github.com/kastrax-ai/kastrax/blob/main/examples/basics/agents/using-a-tool"
   }
 />

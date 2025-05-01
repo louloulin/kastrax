@@ -1,16 +1,16 @@
 ---
-title: "Example: Cyclical Dependencies | Workflows | Mastra Docs"
-description: Example of using Mastra to create workflows with cyclical dependencies and conditional loops.
+title: "Example: Cyclical Dependencies | Workflows | Kastrax Docs"
+description: Example of using Kastrax to create workflows with cyclical dependencies and conditional loops.
 ---
 
 import { GithubLink } from "@/components/github-link";
 
-# Workflow with Cyclical dependencies
+# Workflow with Cyclical dependencies ✅
 
 Workflows support cyclical dependencies where steps can loop back based on conditions. The example below shows how to use conditional logic to create loops and handle repeated execution.
 
 ```ts showLineNumbers copy
-import { Workflow, Step } from '@mastra/core';
+import { Workflow, Step } from '@kastrax/core';
 import { z } from 'zod';
 
 async function main() {
@@ -90,6 +90,6 @@ main();
 <br />
 <GithubLink
   link={
-    "https://github.com/mastra-ai/mastra/blob/main/examples/basics/workflows/workflow-with-cyclical-deps"
+    "https://github.com/kastrax-ai/kastrax/blob/main/examples/basics/workflows/workflow-with-cyclical-deps"
   }
 />

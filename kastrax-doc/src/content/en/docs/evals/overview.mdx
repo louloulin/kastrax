@@ -1,9 +1,9 @@
 ---
 title: "Overview"
-description: "Understanding how to evaluate and measure AI agent quality using Mastra evals."
+description: "Understanding how to evaluate and measure AI agent quality using Kastrax evals."
 ---
 
-# Testing your agents with evals
+# Testing your agents with evals ✅
 
 While traditional software tests have clear pass/fail conditions, AI outputs are non-deterministic — they can vary with the same input. Evals help bridge this gap by providing quantifiable metrics for measuring agent quality.
 
@@ -11,85 +11,307 @@ Evals are automated tests that evaluate Agents outputs using model-graded, rule-
 
 Evals can be run in the cloud, capturing real-time results. But evals can also be part of your CI/CD pipeline, allowing you to test and monitor your agents over time.
 
-## Types of Evals
+## Types of Evals ✅
 
 There are different kinds of evals, each serving a specific purpose. Here are some common types:
 
 1. **Textual Evals**: Evaluate accuracy, reliability, and context understanding of agent responses
 2. **Classification Evals**: Measure accuracy in categorizing data based on predefined categories
 3. **Tool Usage Evals**: Assess how effectively an agent uses external tools or APIs
-4. **Prompt Engineering Evals**: Explore impact of different instructions and input formats
+4. **RAG Evals**: Evaluate retrieval accuracy and relevance in RAG systems
+5. **Conversation Evals**: Measure the quality of multi-turn conversations
 
-## Getting Started
+## Getting Started with Evals ✅
 
-Evals need to be added to an agent. Here's an example using the summarization, content similarity, and tone consistency metrics:
+To start using evals in your Kastrax project, you'll need to add the evals module to your dependencies:
 
-```typescript copy showLineNumbers filename="src/mastra/agents/index.ts"
-import { Agent } from "@mastra/core/agent";
-import { openai } from "@ai-sdk/openai";
-import { SummarizationMetric } from "@mastra/evals/llm";
-import {
-  ContentSimilarityMetric,
-  ToneConsistencyMetric,
-} from "@mastra/evals/nlp";
-
-const model = openai("gpt-4o");
-
-export const myAgent = new Agent({
-  name: "ContentWriter",
-  instructions: "You are a content writer that creates accurate summaries",
-  model,
-  evals: {
-    summarization: new SummarizationMetric(model),
-    contentSimilarity: new ContentSimilarityMetric(),
-    tone: new ToneConsistencyMetric(),
-  },
-});
+```kotlin
+// build.gradle.kts
+dependencies {
+    implementation("ai.kastrax:kastrax-core:0.1.0")
+    implementation("ai.kastrax:kastrax-evals:0.1.0")
+    // Other dependencies...
+}
 ```
 
-You can view eval results in the Mastra dashboard when using `mastra dev`.
+Here's a simple example of how to create and run an eval:
 
-## Beyond Automated Testing
+```kotlin
+import ai.kastrax.core.agent.agent
+import ai.kastrax.evals.textual.FactualAccuracyEval
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.runBlocking
 
-While automated evals are valuable, high-performing AI teams often combine them with:
+fun main() = runBlocking {
+    // Create an agent to evaluate
+    val myAgent = agent {
+        name("TestAgent")
+        description("A test agent for evaluation")
+        
+        model = deepSeek {
+            apiKey("your-deepseek-api-key")
+            model(DeepSeekModel.DEEPSEEK_CHAT)
+            temperature(0.7)
+        }
+    }
+    
+    // Create an eval
+    val factualAccuracyEval = FactualAccuracyEval()
+    
+    // Define test cases
+    val testCases = listOf(
+        "What is the capital of France?",
+        "Who wrote 'Pride and Prejudice'?",
+        "What is the chemical formula for water?"
+    )
+    
+    // Run the eval
+    val results = factualAccuracyEval.evaluate(myAgent, testCases)
+    
+    // Print results
+    println("Factual Accuracy Score: ${results.score}")
+    println("Individual Scores:")
+    results.individualScores.forEachIndexed { index, score ->
+        println("  ${testCases[index]}: $score")
+    }
+}
+```
 
-1. **A/B Testing**: Compare different versions with real users
-2. **Human Review**: Regular review of production data and traces
-3. **Continuous Monitoring**: Track eval metrics over time to detect regressions
+## Built-in Evals ✅
 
-## Understanding Eval Results
+Kastrax provides several built-in evals:
 
-Each eval metric measures a specific aspect of your agent's output. Here's how to interpret and improve your results:
+### Textual Evals ✅
 
-### Understanding Scores
+```kotlin
+// Factual Accuracy Eval
+val factualAccuracyEval = FactualAccuracyEval()
 
-For any metric:
+// Relevance Eval
+val relevanceEval = RelevanceEval()
 
-1. Check the metric documentation to understand the scoring process
-2. Look for patterns in when scores change
-3. Compare scores across different inputs and contexts
-4. Track changes over time to spot trends
+// Coherence Eval
+val coherenceEval = CoherenceEval()
 
-### Improving Results
+// Toxicity Eval
+val toxicityEval = ToxicityEval()
 
-When scores aren't meeting your targets:
+// Bias Eval
+val biasEval = BiasEval()
+```
 
-1. Check your instructions - Are they clear? Try making them more specific
-2. Look at your context - Is it giving the agent what it needs?
-3. Simplify your prompts - Break complex tasks into smaller steps
-4. Add guardrails - Include specific rules for tricky cases
+### Classification Evals ✅
 
-### Maintaining Quality
+```kotlin
+// Classification Accuracy Eval
+val classificationAccuracyEval = ClassificationAccuracyEval(
+    categories = listOf("Positive", "Negative", "Neutral")
+)
 
-Once you're hitting your targets:
+// Multi-label Classification Eval
+val multiLabelEval = MultiLabelClassificationEval(
+    labels = listOf("Technology", "Science", "Politics", "Sports")
+)
+```
 
-1. Monitor stability - Do scores remain consistent?
-2. Document what works - Keep notes on successful approaches
-3. Test edge cases - Add examples that cover unusual scenarios
-4. Fine-tune - Look for ways to improve efficiency
+### Tool Usage Evals ✅
 
-See [Textual Evals](/docs/evals/textual-evals) for more info on what evals can do.
+```kotlin
+// Tool Selection Eval
+val toolSelectionEval = ToolSelectionEval(
+    availableTools = listOf("calculator", "weather", "search")
+)
 
-For more info on how to create your own evals, see the [Custom Evals](/docs/evals/custom-eval) guide.
+// Tool Parameter Eval
+val toolParameterEval = ToolParameterEval()
 
-For running evals in your CI pipeline, see the [Running in CI](/docs/evals/running-in-ci) guide.
+// Tool Execution Eval
+val toolExecutionEval = ToolExecutionEval()
+```
+
+### RAG Evals ✅
+
+```kotlin
+// Retrieval Precision Eval
+val retrievalPrecisionEval = RetrievalPrecisionEval()
+
+// Retrieval Recall Eval
+val retrievalRecallEval = RetrievalRecallEval()
+
+// Answer Relevance Eval
+val answerRelevanceEval = AnswerRelevanceEval()
+
+// Citation Accuracy Eval
+val citationAccuracyEval = CitationAccuracyEval()
+```
+
+## Creating Custom Evals ✅
+
+You can create custom evals by implementing the `Eval` interface:
+
+```kotlin
+import ai.kastrax.core.agent.Agent
+import ai.kastrax.evals.Eval
+import ai.kastrax.evals.EvalResult
+
+class CustomEval : Eval<String> {
+    override val name: String = "CustomEval"
+    override val description: String = "A custom evaluation metric"
+    
+    override suspend fun evaluate(agent: Agent, testCases: List<String>): EvalResult {
+        val individualScores = mutableListOf<Double>()
+        
+        for (testCase in testCases) {
+            // Generate a response from the agent
+            val response = agent.generate(testCase)
+            
+            // Implement your custom scoring logic
+            val score = calculateScore(testCase, response.text)
+            
+            individualScores.add(score)
+        }
+        
+        // Calculate the overall score (average of individual scores)
+        val overallScore = individualScores.average()
+        
+        return EvalResult(
+            score = overallScore,
+            individualScores = individualScores,
+            metadata = mapOf("evalName" to name)
+        )
+    }
+    
+    private fun calculateScore(testCase: String, response: String): Double {
+        // Implement your custom scoring logic
+        // Return a score between 0 and 1
+        
+        // Example: Simple length-based scoring (for demonstration only)
+        return minOf(response.length / 100.0, 1.0)
+    }
+}
+```
+
+## Model-Graded Evals ✅
+
+Model-graded evals use an LLM to evaluate agent responses:
+
+```kotlin
+import ai.kastrax.core.agent.Agent
+import ai.kastrax.evals.ModelGradedEval
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+
+class HelpfulnessEval : ModelGradedEval<String> {
+    override val name: String = "HelpfulnessEval"
+    override val description: String = "Evaluates how helpful the agent's responses are"
+    
+    override val evaluationModel = deepSeek {
+        apiKey("your-deepseek-api-key")
+        model(DeepSeekModel.DEEPSEEK_CHAT)
+        temperature(0.1) // Low temperature for consistent evaluation
+    }
+    
+    override val evaluationPrompt = """
+        You are evaluating the helpfulness of an AI assistant's response to a user query.
+        
+        User Query: {{query}}
+        
+        Assistant Response: {{response}}
+        
+        Rate the helpfulness of the response on a scale from 0 to 10, where:
+        - 0: Not helpful at all, completely irrelevant or incorrect
+        - 5: Somewhat helpful, but missing important information or not fully addressing the query
+        - 10: Extremely helpful, fully addresses the query with accurate and comprehensive information
+        
+        Provide your rating as a number between 0 and 10, followed by a brief explanation.
+    """.trimIndent()
+    
+    override fun parseScore(evaluationResponse: String): Double {
+        // Extract the numerical score from the evaluation response
+        val scoreRegex = """(\d+)""".toRegex()
+        val matchResult = scoreRegex.find(evaluationResponse)
+        
+        return if (matchResult != null) {
+            val score = matchResult.groupValues[1].toInt()
+            score / 10.0 // Normalize to 0-1 range
+        } else {
+            0.5 // Default score if parsing fails
+        }
+    }
+}
+```
+
+## Running Evals in CI/CD ✅
+
+You can integrate evals into your CI/CD pipeline:
+
+```kotlin
+import ai.kastrax.core.agent.agent
+import ai.kastrax.evals.EvalSuite
+import ai.kastrax.evals.textual.FactualAccuracyEval
+import ai.kastrax.evals.textual.RelevanceEval
+import ai.kastrax.evals.textual.CoherenceEval
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.runBlocking
+import java.io.File
+
+fun main() = runBlocking {
+    // Load the agent
+    val myAgent = agent {
+        name("ProductionAgent")
+        description("A production agent for evaluation")
+        
+        model = deepSeek {
+            apiKey(System.getenv("DEEPSEEK_API_KEY"))
+            model(DeepSeekModel.DEEPSEEK_CHAT)
+            temperature(0.7)
+        }
+    }
+    
+    // Create an eval suite
+    val evalSuite = EvalSuite(
+        name = "ProductionEvalSuite",
+        evals = listOf(
+            FactualAccuracyEval(),
+            RelevanceEval(),
+            CoherenceEval()
+        )
+    )
+    
+    // Load test cases from a file
+    val testCases = File("test_cases.txt").readLines()
+    
+    // Run the eval suite
+    val results = evalSuite.evaluate(myAgent, testCases)
+    
+    // Check if the results meet the threshold
+    val threshold = 0.8
+    val passed = results.averageScore >= threshold
+    
+    if (passed) {
+        println("Eval suite passed with score: ${results.averageScore}")
+        System.exit(0) // Success
+    } else {
+        println("Eval suite failed with score: ${results.averageScore} (threshold: $threshold)")
+        System.exit(1) // Failure
+    }
+}
+```
+
+## Best Practices ✅
+
+1. **Use Multiple Evals**: Different evals measure different aspects of agent quality
+2. **Create Diverse Test Cases**: Include edge cases and challenging scenarios
+3. **Set Realistic Thresholds**: Start with lower thresholds and gradually increase them
+4. **Monitor Trends**: Track eval scores over time to identify regressions
+5. **Combine with Human Evaluation**: Use evals alongside human evaluation for a complete picture
+
+## Next Steps ✅
+
+Now that you understand evals, you can:
+
+1. [Create custom evals](./custom-evals.mdx)
+2. [Set up eval suites](./eval-suites.mdx)
+3. [Integrate evals into CI/CD](./ci-cd-integration.mdx)

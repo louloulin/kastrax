@@ -1,15 +1,15 @@
 ---
-title: "Example: Answer Relevancy | Evals | Mastra Docs"
+title: "Example: Answer Relevancy | Evals | Kastrax Docs"
 description: Example of using the Answer Relevancy metric to evaluate response relevancy to queries.
 ---
 
 import { GithubLink } from "@/components/github-link";
 
-# Answer Relevancy Evaluation
+# Answer Relevancy Evaluation ✅
 
-This example demonstrates how to use Mastra's Answer Relevancy metric to evaluate how well responses address their input queries.
+This example demonstrates how to use Kastrax's Answer Relevancy metric to evaluate how well responses address their input queries.
 
-## Overview
+## Overview ✅
 
 The example shows how to:
 
@@ -18,7 +18,7 @@ The example shows how to:
 3. Analyze relevancy scores
 4. Handle different relevancy scenarios
 
-## Setup
+## Setup ✅
 
 ### Environment Setup
 
@@ -34,10 +34,10 @@ Import the necessary dependencies:
 
 ```typescript copy showLineNumbers filename="src/index.ts"
 import { openai } from '@ai-sdk/openai';
-import { AnswerRelevancyMetric } from '@mastra/evals/llm';
+import { AnswerRelevancyMetric } from '@kastrax/evals/llm';
 ```
 
-## Metric Configuration
+## Metric Configuration ✅
 
 Set up the Answer Relevancy metric with custom parameters:
 
@@ -48,7 +48,7 @@ const metric = new AnswerRelevancyMetric(openai('gpt-4o-mini'), {
 });
 ```
 
-## Example Usage
+## Example Usage ✅
 
 ### High Relevancy Example
 
@@ -116,7 +116,7 @@ console.log('Metric Result:', {
 // Metric Result: { score: 0.1, reason: 'The response is not relevant to the query. It provides information about the Great Wall of China but does not mention meditation.' }
 ```
 
-## Understanding the Results
+## Understanding the Results ✅
 
 The metric provides:
 
@@ -140,6 +140,6 @@ The metric provides:
 <br />
 <GithubLink
   link={
-    "https://github.com/mastra-ai/mastra/blob/main/examples/basics/evals/answer-relevancy"
+    "https://github.com/kastrax-ai/kastrax/blob/main/examples/basics/evals/answer-relevancy"
   }
 />

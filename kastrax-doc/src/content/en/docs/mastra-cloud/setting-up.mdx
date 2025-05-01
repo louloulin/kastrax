@@ -1,29 +1,29 @@
 ---
 title: Setting Up a Project
-description: Configuration steps for Mastra Cloud projects
+description: Configuration steps for Kastrax Cloud projects
 ---
 
-# Setting Up a Mastra Cloud Project
+# Setting Up a Kastrax Cloud Project ✅
 
-This page describes the steps to set up a project on Mastra Cloud using GitHub integration.
+This page describes the steps to set up a project on Kastrax Cloud using GitHub integration.
 
-## Prerequisites
+## Prerequisites ✅
 
-- A Mastra Cloud account
+- A Kastrax Cloud account
 - A GitHub account
-- A GitHub repository containing a Mastra application
+- A GitHub repository containing a Kastrax application
 
-## Project Creation Process
+## Project Creation Process ✅
 
-1. **Sign in to Mastra Cloud**
-   - Navigate to the Mastra Cloud dashboard at https://cloud.mastra.ai
+1. **Sign in to Kastrax Cloud**
+   - Navigate to the Kastrax Cloud dashboard at https://cloud.kastrax.ai
    - Sign in with your account credentials
 
 2. **Add a New Project**
    - From the "All Projects" view, click the "Add new" button in the top right
    - This opens the GitHub repository import dialog
 
-   ![Mastra Cloud Projects Dashboard](/image/cloud-agents.png)
+   ![Kastrax Cloud Projects Dashboard](/image/cloud-agents.png)
 
 3. **Import Git Repository**
    - Search for repositories or select from the list of available GitHub repositories
@@ -35,22 +35,22 @@ This page describes the steps to set up a project on Mastra Cloud using GitHub i
    - **Project Name**: Customize the project name (defaults to repo name)
    - **Branch**: Select the branch to deploy (dropdown, defaults to `main`)
    - **Project root**: Set the root directory of your project (defaults to `/`)
-   - **Mastra Directory**: Specify where Mastra files are located (defaults to `src/mastra`)
+   - **Kastrax Directory**: Specify where Kastrax files are located (defaults to `src/kastrax`)
    - **Build Command**: Optional command to run during build process
    - **Store Settings**: Configure data storage options
    - **Environment Variables**: Add key-value pairs for configuration (e.g., API keys)
 
-## Project Structure Requirements
+## Project Structure Requirements ✅
 
-Mastra Cloud scans the GitHub repository for:
+Kastrax Cloud scans the GitHub repository for:
 
 - **Agents**: Agent definitions (e.g., Weather Agent) with models and tools
 - **Workflows**: Workflow step definitions (e.g., weather-workflow)
 - **Environment Variables**: Required API keys and configuration variables
 
-The repository should contain a standard Mastra project structure for proper detection and deployment.
+The repository should contain a standard Kastrax project structure for proper detection and deployment.
 
-## Understanding the Dashboard
+## Understanding the Dashboard ✅
 
 After creating a project, the dashboard shows:
 
@@ -58,8 +58,8 @@ After creating a project, the dashboard shows:
 
 - **Created Date**: When the project was created
 - **Domains**: URLs for accessing your deployed application
-  - Format: `https://[project-name].mastra.cloud`
-  - Format: `https://[random-id].mastra.cloud`
+  - Format: `https://[project-name].kastrax.cloud`
+  - Format: `https://[random-id].kastrax.cloud`
 - **Status**: Current deployment status (success or archived)
 - **Branch**: The branch deployed (typically `main`)
 - **Environment Variables**: Configured API keys and settings
@@ -88,7 +88,7 @@ The Logs view displays:
   - Storage initialization
   - Agent and workflow activity
 
-## Navigation
+## Navigation ✅
 
 The sidebar provides access to:
 
@@ -99,7 +99,7 @@ The sidebar provides access to:
 - **Workflows**: List and structure of all workflows
 - **Settings**: Project configuration options
 
-## Environment Variable Configuration
+## Environment Variable Configuration ✅
 
 Set environment variables through the dashboard:
 
@@ -110,13 +110,13 @@ Set environment variables through the dashboard:
 
 Environment variables are encrypted and made available to your application during deployment and execution.
 
-## Testing Your Deployment
+## Testing Your Deployment ✅
 
 After deployment, you can test your agents and workflows using:
 
-1. The custom domain assigned to your project: `https://[project-name].mastra.cloud`
+1. The custom domain assigned to your project: `https://[project-name].kastrax.cloud`
 2. The dashboard interface for direct interaction with agents
 
-## Next Steps
+## Next Steps ✅
 
 After setting up your project, automatic deployments occur whenever you push to the `main` branch of your GitHub repository. See the [deployment documentation](./deploying.mdx) for more details.

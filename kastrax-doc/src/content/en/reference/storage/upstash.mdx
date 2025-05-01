@@ -1,22 +1,22 @@
 ---
-title: "Upstash Storage | Storage System | Mastra Core"
-description: Documentation for the Upstash storage implementation in Mastra.
+title: "Upstash Storage | Storage System | Kastrax Core"
+description: Documentation for the Upstash storage implementation in Kastrax.
 ---
 
-# Upstash Storage
+# Upstash Storage ✅
 
 The Upstash storage implementation provides a serverless-friendly storage solution using Upstash's Redis-compatible key-value store.
 
-## Installation
+## Installation ✅
 
 ```bash copy
-npm install @mastra/upstash@latest
+npm install @kastrax/upstash@latest
 ```
 
-## Usage
+## Usage ✅
 
 ```typescript copy showLineNumbers
-import { UpstashStore } from "@mastra/upstash";
+import { UpstashStore } from "@kastrax/upstash";
 
 const storage = new UpstashStore({
   url: process.env.UPSTASH_URL,
@@ -24,7 +24,7 @@ const storage = new UpstashStore({
 });
 ```
 
-## Parameters
+## Parameters ✅
 
 <PropertiesTable
   content={[
@@ -45,12 +45,12 @@ const storage = new UpstashStore({
       type: "string",
       description: "Key prefix for all stored items",
       isOptional: true,
-      defaultValue: "mastra:",
+      defaultValue: "kastrax:",
     },
   ]}
 />
 
-## Additional Notes
+## Additional Notes ✅
 
 ### Key Structure
 

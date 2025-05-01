@@ -1,19 +1,19 @@
 ---
-title: "Reference: Agent | Agents | Mastra Docs"
-description: "Documentation for the Agent class in Mastra, which provides the foundation for creating AI agents with various capabilities."
+title: "Reference: Agent | Agents | Kastrax Docs"
+description: "Documentation for the Agent class in Kastrax, which provides the foundation for creating AI agents with various capabilities."
 ---
 
-# Agent
+# Agent ✅
 
-The `Agent` class is the foundation for creating AI agents in Mastra. It provides methods for generating responses, streaming interactions, and handling voice capabilities.
+The `Agent` class is the foundation for creating AI agents in Kastrax. It provides methods for generating responses, streaming interactions, and handling voice capabilities.
 
-## Importing
+## Importing ✅
 
 ```typescript
-import { Agent } from "@mastra/core/agent";
+import { Agent } from "@kastrax/core/agent";
 ```
 
-## Constructor
+## Constructor ✅
 
 Creates a new Agent instance with the specified configuration.
 
@@ -40,7 +40,7 @@ constructor(config: AgentConfig<TAgentId, TTools, TMetrics>)
     },
     {
       name: "model",
-      type: "MastraLanguageModel | ({ runtimeContext: RuntimeContext }) => MastraLanguageModel | Promise<MastraLanguageModel>",
+      type: "KastraxLanguageModel | ({ runtimeContext: RuntimeContext }) => KastraxLanguageModel | Promise<KastraxLanguageModel>",
       isOptional: false,
       description: "The language model to use for generating responses. Can be a model instance or a function that returns a model.",
     },
@@ -70,7 +70,7 @@ constructor(config: AgentConfig<TAgentId, TTools, TMetrics>)
     },
     {
       name: "memory",
-      type: "MastraMemory",
+      type: "KastraxMemory",
       isOptional: true,
       description: "Memory system for the agent to store and retrieve information.",
     },

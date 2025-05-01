@@ -1,17 +1,17 @@
 ---
-title: "Reference: createVectorQueryTool() | RAG | Mastra Tools Docs"
-description: Documentation for the Vector Query Tool in Mastra, which facilitates semantic search over vector stores with filtering and reranking capabilities.
+title: "Reference: createVectorQueryTool() | RAG | Kastrax Tools Docs"
+description: Documentation for the Vector Query Tool in Kastrax, which facilitates semantic search over vector stores with filtering and reranking capabilities.
 ---
 
-# createVectorQueryTool()
+# createVectorQueryTool() ✅
 
 The `createVectorQueryTool()` function creates a tool for semantic search over vector stores. It supports filtering, reranking, and integrates with various vector store backends.
 
-## Basic Usage
+## Basic Usage ✅
 
 ```typescript
 import { openai } from '@ai-sdk/openai';
-import { createVectorQueryTool } from "@mastra/rag";
+import { createVectorQueryTool } from "@kastrax/rag";
 
 const queryTool = createVectorQueryTool({
   vectorStoreName: "pinecone",
@@ -20,14 +20,14 @@ const queryTool = createVectorQueryTool({
 });
 ```
 
-## Parameters
+## Parameters ✅
 
 <PropertiesTable
   content={[
     {
       name: "vectorStoreName",
       type: "string",
-      description: "Name of the vector store to query (must be configured in Mastra)",
+      description: "Name of the vector store to query (must be configured in Kastrax)",
       isOptional: false,
     },
     {
@@ -69,7 +69,7 @@ const queryTool = createVectorQueryTool({
   content={[
     {
       name: "model",
-      type: "MastraLanguageModel",
+      type: "KastraxLanguageModel",
       description: "Language model to use for reranking",
       isOptional: false,
     },
@@ -102,7 +102,7 @@ const queryTool = createVectorQueryTool({
   ]}
 />
 
-## Returns
+## Returns ✅
 
 The tool returns an object with:
 
@@ -116,18 +116,18 @@ The tool returns an object with:
   ]}
 />
 
-## Default Tool Description
+## Default Tool Description ✅
 
 The default description focuses on:
 - Finding relevant information in stored knowledge
 - Answering user questions
 - Retrieving factual content
 
-## Result Handling
+## Result Handling ✅
 
 The tool determines the number of results to return based on the user's query, with a default of 10 results. This can be adjusted based on the query requirements.
 
-## Example with Filters
+## Example with Filters ✅
 
 ```typescript
 const queryTool = createVectorQueryTool({
@@ -157,7 +157,7 @@ For detailed filter syntax and store-specific capabilities, see the [Metadata Fi
 
 For an example of how agent-driven filtering works, see the [Agent-Driven Metadata Filtering](../../../examples/rag/usage/filter-rag) example.
 
-## Example with Reranking
+## Example with Reranking ✅
 
 ```typescript
 const queryTool = createVectorQueryTool({
@@ -186,7 +186,7 @@ Reranking improves result quality by combining:
 
 The reranker processes the initial vector search results and returns a reordered list optimized for relevance.
 
-## Example with Custom Description
+## Example with Custom Description ✅
 
 ```typescript
 const queryTool = createVectorQueryTool({
@@ -199,14 +199,14 @@ const queryTool = createVectorQueryTool({
 
 This example shows how to customize the tool description for a specific use case while maintaining its core purpose of information retrieval.
 
-## Tool Details
+## Tool Details ✅
 
 The tool is created with:
 - **ID**: `VectorQuery {vectorStoreName} {indexName} Tool`
 - **Input Schema**: Requires queryText and filter objects
 - **Output Schema**: Returns relevantContext string
 
-## Related
+## Related ✅
 
 - [rerank()](../rag/rerank) 
 - [createGraphRAGTool](./graph-rag-tool) 

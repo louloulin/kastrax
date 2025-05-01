@@ -1,29 +1,29 @@
 ---
-title: "Reference: SigNoz Integration | Mastra Observability Docs"
-description: Documentation for integrating SigNoz with Mastra, an open-source APM and observability platform providing full-stack monitoring through OpenTelemetry.
+title: "Reference: SigNoz Integration | Kastrax Observability Docs"
+description: Documentation for integrating SigNoz with Kastrax, an open-source APM and observability platform providing full-stack monitoring through OpenTelemetry.
 ---
 
-# SigNoz
+# SigNoz ✅
 
 SigNoz is an open-source APM and observability platform that provides full-stack monitoring capabilities through OpenTelemetry.
 
-## Configuration
+## Configuration ✅
 
-To use SigNoz with Mastra, configure these environment variables:
+To use SigNoz with Kastrax, configure these environment variables:
 
 ```env
 OTEL_EXPORTER_OTLP_ENDPOINT=https://ingest.{region}.signoz.cloud:443
 OTEL_EXPORTER_OTLP_HEADERS=signoz-ingestion-key=your_signoz_token
 ```
 
-## Implementation
+## Implementation ✅
 
-Here's how to configure Mastra to use SigNoz:
+Here's how to configure Kastrax to use SigNoz:
 
 ```typescript
-import { Mastra } from "@mastra/core";
+import { Kastrax } from "@kastrax/core";
 
-export const mastra = new Mastra({
+export const kastrax = new Kastrax({
   // ... other config
   telemetry: {
     serviceName: "your-service-name",
@@ -35,6 +35,6 @@ export const mastra = new Mastra({
 });
 ```
 
-## Dashboard
+## Dashboard ✅
 
 Access your SigNoz dashboard at [signoz.io](https://signoz.io/)

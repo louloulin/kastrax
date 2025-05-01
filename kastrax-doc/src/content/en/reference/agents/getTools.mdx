@@ -1,19 +1,19 @@
 ---
-title: "Reference: Agent.getTools() | Agents | Mastra Docs"
-description: "Documentation for the `.getTools()` method in Mastra agents, which retrieves the tools that the agent can use."
+title: "Reference: Agent.getTools() | Agents | Kastrax Docs"
+description: "Documentation for the `.getTools()` method in Kastrax agents, which retrieves the tools that the agent can use."
 ---
 
-# Agent.getTools()
+# Agent.getTools() ✅
 
 The `getTools()` method retrieves the tools configured for an agent, resolving them if they're a function. These tools extend the agent's capabilities, allowing it to perform specific actions or access external systems.
 
-## Syntax
+## Syntax ✅
 
 ```typescript
 getTools({ runtimeContext = new RuntimeContext() }: { runtimeContext?: RuntimeContext } = {}): ToolsInput | Promise<ToolsInput>
 ```
 
-## Parameters
+## Parameters ✅
 
 <br />
 <PropertiesTable
@@ -27,11 +27,11 @@ getTools({ runtimeContext = new RuntimeContext() }: { runtimeContext?: RuntimeCo
   ]}
 />
 
-## Return Value
+## Return Value ✅
 
 Returns a `ToolsInput` object or a Promise that resolves to a `ToolsInput` object containing the agent's tools.
 
-## Description
+## Description ✅
 
 The `getTools()` method is used to access the tools that an agent can use. It resolves the tools, which can be either directly provided as an object or returned from a function.
 
@@ -41,13 +41,13 @@ Tools are a key component of an agent's capabilities, allowing it to:
 - Execute code or commands
 - Interact with databases or other services
 
-## Examples
+## Examples ✅
 
 ### Basic Usage
 
 ```typescript
-import { Agent } from "@mastra/core/agent";
-import { createTool } from "@mastra/core/tools";
+import { Agent } from "@kastrax/core/agent";
+import { createTool } from "@kastrax/core/tools";
 import { openai } from '@ai-sdk/openai';
 import { z } from "zod";
 
@@ -97,9 +97,9 @@ console.log(Object.keys(tools)); // ["add", "multiply"]
 ### Using with RuntimeContext
 
 ```typescript
-import { Agent } from "@mastra/core/agent";
-import { createTool } from "@mastra/core/tools";
-import { RuntimeContext } from "@mastra/core/runtime-context";
+import { Agent } from "@kastrax/core/agent";
+import { createTool } from "@kastrax/core/tools";
+import { RuntimeContext } from "@kastrax/core/runtime-context";
 import { openai } from '@ai-sdk/openai';
 import { z } from "zod";
 

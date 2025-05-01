@@ -1,16 +1,16 @@
 ---
-title: "Reference: Speechify Voice | Voice Providers | Mastra Docs"
+title: "Reference: Speechify Voice | Voice Providers | Kastrax Docs"
 description: "Documentation for the Speechify voice implementation, providing text-to-speech capabilities."
 ---
 
-# Speechify
+# Speechify ✅
 
-The Speechify voice implementation in Mastra provides text-to-speech capabilities using Speechify's API.
+The Speechify voice implementation in Kastrax provides text-to-speech capabilities using Speechify's API.
 
-## Usage Example
+## Usage Example ✅
 
 ```typescript
-import { SpeechifyVoice } from "@mastra/voice-speechify";
+import { SpeechifyVoice } from "@kastrax/voice-speechify";
 
 // Initialize with default configuration (uses SPEECHIFY_API_KEY environment variable)
 const voice = new SpeechifyVoice();
@@ -30,7 +30,7 @@ const audioStream = await voice.speak("Hello, world!", {
 });
 ```
 
-## Constructor Parameters
+## Constructor Parameters ✅
 
 <PropertiesTable
   content={[
@@ -71,7 +71,7 @@ const audioStream = await voice.speak("Hello, world!", {
   ]}
 />
 
-## Methods
+## Methods ✅
 
 ### speak()
 
@@ -137,7 +137,7 @@ Returns an array of available voice options, where each node contains:
 
 This method is not supported by Speechify and will throw an error. Speechify does not provide speech-to-text functionality.
 
-## Notes
+## Notes ✅
 
 - Speechify requires an API key for authentication
 - The default model is 'simba-english'

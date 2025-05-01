@@ -1,15 +1,15 @@
 ---
-title: "Example: Parallel Execution | Workflows | Mastra Docs"
-description: Example of using Mastra to execute multiple independent tasks in parallel within a workflow.
+title: "Example: Parallel Execution | Workflows | Kastrax Docs"
+description: Example of using Kastrax to execute multiple independent tasks in parallel within a workflow.
 ---
 
 import { GithubLink } from "@/components/github-link";
 
-# Parallel Execution with Steps
+# Parallel Execution with Steps ✅
 
 When building AI applications, you often need to process multiple independent tasks simultaneously to improve efficiency.
 
-## Control Flow Diagram
+## Control Flow Diagram ✅
 
 This example shows how to structure a workflow that executes steps in parallel, with each branch handling its own data flow and dependencies.
 
@@ -21,12 +21,12 @@ Here's the control flow diagram:
   width={600}
 />
 
-## Creating the Steps
+## Creating the Steps ✅
 
 Let's start by creating the steps and initializing the workflow.
 
 ```ts showLineNumbers copy
-import { Step, Workflow } from "@mastra/core/workflows";
+import { Step, Workflow } from "@kastrax/core/workflows";
 import { z } from "zod";
 
 const stepOne = new Step({
@@ -73,7 +73,7 @@ const myWorkflow = new Workflow({
 });
 ```
 
-## Chaining and Parallelizing Steps
+## Chaining and Parallelizing Steps ✅
 
 Now we can add the steps to the workflow. Note the `.then()` method is used to chain the steps, but the `.step()` method is used to add the steps to the workflow.
 
@@ -97,6 +97,6 @@ const result = await start({ triggerData: { inputValue: 3 } });
 <br />
 <GithubLink
   link={
-    "https://github.com/mastra-ai/mastra/blob/main/examples/basics/workflows/workflow-with-parallel-steps"
+    "https://github.com/kastrax-ai/kastrax/blob/main/examples/basics/workflows/workflow-with-parallel-steps"
   }
 />

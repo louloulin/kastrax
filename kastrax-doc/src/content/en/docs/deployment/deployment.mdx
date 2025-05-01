@@ -1,15 +1,15 @@
 ---
 title: "Serverless Deployment"
-description: "Build and deploy Mastra applications using platform-specific deployers or standard HTTP servers"
+description: "Build and deploy Kastrax applications using platform-specific deployers or standard HTTP servers"
 ---
 
-# Serverless Deployment
+# Serverless Deployment ✅
 
-This guide covers deploying Mastra to Cloudflare Workers, Vercel, and Netlify using platform-specific deployers
+This guide covers deploying Kastrax to Cloudflare Workers, Vercel, and Netlify using platform-specific deployers
 
-For self-hosted Node.js server deployment, see the [Creating A Mastra Server](/docs/deployment/server) guide.
+For self-hosted Node.js server deployment, see the [Creating A Kastrax Server](/docs/deployment/server) guide.
 
-## Prerequisites
+## Prerequisites ✅
 
 Before you begin, ensure you have:
 
@@ -18,26 +18,26 @@ Before you begin, ensure you have:
   - An account with your chosen platform
   - Required API keys or credentials
 
-## Serverless Platform Deployers
+## Serverless Platform Deployers ✅
 
 Platform-specific deployers handle configuration and deployment for:
 - **[Cloudflare Workers](/reference/deployer/cloudflare)**
 - **[Vercel](/reference/deployer/vercel)**
 - **[Netlify](/reference/deployer/netlify)**
 
-As of April 2025, Mastra also offers [Mastra Cloud](https://mastra.ai/cloud-beta), a serverless agent environment with atomic deployments. You can sign up for the waitlist [here](https://mastra.ai/cloud-beta).
+As of April 2025, Kastrax also offers [Kastrax Cloud](https://kastrax.ai/cloud-beta), a serverless agent environment with atomic deployments. You can sign up for the waitlist [here](https://kastrax.ai/cloud-beta).
 
 ### Installing Deployers
 
 ```bash copy
-# For Cloudflare
-npm install @mastra/deployer-cloudflare@latest
+# For Cloudflare ✅
+npm install @kastrax/deployer-cloudflare@latest
 
-# For Vercel
-npm install @mastra/deployer-vercel@latest
+# For Vercel ✅
+npm install @kastrax/deployer-vercel@latest
 
-# For Netlify
-npm install @mastra/deployer-netlify@latest
+# For Netlify ✅
+npm install @kastrax/deployer-netlify@latest
 ```
 
 ### Configuring Deployers
@@ -45,10 +45,10 @@ npm install @mastra/deployer-netlify@latest
 Configure the deployer in your entry file:
 
 ```typescript copy showLineNumbers
-import { Mastra, createLogger } from '@mastra/core';
-import { CloudflareDeployer } from '@mastra/deployer-cloudflare';
+import { Kastrax, createLogger } from '@kastrax/core';
+import { CloudflareDeployer } from '@kastrax/deployer-cloudflare';
 
-export const mastra = new Mastra({
+export const kastrax = new Kastrax({
   agents: { /* your agents here */ },
   logger: createLogger({ name: 'MyApp', level: 'debug' }),
   deployer: new CloudflareDeployer({
@@ -100,7 +100,7 @@ new NetlifyDeployer({
 
 [View Netlify Deployer Reference →](/reference/deployer/netlify)
 
-## Environment Variables
+## Environment Variables ✅
 
 Required variables:
 
@@ -113,15 +113,15 @@ Required variables:
    - `PORT`: HTTP server port (default: 3000)
    - `HOST`: Server host (default: 0.0.0.0)
 
-## Build Mastra Project
+## Build Kastrax Project ✅
 
-To build your Mastra project for your target platform run:
+To build your Kastrax project for your target platform run:
 
 ```bash
-npx mastra build
+npx kastrax build
 ```
 
 When a Deployer is used, the build output is automatically prepared for the target platform.
-You can then deploy the build output `.mastra/output` via your platform's (Vercel, netlify, cloudfare e.t.c) 
+You can then deploy the build output `.kastrax/output` via your platform's (Vercel, netlify, cloudfare e.t.c) 
 CLI/UI.
 

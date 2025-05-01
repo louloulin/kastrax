@@ -1,16 +1,16 @@
 ---
-title: "Reference: Murf Voice | Voice Providers | Mastra Docs"
+title: "Reference: Murf Voice | Voice Providers | Kastrax Docs"
 description: "Documentation for the Murf voice implementation, providing text-to-speech capabilities."
 ---
 
-# Murf
+# Murf ✅
 
-The Murf voice implementation in Mastra provides text-to-speech (TTS) capabilities using Murf's AI voice service. It supports multiple voices across different languages.
+The Murf voice implementation in Kastrax provides text-to-speech (TTS) capabilities using Murf's AI voice service. It supports multiple voices across different languages.
 
-## Usage Example
+## Usage Example ✅
 
 ```typescript
-import { MurfVoice } from "@mastra/voice-murf";
+import { MurfVoice } from "@kastrax/voice-murf";
 
 // Initialize with default configuration (uses MURF_API_KEY environment variable)
 const voice = new MurfVoice();
@@ -48,7 +48,7 @@ const audioStream = await voice.speak("Hello, world!", {
 const voices = await voice.getSpeakers();
 ```
 
-## Constructor Parameters
+## Constructor Parameters ✅
 
 <PropertiesTable
   content={[
@@ -168,7 +168,7 @@ const voices = await voice.getSpeakers();
   ]}
 />
 
-## Methods
+## Methods ✅
 
 ### speak()
 
@@ -242,7 +242,7 @@ Returns an array of available voice options, where each node contains:
 
 This method is not supported by Murf and will throw an error. Murf does not provide speech-to-text functionality.
 
-## Important Notes
+## Important Notes ✅
 
 1. A Murf API key is required. Set it via the `MURF_API_KEY` environment variable or pass it in the constructor.
 2. The service uses GEN2 as the default model version.

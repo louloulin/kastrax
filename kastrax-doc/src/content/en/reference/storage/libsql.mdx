@@ -1,22 +1,22 @@
 ---
-title: "LibSQL Storage | Storage System | Mastra Core"
-description: Documentation for the LibSQL storage implementation in Mastra.
+title: "LibSQL Storage | Storage System | Kastrax Core"
+description: Documentation for the LibSQL storage implementation in Kastrax.
 ---
 
-# LibSQL Storage
+# LibSQL Storage ✅
 
 The LibSQL storage implementation provides a SQLite-compatible storage solution that can run both in-memory and as a persistent database.
 
-## Installation
+## Installation ✅
 
 ```bash copy
-npm install @mastra/storage-libsql@latest
+npm install @kastrax/storage-libsql@latest
 ```
 
-## Usage
+## Usage ✅
 
 ```typescript copy showLineNumbers
-import { LibSQLStore } from "@mastra/libsql";
+import { LibSQLStore } from "@kastrax/libsql";
 
 // File database (development)
 const storage = new LibSQLStore({
@@ -29,7 +29,7 @@ const storage = new LibSQLStore({
 });
 ```
 
-## Parameters
+## Parameters ✅
 
 <PropertiesTable
   content={[
@@ -49,7 +49,7 @@ const storage = new LibSQLStore({
   ]}
 />
 
-## Additional Notes
+## Additional Notes ✅
 
 ### In-Memory vs Persistent Storage
 

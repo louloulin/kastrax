@@ -1,0 +1,375 @@
+# Memory Implementations ✅
+
+Kastrax provides multiple storage backends for memory, allowing you to choose the right solution for your application's needs. This guide explains the available implementations and how to configure them.
+
+## Memory Storage Backends ✅
+
+### In-Memory Storage ✅
+
+The default storage is in-memory, which is suitable for simple applications and development:
+
+```kotlin
+import ai.kastrax.core.agent.agent
+import ai.kastrax.core.memory.memory
+import ai.kastrax.core.memory.storage.InMemoryStorage
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    val myAgent = agent {
+        name("AgentWithInMemoryStorage")
+        description("An agent with in-memory storage")
+        
+        // Configure the LLM
+        model = deepSeek {
+            apiKey("your-deepseek-api-key")
+            model(DeepSeekModel.DEEPSEEK_CHAT)
+            temperature(0.7)
+        }
+        
+        // Configure memory with in-memory storage
+        memory = memory {
+            workingMemory(true)
+            conversationHistory(20)
+            
+            // Explicitly set in-memory storage (this is the default)
+            storage(InMemoryStorage())
+        }
+    }
+    
+    // Use the agent
+    val response = myAgent.generate("Hello, world!")
+    println(response.text)
+}
+```
+
+### SQLite Storage ✅
+
+For persistent storage in single-user applications, you can use SQLite:
+
+```kotlin
+import ai.kastrax.core.agent.agent
+import ai.kastrax.core.memory.memory
+import ai.kastrax.core.memory.storage.SQLiteStorage
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    val myAgent = agent {
+        name("AgentWithSQLiteStorage")
+        description("An agent with SQLite storage")
+        
+        // Configure the LLM
+        model = deepSeek {
+            apiKey("your-deepseek-api-key")
+            model(DeepSeekModel.DEEPSEEK_CHAT)
+            temperature(0.7)
+        }
+        
+        // Configure memory with SQLite storage
+        memory = memory {
+            workingMemory(true)
+            conversationHistory(20)
+            
+            // Set SQLite storage
+            storage(SQLiteStorage("memory.db"))
+        }
+    }
+    
+    // Use the agent
+    val response = myAgent.generate("Hello, world!")
+    println(response.text)
+}
+```
+
+### Redis Storage ✅
+
+For distributed applications, you can use Redis:
+
+```kotlin
+import ai.kastrax.core.agent.agent
+import ai.kastrax.core.memory.memory
+import ai.kastrax.core.memory.storage.RedisStorage
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    val myAgent = agent {
+        name("AgentWithRedisStorage")
+        description("An agent with Redis storage")
+        
+        // Configure the LLM
+        model = deepSeek {
+            apiKey("your-deepseek-api-key")
+            model(DeepSeekModel.DEEPSEEK_CHAT)
+            temperature(0.7)
+        }
+        
+        // Configure memory with Redis storage
+        memory = memory {
+            workingMemory(true)
+            conversationHistory(20)
+            
+            // Set Redis storage
+            storage(RedisStorage(
+                host = "localhost",
+                port = 6379,
+                password = "password" // Optional
+            ))
+        }
+    }
+    
+    // Use the agent
+    val response = myAgent.generate("Hello, world!")
+    println(response.text)
+}
+```
+
+### PostgreSQL Storage ✅
+
+For enterprise applications, you can use PostgreSQL:
+
+```kotlin
+import ai.kastrax.core.agent.agent
+import ai.kastrax.core.memory.memory
+import ai.kastrax.core.memory.storage.PostgreSQLStorage
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    val myAgent = agent {
+        name("AgentWithPostgreSQLStorage")
+        description("An agent with PostgreSQL storage")
+        
+        // Configure the LLM
+        model = deepSeek {
+            apiKey("your-deepseek-api-key")
+            model(DeepSeekModel.DEEPSEEK_CHAT)
+            temperature(0.7)
+        }
+        
+        // Configure memory with PostgreSQL storage
+        memory = memory {
+            workingMemory(true)
+            conversationHistory(20)
+            
+            // Set PostgreSQL storage
+            storage(PostgreSQLStorage(
+                url = "jdbc:postgresql://localhost:5432/kastrax",
+                username = "postgres",
+                password = "password"
+            ))
+        }
+    }
+    
+    // Use the agent
+    val response = myAgent.generate("Hello, world!")
+    println(response.text)
+}
+```
+
+## Custom Storage Implementations ✅
+
+You can create custom storage implementations by implementing the `MemoryStorage` interface:
+
+```kotlin
+import ai.kastrax.core.memory.storage.MemoryStorage
+import ai.kastrax.core.memory.Message
+import ai.kastrax.core.memory.MemoryPriority
+
+class CustomStorage : MemoryStorage {
+    private val messages = mutableListOf<Message>()
+    
+    override suspend fun addMessage(message: Message) {
+        messages.add(message)
+    }
+    
+    override suspend fun getMessages(limit: Int): List<Message> {
+        return messages.takeLast(limit)
+    }
+    
+    override suspend fun addMemory(content: String, metadata: Map<String, Any>, priority: MemoryPriority): String {
+        val memory = Message(
+            role = "system",
+            content = content,
+            timestamp = System.currentTimeMillis(),
+            metadata = metadata
+        )
+        messages.add(memory)
+        return memory.id
+    }
+    
+    override suspend fun getMemory(id: String): Message? {
+        return messages.find { it.id == id }
+    }
+    
+    override suspend fun getAllMemories(): List<Message> {
+        return messages.toList()
+    }
+    
+    override suspend fun forgetMemory(id: String) {
+        messages.removeIf { it.id == id }
+    }
+    
+    override suspend fun clear() {
+        messages.clear()
+    }
+}
+
+// Use the custom storage
+memory = memory {
+    storage(CustomStorage())
+}
+```
+
+## Vector Store Implementations ✅
+
+For semantic memory, Kastrax supports multiple vector store implementations:
+
+### In-Memory Vector Store ✅
+
+```kotlin
+import ai.kastrax.core.memory.memory
+import ai.kastrax.core.memory.vectorstore.InMemoryVectorStore
+
+memory = memory {
+    semanticMemory(true)
+    semanticMemoryModel("all-MiniLM-L6-v2")
+    semanticMemoryVectorStore(InMemoryVectorStore())
+}
+```
+
+### Chroma Vector Store ✅
+
+```kotlin
+import ai.kastrax.core.memory.memory
+import ai.kastrax.core.memory.vectorstore.ChromaVectorStore
+
+memory = memory {
+    semanticMemory(true)
+    semanticMemoryModel("all-MiniLM-L6-v2")
+    semanticMemoryVectorStore(ChromaVectorStore(
+        collectionName = "agent_memories",
+        url = "http://localhost:8000"
+    ))
+}
+```
+
+### FAISS Vector Store ✅
+
+```kotlin
+import ai.kastrax.core.memory.memory
+import ai.kastrax.core.memory.vectorstore.FAISSVectorStore
+
+memory = memory {
+    semanticMemory(true)
+    semanticMemoryModel("all-MiniLM-L6-v2")
+    semanticMemoryVectorStore(FAISSVectorStore(
+        indexPath = "faiss_index",
+        dimensions = 384
+    ))
+}
+```
+
+### Pinecone Vector Store ✅
+
+```kotlin
+import ai.kastrax.core.memory.memory
+import ai.kastrax.core.memory.vectorstore.PineconeVectorStore
+
+memory = memory {
+    semanticMemory(true)
+    semanticMemoryModel("all-MiniLM-L6-v2")
+    semanticMemoryVectorStore(PineconeVectorStore(
+        apiKey = "your-pinecone-api-key",
+        environment = "us-west1-gcp",
+        index = "agent_memories"
+    ))
+}
+```
+
+## Choosing the Right Implementation ✅
+
+Here are some guidelines for choosing the right memory implementation:
+
+| Implementation | Best For | Pros | Cons |
+|----------------|----------|------|------|
+| In-Memory | Development, simple apps | Fast, no setup | Not persistent, limited by RAM |
+| SQLite | Single-user apps, desktop | Persistent, simple setup | Limited concurrency |
+| Redis | Multi-user apps, web | Fast, scalable | Requires Redis server |
+| PostgreSQL | Enterprise apps | Robust, scalable | More complex setup |
+
+For vector stores:
+
+| Vector Store | Best For | Pros | Cons |
+|--------------|----------|------|------|
+| In-Memory | Development, testing | Fast, no setup | Not persistent, limited by RAM |
+| Chroma | Production, small-medium scale | Easy to use, good performance | Requires Chroma server |
+| FAISS | Large-scale, offline | Very fast, efficient | More complex setup |
+| Pinecone | Cloud-based, large-scale | Managed service, scalable | Paid service |
+
+## Example: Complete Memory Configuration ✅
+
+Here's a complete example with both regular memory storage and vector store:
+
+```kotlin
+import ai.kastrax.core.agent.agent
+import ai.kastrax.core.memory.memory
+import ai.kastrax.core.memory.storage.SQLiteStorage
+import ai.kastrax.core.memory.vectorstore.ChromaVectorStore
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    val myAgent = agent {
+        name("CompleteMemoryAgent")
+        description("An agent with complete memory configuration")
+        
+        // Configure the LLM
+        model = deepSeek {
+            apiKey("your-deepseek-api-key")
+            model(DeepSeekModel.DEEPSEEK_CHAT)
+            temperature(0.7)
+        }
+        
+        // Configure memory
+        memory = memory {
+            // Basic memory configuration
+            workingMemory(true)
+            conversationHistory(20)
+            semanticMemory(true)
+            
+            // Storage configuration
+            storage(SQLiteStorage("memory.db"))
+            
+            // Vector store configuration
+            semanticMemoryModel("all-MiniLM-L6-v2")
+            semanticMemoryVectorStore(ChromaVectorStore(
+                collectionName = "agent_memories",
+                url = "http://localhost:8000"
+            ))
+            
+            // Memory processors
+            summarizer(true)
+            contextOptimizer(true)
+        }
+    }
+    
+    // Use the agent
+    val response = myAgent.generate("Hello, world!")
+    println(response.text)
+}
+```
+
+## Next Steps ✅
+
+Now that you understand memory implementations, you can:
+
+1. Learn about [working memory](./working-memory.mdx)
+2. Explore [semantic recall](./semantic-recall.mdx)
+3. Configure [memory processors](./memory-processors.mdx)

@@ -1,15 +1,15 @@
 ---
-title: "Example: Keyword Coverage | Evals | Mastra Docs"
+title: "Example: Keyword Coverage | Evals | Kastrax Docs"
 description: Example of using the Keyword Coverage metric to evaluate how well responses cover important keywords from input text.
 ---
 
 import { GithubLink } from "@/components/github-link";
 
-# Keyword Coverage Evaluation
+# Keyword Coverage Evaluation ✅
 
-This example demonstrates how to use Mastra's Keyword Coverage metric to evaluate how well responses include important keywords from the input text.
+This example demonstrates how to use Kastrax's Keyword Coverage metric to evaluate how well responses include important keywords from the input text.
 
-## Overview
+## Overview ✅
 
 The example shows how to:
 
@@ -18,17 +18,17 @@ The example shows how to:
 3. Analyze coverage scores
 4. Handle different coverage scenarios
 
-## Setup
+## Setup ✅
 
 ### Dependencies
 
 Import the necessary dependencies:
 
 ```typescript copy showLineNumbers filename="src/index.ts"
-import { KeywordCoverageMetric } from '@mastra/evals/nlp';
+import { KeywordCoverageMetric } from '@kastrax/evals/nlp';
 ```
 
-## Metric Configuration
+## Metric Configuration ✅
 
 Set up the Keyword Coverage metric:
 
@@ -36,7 +36,7 @@ Set up the Keyword Coverage metric:
 const metric = new KeywordCoverageMetric();
 ```
 
-## Example Usage
+## Example Usage ✅
 
 ### Full Coverage Example
 
@@ -110,7 +110,7 @@ console.log('Metric Result:', {
 // Metric Result: { score: 0.2, info: { totalKeywords: 10, matchedKeywords: 2 } }
 ```
 
-## Understanding the Results
+## Understanding the Results ✅
 
 The metric provides:
 
@@ -134,6 +134,6 @@ The metric provides:
 <br />
 <GithubLink
   link={
-    "https://github.com/mastra-ai/mastra/blob/main/examples/basics/evals/keyword-coverage"
+    "https://github.com/kastrax-ai/kastrax/blob/main/examples/basics/evals/keyword-coverage"
   }
 /> 

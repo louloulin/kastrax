@@ -1,23 +1,23 @@
 ---
-title: "Using Agent Memory | Agents | Mastra Docs"
-description: Documentation on how agents in Mastra use memory to store conversation history and contextual information.
+title: "Using Agent Memory | Agents | Kastrax Docs"
+description: Documentation on how agents in Kastrax use memory to store conversation history and contextual information.
 ---
 
-# Agent Memory
+# Agent Memory ✅
 
-Agents in Mastra can leverage a powerful memory system to store conversation history, recall relevant information, and maintain persistent context across interactions. This allows agents to have more natural, stateful conversations.
+Agents in Kastrax can leverage a powerful memory system to store conversation history, recall relevant information, and maintain persistent context across interactions. This allows agents to have more natural, stateful conversations.
 
-## Enabling Memory for an Agent
+## Enabling Memory for an Agent ✅
 
 To enable memory, simply instantiate the `Memory` class and pass it to your agent's configuration. You also need to install the memory package:
 
 ```bash npm2yarn copy
-npm install @mastra/memory@latest
+npm install @kastrax/memory@latest
 ```
 
 ```typescript
-import { Agent } from "@mastra/core/agent";
-import { Memory } from "@mastra/memory";
+import { Agent } from "@kastrax/core/agent";
+import { Memory } from "@kastrax/memory";
 import { openai } from "@ai-sdk/openai";
 
 // Basic memory setup
@@ -33,7 +33,7 @@ const agent = new Agent({
 
 This basic setup uses default settings, including LibSQL for storage and FastEmbed for embeddings. For detailed setup instructions, see [Memory](/docs/memory/overview).
 
-## Using Memory in Agent Calls
+## Using Memory in Agent Calls ✅
 
 To utilize memory during interactions, you **must** provide `resourceId` and `threadId` when calling the agent's `stream()` or `generate()` methods.
 
@@ -57,6 +57,6 @@ const response = await agent.stream("What's my favorite color?", {
 
 These IDs ensure that conversation history and context are correctly stored and retrieved for the appropriate user and conversation.
 
-## Next Steps
+## Next Steps ✅
 
-Keep exploring Mastra's [memory capabilities](/docs/memory/overview) like threads, conversation history, semantic recall, and working memory.
+Keep exploring Kastrax's [memory capabilities](/docs/memory/overview) like threads, conversation history, semantic recall, and working memory.

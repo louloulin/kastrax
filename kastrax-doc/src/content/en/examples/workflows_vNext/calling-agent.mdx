@@ -1,19 +1,19 @@
 ---
-title: "Example: Calling an Agent from a Workflow | Mastra Docs"
-description: Example of using Mastra to call an AI agent from within a workflow step.
+title: "Example: Calling an Agent from a Workflow | Kastrax Docs"
+description: Example of using Kastrax to call an AI agent from within a workflow step.
 ---
 
 import { GithubLink } from "@/components/github-link";
 
-# Calling an Agent From a Workflow
+# Calling an Agent From a Workflow ✅
 
 This example demonstrates how to create a workflow that calls an AI agent to sugest activities for the provided weather conditions, and execute it within a workflow step.
 
-## Define Planning Agent
+## Define Planning Agent ✅
 Define a planning agent which leverages an LLM call to plan activities given a location and corresponding weather conditions.
 
 ```ts showLineNumbers copy filename="agents/planning-agent.ts"
-import { Agent } from '@mastra/core/agent'
+import { Agent } from '@kastrax/core/agent'
 import { openai } from '@ai-sdk/openai'
 
 const llm = openai('gpt-4o')
@@ -67,10 +67,10 @@ const planningAgent = new Agent({
 export { planningAgent }
 ```
 
-## Define Weather Workflow
+## Define Weather Workflow ✅
 Define the weather workflow with 2 steps: one to fetch the weather via a network call, and another to plan activities using the planning agent.
 ```ts showLineNumbers copy filename="workflows/agent-workflow.ts"
-import { createWorkflow, createStep } from '@mastra/core/workflows/vNext'
+import { createWorkflow, createStep } from '@kastrax/core/workflows/vNext'
 import { z } from 'zod'
 
 function getWeatherCondition(code: number): string {
@@ -165,7 +165,7 @@ const planActivities = createStep({
   outputSchema: z.object({
     activities: z.string(),
   }),
-  execute: async ({ inputData, mastra }) => {
+  execute: async ({ inputData, kastrax }) => {
     const forecast = inputData
 
     if (!forecast) {
@@ -176,7 +176,7 @@ const planActivities = createStep({
       ${JSON.stringify(forecast, null, 2)}
       `
 
-    const agent = mastra?.getAgent('planningAgent')
+    const agent = kastrax?.getAgent('planningAgent')
     if (!agent) {
       throw new Error('Planning agent not found')
     }
@@ -219,17 +219,17 @@ weatherWorkflow.commit()
 export { weatherWorkflow }
 ```
 
-## Register Agent and Workflow instances with Mastra class
-Register the planning agent and weather workflow with the mastra instance.
+## Register Agent and Workflow instances with Kastrax class ✅
+Register the planning agent and weather workflow with the kastrax instance.
 This is critical for enabling access to the planning agent within the weather workflow.
 
 ```ts showLineNumbers copy filename="index.ts"
-import { Mastra } from '@mastra/core/mastra'
-import { createLogger } from '@mastra/core/logger'
+import { Kastrax } from '@kastrax/core/kastrax'
+import { createLogger } from '@kastrax/core/logger'
 import { weatherWorkflow } from './workflows'
 import { planningAgent } from './agents'
 
-const mastra = new Mastra({
+const kastrax = new Kastrax({
   vnext_workflows: {
     weatherWorkflow,
   },
@@ -237,24 +237,24 @@ const mastra = new Mastra({
     planningAgent,
   },
   logger: createLogger({
-    name: 'Mastra',
+    name: 'Kastrax',
     level: 'info',
   }),
 })
 
-export { mastra }
+export { kastrax }
 ```
 
-## Execute the weather workflow
-Here, we'll get the weather workflow from the mastra instance, then create a run and execute the created run with the required inputData.
+## Execute the weather workflow ✅
+Here, we'll get the weather workflow from the kastrax instance, then create a run and execute the created run with the required inputData.
 
-## Execute the weather workflow
-Here, we'll get the weather workflow from the mastra instance, then create a run and execute the created run with the required inputData.
+## Execute the weather workflow ✅
+Here, we'll get the weather workflow from the kastrax instance, then create a run and execute the created run with the required inputData.
 
 ```ts showLineNumbers copy filename="exec.ts"
-import { mastra } from "./"
+import { kastrax } from "./"
 
-const workflow = mastra.vnext_getWorkflow('weatherWorkflow')
+const workflow = kastrax.vnext_getWorkflow('weatherWorkflow')
 const run = workflow.createRun()
 
 const result = await run.start({ inputData: { city: 'New York' } })
@@ -269,7 +269,7 @@ console.dir(result, { depth: null })
 <br />
 <GithubLink
   link={
-    "https://github.com/mastra-ai/mastra/blob/main/examples/basics/workflows/calling-agent"
+    "https://github.com/kastrax-ai/kastrax/blob/main/examples/basics/workflows/calling-agent"
   }
 />
 

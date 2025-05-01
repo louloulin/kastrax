@@ -1,0 +1,448 @@
+---
+title: "Agent Architectures | Agent Documentation | Kastrax"
+description: "Overview of different agent architectures in Kastrax, including adaptive, goal-oriented, hierarchical, reflective, and creative agents."
+---
+
+# Agent Architectures ✅
+
+Kastrax provides several specialized agent architectures, each designed for different use cases and behaviors. This guide explains the available architectures and how to implement them.
+
+## Architecture Overview ✅
+
+Kastrax supports the following agent architectures:
+
+1. **Adaptive Agents**: Adjust behavior based on user preferences and feedback
+2. **Goal-Oriented Agents**: Focus on achieving specific objectives through planning and task execution
+3. **Hierarchical Agents**: Organize complex tasks into manageable subtasks with a hierarchy of responsibility
+4. **Reflective Agents**: Self-monitor and improve performance through reflection
+5. **Creative Agents**: Generate creative content with enhanced capabilities
+
+Each architecture extends the basic agent with specialized behaviors and capabilities.
+
+## Adaptive Agents ✅
+
+Adaptive agents adjust their behavior based on user preferences and feedback. They're ideal for personalized experiences that improve over time.
+
+### Key Features ✅
+
+- User preference tracking
+- Behavior adaptation
+- Personalized responses
+- Learning from feedback
+
+### Implementation ✅
+
+```kotlin
+import ai.kastrax.core.agent.architecture.adaptiveAgent
+import ai.kastrax.core.agent.architecture.UserPreference
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.runBlocking
+
+fun createAdaptiveAgent() = adaptiveAgent {
+    name("AdaptiveAssistant")
+    description("An assistant that adapts to user preferences")
+    
+    // Configure the LLM
+    model = deepSeek {
+        apiKey("your-deepseek-api-key")
+        model(DeepSeekModel.DEEPSEEK_CHAT)
+        temperature(0.7)
+    }
+    
+    // Define user preferences
+    preferences {
+        preference(
+            UserPreference(
+                name = "ResponseLength",
+                description = "How detailed responses should be",
+                options = listOf("Concise", "Detailed", "Comprehensive"),
+                defaultValue = "Detailed"
+            )
+        )
+        
+        preference(
+            UserPreference(
+                name = "Tone",
+                description = "The tone of responses",
+                options = listOf("Professional", "Friendly", "Technical"),
+                defaultValue = "Friendly"
+            )
+        )
+    }
+    
+    // Define adaptation strategy
+    adaptationStrategy {
+        // Analyze user messages to infer preferences
+        analyzeUserMessage { message ->
+            if (message.contains("brief") || message.contains("concise")) {
+                updatePreference("ResponseLength", "Concise")
+            } else if (message.contains("detailed") || message.contains("explain")) {
+                updatePreference("ResponseLength", "Detailed")
+            }
+            
+            if (message.contains("technical") || message.contains("advanced")) {
+                updatePreference("Tone", "Technical")
+            } else if (message.contains("simple") || message.contains("easy")) {
+                updatePreference("Tone", "Friendly")
+            }
+        }
+    }
+}
+
+fun main() = runBlocking {
+    val agent = createAdaptiveAgent()
+    
+    // Test the agent
+    println(agent.generate("Can you give me a brief explanation of quantum computing?").text)
+    println(agent.generate("Now I want a detailed technical explanation of quantum entanglement.").text)
+}
+```
+
+## Goal-Oriented Agents ✅
+
+Goal-oriented agents focus on achieving specific objectives through planning and task execution. They're ideal for complex problem-solving scenarios.
+
+### Key Features ✅
+
+- Goal definition and tracking
+- Task planning and prioritization
+- Progress monitoring
+- Outcome evaluation
+
+### Implementation ✅
+
+```kotlin
+import ai.kastrax.core.agent.architecture.goalOrientedAgent
+import ai.kastrax.core.agent.architecture.GoalPriority
+import ai.kastrax.core.agent.architecture.TaskPriority
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.runBlocking
+import kotlinx.datetime.Clock
+import kotlinx.datetime.DateTimeUnit
+import kotlinx.datetime.plus
+
+fun createGoalOrientedAgent() = goalOrientedAgent {
+    name("ProjectManager")
+    description("A goal-oriented agent that helps manage projects")
+    
+    // Configure the LLM
+    model = deepSeek {
+        apiKey("your-deepseek-api-key")
+        model(DeepSeekModel.DEEPSEEK_CHAT)
+        temperature(0.7)
+    }
+    
+    // Define goals
+    goals {
+        goal(
+            id = "complete-project",
+            description = "Complete the website redesign project",
+            priority = GoalPriority.HIGH,
+            deadline = Clock.System.now().plus(30, DateTimeUnit.DAY)
+        )
+    }
+    
+    // Define tasks for goals
+    tasks("complete-project") {
+        task(
+            id = "gather-requirements",
+            description = "Gather project requirements from stakeholders",
+            priority = TaskPriority.HIGH,
+            estimatedDuration = 3 // days
+        )
+        
+        task(
+            id = "create-wireframes",
+            description = "Create wireframes based on requirements",
+            priority = TaskPriority.MEDIUM,
+            estimatedDuration = 5, // days
+            dependencies = listOf("gather-requirements")
+        )
+        
+        task(
+            id = "develop-frontend",
+            description = "Develop frontend based on wireframes",
+            priority = TaskPriority.MEDIUM,
+            estimatedDuration = 10, // days
+            dependencies = listOf("create-wireframes")
+        )
+    }
+}
+
+fun main() = runBlocking {
+    val agent = createGoalOrientedAgent()
+    
+    // Test the agent
+    println(agent.generate("What's the current status of the website redesign project?").text)
+    println(agent.generate("What tasks should we focus on this week?").text)
+}
+```
+
+## Hierarchical Agents ✅
+
+Hierarchical agents break down complex tasks into manageable subtasks, creating a hierarchy of responsibility. They're ideal for complex workflows with multiple steps.
+
+### Key Features ✅
+
+- Task decomposition
+- Hierarchical planning
+- Delegated execution
+- Result coordination
+
+### Implementation ✅
+
+```kotlin
+import ai.kastrax.core.agent.architecture.hierarchicalAgent
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.runBlocking
+
+fun createHierarchicalAgent() = hierarchicalAgent {
+    name("ResearchAssistant")
+    description("A hierarchical agent that helps with research tasks")
+    
+    // Configure the LLM
+    model = deepSeek {
+        apiKey("your-deepseek-api-key")
+        model(DeepSeekModel.DEEPSEEK_CHAT)
+        temperature(0.7)
+    }
+    
+    // Define coordinator agent
+    coordinator {
+        name("Coordinator")
+        description("Coordinates the research process")
+        
+        systemPrompt("""
+            You are the coordinator of a research team. Your job is to:
+            1. Understand the research question
+            2. Break it down into subtasks
+            3. Assign tasks to specialists
+            4. Synthesize their results into a final answer
+            
+            Be thorough and organized in your approach.
+        """.trimIndent())
+    }
+    
+    // Define specialist agents
+    specialists {
+        specialist("Researcher") {
+            description("Finds relevant information")
+            
+            systemPrompt("""
+                You are a research specialist. Your job is to:
+                1. Search for relevant information on the specified topic
+                2. Evaluate the credibility of sources
+                3. Extract key facts and data
+                4. Organize information logically
+                
+                Be thorough and cite your sources.
+            """.trimIndent())
+        }
+        
+        specialist("Analyst") {
+            description("Analyzes information")
+            
+            systemPrompt("""
+                You are an analysis specialist. Your job is to:
+                1. Analyze the provided information
+                2. Identify patterns and trends
+                3. Make connections between different pieces of information
+                4. Evaluate the significance of findings
+                
+                Be critical and objective in your analysis.
+            """.trimIndent())
+        }
+        
+        specialist("Writer") {
+            description("Writes the final report")
+            
+            systemPrompt("""
+                You are a writing specialist. Your job is to:
+                1. Organize research findings into a coherent narrative
+                2. Write clear, concise, and engaging content
+                3. Ensure the writing is appropriate for the target audience
+                4. Proofread for errors and clarity
+                
+                Be clear, concise, and engaging in your writing.
+            """.trimIndent())
+        }
+    }
+}
+
+fun main() = runBlocking {
+    val agent = createHierarchicalAgent()
+    
+    // Test the agent
+    println(agent.generate("Research the impact of artificial intelligence on healthcare").text)
+}
+```
+
+## Reflective Agents ✅
+
+Reflective agents monitor their own performance and continuously improve through self-reflection. They're ideal for complex reasoning tasks that benefit from iterative improvement.
+
+### Key Features ✅
+
+- Self-monitoring
+- Performance evaluation
+- Strategy adjustment
+- Continuous improvement
+
+### Implementation ✅
+
+```kotlin
+import ai.kastrax.core.agent.architecture.reflectiveAgent
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.runBlocking
+
+fun createReflectiveAgent() = reflectiveAgent {
+    name("ReflectiveAssistant")
+    description("A reflective agent that improves through self-evaluation")
+    
+    // Configure the LLM
+    model = deepSeek {
+        apiKey("your-deepseek-api-key")
+        model(DeepSeekModel.DEEPSEEK_CHAT)
+        temperature(0.7)
+    }
+    
+    // Define reflection criteria
+    reflectionCriteria {
+        criterion("Accuracy", "Was the information provided accurate and factual?")
+        criterion("Completeness", "Did the response address all aspects of the query?")
+        criterion("Clarity", "Was the response clear and easy to understand?")
+        criterion("Relevance", "Was the response relevant to the user's query?")
+        criterion("Helpfulness", "Did the response actually help the user?")
+    }
+    
+    // Configure reflection frequency
+    reflectionFrequency(3) // Reflect after every 3 interactions
+    
+    // Define reflection strategy
+    reflectionStrategy {
+        // Evaluate previous response
+        evaluateResponse { response ->
+            // Rate each criterion on a scale of 1-5
+            val ratings = mapOf(
+                "Accuracy" to evaluateCriterion("Accuracy", response),
+                "Completeness" to evaluateCriterion("Completeness", response),
+                "Clarity" to evaluateCriterion("Clarity", response),
+                "Relevance" to evaluateCriterion("Relevance", response),
+                "Helpfulness" to evaluateCriterion("Helpfulness", response)
+            )
+            
+            // Identify areas for improvement
+            val improvementAreas = ratings.filter { it.value < 4 }.keys
+            
+            // Generate improvement strategies
+            val strategies = improvementAreas.map { criterion ->
+                "Improve $criterion: ${generateImprovementStrategy(criterion)}"
+            }
+            
+            // Update agent's approach based on reflection
+            updateApproach(strategies)
+        }
+    }
+}
+
+fun main() = runBlocking {
+    val agent = createReflectiveAgent()
+    
+    // Test the agent
+    println(agent.generate("Explain how neural networks work").text)
+    println(agent.generate("Compare supervised learning and unsupervised learning").text)
+    println(agent.generate("What are the ethical implications of AI?").text)
+    // After the third query, the agent will reflect and improve
+}
+```
+
+## Creative Agents ✅
+
+Creative agents specialize in generating stories, poetry, and creative ideas. They have enhanced capabilities for creative expression.
+
+### Key Features ✅
+
+- Creative content generation
+- Style adaptation
+- Theme exploration
+- Narrative construction
+
+### Implementation ✅
+
+```kotlin
+import ai.kastrax.core.agent.architecture.creativeAgent
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.runBlocking
+
+fun createCreativeAgent() = creativeAgent {
+    name("CreativeWriter")
+    description("A creative agent that generates stories and poetry")
+    
+    // Configure the LLM
+    model = deepSeek {
+        apiKey("your-deepseek-api-key")
+        model(DeepSeekModel.DEEPSEEK_CHAT)
+        temperature(0.9) // Higher temperature for more creativity
+    }
+    
+    // Define creative capabilities
+    creativeCapabilities {
+        capability("StoryGeneration", "Generate engaging short stories")
+        capability("PoetryWriting", "Write poetry in various styles")
+        capability("IdeaGeneration", "Generate creative ideas for various purposes")
+        capability("CharacterCreation", "Create detailed and interesting characters")
+    }
+    
+    // Define creative styles
+    creativeStyles {
+        style("Fantasy", "Magical and supernatural elements")
+        style("SciFi", "Futuristic and technological themes")
+        style("Mystery", "Suspenseful and mysterious tone")
+        style("Comedy", "Humorous and lighthearted approach")
+        style("Drama", "Emotional and character-driven narratives")
+    }
+    
+    // Configure creativity parameters
+    creativityParameters {
+        parameter("Originality", 0.8f) // Preference for original ideas
+        parameter("Coherence", 0.7f) // Balance between coherence and creativity
+        parameter("Detail", 0.6f) // Level of descriptive detail
+        parameter("EmotionalImpact", 0.9f) // Emphasis on emotional resonance
+    }
+}
+
+fun main() = runBlocking {
+    val agent = createCreativeAgent()
+    
+    // Test the agent
+    println(agent.generate("Write a short story about a robot discovering emotions").text)
+    println(agent.generate("Create a haiku about the changing seasons").text)
+}
+```
+
+## Choosing the Right Architecture ✅
+
+When choosing an agent architecture, consider these factors:
+
+| Architecture | Best For | Key Advantages |
+|--------------|----------|----------------|
+| Adaptive | Personalized experiences | Adapts to user preferences |
+| Goal-Oriented | Project management, planning | Focuses on achieving goals |
+| Hierarchical | Complex multi-step tasks | Breaks problems into manageable parts |
+| Reflective | Critical thinking, continuous improvement | Self-evaluates and improves |
+| Creative | Content generation, brainstorming | Generates creative and original content |
+
+You can also combine architectures by implementing their key features in a custom agent.
+
+## Next Steps ✅
+
+Now that you understand the different agent architectures, you can:
+
+1. Explore the [memory system](../memory/overview.mdx)
+2. Learn about [tool integration](../tools/overview.mdx)
+3. Implement [agent workflows](../workflows/overview.mdx)

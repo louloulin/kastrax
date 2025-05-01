@@ -1,21 +1,21 @@
 ---
-title: "Example: Conditional Branching (experimental) | Workflows | Mastra Docs"
-description: Example of using Mastra to create conditional branches in workflows using if/else statements.
+title: "Example: Conditional Branching (experimental) | Workflows | Kastrax Docs"
+description: Example of using Kastrax to create conditional branches in workflows using if/else statements.
 ---
 
 import { GithubLink } from '@/components/github-link';
 
-# Workflow with Conditional Branching (experimental)
+# Workflow with Conditional Branching (experimental) ✅
 
 Workflows often need to follow different paths based on conditions. This example demonstrates how to use `if` and `else` to create conditional branches in your workflows.
 
-## Basic If/Else Example
+## Basic If/Else Example ✅
 
 This example shows a simple workflow that takes different paths based on a numeric value:
 
 ```ts showLineNumbers copy
-import { Mastra } from '@mastra/core';
-import { Step, Workflow } from '@mastra/core/workflows';
+import { Kastrax } from '@kastrax/core';
+import { Step, Workflow } from '@kastrax/core/workflows';
 import { z } from 'zod';
 
 
@@ -94,13 +94,13 @@ conditionalWorkflow
   .commit();
 
 // Register the workflow
-const mastra = new Mastra({
+const kastrax = new Kastrax({
   workflows: { conditionalWorkflow },
 });
 
 // Example usage
 async function runWorkflow(inputValue: number) {
-  const workflow = mastra.getWorkflow('conditionalWorkflow');
+  const workflow = kastrax.getWorkflow('conditionalWorkflow');
   const { start } = workflow.createRun();
 
   const result = await start({
@@ -121,7 +121,7 @@ console.log('Result 2:', result2);
 
 ```
 
-## Using Reference-Based Conditions
+## Using Reference-Based Conditions ✅
 
 You can also use reference-based conditions with comparison operators:
 
@@ -147,5 +147,5 @@ conditionalWorkflow
 <br />
 <br />
 <GithubLink
-  link={'https://github.com/mastra-ai/mastra/blob/main/examples/basics/workflows/conditional-branching'}
+  link={'https://github.com/kastrax-ai/kastrax/blob/main/examples/basics/workflows/conditional-branching'}
 />

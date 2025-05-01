@@ -1,61 +1,61 @@
 ---
-title: Deploying to Mastra Cloud
-description: GitHub-based deployment process for Mastra applications
+title: Deploying to Kastrax Cloud
+description: GitHub-based deployment process for Kastrax applications
 ---
 
-# Deploying to Mastra Cloud
+# Deploying to Kastrax Cloud ✅
 
-This page describes the deployment process for Mastra applications to Mastra Cloud using GitHub integration.
+This page describes the deployment process for Kastrax applications to Kastrax Cloud using GitHub integration.
 
-## Prerequisites
+## Prerequisites ✅
 
 - A GitHub account
-- A GitHub repository containing a Mastra application
-- Access to Mastra Cloud
+- A GitHub repository containing a Kastrax application
+- Access to Kastrax Cloud
 
-## Deployment Process
+## Deployment Process ✅
 
-Mastra Cloud uses a Git-based deployment workflow similar to platforms like Vercel and Netlify:
+Kastrax Cloud uses a Git-based deployment workflow similar to platforms like Vercel and Netlify:
 
 1. **Import GitHub Repository**
    - From the Projects dashboard, click "Add new"
-   - Select the repository containing your Mastra application
+   - Select the repository containing your Kastrax application
    - Click "Import" next to the desired repository
 
 2. **Configure Deployment Settings**
    - Set the project name (defaults to repository name)
    - Select branch to deploy (typically `main`)
-   - Configure the Mastra directory path (defaults to `src/mastra`)
+   - Configure the Kastrax directory path (defaults to `src/kastrax`)
    - Add necessary environment variables (like API keys)
 
 3. **Deploy from Git**
    - After initial configuration, deployments are triggered by pushes to the selected branch
-   - Mastra Cloud automatically builds and deploys your application
+   - Kastrax Cloud automatically builds and deploys your application
    - Each deployment creates an atomic snapshot of your agents and workflows
 
-## Automatic Deployments
+## Automatic Deployments ✅
 
-Mastra Cloud follows a Git-driven workflow:
+Kastrax Cloud follows a Git-driven workflow:
 
-1. Make changes to your Mastra application locally
+1. Make changes to your Kastrax application locally
 2. Commit changes to the `main` branch
 3. Push to GitHub
-4. Mastra Cloud automatically detects the push and creates a new deployment
+4. Kastrax Cloud automatically detects the push and creates a new deployment
 5. Once the build completes, your application is live
 
-## Deployment Domains
+## Deployment Domains ✅
 
 Each project receives two URLs:
 
-1. **Project-specific domain**: `https://[project-name].mastra.cloud`
-   - Example: `https://gray-acoustic-helicopter.mastra.cloud`
+1. **Project-specific domain**: `https://[project-name].kastrax.cloud`
+   - Example: `https://gray-acoustic-helicopter.kastrax.cloud`
 
-2. **Deployment-specific domain**: `https://[deployment-id].mastra.cloud`
-   - Example: `https://young-loud-caravan-6156280f-ad56-4ec8-9701-6bb5271fd73d.mastra.cloud`
+2. **Deployment-specific domain**: `https://[deployment-id].kastrax.cloud`
+   - Example: `https://young-loud-caravan-6156280f-ad56-4ec8-9701-6bb5271fd73d.kastrax.cloud`
 
 These URLs provide direct access to your deployed agents and workflows.
 
-## Viewing Deployments
+## Viewing Deployments ✅
 
 ![Deployments List](../../../../../public/image/cloud-agents.png)
 
@@ -67,9 +67,9 @@ The deployments section in the dashboard shows:
 - **Commit**: The Git commit hash
 - **Updated At**: Timestamp of the deployment
 
-Each deployment represents an atomic snapshot of your Mastra application at a specific point in time.
+Each deployment represents an atomic snapshot of your Kastrax application at a specific point in time.
 
-## Interacting with Agents
+## Interacting with Agents ✅
 
 ![Agent Interface](../../../../../public/image/cloud-agent.png)
 
@@ -87,7 +87,7 @@ After deployment, interact with your agents:
 
 The interface shows the agent's branch (typically "main") and indicates whether conversation memory is enabled.
 
-## Monitoring Logs
+## Monitoring Logs ✅
 
 The Logs section provides detailed information about your application:
 
@@ -101,7 +101,7 @@ The Logs section provides detailed information about your application:
 
 These logs help debug and monitor your application's behavior in the production environment.
 
-## Workflows
+## Workflows ✅
 
 ![Workflows Interface](../../../../../public/image/cloud-workflows.png)
 
@@ -111,9 +111,9 @@ The Workflows section allows you to view and interact with your deployed workflo
 2. Examine workflow structure and steps
 3. Access execution history and performance data
 
-## Database Usage
+## Database Usage ✅
 
-Mastra Cloud tracks database utilization metrics:
+Kastrax Cloud tracks database utilization metrics:
 
 - Number of reads
 - Number of writes
@@ -121,7 +121,7 @@ Mastra Cloud tracks database utilization metrics:
 
 These metrics appear in the project overview, helping you monitor resource consumption.
 
-## Deployment Configuration
+## Deployment Configuration ✅
 
 Configure your deployment through the dashboard:
 
@@ -131,6 +131,6 @@ Configure your deployment through the dashboard:
 
 Changes to configuration require a new deployment to take effect.
 
-## Next Steps
+## Next Steps ✅
 
 After deployment, [trace and monitor execution](./observability.mdx) using the observability tools.

@@ -1,16 +1,16 @@
 ---
-title: "Reference: OpenAI Voice | Voice Providers | Mastra Docs"
+title: "Reference: OpenAI Voice | Voice Providers | Kastrax Docs"
 description: "Documentation for the OpenAIVoice class, providing text-to-speech and speech-to-text capabilities."
 ---
 
-# OpenAI
+# OpenAI ✅
 
-The OpenAIVoice class in Mastra provides text-to-speech and speech-to-text capabilities using OpenAI's models.
+The OpenAIVoice class in Kastrax provides text-to-speech and speech-to-text capabilities using OpenAI's models.
 
-## Usage Example
+## Usage Example ✅
 
 ```typescript
-import { OpenAIVoice } from '@mastra/voice-openai';
+import { OpenAIVoice } from '@kastrax/voice-openai';
 
 // Initialize with default configuration using environment variables
 const voice = new OpenAIVoice();
@@ -40,7 +40,7 @@ const text = await voice.listen(audioStream, {
 });
 ```
 
-## Configuration
+## Configuration ✅
 
 ### Constructor Options
 
@@ -89,7 +89,7 @@ const text = await voice.listen(audioStream, {
   ]}
 />
 
-## Methods
+## Methods ✅
 
 ### speak()
 
@@ -161,7 +161,7 @@ Returns an array of available voice options, where each node contains:
   ]}
 />
 
-## Notes
+## Notes ✅
 
 - API keys can be provided via constructor options or the `OPENAI_API_KEY` environment variable
 - The `tts-1-hd` model provides higher quality audio but may have slower processing times

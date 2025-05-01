@@ -1,28 +1,28 @@
 ---
-title: "Dynamic Workflows | Mastra Docs"
+title: "Dynamic Workflows | Kastrax Docs"
 description: "Learn how to create dynamic workflows within workflow steps, allowing for flexible workflow creation based on runtime conditions."
 ---
 
-# Dynamic Workflows
+# Dynamic Workflows ✅
 
 This guide demonstrates how to create dynamic workflows within a workflow step. This advanced pattern allows you to create and execute workflows on the fly based on runtime conditions.
 
-## Overview
+## Overview ✅
 
 Dynamic workflows are useful when you need to create workflows based on runtime data.
 
-## Implementation
+## Implementation ✅
 
-The key to creating dynamic workflows is accessing the Mastra instance from within a step's `execute` function and using it to create and run a new workflow.
+The key to creating dynamic workflows is accessing the Kastrax instance from within a step's `execute` function and using it to create and run a new workflow.
 
 ### Basic Example
 
 ```typescript
-import { Mastra, Step, Workflow } from '@mastra/core';
+import { Kastrax, Step, Workflow } from '@kastrax/core';
 import { z } from 'zod';
 
-const isMastra = (mastra: any): mastra is Mastra => {
-  return mastra && typeof mastra === 'object' && mastra instanceof Mastra;
+const isKastrax = (kastrax: any): kastrax is Kastrax => {
+  return kastrax && typeof kastrax === 'object' && kastrax instanceof Kastrax;
 };
 
 // Step that creates and runs a dynamic workflow
@@ -31,13 +31,13 @@ const createDynamicWorkflow = new Step({
   outputSchema: z.object({
     dynamicWorkflowResult: z.any(),
   }),
-  execute: async ({ context, mastra }) => {
-    if (!mastra) {
-      throw new Error('Mastra instance not available');
+  execute: async ({ context, kastrax }) => {
+    if (!kastrax) {
+      throw new Error('Kastrax instance not available');
     }
 
-    if (!isMastra(mastra)) {
-      throw new Error('Invalid Mastra instance');
+    if (!isKastrax(kastrax)) {
+      throw new Error('Invalid Kastrax instance');
     }
 
     const inputData = context.triggerData.inputData;
@@ -45,7 +45,7 @@ const createDynamicWorkflow = new Step({
     // Create a new dynamic workflow
     const dynamicWorkflow = new Workflow({
       name: 'dynamic-workflow',
-      mastra, // Pass the mastra instance to the new workflow
+      kastrax, // Pass the kastrax instance to the new workflow
       triggerSchema: z.object({
         dynamicInput: z.string(),
       }),
@@ -94,13 +94,13 @@ const mainWorkflow = new Workflow({
   triggerSchema: z.object({
     inputData: z.string(),
   }),
-  mastra: new Mastra(),
+  kastrax: new Kastrax(),
 });
 
 mainWorkflow.step(createDynamicWorkflow).commit();
 
-// Register the workflow with Mastra
-export const mastra = new Mastra({
+// Register the workflow with Kastrax
+export const kastrax = new Kastrax({
   workflows: { mainWorkflow },
 });
 
@@ -112,14 +112,14 @@ const result = await run.start({
 });
 ```
 
-## Advanced Example: Workflow Factory
+## Advanced Example: Workflow Factory ✅
 
 You can create a workflow factory that generates different workflows based on input parameters:
 
 ```typescript
 
-const isMastra = (mastra: any): mastra is Mastra => {
-  return mastra && typeof mastra === 'object' && mastra instanceof Mastra;
+const isKastrax = (kastrax: any): kastrax is Kastrax => {
+  return kastrax && typeof kastrax === 'object' && kastrax instanceof Kastrax;
 };
 
 const workflowFactory = new Step({
@@ -131,19 +131,19 @@ const workflowFactory = new Step({
   outputSchema: z.object({
     result: z.any(),
   }),
-  execute: async ({ context, mastra }) => {
-    if (!mastra) {
-      throw new Error('Mastra instance not available');
+  execute: async ({ context, kastrax }) => {
+    if (!kastrax) {
+      throw new Error('Kastrax instance not available');
     }
 
-    if (!isMastra(mastra)) {
-      throw new Error('Invalid Mastra instance');
+    if (!isKastrax(kastrax)) {
+      throw new Error('Invalid Kastrax instance');
     }
 
     // Create a new dynamic workflow based on the type
     const dynamicWorkflow = new Workflow({
       name: `dynamic-${context.workflowType}-workflow`,
-      mastra,
+      kastrax,
       triggerSchema: z.object({
         input: z.string(),
       }),
@@ -212,25 +212,25 @@ const workflowFactory = new Step({
 });
 ```
 
-## Important Considerations
+## Important Considerations ✅
 
-1. **Mastra Instance**: The `mastra` parameter in the `execute` function provides access to the Mastra instance, which is essential for creating dynamic workflows.
+1. **Kastrax Instance**: The `kastrax` parameter in the `execute` function provides access to the Kastrax instance, which is essential for creating dynamic workflows.
 
-2. **Error Handling**: Always check if the Mastra instance is available before attempting to create a dynamic workflow.
+2. **Error Handling**: Always check if the Kastrax instance is available before attempting to create a dynamic workflow.
 
 3. **Resource Management**: Dynamic workflows consume resources, so be mindful of creating too many workflows in a single execution.
 
-4. **Workflow Lifecycle**: Dynamic workflows are not automatically registered with the main Mastra instance. They exist only for the duration of the step execution unless you explicitly register them.
+4. **Workflow Lifecycle**: Dynamic workflows are not automatically registered with the main Kastrax instance. They exist only for the duration of the step execution unless you explicitly register them.
 
 5. **Debugging**: Debugging dynamic workflows can be challenging. Consider adding detailed logging to track their creation and execution.
 
-## Use Cases
+## Use Cases ✅
 
 - **Conditional Workflow Selection**: Choose different workflow patterns based on input data
 - **Parameterized Workflows**: Create workflows with dynamic configurations
 - **Workflow Templates**: Use templates to generate specialized workflows
 - **Multi-tenant Applications**: Create isolated workflows for different tenants
 
-## Conclusion
+## Conclusion ✅
 
-Dynamic workflows provide a powerful way to create flexible, adaptable workflow systems. By leveraging the Mastra instance within step execution, you can create workflows that respond to runtime conditions and requirements.
+Dynamic workflows provide a powerful way to create flexible, adaptable workflow systems. By leveraging the Kastrax instance within step execution, you can create workflows that respond to runtime conditions and requirements.

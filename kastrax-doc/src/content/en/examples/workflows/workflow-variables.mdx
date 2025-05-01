@@ -1,13 +1,13 @@
 ---
-title: "Data Mapping with Workflow Variables | Mastra Examples"
-description: "Learn how to use workflow variables to map data between steps in Mastra workflows."
+title: "Data Mapping with Workflow Variables | Kastrax Examples"
+description: "Learn how to use workflow variables to map data between steps in Kastrax workflows."
 ---
 
-# Data Mapping with Workflow Variables
+# Data Mapping with Workflow Variables ✅
 
-This example demonstrates how to use workflow variables to map data between steps in a Mastra workflow.
+This example demonstrates how to use workflow variables to map data between steps in a Kastrax workflow.
 
-## Use Case: User Registration Process
+## Use Case: User Registration Process ✅
 
 In this example, we'll build a simple user registration workflow that:
 
@@ -15,10 +15,10 @@ In this example, we'll build a simple user registration workflow that:
 1. Formats the user data
 1. Creates a user profile
 
-## Implementation
+## Implementation ✅
 
-```typescript showLineNumbers filename="src/mastra/workflows/user-registration.ts" copy
-import { Step, Workflow } from "@mastra/core/workflows";
+```typescript showLineNumbers filename="src/kastrax/workflows/user-registration.ts" copy
+import { Step, Workflow } from "@kastrax/core/workflows";
 import { z } from "zod";
 
 // Define our schemas for better type safety
@@ -174,10 +174,10 @@ registrationWorkflow
 export default registrationWorkflow;
 ```
 
-## How to Use This Example
+## How to Use This Example ✅
 
 1. Create the file as shown above
-2. Register the workflow in your Mastra instance
+2. Register the workflow in your Kastrax instance
 3. Execute the workflow:
 
 ```bash
@@ -190,7 +190,7 @@ curl --location 'http://localhost:4111/api/workflows/user-registration/start-asy
      }'
 ```
 
-## Key Takeaways
+## Key Takeaways ✅
 
 This example demonstrates several important concepts about workflow variables:
 

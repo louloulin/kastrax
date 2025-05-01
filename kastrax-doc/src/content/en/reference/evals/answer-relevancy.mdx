@@ -1,17 +1,17 @@
 ---
-title: "Reference: Answer Relevancy | Metrics | Evals | Mastra Docs"
-description: Documentation for the Answer Relevancy Metric in Mastra, which evaluates how well LLM outputs address the input query.
+title: "Reference: Answer Relevancy | Metrics | Evals | Kastrax Docs"
+description: Documentation for the Answer Relevancy Metric in Kastrax, which evaluates how well LLM outputs address the input query.
 ---
 
-# AnswerRelevancyMetric
+# AnswerRelevancyMetric ✅
 
 The `AnswerRelevancyMetric` class evaluates how well an LLM's output answers or addresses the input query. It uses a judge-based system to determine relevancy and provides detailed scoring and reasoning.
 
-## Basic Usage
+## Basic Usage ✅
 
 ```typescript
 import { openai } from "@ai-sdk/openai";
-import { AnswerRelevancyMetric } from "@mastra/evals/llm";
+import { AnswerRelevancyMetric } from "@kastrax/evals/llm";
 
 // Configure the model for evaluation
 const model = openai("gpt-4o-mini");
@@ -30,7 +30,7 @@ console.log(result.score); // Score from 0-1
 console.log(result.info.reason); // Explanation of the score
 ```
 
-## Constructor Parameters
+## Constructor Parameters ✅
 
 <PropertiesTable
   content={[
@@ -71,7 +71,7 @@ console.log(result.info.reason); // Explanation of the score
   ]}
 />
 
-## measure() Parameters
+## measure() Parameters ✅
 
 <PropertiesTable
   content={[
@@ -90,7 +90,7 @@ console.log(result.info.reason); // Explanation of the score
   ]}
 />
 
-## Returns
+## Returns ✅
 
 <PropertiesTable
   content={[
@@ -119,7 +119,7 @@ console.log(result.info.reason); // Explanation of the score
   ]}
 />
 
-## Scoring Details
+## Scoring Details ✅
 
 The metric evaluates relevancy through query-answer alignment, considering completeness, accuracy, and detail level.
 
@@ -144,11 +144,11 @@ Final score: `((direct + uncertainty * partial) / total_statements) * scale`
 - 0.1-0.3: Low relevance - major issues
 - 0.0: No relevance - incorrect or off-topic
 
-## Example with Custom Configuration
+## Example with Custom Configuration ✅
 
 ```typescript
 import { openai } from "@ai-sdk/openai";
-import { AnswerRelevancyMetric } from "@mastra/evals/llm";
+import { AnswerRelevancyMetric } from "@kastrax/evals/llm";
 
 // Configure the model for evaluation
 const model = openai("gpt-4o-mini");
@@ -179,7 +179,7 @@ const result = await metric.measure(
 // }
 ```
 
-## Related
+## Related ✅
 
 - [Prompt Alignment Metric](./prompt-alignment)
 - [Context Precision Metric](./context-precision)

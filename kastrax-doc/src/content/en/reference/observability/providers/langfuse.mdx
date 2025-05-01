@@ -1,17 +1,17 @@
 ---
-title: "Reference: Langfuse Integration | Mastra Observability Docs"
-description: Documentation for integrating Langfuse with Mastra, an open-source observability platform for LLM applications.
+title: "Reference: Langfuse Integration | Kastrax Observability Docs"
+description: Documentation for integrating Langfuse with Kastrax, an open-source observability platform for LLM applications.
 ---
 
-# Langfuse
+# Langfuse ✅
 
 Langfuse is an open-source observability platform designed specifically for LLM applications.
 
 > **Note**: Currently, only AI-related calls will contain detailed telemetry data. Other operations will create traces but with limited information.
 
-## Configuration
+## Configuration ✅
 
-To use Langfuse with Mastra, you'll need to configure the following environment variables:
+To use Langfuse with Kastrax, you'll need to configure the following environment variables:
 
 ```env
 LANGFUSE_PUBLIC_KEY=your_public_key
@@ -21,15 +21,15 @@ LANGFUSE_BASEURL=https://cloud.langfuse.com  # Optional - defaults to cloud.lang
 
 **Important**: When configuring the telemetry export settings, the `traceName` parameter must be set to `"ai"` for the Langfuse integration to work properly.
 
-## Implementation
+## Implementation ✅
 
-Here's how to configure Mastra to use Langfuse:
+Here's how to configure Kastrax to use Langfuse:
 
 ```typescript
-import { Mastra } from "@mastra/core";
+import { Kastrax } from "@kastrax/core";
 import { LangfuseExporter } from "langfuse-vercel";
 
-export const mastra = new Mastra({
+export const kastrax = new Kastrax({
   // ... other config
   telemetry: {
     serviceName: "ai", // this must be set to "ai" so that the LangfuseExporter thinks it's an AI SDK trace
@@ -46,6 +46,6 @@ export const mastra = new Mastra({
 });
 ```
 
-## Dashboard
+## Dashboard ✅
 
 Once configured, you can view your traces and analytics in the Langfuse dashboard at [cloud.langfuse.com](https://cloud.langfuse.com)

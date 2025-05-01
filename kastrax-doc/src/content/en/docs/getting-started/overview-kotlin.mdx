@@ -1,0 +1,141 @@
+---
+title: "Introduction | Kastrax Docs"
+description: "Kastrax is a Kotlin agent framework. It helps you build AI applications and features quickly with powerful primitives like agents, actors, memory, tools, and RAG."
+---
+
+# About Kastrax ✅
+
+Kastrax is an open-source Kotlin agent framework designed to provide the primitives you need to build sophisticated AI applications and features.
+
+## Key Features ✅
+
+Kastrax offers a comprehensive set of features for building AI agent systems:
+
+- **Multiple Agent Architectures**: Choose from adaptive, goal-oriented, hierarchical, reflective, and creative agent architectures
+- **Actor Model Integration**: Build distributed, concurrent, and resilient agent systems using the actor model
+- **Advanced Memory System**: Manage working memory, conversation history, and semantic recall
+- **Flexible Tool System**: Create and use tools to extend agent capabilities
+- **RAG System**: Implement retrieval-augmented generation for knowledge-based applications
+- **Workflow Engine**: Create complex, multi-step agent workflows
+- **Multiple LLM Integrations**: Support for DeepSeek, OpenAI, Anthropic, and more
+
+## Getting Started ✅
+
+You can use Kastrax to build [AI agents](/docs/agents/overview.mdx) that have memory and can execute functions, create [distributed agent systems](/docs/actor/overview.mdx) using the actor model, and implement [knowledge-based applications](/docs/rag/overview.mdx) with RAG.
+
+Here's a simple example of creating an agent with Kastrax:
+
+```kotlin
+import ai.kastrax.core.agent.agent
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    // Create a simple agent
+    val myAgent = agent {
+        name("MyFirstAgent")
+        description("A helpful assistant that can answer questions")
+        
+        // Configure the LLM
+        model = deepSeek {
+            apiKey("your-deepseek-api-key")
+            model(DeepSeekModel.DEEPSEEK_CHAT)
+            temperature(0.7)
+        }
+    }
+    
+    // Use the agent
+    val response = myAgent.generate("What is artificial intelligence?")
+    println(response.text)
+}
+```
+
+## Core Components ✅
+
+Kastrax is built around several core components:
+
+### Agent System ✅
+
+The agent system provides a flexible framework for creating AI agents with different architectures:
+
+```kotlin
+// Create an adaptive agent
+val adaptiveAgent = adaptiveAgent {
+    name("AdaptiveAssistant")
+    // Configuration...
+}
+
+// Create a goal-oriented agent
+val goalAgent = goalOrientedAgent {
+    name("ProjectManager")
+    // Configuration...
+}
+```
+
+### Actor Model ✅
+
+The actor model enables distributed, concurrent agent systems:
+
+```kotlin
+// Create an actor system
+val system = actor.proto.ActorSystem.create()
+
+// Create an actor
+val greeter = system.spawn(Props.create(GreetingActor::class.java), "greeter")
+
+// Send a message to the actor
+greeter.tell(Greeting("World"))
+```
+
+### Memory System ✅
+
+The memory system helps agents remember past interactions and important information:
+
+```kotlin
+// Configure memory
+memory = memory {
+    workingMemory(true)
+    conversationHistory(10)
+    semanticMemory(true)
+}
+```
+
+### Tool System ✅
+
+The tool system allows agents to perform actions:
+
+```kotlin
+// Add tools to an agent
+tools {
+    tool("getCurrentTime") {
+        description("Get the current time")
+        parameters {}
+        execute {
+            "The current time is ${java.time.LocalTime.now()}"
+        }
+    }
+}
+```
+
+### RAG System ✅
+
+The RAG system enables knowledge-based applications:
+
+```kotlin
+// Configure RAG
+rag {
+    retriever(retriever)
+    contextBuilder(contextBuilder)
+    maxTokens(3000)
+}
+```
+
+## Next Steps ✅
+
+Ready to dive in? Here's where to go next:
+
+1. [Installation Guide](/docs/getting-started/installation.mdx): Set up Kastrax in your project
+2. [First Agent Tutorial](/docs/getting-started/first-agent.mdx): Create your first Kastrax agent
+3. [Agent Architectures](/docs/agents/architectures.mdx): Learn about different agent types
+4. [Actor Model](/docs/actor/overview.mdx): Understand the distributed actor system

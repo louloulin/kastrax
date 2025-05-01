@@ -1,17 +1,17 @@
 ---
-title: "Reference: Context Position | Metrics | Evals | Mastra Docs"
-description: Documentation for the Context Position Metric in Mastra, which evaluates the ordering of context nodes based on their relevance to the query and output.
+title: "Reference: Context Position | Metrics | Evals | Kastrax Docs"
+description: Documentation for the Context Position Metric in Kastrax, which evaluates the ordering of context nodes based on their relevance to the query and output.
 ---
 
-# ContextPositionMetric
+# ContextPositionMetric ✅
 
 The `ContextPositionMetric` class evaluates how well context nodes are ordered based on their relevance to the query and output. It uses position-weighted scoring to emphasize the importance of having the most relevant context pieces appear earlier in the sequence.
 
-## Basic Usage
+## Basic Usage ✅
 
 ```typescript
 import { openai } from "@ai-sdk/openai";
-import { ContextPositionMetric } from "@mastra/evals/llm";
+import { ContextPositionMetric } from "@kastrax/evals/llm";
 
 // Configure the model for evaluation
 const model = openai("gpt-4o-mini");
@@ -33,7 +33,7 @@ console.log(result.score); // Position score from 0-1
 console.log(result.info.reason); // Explanation of the score
 ```
 
-## Constructor Parameters
+## Constructor Parameters ✅
 
 <PropertiesTable
   content={[
@@ -73,7 +73,7 @@ console.log(result.info.reason); // Explanation of the score
   ]}
 />
 
-## measure() Parameters
+## measure() Parameters ✅
 
 <PropertiesTable
   content={[
@@ -92,7 +92,7 @@ console.log(result.info.reason); // Explanation of the score
   ]}
 />
 
-## Returns
+## Returns ✅
 
 <PropertiesTable
   content={[
@@ -121,7 +121,7 @@ console.log(result.info.reason); // Explanation of the score
   ]}
 />
 
-## Scoring Details
+## Scoring Details ✅
 
 The metric evaluates context positioning through binary relevance assessment and position-based weighting.
 
@@ -147,11 +147,11 @@ Final score: `(weighted_sum / max_possible_sum) * scale`
 - 0.1-0.3: Suboptimal - relevant context mostly later
 - 0.0: Poor ordering - relevant context at end or missing
 
-## Example with Analysis
+## Example with Analysis ✅
 
 ```typescript
 import { openai } from "@ai-sdk/openai";
-import { ContextPositionMetric } from "@mastra/evals/llm";
+import { ContextPositionMetric } from "@kastrax/evals/llm";
 
 // Configure the model for evaluation
 const model = openai("gpt-4o-mini");
@@ -182,7 +182,7 @@ const result = await metric.measure(
 // }
 ```
 
-## Related
+## Related ✅
 
 - [Context Precision Metric](./context-precision)
 - [Answer Relevancy Metric](./answer-relevancy)

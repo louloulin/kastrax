@@ -1,6 +1,4 @@
-import YouTube from "@/components/youtube";
-
-# Working Memory
+# Working Memory ✅
 
 While [conversation history](/docs/memory/overview#conversation-history) and [semantic recall](./semantic-recall.mdx) help agents remember conversations, working memory allows them to maintain persistent information about users across interactions within a thread.
 
@@ -8,80 +6,150 @@ Think of it as the agent's active thoughts or scratchpad – the key information
 
 This is useful for maintaining ongoing state that's always relevant and should always be available to the agent.
 
-## Quick Start
+## Quick Start ✅
 
 Here's a minimal example of setting up an agent with working memory:
 
-```typescript {12-15}
-import { Agent } from "@mastra/core/agent";
-import { Memory } from "@mastra/memory";
-import { openai } from "@ai-sdk/openai";
+```kotlin
+import ai.kastrax.core.agent.agent
+import ai.kastrax.core.memory.memory
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.runBlocking
 
-// Create agent with working memory enabled
-const agent = new Agent({
-  name: "PersonalAssistant",
-  instructions: "You are a helpful personal assistant.",
-  model: openai("gpt-4o"),
-  memory: new Memory({
-    options: {
-      workingMemory: {
-        enabled: true,
-        use: "tool-call", // Recommended setting
-      },
-    },
-  }),
-});
+fun main() = runBlocking {
+    // Create agent with working memory enabled
+    val myAgent = agent {
+        name("AgentWithWorkingMemory")
+        description("An agent that uses working memory")
+        
+        // Configure the LLM
+        model = deepSeek {
+            apiKey("your-deepseek-api-key")
+            model(DeepSeekModel.DEEPSEEK_CHAT)
+            temperature(0.7)
+        }
+        
+        // Configure memory with working memory enabled
+        memory = memory {
+            workingMemory(true)
+            workingMemoryContent("The user's name is Alice and she prefers concise responses.")
+        }
+    }
+    
+    // Use the agent
+    val response = myAgent.generate("Tell me about quantum computing")
+    println(response.text)
+}
 ```
 
-## How it Works
+## How Working Memory Works ✅
 
-Working memory is a block of Markdown text that the agent is able to update over time to store continuously relevant information:
+Working memory is included in every prompt sent to the model. It's a way to provide persistent context that doesn't change between messages.
 
-<YouTube id="ik-ld_XA96s" />
+The working memory content is typically added to the system prompt or as a separate message at the beginning of the conversation history. This ensures the model always has access to this information when generating responses.
 
-## Custom Templates
+## Adding Information to Working Memory ✅
 
-Templates guide the agent on what information to track and update in working memory. While a default template is used if none is provided, you'll typically want to define a custom template tailored to your agent's specific use case to ensure it remembers the most relevant information.
+You can add information to working memory in several ways:
 
-Here's an example of a custom template. In this example the agent will store the users name, location, timezone, etc as soon as the user sends a message containing any of the info:
+### 1. During Agent Creation ✅
 
-```typescript {5-28}
-const memory = new Memory({
-  options: {
-    workingMemory: {
-      enabled: true,
-      template: `
-# User Profile
- 
-## Personal Info
- 
-- Name:
-- Location:
-- Timezone:
- 
-## Preferences
- 
-- Communication Style: [e.g., Formal, Casual]
-- Project Goal:
-- Key Deadlines:
-  - [Deadline 1]: [Date]
-  - [Deadline 2]: [Date]
- 
-## Session State
- 
-- Last Task Discussed:
-- Open Questions:
-  - [Question 1]
-  - [Question 2]
-`,
-    },
-  },
-});
+```kotlin
+memory = memory {
+    workingMemory(true)
+    workingMemoryContent("User: Alice, Preferences: Technical explanations, concise responses")
+}
 ```
 
-If your agent is not properly updating working memory when you expect it to, you can add system instructions on _how_ and _when_ to use this template in your agents `instruction` setting.
+### 2. Updating Working Memory Programmatically ✅
 
-## Examples
+```kotlin
+// Update working memory with new information
+agent.memory.updateWorkingMemory("User: Alice, Preferences: Technical explanations, concise responses, Examples: Preferred")
+```
 
-- [Streaming working memory](/examples/memory/streaming-working-memory)
-- [Using a working memory template](/examples/memory/streaming-working-memory-advanced)
+### 3. Structured Working Memory ✅
+
+For more complex scenarios, you can use structured working memory:
+
+```kotlin
+// Create structured working memory
+val userProfile = mapOf(
+    "name" to "Alice",
+    "preferences" to listOf("Technical explanations", "Concise responses"),
+    "expertise" to "Beginner in quantum physics"
+)
+
+// Convert to string representation
+val workingMemoryContent = "User Profile:\n" + 
+    "Name: ${userProfile["name"]}\n" +
+    "Preferences: ${(userProfile["preferences"] as List<String>).joinToString(", ")}\n" +
+    "Expertise: ${userProfile["expertise"]}"
+
+// Update working memory
+agent.memory.updateWorkingMemory(workingMemoryContent)
+```
+
+## Best Practices ✅
+
+1. **Keep It Concise**: Working memory should contain only the most important information that needs to be available in every interaction.
+
+2. **Structured Format**: Use a clear, structured format for working memory to make it easy for the model to parse.
+
+3. **Update Selectively**: Only update working memory when you have new, important information that should persist across the entire conversation.
+
+4. **Combine with Other Memory Types**: Use working memory alongside conversation history and semantic recall for the best results.
+
+## Example: User Preferences Agent ✅
+
+Here's a complete example of an agent that uses working memory to remember user preferences:
+
+```kotlin
+import ai.kastrax.core.agent.agent
+import ai.kastrax.core.memory.memory
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    // Create agent with working memory
+    val preferencesAgent = agent {
+        name("PreferencesAgent")
+        description("An agent that remembers user preferences")
+        
+        // Configure the LLM
+        model = deepSeek {
+            apiKey("your-deepseek-api-key")
+            model(DeepSeekModel.DEEPSEEK_CHAT)
+            temperature(0.7)
+        }
+        
+        // Configure memory
+        memory = memory {
+            workingMemory(true)
+            conversationHistory(10)
+        }
+    }
+    
+    // Initial interaction
+    val response1 = preferencesAgent.generate("Hi, my name is Alice and I prefer technical explanations that are concise.")
+    println("Agent: ${response1.text}")
+    
+    // Extract preferences and update working memory
+    val preferences = "User: Alice, Preferences: Technical explanations, concise responses"
+    preferencesAgent.memory.updateWorkingMemory(preferences)
+    
+    // Next interaction should reflect the preferences
+    val response2 = preferencesAgent.generate("Can you explain quantum entanglement?")
+    println("Agent: ${response2.text}")
+}
+```
+
+## Next Steps ✅
+
+Now that you understand working memory, you can:
+
+1. Learn about [semantic recall](./semantic-recall.mdx)
+2. Explore [memory processors](./memory-processors.mdx)
+3. Implement [custom memory storage](./implementations.mdx)

@@ -1,16 +1,16 @@
 ---
-title: "Reference: ExtractParams | Document Processing | RAG | Mastra Docs"
-description: Documentation for metadata extraction configuration in Mastra.
+title: "Reference: ExtractParams | Document Processing | RAG | Kastrax Docs"
+description: Documentation for metadata extraction configuration in Kastrax.
 ---
 
-# ExtractParams
+# ExtractParams ✅
 
 ExtractParams configures metadata extraction from document chunks using LLM analysis.
 
-## Example
+## Example ✅
 
 ```typescript showLineNumbers copy
-import { MDocument } from "@mastra/rag";
+import { MDocument } from "@kastrax/rag";
 
 const doc = MDocument.fromText(text);
 const chunks = await doc.chunk({
@@ -29,7 +29,7 @@ const chunks = await doc.chunk({
 // }
 ```
 
-## Parameters
+## Parameters ✅
 
 The `extract` parameter accepts the following fields:
 
@@ -66,7 +66,7 @@ The `extract` parameter accepts the following fields:
   ]}
 />
 
-## Extractor Arguments
+## Extractor Arguments ✅
 
 ### TitleExtractorsArgs
 
@@ -74,7 +74,7 @@ The `extract` parameter accepts the following fields:
   content={[
     {
       name: "llm",
-      type: "MastraLanguageModel",
+      type: "KastraxLanguageModel",
       isOptional: true,
       description: "AI SDK language model to use for title extraction"
     },
@@ -105,7 +105,7 @@ The `extract` parameter accepts the following fields:
   content={[
     {
       name: "llm",
-      type: "MastraLanguageModel",
+      type: "KastraxLanguageModel",
       isOptional: true,
       description: "AI SDK language model to use for summary extraction"
     },
@@ -130,7 +130,7 @@ The `extract` parameter accepts the following fields:
   content={[
     {
       name: "llm",
-      type: "MastraLanguageModel",
+      type: "KastraxLanguageModel",
       isOptional: true,
       description: "AI SDK language model to use for question generation"
     },
@@ -161,7 +161,7 @@ The `extract` parameter accepts the following fields:
   content={[
     {
       name: "llm",
-      type: "MastraLanguageModel",
+      type: "KastraxLanguageModel",
       isOptional: true,
       description: "AI SDK language model to use for keyword extraction"
     },
@@ -180,10 +180,10 @@ The `extract` parameter accepts the following fields:
   ]}
 />
 
-## Advanced Example
+## Advanced Example ✅
 
 ```typescript showLineNumbers copy
-import { MDocument } from "@mastra/rag";
+import { MDocument } from "@kastrax/rag";
 
 const doc = MDocument.fromText(text);
 const chunks = await doc.chunk({
@@ -225,14 +225,14 @@ const chunks = await doc.chunk({
 // }
 ```
 
-## Document Grouping for Title Extraction
+## Document Grouping for Title Extraction ✅
 
 When using the `TitleExtractor`, you can group multiple chunks together for title extraction by specifying a shared `docId` in the `metadata` field of each chunk. All chunks with the same `docId` will receive the same extracted title. If no `docId` is set, each chunk is treated as its own document for title extraction.
 
 **Example:**
 
 ```ts
-import { MDocument } from "@mastra/rag";
+import { MDocument } from "@kastrax/rag";
 
 const doc = new MDocument({
   docs: [

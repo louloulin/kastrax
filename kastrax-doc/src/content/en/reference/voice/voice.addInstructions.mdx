@@ -1,17 +1,17 @@
 ---
-title: "Reference: voice.addInstructions() | Voice Providers | Mastra Docs"
+title: "Reference: voice.addInstructions() | Voice Providers | Kastrax Docs"
 description: "Documentation for the addInstructions() method available in voice providers, which adds instructions to guide the voice model's behavior."
 ---
 
-# voice.addInstructions()
+# voice.addInstructions() ✅
 
 The `addInstructions()` method equips a voice provider with instructions that guide the model's behavior during real-time interactions. This is particularly useful for real-time voice providers that maintain context across a conversation.
 
-## Usage Example
+## Usage Example ✅
 
 ```typescript
-import { OpenAIRealtimeVoice } from "@mastra/voice-openai-realtime";
-import { Agent } from "@mastra/core/agent";
+import { OpenAIRealtimeVoice } from "@kastrax/voice-openai-realtime";
+import { Agent } from "@kastrax/core/agent";
 import { openai } from "@ai-sdk/openai";
 
 // Initialize a real-time voice provider
@@ -43,7 +43,7 @@ voice.addInstructions(`
 await voice.connect();
 ```
 
-## Parameters
+## Parameters ✅
 <br/>
 <PropertiesTable
   content={[
@@ -56,11 +56,11 @@ await voice.connect();
   ]}
 />
 
-## Return Value
+## Return Value ✅
 
 This method does not return a value.
 
-## Notes
+## Notes ✅
 
 - Instructions are most effective when they are clear, specific, and relevant to the voice interaction
 - This method is primarily used with real-time voice providers that maintain conversation context

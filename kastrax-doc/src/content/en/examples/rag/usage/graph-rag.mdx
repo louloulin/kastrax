@@ -1,19 +1,19 @@
 ---
-title: "Example: A Complete Graph RAG System | RAG | Mastra Docs"
-description: Example of implementing a Graph RAG system in Mastra using OpenAI embeddings and PGVector for vector storage.
+title: "Example: A Complete Graph RAG System | RAG | Kastrax Docs"
+description: Example of implementing a Graph RAG system in Kastrax using OpenAI embeddings and PGVector for vector storage.
 ---
 
 import { GithubLink } from "@/components/github-link";
 
-# Graph RAG
+# Graph RAG ✅
 
-This example demonstrates how to implement a Retrieval-Augmented Generation (RAG) system using Mastra, OpenAI embeddings, and PGVector for vector storage.
+This example demonstrates how to implement a Retrieval-Augmented Generation (RAG) system using Kastrax, OpenAI embeddings, and PGVector for vector storage.
 
-## Overview
+## Overview ✅
 
-The system implements Graph RAG using Mastra and OpenAI. Here's what it does:
+The system implements Graph RAG using Kastrax and OpenAI. Here's what it does:
 
-1. Sets up a Mastra agent with gpt-4o-mini for response generation
+1. Sets up a Kastrax agent with gpt-4o-mini for response generation
 2. Creates a GraphRAG tool to manage vector store interactions and knowledge graph creation/traversal
 3. Chunks text documents into smaller segments
 4. Creates embeddings for these chunks
@@ -21,9 +21,9 @@ The system implements Graph RAG using Mastra and OpenAI. Here's what it does:
 6. Creates a knowledge graph of relevant chunks based on queries using GraphRAG tool
    - Tool returns results from vector store and creates knowledge graph
    - Traverses knowledge graph using query
-7. Generates context-aware responses using the Mastra agent
+7. Generates context-aware responses using the Kastrax agent
 
-## Setup
+## Setup ✅
 
 ### Environment Setup
 
@@ -40,16 +40,16 @@ Then, import the necessary dependencies:
 
 ```typescript copy showLineNumbers filename="index.ts"
 import { openai } from "@ai-sdk/openai";
-import { Mastra } from "@mastra/core";
-import { Agent } from "@mastra/core/agent";
-import { PgVector } from "@mastra/pg";
-import { MDocument, createGraphRAGTool } from "@mastra/rag";
+import { Kastrax } from "@kastrax/core";
+import { Agent } from "@kastrax/core/agent";
+import { PgVector } from "@kastrax/pg";
+import { MDocument, createGraphRAGTool } from "@kastrax/rag";
 import { embedMany } from "ai";
 ```
 
-## GraphRAG Tool Creation
+## GraphRAG Tool Creation ✅
 
-Using createGraphRAGTool imported from @mastra/rag, you can create a tool that queries the vector database and converts the results into a knowledge graph:
+Using createGraphRAGTool imported from @kastrax/rag, you can create a tool that queries the vector database and converts the results into a knowledge graph:
 
 ```typescript copy showLineNumbers{8} filename="index.ts"
 const graphRagTool = createGraphRAGTool({
@@ -63,9 +63,9 @@ const graphRagTool = createGraphRAGTool({
 });
 ```
 
-## Agent Configuration
+## Agent Configuration ✅
 
-Set up the Mastra agent that will handle the responses:
+Set up the Kastrax agent that will handle the responses:
 
 ```typescript copy showLineNumbers{19} filename="index.ts"
 const ragAgent = new Agent({
@@ -87,27 +87,27 @@ If the context doesn't contain enough information to fully answer the question, 
 });
 ```
 
-## Instantiate PgVector and Mastra
+## Instantiate PgVector and Kastrax ✅
 
-Instantiate PgVector and Mastra with the components:
+Instantiate PgVector and Kastrax with the components:
 
 ```typescript copy showLineNumbers{36} filename="index.ts"
 const pgVector = new PgVector(process.env.POSTGRES_CONNECTION_STRING!);
 
-export const mastra = new Mastra({
+export const kastrax = new Kastrax({
   agents: { ragAgent },
   vectors: { pgVector },
 });
-const agent = mastra.getAgent("ragAgent");
+const agent = kastrax.getAgent("ragAgent");
 ```
 
-## Document Processing
+## Document Processing ✅
 
 Create a document and process it into chunks:
 
 ```typescript copy showLineNumbers{45} filename="index.ts"
 const doc = MDocument.fromText(`
-# Riverdale Heights: Community Development Study
+# Riverdale Heights: Community Development Study ✅
 // ... text content ...
 `);
 
@@ -119,7 +119,7 @@ const chunks = await doc.chunk({
 });
 ```
 
-## Creating and Storing Embeddings
+## Creating and Storing Embeddings ✅
 
 Generate embeddings for the chunks and store them in the vector database:
 
@@ -129,7 +129,7 @@ const { embeddings } = await embedMany({
   values: chunks.map(chunk => chunk.text),
 });
 
-const vectorStore = mastra.getVector("pgVector");
+const vectorStore = kastrax.getVector("pgVector");
 await vectorStore.createIndex({
   indexName: "embeddings",
   dimension: 1536,
@@ -141,7 +141,7 @@ await vectorStore.upsert({
 });
 ```
 
-## Graph-Based Querying
+## Graph-Based Querying ✅
 
 Try different queries to explore relationships in the data:
 
@@ -174,6 +174,6 @@ console.log('Response:', answerFour.text);
 <br />
 <GithubLink
   link={
-    "https://github.com/mastra-ai/mastra/blob/main/examples/basics/rag/graph-rag"
+    "https://github.com/kastrax-ai/kastrax/blob/main/examples/basics/rag/graph-rag"
   }
 />

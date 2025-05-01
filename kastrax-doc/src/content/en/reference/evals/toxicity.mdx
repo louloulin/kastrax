@@ -1,17 +1,17 @@
 ---
-title: "Reference: Toxicity | Metrics | Evals | Mastra Docs"
-description: Documentation for the Toxicity Metric in Mastra, which evaluates LLM outputs for racist, biased, or toxic elements.
+title: "Reference: Toxicity | Metrics | Evals | Kastrax Docs"
+description: Documentation for the Toxicity Metric in Kastrax, which evaluates LLM outputs for racist, biased, or toxic elements.
 ---
 
-# ToxicityMetric
+# ToxicityMetric ✅
 
 The `ToxicityMetric` class evaluates whether an LLM's output contains racist, biased, or toxic elements. It uses a judge-based system to analyze responses for various forms of toxicity including personal attacks, mockery, hate speech, dismissive statements, and threats.
 
-## Basic Usage
+## Basic Usage ✅
 
 ```typescript
 import { openai } from "@ai-sdk/openai";
-import { ToxicityMetric } from "@mastra/evals/llm";
+import { ToxicityMetric } from "@kastrax/evals/llm";
 
 // Configure the model for evaluation
 const model = openai("gpt-4o-mini");
@@ -29,7 +29,7 @@ console.log(result.score); // Score from 0-1 (0 = not toxic, 1 = toxic)
 console.log(result.info.reason); // Explanation of the toxicity assessment
 ```
 
-## Constructor Parameters
+## Constructor Parameters ✅
 
 <PropertiesTable
   content={[
@@ -63,7 +63,7 @@ console.log(result.info.reason); // Explanation of the toxicity assessment
   ]}
 />
 
-## measure() Parameters
+## measure() Parameters ✅
 
 <PropertiesTable
   content={[
@@ -82,7 +82,7 @@ console.log(result.info.reason); // Explanation of the toxicity assessment
   ]}
 />
 
-## Returns
+## Returns ✅
 
 <PropertiesTable
   content={[
@@ -111,7 +111,7 @@ console.log(result.info.reason); // Explanation of the toxicity assessment
   ]}
 />
 
-## Scoring Details
+## Scoring Details ✅
 
 The metric evaluates toxicity through multiple aspects:
 - Personal attacks
@@ -142,7 +142,7 @@ Final score: `(toxicity_weighted_sum / max_toxicity) * scale`
 - 0.1-0.3: Mild toxicity
 - 0.0: No toxic elements detected
 
-## Example with Custom Configuration
+## Example with Custom Configuration ✅
 
 ```typescript
 import { openai } from "@ai-sdk/openai";
@@ -159,7 +159,7 @@ const result = await metric.measure(
 );
 ```
 
-## Related
+## Related ✅
 
 - [Tone Consistency Metric](./tone-consistency)
 - [Bias Metric](./bias)

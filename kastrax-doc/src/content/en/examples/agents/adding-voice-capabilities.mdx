@@ -1,13 +1,13 @@
 ---
-title: "Example: Adding Voice Capabilities | Agents | Mastra"
-description: "Example of adding voice capabilities to Mastra agents, enabling them to speak and listen using different voice providers."
+title: "Example: Adding Voice Capabilities | Agents | Kastrax"
+description: "Example of adding voice capabilities to Kastrax agents, enabling them to speak and listen using different voice providers."
 ---
 
 import { GithubLink } from "@/components/github-link";
 
-# Giving your Agent a Voice
+# Giving your Agent a Voice ✅
 
-This example demonstrates how to add voice capabilities to Mastra agents, enabling them to speak and listen using different voice providers. We'll create two agents with different voice configurations and show how they can interact using speech.
+This example demonstrates how to add voice capabilities to Kastrax agents, enabling them to speak and listen using different voice providers. We'll create two agents with different voice configurations and show how they can interact using speech.
 
 The example showcases:
 1. Using CompositeVoice to combine different providers for speaking and listening
@@ -19,11 +19,11 @@ First, let's import the required dependencies and set up our agents:
 ```ts showLineNumbers copy
 // Import required dependencies
 import { openai } from '@ai-sdk/openai';
-import { Agent } from '@mastra/core/agent';
-import { CompositeVoice } from '@mastra/core/voice';
-import { OpenAIVoice } from '@mastra/voice-openai';
+import { Agent } from '@kastrax/core/agent';
+import { CompositeVoice } from '@kastrax/core/voice';
+import { OpenAIVoice } from '@kastrax/voice-openai';
 import { createReadStream, createWriteStream } from 'fs';
-import { PlayAIVoice } from '@mastra/voice-playai';
+import { PlayAIVoice } from '@kastrax/voice-playai';
 import path from 'path';
 
 // Initialize Agent 1 with both listening and speaking capabilities
@@ -107,9 +107,9 @@ async function convertToText(input: string | NodeJS.ReadableStream): Promise<str
 }
 ```
 
-## Key Points
+## Key Points ✅
 
-1. The `voice` property in the Agent configuration accepts any implementation of MastraVoice
+1. The `voice` property in the Agent configuration accepts any implementation of KastraxVoice
 2. CompositeVoice allows using different providers for speaking and listening
 3. Audio can be handled as streams, making it efficient for real-time processing
 4. Voice capabilities can be combined with the agent's natural language processing
@@ -123,6 +123,6 @@ async function convertToText(input: string | NodeJS.ReadableStream): Promise<str
 
 <GithubLink
   link={
-    "https://github.com/mastra-ai/mastra/blob/main/examples/basics/agents/voice-capabilities"
+    "https://github.com/kastrax-ai/kastrax/blob/main/examples/basics/agents/voice-capabilities"
   }
 />

@@ -1,16 +1,16 @@
 ---
-title: "Reference: Keyword Coverage | Metrics | Evals | Mastra Docs"
-description: Documentation for the Keyword Coverage Metric in Mastra, which evaluates how well LLM outputs cover important keywords from the input.
+title: "Reference: Keyword Coverage | Metrics | Evals | Kastrax Docs"
+description: Documentation for the Keyword Coverage Metric in Kastrax, which evaluates how well LLM outputs cover important keywords from the input.
 ---
 
-# KeywordCoverageMetric
+# KeywordCoverageMetric ✅
 
 The `KeywordCoverageMetric` class evaluates how well an LLM's output covers the important keywords from the input. It analyzes keyword presence and matches while ignoring common words and stop words.
 
-## Basic Usage
+## Basic Usage ✅
 
 ```typescript
-import { KeywordCoverageMetric } from "@mastra/evals/nlp";
+import { KeywordCoverageMetric } from "@kastrax/evals/nlp";
 
 const metric = new KeywordCoverageMetric();
 
@@ -23,7 +23,7 @@ console.log(result.score); // Coverage score from 0-1
 console.log(result.info); // Object containing detailed metrics about keyword coverage
 ```
 
-## measure() Parameters
+## measure() Parameters ✅
 
 <PropertiesTable
   content={[
@@ -42,7 +42,7 @@ console.log(result.info); // Object containing detailed metrics about keyword co
   ]}
 />
 
-## Returns
+## Returns ✅
 
 <PropertiesTable
   content={[
@@ -81,7 +81,7 @@ console.log(result.info); // Object containing detailed metrics about keyword co
   ]}
 />
 
-## Scoring Details
+## Scoring Details ✅
 
 The metric evaluates keyword coverage by matching keywords with the following features:
 - Common word and stop word filtering (e.g., "the", "a", "and")
@@ -111,10 +111,10 @@ Final score: `(matched_keywords / total_keywords) * scale`
 - 0.1-0.3: Poor coverage with many keywords missing
 - 0.0: No keyword matches
 
-## Examples with Analysis
+## Examples with Analysis ✅
 
 ```typescript
-import { KeywordCoverageMetric } from "@mastra/evals/nlp";
+import { KeywordCoverageMetric } from "@kastrax/evals/nlp";
 
 const metric = new KeywordCoverageMetric();
 
@@ -158,7 +158,7 @@ const result3 = await metric.measure(
 // }
 ```
 
-## Special Cases
+## Special Cases ✅
 
 The metric handles several special cases:
 - Empty input/output: Returns score of 1.0 if both empty, 0.0 if only one is empty
@@ -167,7 +167,7 @@ The metric handles several special cases:
 - Case differences: "JavaScript" matches "javascript"
 - Common words: Ignored in scoring to focus on meaningful keywords
 
-## Related
+## Related ✅
 
 - [Completeness Metric](./completeness)
 - [Content Similarity Metric](./content-similarity)

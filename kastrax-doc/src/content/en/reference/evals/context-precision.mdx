@@ -1,17 +1,17 @@
 ---
-title: "Reference: Context Precision | Metrics | Evals | Mastra Docs"
-description: Documentation for the Context Precision Metric in Mastra, which evaluates the relevance and precision of retrieved context nodes for generating expected outputs.
+title: "Reference: Context Precision | Metrics | Evals | Kastrax Docs"
+description: Documentation for the Context Precision Metric in Kastrax, which evaluates the relevance and precision of retrieved context nodes for generating expected outputs.
 ---
 
-# ContextPrecisionMetric
+# ContextPrecisionMetric ✅
 
 The `ContextPrecisionMetric` class evaluates how relevant and precise the retrieved context nodes are for generating the expected output. It uses a judge-based system to analyze each context piece's contribution and provides weighted scoring based on position.
 
-## Basic Usage
+## Basic Usage ✅
 
 ```typescript
 import { openai } from "@ai-sdk/openai";
-import { ContextPrecisionMetric } from "@mastra/evals/llm";
+import { ContextPrecisionMetric } from "@kastrax/evals/llm";
 
 // Configure the model for evaluation
 const model = openai("gpt-4o-mini");
@@ -33,7 +33,7 @@ console.log(result.score); // Precision score from 0-1
 console.log(result.info.reason); // Explanation of the score
 ```
 
-## Constructor Parameters
+## Constructor Parameters ✅
 
 <PropertiesTable
   content={[
@@ -73,7 +73,7 @@ console.log(result.info.reason); // Explanation of the score
   ]}
 />
 
-## measure() Parameters
+## measure() Parameters ✅
 
 <PropertiesTable
   content={[
@@ -92,7 +92,7 @@ console.log(result.info.reason); // Explanation of the score
   ]}
 />
 
-## Returns
+## Returns ✅
 
 <PropertiesTable
   content={[
@@ -121,7 +121,7 @@ console.log(result.info.reason); // Explanation of the score
   ]}
 />
 
-## Scoring Details
+## Scoring Details ✅
 
 The metric evaluates context precision through binary relevance assessment and Mean Average Precision (MAP) scoring.
 
@@ -146,11 +146,11 @@ Final score: `Mean Average Precision * scale`
 - 0.1-0.3: Limited relevance or poor ordering
 - 0.0: No relevant context
 
-## Example with Analysis
+## Example with Analysis ✅
 
 ```typescript
 import { openai } from "@ai-sdk/openai";
-import { ContextPrecisionMetric } from "@mastra/evals/llm";
+import { ContextPrecisionMetric } from "@kastrax/evals/llm";
 
 // Configure the model for evaluation
 const model = openai("gpt-4o-mini");
@@ -181,7 +181,7 @@ const result = await metric.measure(
 // }
 ```
 
-## Related
+## Related ✅
 
 - [Answer Relevancy Metric](./answer-relevancy)
 - [Context Position Metric](./context-position)

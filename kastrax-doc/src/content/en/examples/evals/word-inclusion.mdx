@@ -1,16 +1,16 @@
 ---
-title: "Example: Word Inclusion | Evals | Mastra Docs"
+title: "Example: Word Inclusion | Evals | Kastrax Docs"
 description: Example of creating a custom metric to evaluate word inclusion in output text.
 ---
 
 import { GithubLink } from "@/components/github-link";
 
-# Word Inclusion Evaluation
+# Word Inclusion Evaluation ✅
 
-This example demonstrates how to create a custom metric in Mastra that evaluates whether specific words appear in the output text.
+This example demonstrates how to create a custom metric in Kastrax that evaluates whether specific words appear in the output text.
 This is a simplified version of our own [keyword coverage eval](/reference/evals/keyword-coverage).
 
-## Overview
+## Overview ✅
 
 The example shows how to:
 
@@ -19,17 +19,17 @@ The example shows how to:
 3. Calculate inclusion scores
 4. Handle different inclusion scenarios
 
-## Setup
+## Setup ✅
 
 ### Dependencies
 
 Import the necessary dependencies:
 
 ```typescript copy showLineNumbers filename="src/index.ts"
-import { Metric, type MetricResult } from '@mastra/core/eval';
+import { Metric, type MetricResult } from '@kastrax/core/eval';
 ```
 
-## Metric Implementation
+## Metric Implementation ✅
 
 Create the Word Inclusion metric:
 
@@ -66,7 +66,7 @@ export class WordInclusionMetric extends Metric {
 }
 ```
 
-## Example Usage
+## Example Usage ✅
 
 ### Full Word Inclusion Example
 
@@ -128,7 +128,7 @@ console.log('Metric Result:', {
 // Metric Result: { score: 0, info: { totalWords: 3, matchedWords: 0 } }
 ```
 
-## Understanding the Results
+## Understanding the Results ✅
 
 The metric provides:
 
@@ -150,6 +150,6 @@ The metric provides:
 <br />
 <GithubLink
   link={
-    "https://github.com/mastra-ai/mastra/blob/main/examples/basics/evals/word-inclusion"
+    "https://github.com/kastrax-ai/kastrax/blob/main/examples/basics/evals/word-inclusion"
   }
 />

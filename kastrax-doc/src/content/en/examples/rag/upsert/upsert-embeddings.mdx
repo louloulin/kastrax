@@ -1,12 +1,12 @@
 ---
-title: "Example: Upsert Embeddings | RAG | Mastra Docs"
-description: Examples of using Mastra to store embeddings in various vector databases for similarity search.
+title: "Example: Upsert Embeddings | RAG | Kastrax Docs"
+description: Examples of using Kastrax to store embeddings in various vector databases for similarity search.
 ---
 
 import { Tabs } from "nextra/components";
 import { GithubLink } from "@/components/github-link";
 
-# Upsert Embeddings
+# Upsert Embeddings ✅
 
 After generating embeddings, you need to store them in a database that supports vector similarity search. This example shows how to store embeddings in various vector databases for later retrieval.
 
@@ -15,8 +15,8 @@ After generating embeddings, you need to store them in a database that supports 
   The `PgVector` class provides methods to create indexes and insert embeddings into PostgreSQL with the pgvector extension.
     ```tsx copy
     import { openai } from "@ai-sdk/openai";
-    import { PgVector } from "@mastra/pg";
-    import { MDocument } from "@mastra/rag";
+    import { PgVector } from "@kastrax/pg";
+    import { MDocument } from "@kastrax/rag";
     import { embedMany } from "ai";
 
     const doc = MDocument.fromText("Your text content...");
@@ -46,7 +46,7 @@ After generating embeddings, you need to store them in a database that supports 
     <br />
     <GithubLink
       link={
-        "https://github.com/mastra-ai/mastra/blob/main/examples/basics/rag/insert-embedding-in-pgvector"
+        "https://github.com/kastrax-ai/kastrax/blob/main/examples/basics/rag/insert-embedding-in-pgvector"
       }
     />
   </Tabs.Tab>
@@ -55,8 +55,8 @@ After generating embeddings, you need to store them in a database that supports 
   The `PineconeVector` class provides methods to create indexes and insert embeddings into Pinecone, a managed vector database service.
     ```tsx copy
     import { openai } from '@ai-sdk/openai';
-    import { PineconeVector } from '@mastra/pinecone';
-    import { MDocument } from '@mastra/rag';
+    import { PineconeVector } from '@kastrax/pinecone';
+    import { MDocument } from '@kastrax/rag';
     import { embedMany } from 'ai';
 
     const doc = MDocument.fromText('Your text content...');
@@ -85,7 +85,7 @@ After generating embeddings, you need to store them in a database that supports 
     <hr className="dark:border-[#404040] border-gray-300" />
     <br />
     <GithubLink 
-      link={'https://github.com/mastra-ai/mastra/blob/main/examples/basics/rag/insert-embedding-in-pinecone'} 
+      link={'https://github.com/kastrax-ai/kastrax/blob/main/examples/basics/rag/insert-embedding-in-pinecone'} 
     />
   </Tabs.Tab>
 
@@ -93,8 +93,8 @@ After generating embeddings, you need to store them in a database that supports 
   The `QdrantVector` class provides methods to create collections and insert embeddings into Qdrant, a high-performance vector database.
     ```tsx copy
     import { openai } from '@ai-sdk/openai';
-    import { QdrantVector } from '@mastra/qdrant';
-    import { MDocument } from '@mastra/rag';
+    import { QdrantVector } from '@kastrax/qdrant';
+    import { MDocument } from '@kastrax/rag';
     import { embedMany } from 'ai';
 
     const doc = MDocument.fromText('Your text content...');
@@ -129,8 +129,8 @@ After generating embeddings, you need to store them in a database that supports 
   The `ChromaVector` class provides methods to create collections and insert embeddings into Chroma, an open-source embedding database.
     ```tsx copy
     import { openai } from '@ai-sdk/openai';
-    import { ChromaVector } from '@mastra/chroma';
-    import { MDocument } from '@mastra/rag';
+    import { ChromaVector } from '@kastrax/chroma';
+    import { MDocument } from '@kastrax/rag';
     import { embedMany } from 'ai';
 
     const doc = MDocument.fromText('Your text content...');
@@ -162,7 +162,7 @@ After generating embeddings, you need to store them in a database that supports 
     <hr className="dark:border-[#404040] border-gray-300" />
     <br />
     <GithubLink 
-      link={'https://github.com/mastra-ai/mastra/blob/main/examples/basics/rag/insert-embedding-in-chroma'} 
+      link={'https://github.com/kastrax-ai/kastrax/blob/main/examples/basics/rag/insert-embedding-in-chroma'} 
     />
   </Tabs.Tab>
 
@@ -170,8 +170,8 @@ After generating embeddings, you need to store them in a database that supports 
   he `AstraVector` class provides methods to create collections and insert embeddings into DataStax Astra DB, a cloud-native vector database.
     ```tsx copy
     import { openai } from '@ai-sdk/openai';
-    import { AstraVector } from '@mastra/astra';
-    import { MDocument } from '@mastra/rag';
+    import { AstraVector } from '@kastrax/astra';
+    import { MDocument } from '@kastrax/rag';
     import { embedMany } from 'ai';
 
     const doc = MDocument.fromText('Your text content...');
@@ -206,8 +206,8 @@ After generating embeddings, you need to store them in a database that supports 
   The `LibSQLVector` class provides methods to create collections and insert embeddings into LibSQL, a fork of SQLite with vector extensions.
     ```tsx copy
     import { openai } from "@ai-sdk/openai";
-    import { LibSQLVector } from "@mastra/core/vector/libsql";
-    import { MDocument } from "@mastra/rag";
+    import { LibSQLVector } from "@kastrax/core/vector/libsql";
+    import { MDocument } from "@kastrax/rag";
     import { embedMany } from "ai";
 
     const doc = MDocument.fromText("Your text content...");
@@ -240,7 +240,7 @@ After generating embeddings, you need to store them in a database that supports 
     <hr className="dark:border-[#404040] border-gray-300" />
     <br />
     <GithubLink 
-      link={'https://github.com/mastra-ai/mastra/blob/main/examples/basics/rag/insert-embedding-in-libsql'} 
+      link={'https://github.com/kastrax-ai/kastrax/blob/main/examples/basics/rag/insert-embedding-in-libsql'} 
     />
   </Tabs.Tab>
 
@@ -248,8 +248,8 @@ After generating embeddings, you need to store them in a database that supports 
   The `UpstashVector` class provides methods to create collections and insert embeddings into Upstash Vector, a serverless vector database.
     ```tsx copy
     import { openai } from '@ai-sdk/openai';
-    import { UpstashVector } from '@mastra/upstash';
-    import { MDocument } from '@mastra/rag';
+    import { UpstashVector } from '@kastrax/upstash';
+    import { MDocument } from '@kastrax/rag';
     import { embedMany } from 'ai';
 
     const doc = MDocument.fromText('Your text content...');
@@ -283,8 +283,8 @@ After generating embeddings, you need to store them in a database that supports 
   The `CloudflareVector` class provides methods to create collections and insert embeddings into Cloudflare Vectorize, a serverless vector database service.
     ```tsx copy
     import { openai } from '@ai-sdk/openai';
-    import { CloudflareVector } from '@mastra/vectorize';
-    import { MDocument } from '@mastra/rag';
+    import { CloudflareVector } from '@kastrax/vectorize';
+    import { MDocument } from '@kastrax/rag';
     import { embedMany } from 'ai';
 
     const doc = MDocument.fromText('Your text content...');
@@ -317,8 +317,8 @@ After generating embeddings, you need to store them in a database that supports 
   The `MongoDBVector` class provides methods to create indexes and insert embeddings into MongoDB with Atlas Search.
     ```tsx copy
     import { openai } from "@ai-sdk/openai";
-    import { MongoDBVector } from "@mastra/mongodb";
-    import { MDocument } from "@mastra/rag";
+    import { MongoDBVector } from "@kastrax/mongodb";
+    import { MDocument } from "@kastrax/rag";
     import { embedMany } from "ai";
 
     const doc = MDocument.fromText("Your text content...");

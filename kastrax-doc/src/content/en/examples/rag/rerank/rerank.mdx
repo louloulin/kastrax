@@ -1,25 +1,25 @@
 ---
-title: "Example: Re-ranking Results | Retrieval | RAG | Mastra Docs"
-description: Example of implementing semantic re-ranking in Mastra using OpenAI embeddings and PGVector for vector storage.
+title: "Example: Re-ranking Results | Retrieval | RAG | Kastrax Docs"
+description: Example of implementing semantic re-ranking in Kastrax using OpenAI embeddings and PGVector for vector storage.
 ---
 
 import { GithubLink } from "@/components/github-link";
 
-# Re-ranking Results
+# Re-ranking Results ✅
 
-This example demonstrates how to implement a Retrieval-Augmented Generation (RAG) system with re-ranking using Mastra, OpenAI embeddings, and PGVector for vector storage.
+This example demonstrates how to implement a Retrieval-Augmented Generation (RAG) system with re-ranking using Kastrax, OpenAI embeddings, and PGVector for vector storage.
 
-## Overview
+## Overview ✅
 
-The system implements RAG with re-ranking using Mastra and OpenAI. Here's what it does:
+The system implements RAG with re-ranking using Kastrax and OpenAI. Here's what it does:
 
 1. Chunks text documents into smaller segments and creates embeddings from them
 2. Stores vectors in a PostgreSQL database
 3. Performs initial vector similarity search
-4. Re-ranks results using Mastra's rerank function, combining vector similarity, semantic relevance, and position scores
+4. Re-ranks results using Kastrax's rerank function, combining vector similarity, semantic relevance, and position scores
 5. Compares initial and re-ranked results to show improvements
 
-## Setup
+## Setup ✅
 
 ### Environment Setup
 
@@ -36,12 +36,12 @@ Then, import the necessary dependencies:
 
 ```typescript copy showLineNumbers filename="src/index.ts"
 import { openai } from '@ai-sdk/openai';
-import { PgVector } from '@mastra/pg';
-import { MDocument, rerank } from '@mastra/rag';
+import { PgVector } from '@kastrax/pg';
+import { MDocument, rerank } from '@kastrax/rag';
 import { embedMany, embed } from 'ai';
 ```
 
-## Document Processing
+## Document Processing ✅
 
 Create a document and process it into chunks:
 
@@ -62,7 +62,7 @@ const chunks = await doc1.chunk({
 });
 ```
 
-## Creating and Storing Embeddings
+## Creating and Storing Embeddings ✅
 
 Generate embeddings for the chunks and store them in the vector database:
 
@@ -84,7 +84,7 @@ await pgVector.upsert({
 });
 ```
 
-## Vector Search and Re-ranking
+## Vector Search and Re-ranking ✅
 
 Perform vector search and re-rank the results:
 
@@ -120,7 +120,7 @@ The weights control how different factors influence the final ranking:
 - `vector`: Higher values favor the original vector similarity scores
 - `position`: Higher values help maintain the original ordering of results
 
-## Comparing Results
+## Comparing Results ✅
 
 Print both initial and re-ranked results to see the improvement:
 
@@ -158,6 +158,6 @@ The re-ranked results show how combining vector similarity with semantic underst
 <br />
 <GithubLink
   link={
-    "https://github.com/mastra-ai/mastra/blob/main/examples/basics/rag/rerank"
+    "https://github.com/kastrax-ai/kastrax/blob/main/examples/basics/rag/rerank"
   }
 /> 

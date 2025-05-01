@@ -1,19 +1,19 @@
 ---
 title: "Cloudflare Deployer"
-description: "Documentation for the CloudflareDeployer class, which deploys Mastra applications to Cloudflare Workers."
+description: "Documentation for the CloudflareDeployer class, which deploys Kastrax applications to Cloudflare Workers."
 ---
 
-# CloudflareDeployer
+# CloudflareDeployer ✅
 
-The CloudflareDeployer deploys Mastra applications to Cloudflare Workers, handling configuration, environment variables, and route management. It extends the abstract Deployer class to provide Cloudflare-specific deployment functionality.
+The CloudflareDeployer deploys Kastrax applications to Cloudflare Workers, handling configuration, environment variables, and route management. It extends the abstract Deployer class to provide Cloudflare-specific deployment functionality.
 
-## Usage Example
+## Usage Example ✅
 
 ```typescript
-import { Mastra } from '@mastra/core';
-import { CloudflareDeployer } from '@mastra/deployer-cloudflare';
+import { Kastrax } from '@kastrax/core';
+import { CloudflareDeployer } from '@kastrax/deployer-cloudflare';
 
-const mastra = new Mastra({
+const kastrax = new Kastrax({
   deployer: new CloudflareDeployer({
     scope: 'your-account-id',
     projectName: 'your-project-name',
@@ -30,11 +30,11 @@ const mastra = new Mastra({
       apiEmail: 'your-email',
     },
   }),
-  // ... other Mastra configuration options
+  // ... other Kastrax configuration options
 });
 ```
 
-## Parameters
+## Parameters ✅
 
 ### Constructor Parameters
 
@@ -51,7 +51,7 @@ const mastra = new Mastra({
       type: "string",
       description: "Name of your worker project.",
       isOptional: true,
-      defaultValue: "'mastra'",
+      defaultValue: "'kastrax'",
     },
     {
       name: "routes",
@@ -133,17 +133,17 @@ The CloudflareDeployer handles environment variables from multiple sources:
 2. **Configuration**: Variables passed through the `env` parameter.
 
 
-## Build Mastra Project
+## Build Kastrax Project ✅
 
-To build your Mastra project for cloudflare deployment:
+To build your Kastrax project for cloudflare deployment:
 
 ```bash
-npx mastra build
+npx kastrax build
 
-The build process generates the following output structure in the `.mastra/output` directory:
+The build process generates the following output structure in the `.kastrax/output` directory:
 
 ```
-.mastra/output/
+.kastrax/output/
 ├── index.mjs        # Main worker entry point
 ├── wrangler.json    # Cloudflare Worker configuration
 └── assets/          # Static assets and dependencies
@@ -192,21 +192,21 @@ const routes = [
 ```
 
 
-## Deployment Options
+## Deployment Options ✅
 
-After building, you can deploy your Mastra application `.mastra/output`  to Cloudflare Workers using any of these methods:
+After building, you can deploy your Kastrax application `.kastrax/output`  to Cloudflare Workers using any of these methods:
 
 1. **Wrangler CLI**: Deploy directly using Cloudflare's official CLI tool
    - Install the CLI: `npm install -g wrangler`
-   - Navigate to the output directory: `cd .mastra/output`
+   - Navigate to the output directory: `cd .kastrax/output`
    - Login to your Cloudflare account: `wrangler login`
    - Deploy to preview environment: `wrangler deploy`
    - For production deployment: `wrangler deploy --env production`
 
 2. **Cloudflare Dashboard**: Upload the build output manually through the Cloudflare dashboard
 
-> You can also run `wrangler dev` in your output directory `.mastra/output` to test your Mastra application locally.
+> You can also run `wrangler dev` in your output directory `.kastrax/output` to test your Kastrax application locally.
 
-## Platform Documentation
+## Platform Documentation ✅
 
 - [Cloudflare Workers](https://developers.cloudflare.com/workers/)

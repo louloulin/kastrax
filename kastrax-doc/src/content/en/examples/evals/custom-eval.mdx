@@ -1,15 +1,15 @@
 ---
-title: "Example: Custom Eval | Evals | Mastra Docs"
-description: Example of creating custom LLM-based evaluation metrics in Mastra.
+title: "Example: Custom Eval | Evals | Kastrax Docs"
+description: Example of creating custom LLM-based evaluation metrics in Kastrax.
 ---
 
 import { GithubLink } from "@/components/github-link";
 
-# Custom Eval with LLM as a Judge
+# Custom Eval with LLM as a Judge ✅
 
-This example demonstrates how to create a custom LLM-based evaluation metric in Mastra to check recipes for gluten content using an AI chef agent.
+This example demonstrates how to create a custom LLM-based evaluation metric in Kastrax to check recipes for gluten content using an AI chef agent.
 
-## Overview
+## Overview ✅
 
 The example shows how to:
 
@@ -18,7 +18,7 @@ The example shows how to:
 3. Check recipes for gluten content
 4. Provide detailed feedback about gluten sources
 
-## Setup
+## Setup ✅
 
 ### Environment Setup
 
@@ -28,7 +28,7 @@ Make sure to set up your environment variables:
 OPENAI_API_KEY=your_api_key_here
 ```
 
-## Defining Prompts
+## Defining Prompts ✅
 
 The evaluation system uses three different prompts, each serving a specific purpose:
 
@@ -36,7 +36,7 @@ The evaluation system uses three different prompts, each serving a specific purp
 
 This prompt sets the role and context for the judge:
 
-```typescript copy showLineNumbers filename="src/mastra/evals/recipe-completeness/prompts.ts"
+```typescript copy showLineNumbers filename="src/kastrax/evals/recipe-completeness/prompts.ts"
 export const GLUTEN_INSTRUCTIONS = `You are a Master Chef that identifies if recipes contain gluten.`;
 ```
 
@@ -44,7 +44,7 @@ export const GLUTEN_INSTRUCTIONS = `You are a Master Chef that identifies if rec
 
 This prompt creates a structured evaluation of gluten content, checking for specific components:
 
-```typescript copy showLineNumbers{3} filename="src/mastra/evals/recipe-completeness/prompts.ts"
+```typescript copy showLineNumbers{3} filename="src/kastrax/evals/recipe-completeness/prompts.ts"
 export const generateGlutenPrompt = ({ output }: { output: string }) => `Check if this recipe is gluten-free.
 
 Check for:
@@ -81,7 +81,7 @@ Return your response in this format:
 
 This prompt generates detailed explanations about why a recipe is considered complete or incomplete:
 
-```typescript copy showLineNumbers{34} filename="src/mastra/evals/recipe-completeness/prompts.ts"
+```typescript copy showLineNumbers{34} filename="src/kastrax/evals/recipe-completeness/prompts.ts"
 export const generateReasonPrompt = ({
   isGlutenFree,
   glutenSources,
@@ -98,17 +98,17 @@ Return your response in this format:
 }`;
 ```
 
-## Creating the Judge
+## Creating the Judge ✅
 
 We can create a specialized judge that will evaluate recipe gluten content. We can import the prompts defined above and use them in the judge:
 
-```typescript copy showLineNumbers filename="src/mastra/evals/gluten-checker/metricJudge.ts"
-import { type LanguageModel } from '@mastra/core/llm';
-import { MastraAgentJudge } from '@mastra/evals/judge';
+```typescript copy showLineNumbers filename="src/kastrax/evals/gluten-checker/metricJudge.ts"
+import { type LanguageModel } from '@kastrax/core/llm';
+import { KastraxAgentJudge } from '@kastrax/evals/judge';
 import { z } from 'zod';
 import { GLUTEN_INSTRUCTIONS, generateGlutenPrompt, generateReasonPrompt } from './prompts';
 
-export class RecipeCompletenessJudge extends MastraAgentJudge {
+export class RecipeCompletenessJudge extends KastraxAgentJudge {
   constructor(model: LanguageModel) {
     super('Gluten Checker', GLUTEN_INSTRUCTIONS, model);
   }
@@ -146,11 +146,11 @@ The judge class handles the core evaluation logic through two main methods:
 - `evaluate()`: Analyzes recipe gluten content and returns gluten content with verdict
 - `getReason()`: Provides human-readable explanation for the evaluation results
 
-## Creating the Metric
+## Creating the Metric ✅
 
 Create the metric class that uses the judge:
 
-```typescript copy showLineNumbers filename="src/mastra/evals/gluten-checker/index.ts"
+```typescript copy showLineNumbers filename="src/kastrax/evals/gluten-checker/index.ts"
 export interface MetricResultWithInfo extends MetricResult {
   info: {
     reason: string;
@@ -194,13 +194,13 @@ The metric class serves as the main interface for gluten content evaluation with
 - `measure()`: Orchestrates the entire evaluation process and returns a comprehensive result
 - `calculateScore()`: Converts the evaluation verdict to a binary score (1 for gluten-free, 0 for contains gluten)
 
-## Setting Up the Agent
+## Setting Up the Agent ✅
 
 Create an agent and attach the metric:
 
-```typescript copy showLineNumbers filename="src/mastra/agents/chefAgent.ts"
+```typescript copy showLineNumbers filename="src/kastrax/agents/chefAgent.ts"
 import { openai } from '@ai-sdk/openai';
-import { Agent } from '@mastra/core/agent';
+import { Agent } from '@kastrax/core/agent';
 
 import { GlutenCheckerMetric } from '../evals';
 
@@ -216,14 +216,14 @@ export const chefAgent = new Agent({
 });
 ```
 
-## Usage Example
+## Usage Example ✅
 
 Here's how to use the metric with an agent:
 
 ```typescript copy showLineNumbers filename="src/index.ts"
-import { mastra } from './mastra';
+import { kastrax } from './kastrax';
 
-const chefAgent = mastra.getAgent('chefAgent');
+const chefAgent = kastrax.getAgent('chefAgent');
 const metric = chefAgent.evals.glutenChecker;
 
 // Example: Evaluate a recipe
@@ -241,7 +241,7 @@ console.log('Metric Result:', {
 // Metric Result: { score: 1, glutenSources: [], reason: 'The recipe is gluten-free as it does not contain any gluten-containing ingredients.' }
 ```
 
-## Understanding the Results
+## Understanding the Results ✅
 
 The metric provides:
 - A score of 1 for gluten-free recipes and 0 for recipes containing gluten
@@ -257,6 +257,6 @@ The metric provides:
 <br />
 <GithubLink
   link={
-    "https://github.com/mastra-ai/mastra/blob/main/examples/basics/evals/custom-eval"
+    "https://github.com/kastrax-ai/kastrax/blob/main/examples/basics/evals/custom-eval"
   }
 />

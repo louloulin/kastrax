@@ -1,17 +1,17 @@
 ---
-title: "Reference: Faithfulness | Metrics | Evals | Mastra Docs"
-description: Documentation for the Faithfulness Metric in Mastra, which evaluates the factual accuracy of LLM outputs compared to the provided context.
+title: "Reference: Faithfulness | Metrics | Evals | Kastrax Docs"
+description: Documentation for the Faithfulness Metric in Kastrax, which evaluates the factual accuracy of LLM outputs compared to the provided context.
 ---
 
-# FaithfulnessMetric Reference
+# FaithfulnessMetric Reference ✅
 
-The `FaithfulnessMetric` in Mastra evaluates how factually accurate an LLM's output is compared to the provided context. It extracts claims from the output and verifies them against the context, making it essential to measure RAG pipeline responses' reliability.
+The `FaithfulnessMetric` in Kastrax evaluates how factually accurate an LLM's output is compared to the provided context. It extracts claims from the output and verifies them against the context, making it essential to measure RAG pipeline responses' reliability.
 
-## Basic Usage
+## Basic Usage ✅
 
 ```typescript
 import { openai } from "@ai-sdk/openai";
-import { FaithfulnessMetric } from "@mastra/evals/llm";
+import { FaithfulnessMetric } from "@kastrax/evals/llm";
 
 // Configure the model for evaluation
 const model = openai("gpt-4o-mini");
@@ -32,7 +32,7 @@ console.log(result.score); // 1.0
 console.log(result.info.reason); // "All claims are supported by the context."
 ```
 
-## Constructor Parameters
+## Constructor Parameters ✅
 
 <PropertiesTable
   content={[
@@ -73,7 +73,7 @@ console.log(result.info.reason); // "All claims are supported by the context."
   ]}
 />
 
-## measure() Parameters
+## measure() Parameters ✅
 
 <PropertiesTable
   content={[
@@ -92,7 +92,7 @@ console.log(result.info.reason); // "All claims are supported by the context."
   ]}
 />
 
-## Returns
+## Returns ✅
 
 <PropertiesTable
   content={[
@@ -123,7 +123,7 @@ console.log(result.info.reason); // "All claims are supported by the context."
   ]}
 />
 
-## Scoring Details
+## Scoring Details ✅
 
 The metric evaluates faithfulness through claim verification against provided context.
 
@@ -152,11 +152,11 @@ Final score: `(supported_claims / total_claims) * scale`
 - 0.1-0.3: Limited support, many contradictions
 - 0.0: No supported claims
 
-## Advanced Example
+## Advanced Example ✅
 
 ```typescript
 import { openai } from "@ai-sdk/openai";
-import { FaithfulnessMetric } from "@mastra/evals/llm";
+import { FaithfulnessMetric } from "@kastrax/evals/llm";
 
 // Configure the model for evaluation
 const model = openai("gpt-4o-mini");

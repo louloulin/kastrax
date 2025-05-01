@@ -1,18 +1,18 @@
 ---
-title: "Suspend & Resume Workflows | Human-in-the-Loop | Mastra Docs"
-description: "Suspend and resume in Mastra workflows allows you to pause execution while waiting for external input or resources."
+title: "Suspend & Resume Workflows | Human-in-the-Loop | Kastrax Docs"
+description: "Suspend and resume in Kastrax workflows allows you to pause execution while waiting for external input or resources."
 ---
 
-# Suspend and Resume in Workflows
+# Suspend and Resume in Workflows ✅
 
 Complex workflows often need to pause execution while waiting for external input or resources.
 
-Mastra's suspend and resume features let you pause workflow execution at any step, persist the workflow snapshot to storage, and resume execution from the saved snapshot when ready.
-This entire process is automatically managed by Mastra. No config needed, or manual step required from the user.
+Kastrax's suspend and resume features let you pause workflow execution at any step, persist the workflow snapshot to storage, and resume execution from the saved snapshot when ready.
+This entire process is automatically managed by Kastrax. No config needed, or manual step required from the user.
 
 Storing the workflow snapshot to storage (LibSQL by default) means that the workflow state is permanently preserved across sessions, deployments, and server restarts. This persistence is crucial for workflows that might remain suspended for minutes, hours, or even days while waiting for external input or resources.
 
-## When to Use Suspend/Resume
+## When to Use Suspend/Resume ✅
 
 Common scenarios for suspending workflows include:
 
@@ -22,7 +22,7 @@ Common scenarios for suspending workflows include:
 - Rate limiting or throttling expensive operations
 - Handling event-driven processes with external triggers
 
-## Basic Suspend Example
+## Basic Suspend Example ✅
 
 Here's a simple workflow that suspends when a value is too low and resumes when given a higher value:
 
@@ -48,9 +48,9 @@ const stepTwo = new Step({
 });
 ```
 
-## Async/Await Based Flow
+## Async/Await Based Flow ✅
 
-The suspend and resume mechanism in Mastra uses an async/await pattern that makes it intuitive to implement complex workflows with suspension points. The code structure naturally reflects the execution flow.
+The suspend and resume mechanism in Kastrax uses an async/await pattern that makes it intuitive to implement complex workflows with suspension points. The code structure naturally reflects the execution flow.
 
 ### How It Works
 
@@ -108,8 +108,8 @@ workflow
   .then(evaluateImproved)
   .commit();
 
-// Register the workflow with Mastra
-export const mastra = new Mastra({
+// Register the workflow with Kastrax
+export const kastrax = new Kastrax({
   workflows: { workflow },
 });
 ```
@@ -118,7 +118,7 @@ export const mastra = new Mastra({
 
 ```typescript
 // Get the workflow and create a run
-const wf = mastra.getWorkflow("multi-suspend-workflow");
+const wf = kastrax.getWorkflow("multi-suspend-workflow");
 const run = wf.createRun();
 
 // Start the workflow
@@ -158,9 +158,9 @@ if (improveResponseStepResult?.status === "suspended") {
 }
 ```
 
-## Event-Based Suspension and Resumption
+## Event-Based Suspension and Resumption ✅
 
-In addition to manually suspending steps, Mastra provides event-based suspension through the `afterEvent` method. This allows workflows to automatically suspend and wait for a specific event to occur before continuing.
+In addition to manually suspending steps, Kastrax provides event-based suspension through the `afterEvent` method. This allows workflows to automatically suspend and wait for a specific event to occur before continuing.
 
 ### Using afterEvent and resumeWithEvent
 
@@ -224,7 +224,7 @@ approvalWorkflow
 
 ```typescript
 // Get the workflow
-const workflow = mastra.getWorkflow("approval-workflow");
+const workflow = kastrax.getWorkflow("approval-workflow");
 const run = workflow.createRun();
 
 // Start the workflow
@@ -271,19 +271,19 @@ console.log("Workflow resumed with event data:", resumeResult.results);
 - Event data is validated against the schema defined for that event
 - The event data is available in the context as `inputData.resumedEvent`
 
-## Storage for Suspend and Resume
+## Storage for Suspend and Resume ✅
 
-When a workflow is suspended using `await suspend()`, Mastra automatically persists the entire workflow state to storage. This is essential for workflows that might remain suspended for extended periods, as it ensures the state is preserved across application restarts or server instances.
+When a workflow is suspended using `await suspend()`, Kastrax automatically persists the entire workflow state to storage. This is essential for workflows that might remain suspended for extended periods, as it ensures the state is preserved across application restarts or server instances.
 
 ### Default Storage: LibSQL
 
-By default, Mastra uses LibSQL as its storage engine:
+By default, Kastrax uses LibSQL as its storage engine:
 
 ```typescript
-import { Mastra } from "@mastra/core/mastra";
-import { LibSQLStore } from "@mastra/libsql";
+import { Kastrax } from "@kastrax/core/kastrax";
+import { LibSQLStore } from "@kastrax/libsql";
 
-const mastra = new Mastra({
+const kastrax = new Kastrax({
   storage: new LibSQLStore({
     url: "file:./storage.db", // Local file-based database for development
     // For production, use a persistent URL:
@@ -306,14 +306,14 @@ The LibSQL storage can be configured in different modes:
 For serverless applications or environments where Redis is preferred:
 
 ```bash copy
-npm install @mastra/upstash@latest
+npm install @kastrax/upstash@latest
 ```
 
 ```typescript
-import { Mastra } from "@mastra/core/mastra";
-import { UpstashStore } from "@mastra/upstash";
+import { Kastrax } from "@kastrax/core/kastrax";
+import { UpstashStore } from "@kastrax/upstash";
 
-const mastra = new Mastra({
+const kastrax = new Kastrax({
   storage: new UpstashStore({
     url: process.env.UPSTASH_URL,
     token: process.env.UPSTASH_TOKEN,
@@ -328,15 +328,15 @@ const mastra = new Mastra({
 - No additional configuration is needed for suspend/resume to work with storage
 - Choose your storage option based on your infrastructure, scaling needs, and existing technology stack
 
-## Watching and Resuming
+## Watching and Resuming ✅
 
 To handle suspended workflows, use the `watch` method to monitor workflow status per run and `resume` to continue execution:
 
 ```typescript
-import { mastra } from "./index";
+import { kastrax } from "./index";
 
 // Get the workflow
-const myWorkflow = mastra.getWorkflow("myWorkflow");
+const myWorkflow = kastrax.getWorkflow("myWorkflow");
 const { start, watch, resume } = myWorkflow.createRun();
 
 // Start watching the workflow before executing it
@@ -386,16 +386,16 @@ watch(async ({ activePaths }) => {
 await start({ triggerData: { requestId: "auto-123" } });
 ```
 
-## Further Reading
+## Further Reading ✅
 
 For a deeper understanding of how suspend and resume works under the hood:
 
-- [Understanding Snapshots in Mastra Workflows](../../reference/workflows/snapshots.mdx) - Learn about the snapshot mechanism that powers suspend and resume functionality
+- [Understanding Snapshots in Kastrax Workflows](../../reference/workflows/snapshots.mdx) - Learn about the snapshot mechanism that powers suspend and resume functionality
 - [Step Configuration Guide](./steps.mdx) - Learn more about configuring steps in your workflows
 - [Control Flow Guide](./control-flow.mdx) - Advanced workflow control patterns
 - [Event-Driven Workflows](../../reference/workflows/events.mdx) - Detailed reference for event-based workflows
 
-## Related Resources
+## Related Resources ✅
 
 - See the [Suspend and Resume Example](../../examples/workflows/suspend-and-resume.mdx) for a complete working example
 - Check the [Step Class Reference](../../reference/workflows/step-class.mdx) for suspend/resume API details

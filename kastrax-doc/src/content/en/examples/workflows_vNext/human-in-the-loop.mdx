@@ -1,21 +1,21 @@
 ---
-title: "Example: Human in the Loop | Workflows | Mastra Docs"
-description: Example of using Mastra to create workflows with human intervention points.
+title: "Example: Human in the Loop | Workflows | Kastrax Docs"
+description: Example of using Kastrax to create workflows with human intervention points.
 ---
 
 import { GithubLink } from '@/components/github-link';
 
-# Human in the Loop Workflow
+# Human in the Loop Workflow ✅
 
 Human-in-the-loop workflows allow you to pause execution at specific points to collect user input, make decisions, or perform actions that require human judgment.
 This example demonstrates how to create a workflow with human intervention points.
 
 
-## Define Agents
+## Define Agents ✅
 Define the travel agents.
 
 ```ts showLineNumbers copy filename="agents/travel-agents.ts"
-import { Agent } from '@mastra/core/agent'
+import { Agent } from '@kastrax/core/agent'
 import { openai } from '@ai-sdk/openai'
 
 const llm = openai('gpt-4o')
@@ -41,11 +41,11 @@ export const travelAgent = new Agent({
 })
 ```
 
-## Define Suspendable workflow
+## Define Suspendable workflow ✅
 Defines a workflow which includes a suspending step: `humanInputStep`.
 
 ```ts showLineNumbers copy filename="workflows/human-in-the-loop-workflow.ts"
-import { createWorkflow, createStep } from '@mastra/core/workflows/vNext'
+import { createWorkflow, createStep } from '@kastrax/core/workflows/vNext'
 
 import { z } from 'zod'
 
@@ -58,13 +58,13 @@ const generateSuggestionsStep = createStep({
     suggestions: z.array(z.string()),
     vacationDescription: z.string(),
   }),
-  execute: async ({ inputData, mastra, container }) => {
-    if (!mastra) {
-      throw new Error('Mastra is not initialized')
+  execute: async ({ inputData, kastrax, container }) => {
+    if (!kastrax) {
+      throw new Error('Kastrax is not initialized')
     }
 
     const { vacationDescription } = inputData
-    const result = await mastra.getAgent('summaryTravelAgent').generate([
+    const result = await kastrax.getAgent('summaryTravelAgent').generate([
       {
         role: 'user',
         content: vacationDescription,
@@ -116,8 +116,8 @@ const travelPlannerStep = createStep({
   outputSchema: z.object({
     travelPlan: z.string(),
   }),
-  execute: async ({ inputData, mastra }) => {
-    const travelAgent = mastra?.getAgent('travelAgent')
+  execute: async ({ inputData, kastrax }) => {
+    const travelAgent = kastrax?.getAgent('travelAgent')
     if (!travelAgent) {
       throw new Error('Travel agent is not initialized')
     }
@@ -150,17 +150,17 @@ travelAgentWorkflow.commit()
 export { weatherWorkflow, humanInputStep }
 ```
 
-## Register Agent and Workflow instances with Mastra class
-Register the agents and the weather workflow with the mastra instance.
+## Register Agent and Workflow instances with Kastrax class ✅
+Register the agents and the weather workflow with the kastrax instance.
 This is critical for enabling access to the agents within the workflow.
 
 ```ts showLineNumbers copy filename="index.ts"
-import { Mastra } from '@mastra/core/mastra'
-import { createLogger } from '@mastra/core/logger'
+import { Kastrax } from '@kastrax/core/kastrax'
+import { createLogger } from '@kastrax/core/logger'
 import { weatherWorkflow } from './workflows'
 import { travelAgent, summaryAgent } from './agents'
 
-const mastra = new Mastra({
+const kastrax = new Kastrax({
   vnext_workflows: {
     weatherWorkflow,
   },
@@ -169,24 +169,24 @@ const mastra = new Mastra({
 	  summaryAgent
   },
   logger: createLogger({
-    name: 'Mastra',
+    name: 'Kastrax',
     level: 'info',
   }),
 })
 
-export { mastra }
+export { kastrax }
 ```
 
-## Execute the suspendable weather workflow
-Here, we'll get the weather workflow from the mastra instance, then create a run and execute the created run with the required inputData.
+## Execute the suspendable weather workflow ✅
+Here, we'll get the weather workflow from the kastrax instance, then create a run and execute the created run with the required inputData.
 In addition to this, we'll resume the `humanInputStep` after collecting user input with the readline package.
 
 ```ts showLineNumbers copy filename="exec.ts"
-import { mastra } from "./"
+import { kastrax } from "./"
 import { createInterface } from 'readline'
 import { humanInputStep } from './workflows'
 
-const workflow = mastra.vnext_getWorkflow('weather-workflow')
+const workflow = kastrax.vnext_getWorkflow('weather-workflow')
 const run = workflow.createRun({})
 const result = await run.start({
   inputData: { vacationDescription: 'I want to go to the beach' },
@@ -243,7 +243,7 @@ Human-in-the-loop workflows are powerful for building systems that blend automat
 <br />
 <GithubLink
   link={
-    "https://github.com/mastra-ai/mastra/blob/main/examples/basics/workflows/human-in-the-loop"
+    "https://github.com/kastrax-ai/kastrax/blob/main/examples/basics/workflows/human-in-the-loop"
   }
 />
 

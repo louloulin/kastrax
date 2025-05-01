@@ -1,16 +1,16 @@
 ---
-title: Speech-to-Text (STT) in Mastra | Mastra Docs
-description: Overview of Speech-to-Text capabilities in Mastra, including configuration, usage, and integration with voice providers.
+title: Speech-to-Text (STT) in Kastrax | Kastrax Docs
+description: Overview of Speech-to-Text capabilities in Kastrax, including configuration, usage, and integration with voice providers.
 ---
 
-# Speech-to-Text (STT)
+# Speech-to-Text (STT) ✅
 
-Speech-to-Text (STT) in Mastra provides a standardized interface for converting audio input into text across multiple service providers. 
+Speech-to-Text (STT) in Kastrax provides a standardized interface for converting audio input into text across multiple service providers. 
 STT helps create voice-enabled applications that can respond to human speech, enabling hands-free interaction, accessibility for users with disabilities, and more natural human-computer interfaces.
 
-## Configuration
+## Configuration ✅
 
-To use STT in Mastra, you need to provide a `listeningModel` when initializing the voice provider. This includes parameters such as:
+To use STT in Kastrax, you need to provide a `listeningModel` when initializing the voice provider. This includes parameters such as:
 
 - **`name`**: The specific STT model to use.
 - **`apiKey`**: Your API key for authentication.
@@ -30,9 +30,9 @@ const voice = new OpenAIVoice({
 const voice = new OpenAIVoice();
 ```
 
-## Available Providers
+## Available Providers ✅
 
-Mastra supports several Speech-to-Text providers, each with their own capabilities and strengths:
+Kastrax supports several Speech-to-Text providers, each with their own capabilities and strengths:
 
 - [**OpenAI**](/reference/voice/openai/) - High-accuracy transcription with Whisper models
 - [**Azure**](/reference/voice/azure/) - Microsoft's speech recognition with enterprise-grade reliability
@@ -45,18 +45,18 @@ Mastra supports several Speech-to-Text providers, each with their own capabiliti
 Each provider is implemented as a separate package that you can install as needed:
 
 ```bash
-pnpm add @mastra/voice-openai  # Example for OpenAI
+pnpm add @kastrax/voice-openai  # Example for OpenAI
 ```
 
-## Using the Listen Method
+## Using the Listen Method ✅
 
 The primary method for STT is the `listen()` method, which converts spoken audio into text. Here's how to use it:
 
 ```typescript
-import { Agent } from '@mastra/core/agent';
+import { Agent } from '@kastrax/core/agent';
 import { openai } from '@ai-sdk/openai';
-import { OpenAIVoice } from '@mastra/voice-openai';
-import { getMicrophoneStream } from "@mastra/node-audio";
+import { OpenAIVoice } from '@kastrax/voice-openai';
+import { getMicrophoneStream } from "@kastrax/node-audio";
 
 const voice = new OpenAIVoice();
 

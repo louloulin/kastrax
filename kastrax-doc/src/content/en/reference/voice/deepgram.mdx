@@ -1,16 +1,16 @@
 ---
-title: "Reference: Deepgram Voice | Voice Providers | Mastra Docs"
+title: "Reference: Deepgram Voice | Voice Providers | Kastrax Docs"
 description: "Documentation for the Deepgram voice implementation, providing text-to-speech and speech-to-text capabilities with multiple voice models and languages."
 ---
 
-# Deepgram
+# Deepgram ✅
 
-The Deepgram voice implementation in Mastra provides text-to-speech (TTS) and speech-to-text (STT) capabilities using Deepgram's API. It supports multiple voice models and languages, with configurable options for both speech synthesis and transcription.
+The Deepgram voice implementation in Kastrax provides text-to-speech (TTS) and speech-to-text (STT) capabilities using Deepgram's API. It supports multiple voice models and languages, with configurable options for both speech synthesis and transcription.
 
-## Usage Example
+## Usage Example ✅
 
 ```typescript
-import { DeepgramVoice } from "@mastra/voice-deepgram";
+import { DeepgramVoice } from "@kastrax/voice-deepgram";
 
 // Initialize with default configuration (uses DEEPGRAM_API_KEY environment variable)
 const voice = new DeepgramVoice();
@@ -35,7 +35,7 @@ const audioStream = await voice.speak("Hello, world!");
 const transcript = await voice.listen(audioStream);
 ```
 
-## Constructor Parameters
+## Constructor Parameters ✅
 
 <PropertiesTable
   content={[
@@ -94,7 +94,7 @@ const transcript = await voice.listen(audioStream);
   ]}
 />
 
-## Methods
+## Methods ✅
 
 ### speak()
 

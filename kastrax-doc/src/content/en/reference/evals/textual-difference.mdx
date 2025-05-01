@@ -1,16 +1,16 @@
 ---
-title: "Reference: Textual Difference | Evals | Mastra Docs"
-description: Documentation for the Textual Difference Metric in Mastra, which measures textual differences between strings using sequence matching.
+title: "Reference: Textual Difference | Evals | Kastrax Docs"
+description: Documentation for the Textual Difference Metric in Kastrax, which measures textual differences between strings using sequence matching.
 ---
 
-# TextualDifferenceMetric
+# TextualDifferenceMetric ✅
 
 The `TextualDifferenceMetric` class uses sequence matching to measure the textual differences between two strings. It provides detailed information about changes, including the number of operations needed to transform one text into another.
 
-## Basic Usage
+## Basic Usage ✅
 
 ```typescript
-import { TextualDifferenceMetric } from "@mastra/evals/nlp";
+import { TextualDifferenceMetric } from "@kastrax/evals/nlp";
 
 const metric = new TextualDifferenceMetric();
 
@@ -23,7 +23,7 @@ console.log(result.score); // Similarity ratio from 0-1
 console.log(result.info); // Detailed change metrics
 ```
 
-## measure() Parameters
+## measure() Parameters ✅
 
 <PropertiesTable
   content={[
@@ -42,7 +42,7 @@ console.log(result.info); // Detailed change metrics
   ]}
 />
 
-## Returns
+## Returns ✅
 
 <PropertiesTable
   content={[
@@ -100,7 +100,7 @@ console.log(result.info); // Detailed change metrics
   ]}
 />
 
-## Scoring Details
+## Scoring Details ✅
 
 The metric calculates several measures:
 - **Similarity Ratio**: Based on sequence matching between texts (0-1)
@@ -130,10 +130,10 @@ Final score: `(similarity_ratio * confidence) * scale`
 - 0.1-0.3: Major differences - extensive changes
 - 0.0: Completely different texts
 
-## Example with Analysis
+## Example with Analysis ✅
 
 ```typescript
-import { TextualDifferenceMetric } from "@mastra/evals/nlp";
+import { TextualDifferenceMetric } from "@kastrax/evals/nlp";
 
 const metric = new TextualDifferenceMetric();
 
@@ -154,7 +154,7 @@ const result = await metric.measure(
 // }
 ```
 
-## Related
+## Related ✅
 
 - [Content Similarity Metric](./content-similarity)
 - [Completeness Metric](./completeness)

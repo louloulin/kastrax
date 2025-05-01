@@ -1,20 +1,20 @@
 ---
-title: "Reference: CompositeVoice | Voice Providers | Mastra Docs"
+title: "Reference: CompositeVoice | Voice Providers | Kastrax Docs"
 description: "Documentation for the CompositeVoice class, which enables combining multiple voice providers for flexible text-to-speech and speech-to-text operations."
 ---
 
-# CompositeVoice
+# CompositeVoice ✅
 
 The CompositeVoice class allows you to combine different voice providers for text-to-speech and speech-to-text operations. This is particularly useful when you want to use the best provider for each operation - for example, using OpenAI for speech-to-text and PlayAI for text-to-speech.
 
 CompositeVoice is used internally by the Agent class to provide flexible voice capabilities.
 
-## Usage Example
+## Usage Example ✅
 
 ```typescript
-import { CompositeVoice } from "@mastra/core/voice";
-import { OpenAIVoice } from "@mastra/voice-openai";
-import { PlayAIVoice } from "@mastra/voice-playai";
+import { CompositeVoice } from "@kastrax/core/voice";
+import { OpenAIVoice } from "@kastrax/voice-openai";
+import { PlayAIVoice } from "@kastrax/voice-playai";
 
 // Create voice providers
 const openai = new OpenAIVoice();
@@ -33,7 +33,7 @@ const text = await voice.listen(audioStream);
 const audio = await voice.speak("Hello, world!");
 ```
 
-## Constructor Parameters
+## Constructor Parameters ✅
 
 <PropertiesTable
   content={[
@@ -45,20 +45,20 @@ const audio = await voice.speak("Hello, world!");
     },
     {
       name: "config.input",
-      type: "MastraVoice",
+      type: "KastraxVoice",
       description: "Voice provider to use for speech-to-text operations",
       isOptional: true,
     },
     {
       name: "config.output",
-      type: "MastraVoice",
+      type: "KastraxVoice",
       description: "Voice provider to use for text-to-speech operations",
       isOptional: true,
     },
   ]}
 />
 
-## Methods
+## Methods ✅
 
 ### speak()
 

@@ -1,18 +1,18 @@
 ---
-title: "Example: Agents with a System Prompt | Agents | Mastra Docs"
-description: Example of creating an AI agent in Mastra with a system prompt to define its personality and capabilities.
+title: "Example: Agents with a System Prompt | Agents | Kastrax Docs"
+description: Example of creating an AI agent in Kastrax with a system prompt to define its personality and capabilities.
 ---
 
 import { GithubLink } from "@/components/github-link";
 
-# Giving an Agent a System Prompt
+# Giving an Agent a System Prompt ✅
 
 When building AI agents, you often need to give them specific instructions and capabilities to handle specialized tasks effectively. System prompts allow you to define an agent's personality, knowledge domain, and behavioral guidelines. This example shows how to create an AI agent with custom instructions and integrate it with a dedicated tool for retrieving verified information.
 
 ```ts showLineNumbers copy
 import { openai } from "@ai-sdk/openai";
-import { Agent } from "@mastra/core/agent";
-import { createTool } from "@mastra/core/tools";
+import { Agent } from "@kastrax/core/agent";
+import { createTool } from "@kastrax/core/tools";
 
 import { z } from "zod";
 
@@ -69,6 +69,6 @@ console.log(result.text);
 
 <GithubLink
   link={
-    "https://github.com/mastra-ai/mastra/blob/main/examples/basics/agents/system-prompt"
+    "https://github.com/kastrax-ai/kastrax/blob/main/examples/basics/agents/system-prompt"
   }
 />

@@ -1,17 +1,17 @@
 ---
-title: "Example: Embedding Text Chunks | RAG | Mastra Docs"
-description: Example of using Mastra to generate an embedding for a single text chunk for similarity search.
+title: "Example: Embedding Text Chunks | RAG | Kastrax Docs"
+description: Example of using Kastrax to generate an embedding for a single text chunk for similarity search.
 ---
 
 import { GithubLink } from "@/components/github-link";
 
-# Embed Text Chunk
+# Embed Text Chunk ✅
 
 When working with individual text chunks, you need to convert them into numerical vectors for similarity search. The `embed` method transforms a single text chunk into an embedding using your chosen provider and model.
 
 ```tsx copy
 import { openai } from '@ai-sdk/openai';
-import { MDocument } from '@mastra/rag';
+import { MDocument } from '@kastrax/rag';
 import { embed } from 'ai';
 
 const doc = MDocument.fromText("Your text content...");
@@ -31,6 +31,6 @@ const { embedding } = await embed({
 <br />
 <GithubLink
   link={
-    "https://github.com/mastra-ai/mastra/blob/main/examples/basics/rag/embed-text-chunk"
+    "https://github.com/kastrax-ai/kastrax/blob/main/examples/basics/rag/embed-text-chunk"
   }
 />

@@ -1,29 +1,29 @@
 ---
-title: "PostgreSQL Storage | Storage System | Mastra Core"
-description: Documentation for the PostgreSQL storage implementation in Mastra.
+title: "PostgreSQL Storage | Storage System | Kastrax Core"
+description: Documentation for the PostgreSQL storage implementation in Kastrax.
 ---
 
-# PostgreSQL Storage
+# PostgreSQL Storage ✅
 
 The PostgreSQL storage implementation provides a production-ready storage solution using PostgreSQL databases.
 
-## Installation
+## Installation ✅
 
 ```bash copy
-npm install @mastra/pg@latest 
+npm install @kastrax/pg@latest 
 ```
 
-## Usage
+## Usage ✅
 
 ```typescript copy showLineNumbers
-import { PostgresStore } from "@mastra/pg";
+import { PostgresStore } from "@kastrax/pg";
 
 const storage = new PostgresStore({
   connectionString: process.env.DATABASE_URL,
 });
 ```
 
-## Parameters
+## Parameters ✅
 
 <PropertiesTable
   content={[
@@ -44,12 +44,12 @@ const storage = new PostgresStore({
   ]}
 />
 
-## Constructor Examples
+## Constructor Examples ✅
 
 You can instantiate `PostgresStore` in the following ways:
 
 ```ts
-import { PostgresStore } from '@mastra/pg';
+import { PostgresStore } from '@kastrax/pg';
 
 // Using a connection string only
 const store1 = new PostgresStore({
@@ -82,7 +82,7 @@ const store5 = new PostgresStore({
 });
 ```
 
-## Additional Notes
+## Additional Notes ✅
 
 ### Schema Management
 

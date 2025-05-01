@@ -1,13 +1,13 @@
 ---
-title: "Reference: MDocument | Document Processing | RAG | Mastra Docs"
-description: Documentation for the MDocument class in Mastra, which handles document processing and chunking.
+title: "Reference: MDocument | Document Processing | RAG | Kastrax Docs"
+description: Documentation for the MDocument class in Kastrax, which handles document processing and chunking.
 ---
 
-# MDocument
+# MDocument ✅
 
 The MDocument class processes documents for RAG applications. The main methods are `.chunk()` and `.extractMetadata()`.
 
-## Constructor
+## Constructor ✅
 
 <PropertiesTable
   content={[
@@ -24,7 +24,7 @@ The MDocument class processes documents for RAG applications. The main methods a
   ]}
 />
 
-## Static Methods
+## Static Methods ✅
 
 ### fromText()
 
@@ -58,7 +58,7 @@ Creates a document from JSON content.
 static fromJSON(json: string, metadata?: Record<string, any>): MDocument
 ```
 
-## Instance Methods
+## Instance Methods ✅
 
 ### chunk()
 
@@ -102,10 +102,10 @@ Extracts metadata using specified extractors. See [ExtractParams reference](./ex
 async extractMetadata(params: ExtractParams): Promise<MDocument>
 ```
 
-## Examples
+## Examples ✅
 
 ```typescript
-import { MDocument } from '@mastra/rag';
+import { MDocument } from '@kastrax/rag';
 
 // Create document from text
 const doc = MDocument.fromText('Your content here');

@@ -3,23 +3,23 @@ title: 'AgentNetwork (Experimental)'
 description: 'Reference documentation for the AgentNetwork class'
 ---
 
-# AgentNetwork (Experimental)
+# AgentNetwork (Experimental) ✅
 
 > **Note:** The AgentNetwork feature is experimental and may change in future releases.
 
 The `AgentNetwork` class provides a way to create a network of specialized agents that can collaborate to solve complex tasks. Unlike Workflows, which require explicit control over execution paths, AgentNetwork uses an LLM-based router to dynamically determine which agent to call next.
 
-## Key Concepts
+## Key Concepts ✅
 
 - **LLM-based Routing**: AgentNetwork exclusively uses an LLM to figure out the best way to use your agents
 - **Agent Collaboration**: Multiple specialized agents can work together to solve complex tasks
 - **Dynamic Decision Making**: The router decides which agent to call based on the task requirements
 
-## Usage
+## Usage ✅
 
 ```typescript
-import { AgentNetwork } from '@mastra/core/network';
-import { openai } from '@mastra/openai';
+import { AgentNetwork } from '@kastrax/core/network';
+import { openai } from '@kastrax/openai';
 
 // Create specialized agents
 const webSearchAgent = new Agent({
@@ -49,7 +49,7 @@ const result = await researchNetwork.generate('Research the impact of climate ch
 console.log(result.text);
 ```
 
-## Constructor
+## Constructor ✅
 
 ```typescript
 constructor(config: AgentNetworkConfig)
@@ -63,7 +63,7 @@ constructor(config: AgentNetworkConfig)
   - `model`: Language model to use for routing
   - `agents`: Array of specialized agents in the network
 
-## Methods
+## Methods ✅
 
 ### generate()
 
@@ -138,13 +138,13 @@ Returns a formatted summary of agent interactions in chronological order.
 getAgentInteractionSummary(): string
 ```
 
-## When to Use AgentNetwork vs Workflows
+## When to Use AgentNetwork vs Workflows ✅
 
 - **Use AgentNetwork when:** You want the AI to figure out the best way to use your agents, with dynamic routing based on the task requirements.
 
 - **Use Workflows when:** You need explicit control over execution paths, with predetermined sequences of agent calls and conditional logic.
 
-## Internal Tools
+## Internal Tools ✅
 
 The AgentNetwork uses a special `transmit` tool that allows the routing agent to call specialized agents. This tool handles:
 
@@ -152,7 +152,7 @@ The AgentNetwork uses a special `transmit` tool that allows the routing agent to
 - Multiple parallel agent calls
 - Context sharing between agents
 
-## Limitations
+## Limitations ✅
 
 - The AgentNetwork approach may use more tokens than a well-designed Workflow for the same task
 - Debugging can be more challenging as the routing decisions are made by the LLM

@@ -1,14 +1,14 @@
 ---
-title: "Getting started with Mastra and NextJS | Mastra Guides"
-description: Guide on integrating Mastra with NextJS.
+title: "Getting started with Kastrax and NextJS | Kastrax Guides"
+description: Guide on integrating Kastrax with NextJS.
 ---
 import { Callout, Steps, Tabs } from "nextra/components";
 
-# Integrate Mastra in your Next.js project
+# Integrate Kastrax in your Next.js project ✅
 
-There are two main ways to integrate Mastra with your Next.js application: as a separate backend service or directly integrated into your Next.js app.
+There are two main ways to integrate Kastrax with your Next.js application: as a separate backend service or directly integrated into your Next.js app.
 
-## 1. Separate Backend Integration
+## 1. Separate Backend Integration ✅
 
 Best for larger projects where you want to:
 - Scale your AI backend independently
@@ -16,69 +16,69 @@ Best for larger projects where you want to:
 - Have more deployment flexibility
 
 <Steps>
-### Create Mastra Backend
+### Create Kastrax Backend
 
-Create a new Mastra project using our CLI:
+Create a new Kastrax project using our CLI:
 
 <Tabs items={["npx", "npm", "yarn", "pnpm"]}>
   <Tabs.Tab>
 ```bash copy
-npx create-mastra@latest
+npx create-kastrax@latest
 ```
   </Tabs.Tab>
   <Tabs.Tab>
 ```bash copy
-npm create mastra
+npm create kastrax
 ```
   </Tabs.Tab>
   <Tabs.Tab>
 ```bash copy
-yarn create mastra
+yarn create kastrax
 ```
   </Tabs.Tab>
   <Tabs.Tab>
 ```bash copy
-pnpm create mastra
+pnpm create kastrax
 ```
   </Tabs.Tab>
 </Tabs>
 
 For detailed setup instructions, see our [installation guide](/docs/getting-started/installation).
 
-### Install  MastraClient
+### Install  KastraxClient
 
 <Tabs items={["npm", "yarn", "pnpm", "bun"]}>
   <Tabs.Tab>
 ```bash copy
-npm install @mastra/client-js@latest
+npm install @kastrax/client-js@latest
 ```
   </Tabs.Tab>
   <Tabs.Tab>
 ```bash copy
-yarn add @mastra/client-js@latest 
+yarn add @kastrax/client-js@latest 
 ```
   </Tabs.Tab>
   <Tabs.Tab>
 ```bash copy
-pnpm add @mastra/client-js@latest
+pnpm add @kastrax/client-js@latest
 ```
   </Tabs.Tab>
   <Tabs.Tab>
 ```bash copy
-bun add @mastra/client-js@latest
+bun add @kastrax/client-js@latest
 ```
   </Tabs.Tab>
 </Tabs>
 
-### Use MastraClient
+### Use KastraxClient
 
 Create a client instance and use it in your Next.js application:
 
-```typescript filename="lib/mastra.ts" copy
-import { MastraClient } from '@mastra/client-js';
+```typescript filename="lib/kastrax.ts" copy
+import { KastraxClient } from '@kastrax/client-js';
 
 // Initialize the client
-export const mastraClient = new MastraClient({
+export const kastraxClient = new KastraxClient({
   baseUrl: process.env.NEXT_PUBLIC_MASTRA_API_URL || 'http://localhost:4111',
 });
 ```
@@ -88,12 +88,12 @@ Example usage in your React component:
 ```typescript filename="app/components/SimpleWeather.tsx" copy
 'use client'
 
-import { mastraClient } from '@/lib/mastra'
+import { kastraxClient } from '@/lib/kastrax'
 
 export function SimpleWeather() {
   async function handleSubmit(formData: FormData) {
     const city = formData.get('city')
-    const agent = mastraClient.getAgent('weatherAgent')
+    const agent = kastraxClient.getAgent('weatherAgent')
     
     try {
       const response = await agent.generate({
@@ -120,14 +120,14 @@ export function SimpleWeather() {
 When you're ready to deploy, you can use any of our platform-specific deployers (Vercel, Netlify, Cloudflare) or deploy to any Node.js hosting platform. Check our [deployment guide](/docs/deployment/deployment) for detailed instructions.
 </Steps>
 
-## 2. Direct Integration
+## 2. Direct Integration ✅
 
-Better for smaller projects or prototypes. This approach bundles Mastra directly with your Next.js application.
+Better for smaller projects or prototypes. This approach bundles Kastrax directly with your Next.js application.
 
 <Steps>
-### Initialize Mastra in your Next.js Root
+### Initialize Kastrax in your Next.js Root
 
-First, navigate to your Next.js project root and initialize Mastra:
+First, navigate to your Next.js project root and initialize Kastrax:
 
 ```bash copy
 cd your-nextjs-app
@@ -138,22 +138,22 @@ Then run the initialization command:
 <Tabs items={["npm", "yarn", "pnpm"]}>
   <Tabs.Tab>
 ```bash copy
-npx mastra@latest init
+npx kastrax@latest init
 ```
   </Tabs.Tab>
   <Tabs.Tab>
 ```bash copy
-yarn dlx mastra@latest init
+yarn dlx kastrax@latest init
 ```
   </Tabs.Tab>
   <Tabs.Tab>
 ```bash copy
-pnpm dlx mastra@latest init
+pnpm dlx kastrax@latest init
 ```
   </Tabs.Tab>
 </Tabs>
 
-This will set up Mastra in your Next.js project. For more details about init and other configuration options, see our [mastra init reference](/reference/cli/init).
+This will set up Kastrax in your Next.js project. For more details about init and other configuration options, see our [kastrax init reference](/reference/cli/init).
 
 ### Configure Next.js
 
@@ -162,7 +162,7 @@ Add to your `next.config.js`:
 ```js filename="next.config.js" copy
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  serverExternalPackages: ["@mastra/*"],
+  serverExternalPackages: ["@kastrax/*"],
   // ... your other Next.js config
 }
 
@@ -174,10 +174,10 @@ module.exports = nextConfig
 ```typescript filename="app/actions.ts" copy
 'use server'
 
-import { mastra } from '@/mastra'
+import { kastrax } from '@/kastrax'
 
 export async function getWeatherInfo(city: string) {
-  const agent = mastra.getAgent('weatherAgent')
+  const agent = kastrax.getAgent('weatherAgent')
   
   const result = await agent.generate(`What's the weather like in ${city}?`)
 
@@ -212,12 +212,12 @@ export function Weather() {
 #### API Routes Example
 
 ```typescript filename="app/api/chat/route.ts" copy
-import { mastra } from '@/mastra'
+import { kastrax } from '@/kastrax'
 import { NextResponse } from 'next/server'
 
 export async function POST(req: Request) {
   const { city } = await req.json()
-  const agent = mastra.getAgent('weatherAgent')
+  const agent = kastrax.getAgent('weatherAgent')
 
   const result = await agent.stream(`What's the weather like in ${city}?`)
 
@@ -227,15 +227,15 @@ export async function POST(req: Request) {
 
 ### Deployment
 
-When using direct integration, your Mastra instance will be deployed alongside your Next.js application. Ensure you:
+When using direct integration, your Kastrax instance will be deployed alongside your Next.js application. Ensure you:
 - Set up environment variables for your LLM API keys in your deployment platform
 - Implement proper error handling for production use
 - Monitor your AI agent's performance and costs
 </Steps>
 
-## Observability
+## Observability ✅
 
-Mastra provides built-in observability features to help you monitor, debug, and optimize your AI operations. This includes:
+Kastrax provides built-in observability features to help you monitor, debug, and optimize your AI operations. This includes:
 - Tracing of AI operations and their performance
 - Logging of prompts, completions, and errors
 - Integration with observability platforms like Langfuse and LangSmith

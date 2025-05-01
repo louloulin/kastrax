@@ -1,0 +1,203 @@
+# Kastrax Development Environment ✅
+
+The Kastrax development environment provides a convenient way to test and debug your agents locally. It offers a chat interface, memory inspection, and tool debugging capabilities.
+
+## Setting Up the Development Environment ✅
+
+To use the Kastrax development environment, you need to add the `kastrax-dev` module to your project:
+
+```kotlin
+// build.gradle.kts
+dependencies {
+    implementation("ai.kastrax:kastrax-core:0.1.0")
+    implementation("ai.kastrax:kastrax-dev:0.1.0")
+    // Other dependencies...
+}
+```
+
+## Starting the Development Server ✅
+
+You can start the development server programmatically:
+
+```kotlin
+import ai.kastrax.dev.KastraxDev
+import ai.kastrax.core.agent.agent
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    // Create your agent
+    val myAgent = agent {
+        name("TestAgent")
+        description("A test agent for development")
+        
+        model = deepSeek {
+            apiKey("your-deepseek-api-key")
+            model(DeepSeekModel.DEEPSEEK_CHAT)
+            temperature(0.7)
+        }
+        
+        // Add memory, tools, etc.
+    }
+    
+    // Start the development server
+    KastraxDev.start(
+        port = 3000,
+        agents = listOf(myAgent)
+    )
+    
+    // The server will run until the application is terminated
+    println("Kastrax Dev server running at http://localhost:3000")
+    
+    // Keep the application running
+    readLine()
+}
+```
+
+Or you can use the Gradle plugin:
+
+```kotlin
+// build.gradle.kts
+plugins {
+    kotlin("jvm") version "2.1.10"
+    id("ai.kastrax.dev") version "0.1.0"
+}
+
+kastraxDev {
+    port = 3000
+    agentClasses = listOf("com.example.MyAgent")
+}
+```
+
+Then run:
+
+```bash
+./gradlew kastraxDevRun
+```
+
+## Using the Development Environment ✅
+
+Once the server is running, open your browser and navigate to `http://localhost:3000` (or the port you specified). You'll see the Kastrax development interface:
+
+<img src="/image/kastrax-dev.png" alt="Kastrax Development Environment" width={800} />
+
+### Chat Interface ✅
+
+The chat interface allows you to interact with your agent. You can:
+
+- Send messages to the agent
+- View the agent's responses
+- See tool calls and their results
+- Test different conversation scenarios
+
+### Memory Inspector ✅
+
+The memory inspector shows the current state of the agent's memory:
+
+- Working memory
+- Conversation history
+- Semantic memories
+- Memory metadata
+
+This helps you understand what information the agent has access to during the conversation.
+
+### Tool Debugger ✅
+
+The tool debugger shows:
+
+- Available tools
+- Tool parameters
+- Tool call history
+- Tool execution results
+
+You can also manually trigger tool calls to test their functionality.
+
+### Model Inspector ✅
+
+The model inspector shows:
+
+- Current model configuration
+- Token usage
+- Response timing
+- Raw model responses
+
+This helps you optimize your prompts and understand the model's behavior.
+
+## Advanced Configuration ✅
+
+### Custom UI Theme ✅
+
+You can customize the UI theme:
+
+```kotlin
+KastraxDev.start(
+    port = 3000,
+    agents = listOf(myAgent),
+    theme = DevTheme(
+        primaryColor = "#4CAF50",
+        secondaryColor = "#2196F3",
+        backgroundColor = "#FFFFFF",
+        textColor = "#333333"
+    )
+)
+```
+
+### Multiple Agents ✅
+
+You can add multiple agents to the development environment:
+
+```kotlin
+KastraxDev.start(
+    port = 3000,
+    agents = listOf(agent1, agent2, agent3)
+)
+```
+
+### Persistent Storage ✅
+
+You can enable persistent storage to save conversations:
+
+```kotlin
+KastraxDev.start(
+    port = 3000,
+    agents = listOf(myAgent),
+    persistConversations = true,
+    storageDirectory = "dev-storage"
+)
+```
+
+### Custom Middleware ✅
+
+You can add custom middleware to intercept and modify messages:
+
+```kotlin
+KastraxDev.start(
+    port = 3000,
+    agents = listOf(myAgent),
+    middleware = listOf(
+        LoggingMiddleware(),
+        AnalyticsMiddleware()
+    )
+)
+```
+
+## Best Practices ✅
+
+1. **Use Real API Keys**: For the most accurate testing, use your actual API keys rather than mocks.
+
+2. **Test Edge Cases**: Use the development environment to test how your agent handles unusual or unexpected inputs.
+
+3. **Inspect Memory**: Regularly check the memory inspector to ensure your agent is storing and retrieving the right information.
+
+4. **Debug Tools**: If a tool isn't working as expected, use the tool debugger to test it in isolation.
+
+5. **Save Conversations**: Enable persistent storage to save interesting conversations for regression testing.
+
+## Next Steps ✅
+
+Now that you know how to use the Kastrax development environment, you can:
+
+1. [Create your first agent](../getting-started/first-agent.mdx)
+2. [Learn about agent architectures](../agents/architectures.mdx)
+3. [Explore the memory system](../memory/overview.mdx)

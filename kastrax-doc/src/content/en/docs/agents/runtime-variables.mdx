@@ -1,13 +1,13 @@
 ---
-title: "Runtime context | Agents | Mastra Docs"
-description: Learn how to use Mastra's dependency injection system to provide runtime configuration to agents and tools.
+title: "Runtime context | Agents | Kastrax Docs"
+description: Learn how to use Kastrax's dependency injection system to provide runtime configuration to agents and tools.
 ---
 
-# Agent Runtime Context
+# Agent Runtime Context ✅
 
-Mastra provides runtime context, which is a system based on dependency injection that enables you to configure your agents and tools with runtime variables. If you find yourself creating several different agents that do very similar things, runtime context allows you to combine them into one agent.
+Kastrax provides runtime context, which is a system based on dependency injection that enables you to configure your agents and tools with runtime variables. If you find yourself creating several different agents that do very similar things, runtime context allows you to combine them into one agent.
 
-## Overview
+## Overview ✅
 
 The dependency injection system allows you to:
 
@@ -16,10 +16,10 @@ The dependency injection system allows you to:
 3. Modify agent behavior without changing the underlying code
 4. Share configuration across multiple tools within the same agent
 
-## Basic Usage
+## Basic Usage ✅
 
 ```typescript
-const agent = mastra.getAgent("weatherAgent");
+const agent = kastrax.getAgent("weatherAgent");
 
 // Define your runtimeContext's type structure
 type WeatherRuntimeContext = {
@@ -36,13 +36,13 @@ const response = await agent.generate("What's the weather like today?", {
 console.log(response.text);
 ```
 
-## Using with REST API
+## Using with REST API ✅
 
 Here's how to dynamically set temperature units based on a user's location using the Cloudflare `CF-IPCountry` header:
 
 ```typescript filename="src/index.ts"
-import { Mastra } from "@mastra/core";
-import { RuntimeContext } from "@mastra/core/di";
+import { Kastrax } from "@kastrax/core";
+import { RuntimeContext } from "@kastrax/core/di";
 import { agent as weatherAgent } from "./agents/weather";
 
 // Define RuntimeContext type with clear, descriptive types
@@ -50,7 +50,7 @@ type WeatherRuntimeContext = {
   "temperature-scale": "celsius" | "fahrenheit";
 };
 
-export const mastra = new Mastra({
+export const kastrax = new Kastrax({
   agents: {
     weather: weatherAgent,
   },
@@ -73,12 +73,12 @@ export const mastra = new Mastra({
 });
 ```
 
-## Creating Tools with Variables
+## Creating Tools with Variables ✅
 
 Tools can access runtimeContext variables and must conform to the agent's runtimeContext type:
 
 ```typescript
-import { createTool } from "@mastra/core/tools";
+import { createTool } from "@kastrax/core/tools";
 import { z } from "zod";
 
 export const weatherTool = createTool({

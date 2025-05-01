@@ -1,29 +1,29 @@
 ---
-title: "Reference: Laminar Integration | Mastra Observability Docs"
-description: Documentation for integrating Laminar with Mastra, a specialized observability platform for LLM applications.
+title: "Reference: Laminar Integration | Kastrax Observability Docs"
+description: Documentation for integrating Laminar with Kastrax, a specialized observability platform for LLM applications.
 ---
 
-# Laminar
+# Laminar ✅
 
 Laminar is a specialized observability platform for LLM applications.
 
-## Configuration
+## Configuration ✅
 
-To use Laminar with Mastra, configure these environment variables:
+To use Laminar with Kastrax, configure these environment variables:
 
 ```env
 OTEL_EXPORTER_OTLP_ENDPOINT=https://api.lmnr.ai:8443
 OTEL_EXPORTER_OTLP_HEADERS="Authorization=Bearer your_api_key, x-laminar-team-id=your_team_id"
 ```
 
-## Implementation
+## Implementation ✅
 
-Here's how to configure Mastra to use Laminar:
+Here's how to configure Kastrax to use Laminar:
 
 ```typescript
-import { Mastra } from "@mastra/core";
+import { Kastrax } from "@kastrax/core";
 
-export const mastra = new Mastra({
+export const kastrax = new Kastrax({
   // ... other config
   telemetry: {
     serviceName: "your-service-name",
@@ -36,6 +36,6 @@ export const mastra = new Mastra({
 });
 ```
 
-## Dashboard
+## Dashboard ✅
 
 Access your Laminar dashboard at [https://lmnr.ai/](https://lmnr.ai/)

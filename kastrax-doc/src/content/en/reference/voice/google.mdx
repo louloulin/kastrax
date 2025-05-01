@@ -1,16 +1,16 @@
 ---
-title: "Reference: Google Voice | Voice Providers | Mastra Docs"
+title: "Reference: Google Voice | Voice Providers | Kastrax Docs"
 description: "Documentation for the Google Voice implementation, providing text-to-speech and speech-to-text capabilities."
 ---
 
-# Google
+# Google ✅
 
-The Google Voice implementation in Mastra provides both text-to-speech (TTS) and speech-to-text (STT) capabilities using Google Cloud services. It supports multiple voices, languages, and advanced audio configuration options.
+The Google Voice implementation in Kastrax provides both text-to-speech (TTS) and speech-to-text (STT) capabilities using Google Cloud services. It supports multiple voices, languages, and advanced audio configuration options.
 
-## Usage Example
+## Usage Example ✅
 
 ```typescript
-import { GoogleVoice } from "@mastra/voice-google";
+import { GoogleVoice } from "@kastrax/voice-google";
 
 // Initialize with default configuration (uses GOOGLE_API_KEY environment variable)
 const voice = new GoogleVoice();
@@ -46,7 +46,7 @@ const transcript = await voice.listen(audioStream, {
 const voices = await voice.getSpeakers({ languageCode: 'en-US' });
 ```
 
-## Constructor Parameters
+## Constructor Parameters ✅
 
 <PropertiesTable
   content={[
@@ -87,7 +87,7 @@ const voices = await voice.getSpeakers({ languageCode: 'en-US' });
   ]}
 />
 
-## Methods
+## Methods ✅
 
 ### speak()
 
@@ -188,7 +188,7 @@ Returns an array of available voice options, where each node contains:
   ]}
 />
 
-## Important Notes
+## Important Notes ✅
 
 1. A Google Cloud API key is required. Set it via the `GOOGLE_API_KEY` environment variable or pass it in the constructor.
 2. The default voice is set to 'en-US-Casual-K'.

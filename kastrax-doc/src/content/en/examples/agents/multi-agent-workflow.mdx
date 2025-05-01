@@ -1,11 +1,11 @@
 ---
-title: "Example: Multi-Agent Workflow | Agents | Mastra Docs"
-description: Example of creating an agentic workflow in Mastra, where work product is passed between multiple agents.
+title: "Example: Multi-Agent Workflow | Agents | Kastrax Docs"
+description: Example of creating an agentic workflow in Kastrax, where work product is passed between multiple agents.
 ---
 
 import { GithubLink } from "@/components/github-link";
 
-# Multi-Agent Workflow
+# Multi-Agent Workflow ✅
 
 This example demonstrates how to create an agentic workflow with work product being passed between multiple agents with a worker agent and a supervisor agent.
 
@@ -19,8 +19,8 @@ First, import the required dependencies:
 ```typescript
 import { openai } from "@ai-sdk/openai";
 import { anthropic } from "@ai-sdk/anthropic";
-import { Agent } from "@mastra/core/agent";
-import { Step, Workflow } from "@mastra/core/workflows";
+import { Agent } from "@kastrax/core/agent";
+import { Step, Workflow } from "@kastrax/core/workflows";
 import { z } from "zod";
 ```
 
@@ -112,6 +112,6 @@ console.log("Results: ", res.results);
 
 <GithubLink
   link={
-    "https://github.com/mastra-ai/mastra/blob/main/examples/basics/agents/multi-agent-workflow"
+    "https://github.com/kastrax-ai/kastrax/blob/main/examples/basics/agents/multi-agent-workflow"
   }
 />

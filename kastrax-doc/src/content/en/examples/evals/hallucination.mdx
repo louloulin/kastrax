@@ -1,15 +1,15 @@
 ---
-title: "Example: Hallucination | Evals | Mastra Docs"
+title: "Example: Hallucination | Evals | Kastrax Docs"
 description: Example of using the Hallucination metric to evaluate factual contradictions in responses.
 ---
 
 import { GithubLink } from "@/components/github-link";
 
-# Hallucination
+# Hallucination ✅
 
-This example demonstrates how to use Mastra's Hallucination metric to evaluate whether responses contradict information provided in the context.
+This example demonstrates how to use Kastrax's Hallucination metric to evaluate whether responses contradict information provided in the context.
 
-## Overview
+## Overview ✅
 
 The example shows how to:
 
@@ -18,7 +18,7 @@ The example shows how to:
 3. Analyze hallucination scores
 4. Handle different accuracy levels
 
-## Setup
+## Setup ✅
 
 ### Environment Setup
 
@@ -34,10 +34,10 @@ Import the necessary dependencies:
 
 ```typescript copy showLineNumbers filename="src/index.ts"
 import { openai } from '@ai-sdk/openai';
-import { HallucinationMetric } from '@mastra/evals/llm';
+import { HallucinationMetric } from '@kastrax/evals/llm';
 ```
 
-## Example Usage
+## Example Usage ✅
 
 ### No Hallucination Example
 
@@ -136,7 +136,7 @@ console.log('Metric Result:', {
 // Metric Result: { score: 1, reason: 'The response completely contradicts the context.' }
 ```
 
-## Understanding the Results
+## Understanding the Results ✅
 
 The metric provides:
 
@@ -160,6 +160,6 @@ The metric provides:
 <br />
 <GithubLink
   link={
-    "https://github.com/mastra-ai/mastra/blob/main/examples/basics/evals/hallucination"
+    "https://github.com/kastrax-ai/kastrax/blob/main/examples/basics/evals/hallucination"
   }
 />

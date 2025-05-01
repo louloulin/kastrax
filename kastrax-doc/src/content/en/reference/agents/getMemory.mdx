@@ -1,27 +1,27 @@
 ---
-title: "Reference: Agent.getMemory() | Agents | Mastra Docs"
-description: "Documentation for the `.getMemory()` method in Mastra agents, which retrieves the memory system associated with the agent."
+title: "Reference: Agent.getMemory() | Agents | Kastrax Docs"
+description: "Documentation for the `.getMemory()` method in Kastrax agents, which retrieves the memory system associated with the agent."
 ---
 
-# Agent.getMemory()
+# Agent.getMemory() ✅
 
 The `getMemory()` method retrieves the memory system associated with an agent. This method is used to access the agent's memory capabilities for storing and retrieving information across conversations.
 
-## Syntax
+## Syntax ✅
 
 ```typescript
-getMemory(): MastraMemory | undefined
+getMemory(): KastraxMemory | undefined
 ```
 
-## Parameters
+## Parameters ✅
 
 This method does not take any parameters.
 
-## Return Value
+## Return Value ✅
 
-Returns a `MastraMemory` instance if a memory system is configured for the agent, or `undefined` if no memory system is configured.
+Returns a `KastraxMemory` instance if a memory system is configured for the agent, or `undefined` if no memory system is configured.
 
-## Description
+## Description ✅
 
 The `getMemory()` method is used to access the memory system associated with an agent. Memory systems allow agents to:
 
@@ -32,13 +32,13 @@ The `getMemory()` method is used to access the memory system associated with an 
 
 This method is often used in conjunction with `hasOwnMemory()` to check if an agent has a memory system before attempting to use it.
 
-## Examples
+## Examples ✅
 
 ### Basic Usage
 
 ```typescript
-import { Agent } from "@mastra/core/agent";
-import { Memory } from "@mastra/memory";
+import { Agent } from "@kastrax/core/agent";
+import { Memory } from "@kastrax/memory";
 import { openai } from '@ai-sdk/openai';
 
 // Create a memory system
@@ -69,7 +69,7 @@ if (agentMemory) {
 ### Checking for Memory Before Using
 
 ```typescript
-import { Agent } from "@mastra/core/agent";
+import { Agent } from "@kastrax/core/agent";
 import { openai } from '@ai-sdk/openai';
 
 // Create an agent without memory
@@ -91,8 +91,8 @@ if (agent.hasOwnMemory()) {
 ### Using Memory in a Conversation
 
 ```typescript
-import { Agent } from "@mastra/core/agent";
-import { Memory } from "@mastra/memory";
+import { Agent } from "@kastrax/core/agent";
+import { Memory } from "@kastrax/memory";
 import { openai } from '@ai-sdk/openai';
 
 // Create a memory system

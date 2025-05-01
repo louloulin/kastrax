@@ -1,16 +1,16 @@
 ---
-title: "Reference: PlayAI Voice | Voice Providers | Mastra Docs"
+title: "Reference: PlayAI Voice | Voice Providers | Kastrax Docs"
 description: "Documentation for the PlayAI voice implementation, providing text-to-speech capabilities."
 ---
 
-# PlayAI
+# PlayAI ✅
 
-The PlayAI voice implementation in Mastra provides text-to-speech capabilities using PlayAI's API.
+The PlayAI voice implementation in Kastrax provides text-to-speech capabilities using PlayAI's API.
 
-## Usage Example
+## Usage Example ✅
 
 ```typescript
-import { PlayAIVoice } from "@mastra/voice-playai";
+import { PlayAIVoice } from "@kastrax/voice-playai";
 
 // Initialize with default configuration (uses PLAYAI_API_KEY environment variable and PLAYAI_USER_ID environment variable)
 const voice = new PlayAIVoice();
@@ -31,7 +31,7 @@ const audioStream = await voice.speak("Hello, world!", {
 });
 ```
 
-## Constructor Parameters
+## Constructor Parameters ✅
 
 <PropertiesTable
   content={[
@@ -78,7 +78,7 @@ const audioStream = await voice.speak("Hello, world!", {
   ]}
 />
 
-## Methods
+## Methods ✅
 
 ### speak()
 
@@ -152,7 +152,7 @@ Returns an array of available voice options, where each node contains:
 
 This method is not supported by PlayAI and will throw an error. PlayAI does not provide speech-to-text functionality.
 
-## Notes
+## Notes ✅
 
 - PlayAI requires both an API key and a user ID for authentication
 - The service offers two models: 'PlayDialog' and 'Play3.0-mini'

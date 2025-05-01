@@ -1,11 +1,11 @@
 ---
-title: "Example: Retrieving Top-K Results | RAG | Mastra Docs"
-description: Example of using Mastra to query a vector database and retrieve semantically similar chunks.
+title: "Example: Retrieving Top-K Results | RAG | Kastrax Docs"
+description: Example of using Kastrax to query a vector database and retrieve semantically similar chunks.
 ---
 
 import { GithubLink } from "@/components/github-link";
 
-# Retrieving Top-K Results
+# Retrieving Top-K Results ✅
 
 After storing embeddings in a vector database, you need to query them to find similar content. 
 
@@ -15,8 +15,8 @@ This example shows how to retrieve similar chunks from a Pinecone vector databas
 
 ```tsx copy
 import { openai } from "@ai-sdk/openai";
-import { PineconeVector } from "@mastra/pinecone";
-import { MDocument } from "@mastra/rag";
+import { PineconeVector } from "@kastrax/pinecone";
+import { MDocument } from "@kastrax/rag";
 import { embedMany } from "ai";
 
 const doc = MDocument.fromText("Your text content...");
@@ -59,6 +59,6 @@ console.log(results);
 <br />
 <GithubLink
   link={
-    "https://github.com/mastra-ai/mastra/blob/main/examples/basics/rag/retrieve-results"
+    "https://github.com/kastrax-ai/kastrax/blob/main/examples/basics/rag/retrieve-results"
   }
 />

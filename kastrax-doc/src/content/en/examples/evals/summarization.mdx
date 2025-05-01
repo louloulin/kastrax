@@ -1,15 +1,15 @@
 ---
-title: "Example: Summarization | Evals | Mastra Docs"
+title: "Example: Summarization | Evals | Kastrax Docs"
 description: Example of using the Summarization metric to evaluate how well LLM-generated summaries capture content while maintaining factual accuracy.
 ---
 
 import { GithubLink } from "@/components/github-link";
 
-# Summarization Evaluation
+# Summarization Evaluation ✅
 
-This example demonstrates how to use Mastra's Summarization metric to evaluate how well LLM-generated summaries capture content while maintaining factual accuracy.
+This example demonstrates how to use Kastrax's Summarization metric to evaluate how well LLM-generated summaries capture content while maintaining factual accuracy.
 
-## Overview
+## Overview ✅
 
 The example shows how to:
 
@@ -18,7 +18,7 @@ The example shows how to:
 3. Analyze alignment and coverage scores
 4. Handle different summary scenarios
 
-## Setup
+## Setup ✅
 
 ### Environment Setup
 
@@ -34,10 +34,10 @@ Import the necessary dependencies:
 
 ```typescript copy showLineNumbers filename="src/index.ts"
 import { openai } from '@ai-sdk/openai';
-import { SummarizationMetric } from '@mastra/evals/llm';
+import { SummarizationMetric } from '@kastrax/evals/llm';
 ```
 
-## Metric Configuration
+## Metric Configuration ✅
 
 Set up the Summarization metric with an OpenAI model:
 
@@ -45,7 +45,7 @@ Set up the Summarization metric with an OpenAI model:
 const metric = new SummarizationMetric(openai('gpt-4o-mini'));
 ```
 
-## Example Usage
+## Example Usage ✅
 
 ### High-quality Summary Example
 
@@ -156,7 +156,7 @@ console.log('Metric Result:', {
 // }
 ```
 
-## Understanding the Results
+## Understanding the Results ✅
 
 The metric evaluates summaries through two components:
 
@@ -183,6 +183,6 @@ Final score is determined by the minimum of these two scores, ensuring that both
 <br />
 <GithubLink
   link={
-    "https://github.com/mastra-ai/mastra/blob/main/examples/basics/evals/summarization"
+    "https://github.com/kastrax-ai/kastrax/blob/main/examples/basics/evals/summarization"
   }
 /> 

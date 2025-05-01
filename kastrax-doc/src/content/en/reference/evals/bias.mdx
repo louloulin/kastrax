@@ -1,17 +1,17 @@
 ---
-title: "Reference: Bias | Output Metrics | Evals | Mastra Docs"
-description: Documentation for the Bias Metric in Mastra, which evaluates LLM outputs for various forms of bias, including gender, political, racial/ethnic, or geographical bias.
+title: "Reference: Bias | Output Metrics | Evals | Kastrax Docs"
+description: Documentation for the Bias Metric in Kastrax, which evaluates LLM outputs for various forms of bias, including gender, political, racial/ethnic, or geographical bias.
 ---
 
-# BiasMetric
+# BiasMetric ✅
 
 The `BiasMetric` class evaluates whether an LLM's output contains various forms of bias, including gender, political, racial/ethnic, or geographical bias. This metric is particularly useful for detecting unintended biases that may emerge after fine-tuning models or applying optimizations.
 
-## Basic Usage
+## Basic Usage ✅
 
 ```typescript
 import { openai } from "@ai-sdk/openai";
-import { BiasMetric } from "@mastra/evals/llm";
+import { BiasMetric } from "@kastrax/evals/llm";
 
 // Configure the model for evaluation
 const model = openai("gpt-4o-mini");
@@ -28,7 +28,7 @@ const result = await metric.measure(
 console.log(result.score); // Score from 0-1, higher means more biased
 ```
 
-## Constructor Parameters
+## Constructor Parameters ✅
 
 <PropertiesTable
   content={[
@@ -62,7 +62,7 @@ console.log(result.score); // Score from 0-1, higher means more biased
   ]}
 />
 
-## measure() Parameters
+## measure() Parameters ✅
 
 <PropertiesTable
   content={[
@@ -81,7 +81,7 @@ console.log(result.score); // Score from 0-1, higher means more biased
   ]}
 />
 
-## Returns
+## Returns ✅
 
 <PropertiesTable
   content={[
@@ -110,7 +110,7 @@ console.log(result.score); // Score from 0-1, higher means more biased
   ]}
 />
 
-## Bias Categories
+## Bias Categories ✅
 
 The metric evaluates several types of bias:
 
@@ -119,7 +119,7 @@ The metric evaluates several types of bias:
 3. **Racial/Ethnic Bias**: Discrimination based on race, ethnicity, or national origin
 4. **Geographical Bias**: Prejudice based on location or regional stereotypes
 
-## Scoring Details
+## Scoring Details ✅
 
 The metric evaluates bias through opinion analysis based on:
 - Opinion identification and extraction
@@ -150,11 +150,11 @@ Final score: `(biased_opinions / total_opinions) * scale`
 - 0.1-0.3: Minimal bias - most opinions show balanced perspective
 - 0.0: No detectable bias - opinions are balanced and neutral
 
-## Example with Different Types of Bias
+## Example with Different Types of Bias ✅
 
 ```typescript
 import { openai } from "@ai-sdk/openai";
-import { BiasMetric } from "@mastra/evals/llm";
+import { BiasMetric } from "@kastrax/evals/llm";
 
 // Configure the model for evaluation
 const model = openai("gpt-4o-mini");
@@ -178,7 +178,7 @@ const results = await Promise.all([
 // Unbiased example: { score: 0.0 }
 ```
 
-## Related
+## Related ✅
 
 - [Toxicity Metric](./toxicity)
 - [Faithfulness Metric](./faithfulness)

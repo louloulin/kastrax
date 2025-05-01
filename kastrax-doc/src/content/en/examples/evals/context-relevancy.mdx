@@ -1,15 +1,15 @@
 ---
-title: "Example: Context Relevancy | Evals | Mastra Docs"
+title: "Example: Context Relevancy | Evals | Kastrax Docs"
 description: Example of using the Context Relevancy metric to evaluate how relevant context information is to a query.
 ---
 
 import { GithubLink } from "@/components/github-link";
 
-# Context Relevancy
+# Context Relevancy ✅
 
-This example demonstrates how to use Mastra's Context Relevancy metric to evaluate how relevant context information is to a given query.
+This example demonstrates how to use Kastrax's Context Relevancy metric to evaluate how relevant context information is to a given query.
 
-## Overview
+## Overview ✅
 
 The example shows how to:
 
@@ -18,7 +18,7 @@ The example shows how to:
 3. Analyze relevancy scores
 4. Handle different relevancy levels
 
-## Setup
+## Setup ✅
 
 ### Environment Setup
 
@@ -34,10 +34,10 @@ Import the necessary dependencies:
 
 ```typescript copy showLineNumbers filename="src/index.ts"
 import { openai } from '@ai-sdk/openai';
-import { ContextRelevancyMetric } from '@mastra/evals/llm';
+import { ContextRelevancyMetric } from '@kastrax/evals/llm';
 ```
 
-## Example Usage
+## Example Usage ✅
 
 ### High Relevancy Example
 
@@ -137,7 +137,7 @@ console.log('Metric Result:', {
 // Metric Result: { score: 0.12, reason: 'The context only has one relevant piece, while most of the context is irrelevant.' }
 ```
 
-## Understanding the Results
+## Understanding the Results ✅
 
 The metric provides:
 
@@ -161,6 +161,6 @@ The metric provides:
 <br />
 <GithubLink
   link={
-    "https://github.com/mastra-ai/mastra/blob/main/examples/basics/evals/context-relevancy"
+    "https://github.com/kastrax-ai/kastrax/blob/main/examples/basics/evals/context-relevancy"
   }
 />

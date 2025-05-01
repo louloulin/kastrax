@@ -1,17 +1,17 @@
 ---
-title: "Reference: Context Relevancy | Evals | Mastra Docs"
+title: "Reference: Context Relevancy | Evals | Kastrax Docs"
 description: Documentation for the Context Relevancy Metric, which evaluates the relevance of retrieved context in RAG pipelines.
 ---
 
-# ContextRelevancyMetric
+# ContextRelevancyMetric ✅
 
 The `ContextRelevancyMetric` class evaluates the quality of your RAG (Retrieval-Augmented Generation) pipeline's retriever by measuring how relevant the retrieved context is to the input query. It uses an LLM-based evaluation system that first extracts statements from the context and then assesses their relevance to the input.
 
-## Basic Usage
+## Basic Usage ✅
 
 ```typescript
 import { openai } from "@ai-sdk/openai";
-import { ContextRelevancyMetric } from "@mastra/evals/llm";
+import { ContextRelevancyMetric } from "@kastrax/evals/llm";
 
 // Configure the model for evaluation
 const model = openai("gpt-4o-mini");
@@ -34,7 +34,7 @@ console.log(result.score); // Score from 0-1
 console.log(result.info.reason); // Explanation of the relevancy assessment
 ```
 
-## Constructor Parameters
+## Constructor Parameters ✅
 
 <PropertiesTable
   content={[
@@ -73,7 +73,7 @@ console.log(result.info.reason); // Explanation of the relevancy assessment
   ]}
 />
 
-## measure() Parameters
+## measure() Parameters ✅
 
 <PropertiesTable
   content={[
@@ -92,7 +92,7 @@ console.log(result.info.reason); // Explanation of the relevancy assessment
   ]}
 />
 
-## Returns
+## Returns ✅
 
 <PropertiesTable
   content={[
@@ -121,7 +121,7 @@ console.log(result.info.reason); // Explanation of the relevancy assessment
   ]}
 />
 
-## Scoring Details
+## Scoring Details ✅
 
 The metric evaluates how well retrieved context matches the query through binary relevance classification.
 
@@ -146,11 +146,11 @@ Final score: `(relevant_statements / total_statements) * scale`
 - 0.1-0.3: Low relevancy - mostly irrelevant context
 - 0.0: No relevancy - completely irrelevant context
 
-## Example with Custom Configuration
+## Example with Custom Configuration ✅
 
 ```typescript
 import { openai } from "@ai-sdk/openai";
-import { ContextRelevancyMetric } from "@mastra/evals/llm";
+import { ContextRelevancyMetric } from "@kastrax/evals/llm";
 
 // Configure the model for evaluation
 const model = openai("gpt-4o-mini");
@@ -181,7 +181,7 @@ const result = await metric.measure(
 // }
 ```
 
-## Related
+## Related ✅
 
 - [Contextual Recall Metric](./contextual-recall)
 - [Context Precision Metric](./context-precision)

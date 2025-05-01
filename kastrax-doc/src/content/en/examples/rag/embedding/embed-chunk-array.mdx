@@ -1,17 +1,17 @@
 ---
-title: "Example: Embedding Chunk Arrays | RAG | Mastra Docs"
-description: Example of using Mastra to generate embeddings for an array of text chunks for similarity search.
+title: "Example: Embedding Chunk Arrays | RAG | Kastrax Docs"
+description: Example of using Kastrax to generate embeddings for an array of text chunks for similarity search.
 ---
 
 import { GithubLink } from "@/components/github-link";
 
-# Embed Chunk Array
+# Embed Chunk Array ✅
 
 After chunking documents, you need to convert the text chunks into numerical vectors that can be used for similarity search. The `embed` method transforms text chunks into embeddings using your chosen provider and model. This example shows how to generate embeddings for an array of text chunks.
 
 ```tsx copy
 import { openai } from '@ai-sdk/openai';
-import { MDocument } from '@mastra/rag';
+import { MDocument } from '@kastrax/rag';
 import { embed } from 'ai';
 
 const doc = MDocument.fromText("Your text content...");
@@ -31,6 +31,6 @@ const { embeddings } = await embedMany({
 <br />
 <GithubLink
   link={
-    "https://github.com/mastra-ai/mastra/blob/main/examples/basics/rag/embed-chunk-array"
+    "https://github.com/kastrax-ai/kastrax/blob/main/examples/basics/rag/embed-chunk-array"
   }
 />

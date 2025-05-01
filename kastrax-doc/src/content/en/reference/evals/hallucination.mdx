@@ -1,17 +1,17 @@
 ---
-title: "Reference: Hallucination | Metrics | Evals | Mastra Docs"
-description: Documentation for the Hallucination Metric in Mastra, which evaluates the factual correctness of LLM outputs by identifying contradictions with provided context.
+title: "Reference: Hallucination | Metrics | Evals | Kastrax Docs"
+description: Documentation for the Hallucination Metric in Kastrax, which evaluates the factual correctness of LLM outputs by identifying contradictions with provided context.
 ---
 
-# HallucinationMetric
+# HallucinationMetric ✅
 
 The `HallucinationMetric` evaluates whether an LLM generates factually correct information by comparing its output against the provided context. This metric measures hallucination by identifying direct contradictions between the context and the output.
 
-## Basic Usage
+## Basic Usage ✅
 
 ```typescript
 import { openai } from "@ai-sdk/openai";
-import { HallucinationMetric } from "@mastra/evals/llm";
+import { HallucinationMetric } from "@kastrax/evals/llm";
 
 // Configure the model for evaluation
 const model = openai("gpt-4o-mini");
@@ -41,7 +41,7 @@ console.log(result.info.reason); // Explanation of the score
 // }
 ```
 
-## Constructor Parameters
+## Constructor Parameters ✅
 
 <PropertiesTable
   content={[
@@ -80,7 +80,7 @@ console.log(result.info.reason); // Explanation of the score
   ]}
 />
 
-## measure() Parameters
+## measure() Parameters ✅
 
 <PropertiesTable
   content={[
@@ -99,7 +99,7 @@ console.log(result.info.reason); // Explanation of the score
   ]}
 />
 
-## Returns
+## Returns ✅
 
 <PropertiesTable
   content={[
@@ -129,7 +129,7 @@ console.log(result.info.reason); // Explanation of the score
   ]}
 />
 
-## Scoring Details
+## Scoring Details ✅
 
 The metric evaluates hallucination through contradiction detection and unsupported claim analysis.
 
@@ -176,11 +176,11 @@ Final score: `(hallucinated_statements / total_statements) * scale`
 
 **Note:** The score represents the degree of hallucination - lower scores indicate better factual alignment with the provided context
 
-## Example with Analysis
+## Example with Analysis ✅
 
 ```typescript
 import { openai } from "@ai-sdk/openai";
-import { HallucinationMetric } from "@mastra/evals/llm";
+import { HallucinationMetric } from "@kastrax/evals/llm";
 
 // Configure the model for evaluation
 const model = openai("gpt-4o-mini");
@@ -211,7 +211,7 @@ const result = await metric.measure({
 // }
 ```
 
-## Related
+## Related ✅
 
 - [Faithfulness Metric](./faithfulness)
 - [Answer Relevancy Metric](./answer-relevancy)

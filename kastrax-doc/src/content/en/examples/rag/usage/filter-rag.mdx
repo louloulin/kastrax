@@ -1,20 +1,20 @@
 ---
-title: "Example: Agent-Driven Metadata Filtering | Retrieval | RAG | Mastra Docs"
-description: Example of using a Mastra agent in a RAG system to construct and apply metadata filters for document retrieval.
+title: "Example: Agent-Driven Metadata Filtering | Retrieval | RAG | Kastrax Docs"
+description: Example of using a Kastrax agent in a RAG system to construct and apply metadata filters for document retrieval.
 ---
 
 import { GithubLink } from "@/components/github-link";
 
-# Agent-Driven Metadata Filtering
+# Agent-Driven Metadata Filtering ✅
 
-This example demonstrates how to implement a Retrieval-Augmented Generation (RAG) system using Mastra, OpenAI embeddings, and PGVector for vector storage.
+This example demonstrates how to implement a Retrieval-Augmented Generation (RAG) system using Kastrax, OpenAI embeddings, and PGVector for vector storage.
 This system uses an agent to construct metadata filters from a user's query to search for relevant chunks in the vector store, reducing the amount of results returned.
 
-## Overview
+## Overview ✅
 
-The system implements metadata filtering using Mastra and OpenAI. Here's what it does:
+The system implements metadata filtering using Kastrax and OpenAI. Here's what it does:
 
-1. Sets up a Mastra agent with gpt-4o-mini to understand queries and identify filter requirements
+1. Sets up a Kastrax agent with gpt-4o-mini to understand queries and identify filter requirements
 2. Creates a vector query tool to handle metadata filtering and semantic search
 3. Processes documents into chunks with metadata and embeddings
 4. Stores both vectors and metadata in PGVector for efficient retrieval
@@ -26,7 +26,7 @@ When a user asks a question:
    - Uses the vector query tool to find the most relevant information
    - Generates a contextual response based on the filtered results
 
-## Setup
+## Setup ✅
 
 ### Environment Setup
 
@@ -43,16 +43,16 @@ Then, import the necessary dependencies:
 
 ```typescript copy showLineNumbers filename="index.ts"
 import { openai } from '@ai-sdk/openai';
-import { Mastra } from '@mastra/core';
-import { Agent } from '@mastra/core/agent';
-import { PgVector, PGVECTOR_PROMPT } from '@mastra/pg';
-import { createVectorQueryTool, MDocument } from '@mastra/rag';
+import { Kastrax } from '@kastrax/core';
+import { Agent } from '@kastrax/core/agent';
+import { PgVector, PGVECTOR_PROMPT } from '@kastrax/pg';
+import { createVectorQueryTool, MDocument } from '@kastrax/rag';
 import { embedMany } from 'ai';
 ```
 
-## Vector Query Tool Creation
+## Vector Query Tool Creation ✅
 
-Using createVectorQueryTool imported from @mastra/rag, you can create a tool that enables metadata filtering. Each vector store has its own prompt that defines the supported filter operators and syntax:
+Using createVectorQueryTool imported from @kastrax/rag, you can create a tool that enables metadata filtering. Each vector store has its own prompt that defines the supported filter operators and syntax:
 
 ```typescript copy showLineNumbers{9} filename="index.ts"
 const vectorQueryTool = createVectorQueryTool({
@@ -71,7 +71,7 @@ Each prompt includes:
 - Store-specific restrictions and rules
 - Complex query examples
 
-## Document Processing
+## Document Processing ✅
 
 Create a document and process it into chunks with metadata:
 
@@ -107,7 +107,7 @@ const chunkMetadata = chunks?.map((chunk: any, index: number) => ({
 }));
 ```
 
-## Agent Configuration
+## Agent Configuration ✅
 
 The agent is configured to understand user queries and translate them into appropriate metadata filters.
 
@@ -152,21 +152,21 @@ The agent's instructions are designed to:
 
 > Note: Different vector stores have specific prompts available. See [Vector Store Prompts](/docs/rag/retrieval#vector-store-prompts) for details.
 
-## Instantiate PgVector and Mastra
+## Instantiate PgVector and Kastrax ✅
 
-Instantiate PgVector and Mastra with the components:
+Instantiate PgVector and Kastrax with the components:
 
 ```typescript copy showLineNumbers{69} filename="index.ts"
 const pgVector = new PgVector(process.env.POSTGRES_CONNECTION_STRING!);
 
-export const mastra = new Mastra({
+export const kastrax = new Kastrax({
   agents: { ragAgent },
   vectors: { pgVector },
 });
-const agent = mastra.getAgent('ragAgent');
+const agent = kastrax.getAgent('ragAgent');
 ```
 
-## Creating and Storing Embeddings
+## Creating and Storing Embeddings ✅
 
 Generate embeddings and store them with metadata:
 
@@ -176,7 +176,7 @@ const { embeddings } = await embedMany({
   values: chunks.map(chunk => chunk.text),
 });
 
-const vectorStore = mastra.getVector('pgVector');
+const vectorStore = kastrax.getVector('pgVector');
 await vectorStore.createIndex({
   indexName: 'embeddings',
   dimension: 1536,
@@ -192,7 +192,7 @@ await vectorStore.upsert({
 
 The `upsert` operation stores both the vector embeddings and their associated metadata, enabling combined semantic search and metadata filtering capabilities.
 
-## Metadata-Based Querying
+## Metadata-Based Querying ✅
 
 Try different queries using metadata filters:
 
@@ -220,6 +220,6 @@ console.log('Response:', answerThree.text);
 <br />
 <GithubLink
   link={
-    "https://github.com/mastra-ai/mastra/blob/main/examples/basics/rag/filter-rag"
+    "https://github.com/kastrax-ai/kastrax/blob/main/examples/basics/rag/filter-rag"
   }
 />

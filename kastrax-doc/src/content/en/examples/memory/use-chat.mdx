@@ -1,15 +1,15 @@
 ---
 title: AI SDK useChat Hook
-description: Example showing how to integrate Mastra memory with the Vercel AI SDK useChat hook.
+description: Example showing how to integrate Kastrax memory with the Vercel AI SDK useChat hook.
 ---
 
-# Example: AI SDK `useChat` Hook
+# Example: AI SDK `useChat` Hook ✅
 
-Integrating Mastra's memory with frontend frameworks like React using the Vercel AI SDK's `useChat` hook requires careful handling of message history to avoid duplication. This example shows the recommended pattern.
+Integrating Kastrax's memory with frontend frameworks like React using the Vercel AI SDK's `useChat` hook requires careful handling of message history to avoid duplication. This example shows the recommended pattern.
 
-## Preventing Message Duplication with `useChat`
+## Preventing Message Duplication with `useChat` ✅
 
-The default behavior of `useChat` sends the entire chat history with each request. Since Mastra's memory automatically retrieves history based on `threadId`, sending the full history from the client leads to duplicate messages in the context window and storage.
+The default behavior of `useChat` sends the entire chat history with each request. Since Kastrax's memory automatically retrieves history based on `threadId`, sending the full history from the client leads to duplicate messages in the context window and storage.
 
 **Solution:** Configure `useChat` to send **only the latest message** along with your `threadId` and `resourceId`.
 
@@ -49,10 +49,10 @@ export function Chat({ threadId, resourceId }) {
 }
 
 // app/api/chat/route.ts (Next.js Example)
-import { Agent } from "@mastra/core/agent";
-import { Memory } from "@mastra/memory";
+import { Agent } from "@kastrax/core/agent";
+import { Memory } from "@kastrax/memory";
 import { openai } from "@ai-sdk/openai";
-import { CoreMessage } from "@mastra/core"; // Import CoreMessage
+import { CoreMessage } from "@kastrax/core"; // Import CoreMessage
 
 const agent = new Agent({
   name: "ChatAgent",
@@ -86,9 +86,9 @@ export async function POST(request: Request) {
 
 See the [AI SDK documentation on message persistence](https://sdk.vercel.ai/docs/ai-sdk-ui/chatbot-message-persistence) for more background.
 
-## Basic Thread Management UI
+## Basic Thread Management UI ✅
 
-While this page focuses on `useChat`, you can also build UIs for managing threads (listing, creating, selecting). This typically involves backend API endpoints that interact with Mastra's memory functions like `memory.getThreadsByResourceId()` and `memory.createThread()`.
+While this page focuses on `useChat`, you can also build UIs for managing threads (listing, creating, selecting). This typically involves backend API endpoints that interact with Kastrax's memory functions like `memory.getThreadsByResourceId()` and `memory.createThread()`.
 
 ```typescript
 // Conceptual React component for a thread list
@@ -152,7 +152,7 @@ function ChatApp() {
 }
 ```
 
-## Related
+## Related ✅
 
 -   **[Getting Started](../../docs/memory/overview.mdx)**: Covers the core concepts of `resourceId` and `threadId`.
 -   **[Memory Reference](../../reference/memory/Memory.mdx)**: API details for `Memory` class methods.

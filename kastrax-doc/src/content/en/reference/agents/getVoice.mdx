@@ -1,19 +1,19 @@
 ---
-title: "Reference: Agent.getVoice() | Agents | Mastra Docs"
-description: "Documentation for the `.getVoice()` method in Mastra agents, which retrieves the voice provider for speech capabilities."
+title: "Reference: Agent.getVoice() | Agents | Kastrax Docs"
+description: "Documentation for the `.getVoice()` method in Kastrax agents, which retrieves the voice provider for speech capabilities."
 ---
 
-# Agent.getVoice()
+# Agent.getVoice() ✅
 
 The `getVoice()` method retrieves the voice provider configured for an agent, resolving it if it's a function. This method is used to access the agent's speech capabilities for text-to-speech and speech-to-text functionality.
 
-## Syntax
+## Syntax ✅
 
 ```typescript
 getVoice({ runtimeContext }: { runtimeContext?: RuntimeContext } = {}): CompositeVoice | Promise<CompositeVoice>
 ```
 
-## Parameters
+## Parameters ✅
 
 <br />
 <PropertiesTable
@@ -27,11 +27,11 @@ getVoice({ runtimeContext }: { runtimeContext?: RuntimeContext } = {}): Composit
   ]}
 />
 
-## Return Value
+## Return Value ✅
 
 Returns a `CompositeVoice` instance or a Promise that resolves to a `CompositeVoice` instance. If no voice provider was configured for the agent, it returns a default voice provider.
 
-## Description
+## Description ✅
 
 The `getVoice()` method is used to access the voice capabilities of an agent. It resolves the voice provider, which can be either directly provided or returned from a function.
 
@@ -40,13 +40,13 @@ The voice provider enables:
 - Speech-to-text conversion (listening)
 - Retrieving available speakers/voices
 
-## Examples
+## Examples ✅
 
 ### Basic Usage
 
 ```typescript
-import { Agent } from "@mastra/core/agent";
-import { ElevenLabsVoice } from "@mastra/voice-elevenlabs";
+import { Agent } from "@kastrax/core/agent";
+import { ElevenLabsVoice } from "@kastrax/voice-elevenlabs";
 import { openai } from '@ai-sdk/openai';
 
 // Create an agent with a voice provider
@@ -76,9 +76,9 @@ console.log(speakers);
 ### Using with RuntimeContext
 
 ```typescript
-import { Agent } from "@mastra/core/agent";
-import { ElevenLabsVoice } from "@mastra/voice-elevenlabs";
-import { RuntimeContext } from "@mastra/core/runtime-context";
+import { Agent } from "@kastrax/core/agent";
+import { ElevenLabsVoice } from "@kastrax/voice-elevenlabs";
+import { RuntimeContext } from "@kastrax/core/runtime-context";
 import { openai } from '@ai-sdk/openai';
 
 // Create an agent with a dynamic voice provider

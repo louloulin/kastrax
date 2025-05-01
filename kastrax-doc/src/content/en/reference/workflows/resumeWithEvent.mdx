@@ -1,13 +1,13 @@
 ---
-title: ".resumeWithEvent() Method | Mastra Docs"
+title: ".resumeWithEvent() Method | Kastrax Docs"
 description: "Reference for the resumeWithEvent method that resumes suspended workflows using event data."
 ---
 
-# resumeWithEvent()
+# resumeWithEvent() ✅
 
 The `resumeWithEvent()` method resumes workflow execution by providing data for a specific event that the workflow is waiting for.
 
-## Syntax
+## Syntax ✅
 
 ```typescript
 const run = workflow.createRun();
@@ -16,14 +16,14 @@ const run = workflow.createRun();
 await run.resumeWithEvent(eventName: string, data: any): Promise<WorkflowRunResult>
 ```
 
-## Parameters
+## Parameters ✅
 
 | Parameter | Type   | Description                                                                                             |
 | --------- | ------ | ------------------------------------------------------------------------------------------------------- |
 | eventName | string | The name of the event to trigger. Must match an event defined in the workflow's `events` configuration. |
 | data      | any    | The event data to provide. Must conform to the schema defined for that event.                           |
 
-## Return Value
+## Return Value ✅
 
 Returns a Promise that resolves to a `WorkflowRunResult` object, containing:
 
@@ -32,7 +32,7 @@ Returns a Promise that resolves to a `WorkflowRunResult` object, containing:
 - `value`: The current state value of the workflow
 - Other workflow execution metadata
 
-## Description
+## Description ✅
 
 The `resumeWithEvent()` method is used to resume a workflow that has been suspended at an event step created by the `afterEvent()` method. When called, this method:
 
@@ -42,9 +42,9 @@ The `resumeWithEvent()` method is used to resume a workflow that has been suspen
 4. Resumes execution from the event step
 5. Continues workflow execution with the subsequent steps
 
-This method is part of Mastra's event-driven workflow capabilities, allowing you to create workflows that can respond to external events or user interactions.
+This method is part of Kastrax's event-driven workflow capabilities, allowing you to create workflows that can respond to external events or user interactions.
 
-## Usage Notes
+## Usage Notes ✅
 
 - The workflow must be in a suspended state, specifically at the event step created by `afterEvent(eventName)`
 - The event data must conform to the schema defined for that event in the workflow configuration
@@ -52,13 +52,13 @@ This method is part of Mastra's event-driven workflow capabilities, allowing you
 - If the workflow is not suspended or is suspended at a different step, this method may throw an error
 - The event data is made available to subsequent steps via `context.inputData.resumedEvent`
 
-## Examples
+## Examples ✅
 
 ### Basic Usage
 
 ```typescript
 // Define and start a workflow
-const workflow = mastra.getWorkflow("approval-workflow");
+const workflow = kastrax.getWorkflow("approval-workflow");
 const run = workflow.createRun();
 
 // Start the workflow
@@ -124,7 +124,7 @@ watch(async ({ activePaths }) => {
 await start({ triggerData: { requestId: "auto-123" } });
 ```
 
-## Related
+## Related ✅
 
 - [Event-Driven Workflows](./events.mdx)
 - [afterEvent()](./afterEvent.mdx)

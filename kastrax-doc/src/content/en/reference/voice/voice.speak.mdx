@@ -1,16 +1,16 @@
 ---
-title: "Reference: voice.speak() | Voice Providers | Mastra Docs"
-description: "Documentation for the speak() method available in all Mastra voice providers, which converts text to speech."
+title: "Reference: voice.speak() | Voice Providers | Kastrax Docs"
+description: "Documentation for the speak() method available in all Kastrax voice providers, which converts text to speech."
 ---
 
-# voice.speak()
+# voice.speak() ✅
 
-The `speak()` method is a core function available in all Mastra voice providers that converts text to speech. It takes text input and returns an audio stream that can be played or saved.
+The `speak()` method is a core function available in all Kastrax voice providers that converts text to speech. It takes text input and returns an audio stream that can be played or saved.
 
-## Usage Example
+## Usage Example ✅
 
 ```typescript
-import { OpenAIVoice } from "@mastra/voice-openai";
+import { OpenAIVoice } from "@kastrax/voice-openai";
 // Initialize a voice provider
 const voice = new OpenAIVoice({
   speaker: "alloy", // Default voice
@@ -33,7 +33,7 @@ const audioStreamFromTextStream = await voice.speak(textStream);
 ```
 
 
-## Parameters
+## Parameters ✅
 
 <PropertiesTable
   content={[
@@ -58,14 +58,14 @@ const audioStreamFromTextStream = await voice.speak(textStream);
   ]}
 />
 
-## Return Value
+## Return Value ✅
 
 Returns a `Promise<NodeJS.ReadableStream | void>` where:
 
 - `NodeJS.ReadableStream`: A stream of audio data that can be played or saved
 - `void`: When using a realtime voice provider that emits audio through events instead of returning it directly
 
-## Provider-Specific Options
+## Provider-Specific Options ✅
 
 Each voice provider may support additional options specific to their implementation. Here are some examples:
 
@@ -149,7 +149,7 @@ Each voice provider may support additional options specific to their implementat
   ]}
 />
 
-## Realtime Voice Providers
+## Realtime Voice Providers ✅
 
 When using realtime voice providers like `OpenAIRealtimeVoice`, the `speak()` method behaves differently:
 
@@ -157,8 +157,8 @@ When using realtime voice providers like `OpenAIRealtimeVoice`, the `speak()` me
 - You need to register an event listener to receive the audio chunks
 
 ```typescript
-import { OpenAIRealtimeVoice } from "@mastra/voice-openai-realtime";
-import Speaker from "@mastra/node-speaker";
+import { OpenAIRealtimeVoice } from "@kastrax/voice-openai-realtime";
+import Speaker from "@kastrax/node-speaker";
 
 const speaker = new Speaker({
   sampleRate: 24100,  // Audio sample rate in Hz - standard for high-quality audio on MacBook Pro
@@ -178,14 +178,14 @@ await voice.speak("Hello, this is realtime speech!");
 ```
 
 
-## Using with CompositeVoice
+## Using with CompositeVoice ✅
 
 When using `CompositeVoice`, the `speak()` method delegates to the configured speaking provider:
 
 ```typescript
-import { CompositeVoice } from "@mastra/core/voice";
-import { OpenAIVoice } from "@mastra/voice-openai";
-import { PlayAIVoice } from "@mastra/voice-playai";
+import { CompositeVoice } from "@kastrax/core/voice";
+import { OpenAIVoice } from "@kastrax/voice-openai";
+import { PlayAIVoice } from "@kastrax/voice-playai";
 const voice = new CompositeVoice({
   speakProvider: new PlayAIVoice(),
   listenProvider: new OpenAIVoice(),
@@ -194,7 +194,7 @@ const voice = new CompositeVoice({
 const audioStream = await voice.speak("Hello, world!");
 ```
 
-## Notes
+## Notes ✅
 
 - The behavior of `speak()` may vary slightly between providers, but all implementations follow the same basic interface.
 - When using a realtime voice provider, the method might not return an audio stream directly but instead emit a 'speaking' event.

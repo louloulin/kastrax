@@ -1,29 +1,29 @@
 ---
 title: "Vercel Deployer"
-description: "Documentation for the VercelDeployer class, which deploys Mastra applications to Vercel."
+description: "Documentation for the VercelDeployer class, which deploys Kastrax applications to Vercel."
 ---
 
-# VercelDeployer
+# VercelDeployer ✅
 
-The VercelDeployer deploys Mastra applications to Vercel, handling configuration, environment variable synchronization, and deployment processes. It extends the abstract Deployer class to provide Vercel-specific deployment functionality.
+The VercelDeployer deploys Kastrax applications to Vercel, handling configuration, environment variable synchronization, and deployment processes. It extends the abstract Deployer class to provide Vercel-specific deployment functionality.
 
-## Usage Example
+## Usage Example ✅
 
 ```typescript
-import { Mastra } from '@mastra/core';
-import { VercelDeployer } from '@mastra/deployer-vercel';
+import { Kastrax } from '@kastrax/core';
+import { VercelDeployer } from '@kastrax/deployer-vercel';
 
-const mastra = new Mastra({
+const kastrax = new Kastrax({
   deployer: new VercelDeployer({
     teamSlug: 'your-team-slug',
     projectName: 'your-project-name',
     token: 'your-vercel-token'
   }),
-  // ... other Mastra configuration options
+  // ... other Kastrax configuration options
 });
 ```
 
-## Parameters
+## Parameters ✅
 
 ### Constructor Parameters
 
@@ -56,30 +56,30 @@ const mastra = new Mastra({
 The VercelDeployer handles environment variables from multiple sources:
 
 1. **Environment Files**: Variables from `.env.production` and `.env` files.
-2. **Configuration**: Variables passed through the Mastra configuration.
+2. **Configuration**: Variables passed through the Kastrax configuration.
 3. **Vercel Dashboard**: Variables can also be managed through Vercel's web interface.
 
 The deployer automatically synchronizes environment variables between your local development environment and Vercel's environment variable system, ensuring consistency across all deployment environments (production, preview, and development).
 
-## Build Mastra Project
+## Build Kastrax Project ✅
 
-To build your Mastra project for Vercel deployment:
+To build your Kastrax project for Vercel deployment:
 
 ```bash
-npx mastra build
+npx kastrax build
 ```
 
-The build process generates the following output structure in the `.mastra/output` directory:
+The build process generates the following output structure in the `.kastrax/output` directory:
 
 ```
-.mastra/output/
+.kastrax/output/
 ├── vercel.json     # Vercel configuration
 └── index.mjs       # Application entry point
 ```
 
 ### Vercel Configuration
 
-The VercelDeployer automatically generates a `vercel.json` configuration file in `.mastra/output` with the following settings:
+The VercelDeployer automatically generates a `vercel.json` configuration file in `.kastrax/output` with the following settings:
 
 ```json
 {
@@ -103,20 +103,20 @@ The VercelDeployer automatically generates a `vercel.json` configuration file in
 }
 ```
 
-## Deployment Options
+## Deployment Options ✅
 
-After building, you can deploy your Mastra application `.mastra/output` to Vercel using any of these methods:
+After building, you can deploy your Kastrax application `.kastrax/output` to Vercel using any of these methods:
 
 1. **Vercel CLI**: Deploy directly using Vercel's official CLI tool
    - Install the CLI: `npm install -g vercel`
-   - Navigate to the output directory: `cd .mastra/output`
+   - Navigate to the output directory: `cd .kastrax/output`
    - Deploy to preview environment: `vercel`
    - For production deployment: `vercel --prod`
 
 2. **Vercel Dashboard**: Connect your Git repository or drag-and-drop the build output through the Vercel dashboard
 
-> You can also run `vercel dev` in your output directory `.mastra/output` to test your Mastra application locally.
+> You can also run `vercel dev` in your output directory `.kastrax/output` to test your Kastrax application locally.
 
-## Platform Documentation
+## Platform Documentation ✅
 
 - [Vercel](https://vercel.com/docs)

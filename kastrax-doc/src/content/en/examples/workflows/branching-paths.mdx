@@ -1,15 +1,15 @@
 ---
-title: "Example: Branching Paths | Workflows | Mastra Docs"
-description: Example of using Mastra to create workflows with branching paths based on intermediate results.
+title: "Example: Branching Paths | Workflows | Kastrax Docs"
+description: Example of using Kastrax to create workflows with branching paths based on intermediate results.
 ---
 
 import { GithubLink } from "@/components/github-link";
 
-# Branching Paths
+# Branching Paths ✅
 
 When processing data, you often need to take different actions based on intermediate results. This example shows how to create a workflow that splits into separate paths, where each path executes different steps based on the output of a previous step.
 
-## Control Flow Diagram
+## Control Flow Diagram ✅
 
 This example shows how to create a workflow that splits into separate paths, where each path executes different steps based on the output of a previous step.
 
@@ -20,13 +20,13 @@ Here's the control flow diagram:
   alt="Diagram showing workflow with branching paths"
 />
 
-## Creating the Steps
+## Creating the Steps ✅
 
 Let's start by creating the steps and initializing the workflow.
 
 {/* prettier-ignore */}
 ```ts showLineNumbers copy
-import { Step, Workflow } from "@mastra/core/workflows";
+import { Step, Workflow } from "@kastrax/core/workflows";
 import { z } from "zod"
 
 const stepOne = new Step({
@@ -101,7 +101,7 @@ const myWorkflow = new Workflow({
 });
 ```
 
-## Branching Paths and Chaining Steps
+## Branching Paths and Chaining Steps ✅
 
 Now let's configure the workflow with branching paths and merge them using the compound `.after([])` syntax.
 
@@ -129,7 +129,7 @@ console.log(result.steps.finalStep.output.summary);
 // Output: "The number 3 when doubled is not divisible by 5, and when doubled and incremented is divisible by 3."
 ```
 
-## Advanced Branching and Merging
+## Advanced Branching and Merging ✅
 
 You can create more complex workflows with multiple branches and merge points:
 
@@ -215,6 +215,6 @@ complexWorkflow
 <br />
 <GithubLink
   link={
-    "https://github.com/mastra-ai/mastra/blob/main/examples/basics/workflows/workflow-with-branching-paths"
+    "https://github.com/kastrax-ai/kastrax/blob/main/examples/basics/workflows/workflow-with-branching-paths"
   }
 />

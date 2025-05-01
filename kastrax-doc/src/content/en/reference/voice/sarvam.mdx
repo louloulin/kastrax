@@ -1,16 +1,16 @@
 ---
-title: "Reference: Sarvam Voice | Voice Providers | Mastra Docs"
+title: "Reference: Sarvam Voice | Voice Providers | Kastrax Docs"
 description: "Documentation for the Sarvam class, providing text-to-speech and speech-to-text capabilities."
 ---
 
-# Sarvam
+# Sarvam ✅
 
-The SarvamVoice class in Mastra provides text-to-speech and speech-to-text capabilities using Sarvam AI models.
+The SarvamVoice class in Kastrax provides text-to-speech and speech-to-text capabilities using Sarvam AI models.
 
-## Usage Example
+## Usage Example ✅
 
 ```typescript
-import { SarvamVoice } from "@mastra/voice-sarvam";
+import { SarvamVoice } from "@kastrax/voice-sarvam";
 
 // Initialize with default configuration using environment variables
 const voice = new SarvamVoice();
@@ -54,7 +54,7 @@ const text = await voice.listen(audioStream, {
 
 https://docs.sarvam.ai/api-reference-docs/endpoints/text-to-speech
 
-## Configuration
+## Configuration ✅
 
 ### Constructor Options
 
@@ -196,7 +196,7 @@ https://docs.sarvam.ai/api-reference-docs/endpoints/text-to-speech
   ]}
 />
 
-## Methods
+## Methods ✅
 
 ### speak()
 
@@ -251,7 +251,7 @@ Returns an array of available voice options.
 
 Returns: `Promise<Array<{voiceId: SarvamVoiceId}>>`
 
-## Notes
+## Notes ✅
 
 - API key can be provided via constructor options or the `SARVAM_API_KEY` environment variable
 - If no API key is provided, the constructor will throw an error

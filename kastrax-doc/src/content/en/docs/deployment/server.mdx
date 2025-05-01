@@ -1,15 +1,15 @@
 ---
-title: "Creating A Mastra Server"
-description: "Configure and customize the Mastra server with middleware and other options"
+title: "Creating A Kastrax Server"
+description: "Configure and customize the Kastrax server with middleware and other options"
 ---
 
-# Creating A Mastra Server
+# Creating A Kastrax Server ✅
 
-While developing or when you deploy a Mastra application, it runs as an HTTP server that exposes your agents, workflows, and other functionality as API endpoints. This page explains how to configure and customize the server behavior.
+While developing or when you deploy a Kastrax application, it runs as an HTTP server that exposes your agents, workflows, and other functionality as API endpoints. This page explains how to configure and customize the server behavior.
 
-## Server Architecture
+## Server Architecture ✅
 
-Mastra uses [Hono](https://hono.dev) as its underlying HTTP server framework. When you build a Mastra application using `mastra build`, it generates a Hono-based HTTP server in the `.mastra` directory.
+Kastrax uses [Hono](https://hono.dev) as its underlying HTTP server framework. When you build a Kastrax application using `kastrax build`, it generates a Hono-based HTTP server in the `.kastrax` directory.
 
 The server provides:
 
@@ -20,14 +20,14 @@ The server provides:
 - Configuration of timeout
 - Configuration of port
 
-## Server configuration
+## Server configuration ✅
 
-You can configure server `port` and `timeout` in the Mastra instance.
+You can configure server `port` and `timeout` in the Kastrax instance.
 
 ```typescript copy showLineNumbers
-import { Mastra } from "@mastra/core";
+import { Kastrax } from "@kastrax/core";
 
-export const mastra = new Mastra({
+export const kastrax = new Kastrax({
   server: {
     port: 3000, // Defaults to 4111
     timeout: 10000, // Defaults to 30000 (30s)
@@ -35,27 +35,27 @@ export const mastra = new Mastra({
 });
 ```
 
-## Custom API Routes
+## Custom API Routes ✅
 
-Mastra provides a list of api routes that are automatically generated based on the registered agents and workflows. You can also define custom api routes on the Mastra instance.
+Kastrax provides a list of api routes that are automatically generated based on the registered agents and workflows. You can also define custom api routes on the Kastrax instance.
 
-These routes can live in the same file as the Mastra instance or in a separate file. We recommend keeping them in a separate file to keep the Mastra instance clean.
+These routes can live in the same file as the Kastrax instance or in a separate file. We recommend keeping them in a separate file to keep the Kastrax instance clean.
 
 ```typescript copy showLineNumbers
-import { Mastra } from "@mastra/core";
-import { registerApiRoute } from "@mastra/core/server";
+import { Kastrax } from "@kastrax/core";
+import { registerApiRoute } from "@kastrax/core/server";
 
-export const mastra = new Mastra({
+export const kastrax = new Kastrax({
   server: {
     apiRoutes: [
       registerApiRoute("/my-custom-route", {
         method: "GET",
         handler: async (c) => {
-          // you have access to mastra instance here
-          const mastra = c.get("mastra");
+          // you have access to kastrax instance here
+          const kastrax = c.get("kastrax");
 
-          // you can use the mastra instance to get agents, workflows, etc.
-          const agents = await mastra.getAgent("my-agent");
+          // you can use the kastrax instance to get agents, workflows, etc.
+          const agents = await kastrax.getAgent("my-agent");
 
           return c.json({ message: "Hello, world!" });
         },
@@ -66,14 +66,14 @@ export const mastra = new Mastra({
 });
 ```
 
-## Custom CORS Config
+## Custom CORS Config ✅
 
-Mastra allows you to configure CORS (Cross-Origin Resource Sharing) settings for your server.
+Kastrax allows you to configure CORS (Cross-Origin Resource Sharing) settings for your server.
 
 ```typescript copy showLineNumbers
-import { Mastra } from '@mastra/core';
+import { Kastrax } from '@kastrax/core';
 
-export const mastra = new Mastra({
+export const kastrax = new Kastrax({
   server: {
     cors: {
       origin: ['https://example.com'], // Allow specific origins or '*' for all
@@ -85,14 +85,14 @@ export const mastra = new Mastra({
 });
 ```
 
-## Middleware
+## Middleware ✅
 
-Mastra allows you to configure custom middleware functions that will be applied to API routes. This is useful for adding authentication, logging, CORS, or other HTTP-level functionality to your API endpoints.
+Kastrax allows you to configure custom middleware functions that will be applied to API routes. This is useful for adding authentication, logging, CORS, or other HTTP-level functionality to your API endpoints.
 
 ```typescript copy showLineNumbers
-import { Mastra } from '@mastra/core';
+import { Kastrax } from '@kastrax/core';
 
-export const mastra = new Mastra({
+export const kastrax = new Kastrax({
   // Other configuration options
   server: {
     middleware: [
@@ -132,11 +132,11 @@ registerApiRoute("/my-custom-route", {
     },
   ],
   handler: async (c) => {
-    // you have access to mastra instance here
-    const mastra = c.get("mastra");
+    // you have access to kastrax instance here
+    const kastrax = c.get("kastrax");
 
-    // you can use the mastra instance to get agents, workflows, etc.
-    const agents = await mastra.getAgent("my-agent");
+    // you can use the kastrax instance to get agents, workflows, etc.
+    const agents = await kastrax.getAgent("my-agent");
 
     return c.json({ message: "Hello, world!" });
   },
@@ -207,21 +207,21 @@ Each middleware function:
 }
 ```
 
-### Special Mastra Headers
+### Special Kastrax Headers
 
-When integrating with Mastra Cloud or building custom clients, there are special headers that clients send to identify themselves and enable specific features. Your server middleware can check for these headers to customize behavior:
+When integrating with Kastrax Cloud or building custom clients, there are special headers that clients send to identify themselves and enable specific features. Your server middleware can check for these headers to customize behavior:
 
 ```typescript copy
 {
   handler: async (c, next) => {
-    // Check for Mastra-specific headers in incoming requests
-    const isFromMastraCloud = c.req.header("x-mastra-cloud") === "true";
-    const clientType = c.req.header("x-mastra-client-type"); // e.g., 'js', 'python'
-    const isDevPlayground = c.req.header("x-mastra-dev-playground") === "true";
+    // Check for Kastrax-specific headers in incoming requests
+    const isFromKastraxCloud = c.req.header("x-kastrax-cloud") === "true";
+    const clientType = c.req.header("x-kastrax-client-type"); // e.g., 'js', 'python'
+    const isDevPlayground = c.req.header("x-kastrax-dev-playground") === "true";
 
     // Customize behavior based on client information
-    if (isFromMastraCloud) {
-      // Special handling for Mastra Cloud requests
+    if (isFromKastraxCloud) {
+      // Special handling for Kastrax Cloud requests
     }
 
     await next();
@@ -231,15 +231,15 @@ When integrating with Mastra Cloud or building custom clients, there are special
 
 These headers have the following purposes:
 
-- `x-mastra-cloud`: Indicates that the request is coming from Mastra Cloud
-- `x-mastra-client-type`: Specifies the client SDK type (e.g., 'js', 'python')
-- `x-mastra-dev-playground`: Indicates that the request is from the development playground
+- `x-kastrax-cloud`: Indicates that the request is coming from Kastrax Cloud
+- `x-kastrax-client-type`: Specifies the client SDK type (e.g., 'js', 'python')
+- `x-kastrax-dev-playground`: Indicates that the request is from the development playground
 
 You can use these headers in your middleware to implement client-specific logic or enable features only for certain environments.
 
-## Deployment
+## Deployment ✅
 
-Since Mastra builds to a standard Node.js server, you can deploy to any platform that runs Node.js applications:
+Since Kastrax builds to a standard Node.js server, you can deploy to any platform that runs Node.js applications:
 
 - Cloud VMs (AWS EC2, DigitalOcean Droplets, GCP Compute Engine)
 - Container platforms (Docker, Kubernetes)
@@ -251,28 +251,28 @@ Since Mastra builds to a standard Node.js server, you can deploy to any platform
 Build the application:
 
 ```bash copy
-# Build from current directory
-mastra build
+# Build from current directory ✅
+kastrax build
 
-# Or specify a directory
-mastra build --dir ./my-project
+# Or specify a directory ✅
+kastrax build --dir ./my-project
 ```
 
 The build process:
 
-1. Locates entry file (`src/mastra/index.ts` or `src/mastra/index.js`)
-2. Creates `.mastra` output directory
+1. Locates entry file (`src/kastrax/index.ts` or `src/kastrax/index.js`)
+2. Creates `.kastrax` output directory
 3. Bundles code using Rollup with tree shaking and source maps
 4. Generates [Hono](https://hono.dev) HTTP server
 
-See [`mastra build`](/reference/cli/build) for all options.
+See [`kastrax build`](/reference/cli/build) for all options.
 
 ### Running the Server
 
 Start the HTTP server:
 
 ```bash copy
-node .mastra/output/index.mjs
+node .kastrax/output/index.mjs
 ```
 
 ### Enable Telemetry for build output
@@ -280,11 +280,11 @@ node .mastra/output/index.mjs
 Load instrumentation for the build output like so:
 
 ```bash copy
-node --import=./.mastra/output/instrumentation.mjs  .mastra/output/index.mjs
+node --import=./.kastrax/output/instrumentation.mjs  .kastrax/output/index.mjs
 ```
 
-## Serverless Deployment
+## Serverless Deployment ✅
 
-Mastra also supports serverless deployment on Cloudflare Workers, Vercel, and Netlify.
+Kastrax also supports serverless deployment on Cloudflare Workers, Vercel, and Netlify.
 
 See our [Serverless Deployment](/docs/deployment/deployment) guide for setup instructions.

@@ -1,17 +1,17 @@
 ---
-title: "Reference: Contextual Recall | Metrics | Evals | Mastra Docs"
+title: "Reference: Contextual Recall | Metrics | Evals | Kastrax Docs"
 description: Documentation for the Contextual Recall Metric, which evaluates the completeness of LLM responses in incorporating relevant context.
 ---
 
-# ContextualRecallMetric
+# ContextualRecallMetric ✅
 
 The `ContextualRecallMetric` class evaluates how effectively an LLM's response incorporates all relevant information from the provided context. It measures whether important information from the reference documents was successfully included in the response, focusing on completeness rather than precision.
 
-## Basic Usage
+## Basic Usage ✅
 
 ```typescript
 import { openai } from "@ai-sdk/openai";
-import { ContextualRecallMetric } from "@mastra/evals/llm";
+import { ContextualRecallMetric } from "@kastrax/evals/llm";
 
 // Configure the model for evaluation
 const model = openai("gpt-4o-mini");
@@ -33,7 +33,7 @@ const result = await metric.measure(
 console.log(result.score); // Score from 0-1
 ```
 
-## Constructor Parameters
+## Constructor Parameters ✅
 
 <PropertiesTable
   content={[
@@ -72,7 +72,7 @@ console.log(result.score); // Score from 0-1
   ]}
 />
 
-## measure() Parameters
+## measure() Parameters ✅
 
 <PropertiesTable
   content={[
@@ -91,7 +91,7 @@ console.log(result.score); // Score from 0-1
   ]}
 />
 
-## Returns
+## Returns ✅
 
 <PropertiesTable
   content={[
@@ -120,7 +120,7 @@ console.log(result.score); // Score from 0-1
   ]}
 />
 
-## Scoring Details
+## Scoring Details ✅
 
 The metric evaluates recall through comparison of response content against relevant context items.
 
@@ -146,11 +146,11 @@ Final score: `(correctly_recalled_items / total_relevant_items) * scale`
 - 0.1-0.3: Low recall - significant information missed
 - 0.0: No recall - no relevant information included
 
-## Example with Custom Configuration
+## Example with Custom Configuration ✅
 
 ```typescript
 import { openai } from "@ai-sdk/openai";
-import { ContextualRecallMetric } from "@mastra/evals/llm";
+import { ContextualRecallMetric } from "@kastrax/evals/llm";
 
 // Configure the model for evaluation
 const model = openai("gpt-4o-mini");
@@ -184,7 +184,7 @@ const result = await metric.measure(
 // }
 ```
 
-## Related
+## Related ✅
 
 + [Context Relevancy Metric](./context-relevancy) 
 + [Completeness Metric](./completeness)

@@ -1,9 +1,9 @@
 ---
-title: Chunking and Embedding Documents | RAG | Mastra Docs
-description: Guide on chunking and embedding documents in Mastra for efficient processing and retrieval.
+title: Chunking and Embedding Documents | RAG | Kastrax Docs
+description: Guide on chunking and embedding documents in Kastrax for efficient processing and retrieval.
 ---
 
-## Chunking and Embedding Documents
+## Chunking and Embedding Documents ✅
 
 Before processing, create a MDocument instance from your content. You can initialize it from various formats:
 
@@ -14,9 +14,9 @@ const docFromMarkdown = MDocument.fromMarkdown("# Your Markdown content...");
 const docFromJSON = MDocument.fromJSON(`{ "key": "value" }`);
 ```
 
-## Step 1: Document Processing
+## Step 1: Document Processing ✅
 
-Use `chunk` to split documents into manageable pieces. Mastra supports multiple chunking strategies optimized for different document types:
+Use `chunk` to split documents into manageable pieces. Kastrax supports multiple chunking strategies optimized for different document types:
 
 - `recursive`: Smart splitting based on content structure
 - `character`: Simple character-based splits
@@ -44,9 +44,9 @@ const chunks = await doc.chunk({
 
 We go deeper into chunking strategies in our [chunk documentation](/reference/rag/chunk.mdx).
 
-## Step 2: Embedding Generation
+## Step 2: Embedding Generation ✅
 
-Transform chunks into embeddings using your preferred provider. Mastra supports many embedding providers, including OpenAI and Cohere:
+Transform chunks into embeddings using your preferred provider. Kastrax supports many embedding providers, including OpenAI and Cohere:
 
 ### Using OpenAI
 
@@ -107,7 +107,7 @@ Google (text-embedding-004):
 
 When storing embeddings, the vector database index must be configured to match the output size of your embedding model. If the dimensions do not match, you may get errors or data corruption.
 
-## Example: Complete Pipeline
+## Example: Complete Pipeline ✅
 
 Here's an example showing document processing and embedding generation with both providers:
 
@@ -116,7 +116,7 @@ import { embedMany } from "ai";
 import { openai } from "@ai-sdk/openai";
 import { cohere } from "@ai-sdk/cohere";
 
-import { MDocument } from "@mastra/rag";
+import { MDocument } from "@kastrax/rag";
 
 // Initialize document
 const doc = MDocument.fromText(`

@@ -1,16 +1,16 @@
 ---
-title: "Reference: voice.updateConfig() | Voice Providers | Mastra Docs"
+title: "Reference: voice.updateConfig() | Voice Providers | Kastrax Docs"
 description: "Documentation for the updateConfig() method available in voice providers, which updates the configuration of a voice provider at runtime."
 ---
 
-# voice.updateConfig()
+# voice.updateConfig() ✅
 
 The `updateConfig()` method allows you to update the configuration of a voice provider at runtime. This is useful for changing voice settings, API keys, or other provider-specific options without creating a new instance.
 
-## Usage Example
+## Usage Example ✅
 
 ```typescript
-import { OpenAIRealtimeVoice } from "@mastra/voice-openai-realtime";
+import { OpenAIRealtimeVoice } from "@kastrax/voice-openai-realtime";
 
 // Initialize a real-time voice provider
 const voice = new OpenAIRealtimeVoice({
@@ -38,7 +38,7 @@ voice.updateConfig({
 await voice.speak("Hello with my new voice!");
 ```
 
-## Parameters
+## Parameters ✅
 <br />
 <PropertiesTable
   content={[
@@ -51,11 +51,11 @@ await voice.speak("Hello with my new voice!");
   ]}
 />
 
-## Return Value
+## Return Value ✅
 
 This method does not return a value.
 
-## Configuration Options
+## Configuration Options ✅
 
 Different voice providers support different configuration options:
 
@@ -78,7 +78,7 @@ Different voice providers support different configuration options:
   ]}
 />
 
-## Notes
+## Notes ✅
 
 - The default implementation logs a warning if the provider doesn't support this method
 - Configuration updates are typically applied to subsequent operations, not ongoing ones

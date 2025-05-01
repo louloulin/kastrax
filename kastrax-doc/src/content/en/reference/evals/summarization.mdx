@@ -1,17 +1,17 @@
 ---
-title: "Reference: Summarization | Metrics | Evals | Mastra Docs"
-description: Documentation for the Summarization Metric in Mastra, which evaluates the quality of LLM-generated summaries for content and factual accuracy.
+title: "Reference: Summarization | Metrics | Evals | Kastrax Docs"
+description: Documentation for the Summarization Metric in Kastrax, which evaluates the quality of LLM-generated summaries for content and factual accuracy.
 ---
 
-# SummarizationMetric
+# SummarizationMetric ✅
 ,
 The `SummarizationMetric` evaluates how well an LLM's summary captures the original text's content while maintaining factual accuracy. It combines two aspects: alignment (factual correctness) and coverage (inclusion of key information), using the minimum scores to ensure both qualities are necessary for a good summary.
 
-## Basic Usage
+## Basic Usage ✅
 
 ```typescript
 import { openai } from "@ai-sdk/openai";
-import { SummarizationMetric } from "@mastra/evals/llm";
+import { SummarizationMetric } from "@kastrax/evals/llm";
 
 // Configure the model for evaluation
 const model = openai("gpt-4o-mini");
@@ -27,7 +27,7 @@ console.log(result.score); // Score from 0-1
 console.log(result.info); // Object containing detailed metrics about the summary
 ```
 
-## Constructor Parameters
+## Constructor Parameters ✅
 
 <PropertiesTable
   content={[
@@ -61,7 +61,7 @@ console.log(result.info); // Object containing detailed metrics about the summar
   ]}
 />
 
-## measure() Parameters
+## measure() Parameters ✅
 
 <PropertiesTable
   content={[
@@ -80,7 +80,7 @@ console.log(result.info); // Object containing detailed metrics about the summar
   ]}
 />
 
-## Returns
+## Returns ✅
 
 <PropertiesTable
   content={[
@@ -130,7 +130,7 @@ console.log(result.info); // Object containing detailed metrics about the summar
   ]}
 />
 
-## Scoring Details
+## Scoring Details ✅
 
 The metric evaluates summaries through two essential components:
 1. **Alignment Score**: Measures factual correctness
@@ -166,11 +166,11 @@ Final score: `min(alignment_score, coverage_score) * scale`
 - 0.1-0.3: Poor summary with major omissions or factual errors
 - 0.0: Invalid summary - either completely inaccurate or missing critical information
 
-## Example with Analysis
+## Example with Analysis ✅
 
 ```typescript
 import { openai } from "@ai-sdk/openai";
-import { SummarizationMetric } from "@mastra/evals/llm";
+import { SummarizationMetric } from "@kastrax/evals/llm";
 
 // Configure the model for evaluation
 const model = openai("gpt-4o-mini");
@@ -197,7 +197,7 @@ const result = await metric.measure(
 // }
 ```
 
-## Related
+## Related ✅
 
 - [Faithfulness Metric](./faithfulness)
 - [Completeness Metric](./completeness)

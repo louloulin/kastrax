@@ -1,18 +1,18 @@
 ---
-title: "Reference: voice.answer() | Voice Providers | Mastra Docs"
+title: "Reference: voice.answer() | Voice Providers | Kastrax Docs"
 description: "Documentation for the answer() method available in real-time voice providers, which triggers the voice provider to generate a response."
 ---
 
-# voice.answer()
+# voice.answer() ✅
 
 The `answer()` method is used in real-time voice providers to trigger the AI to generate a response. This method is particularly useful in speech-to-speech conversations where you need to explicitly signal the AI to respond after receiving user input.
 
-## Usage Example
+## Usage Example ✅
 
 ```typescript
-import { OpenAIRealtimeVoice } from "@mastra/voice-openai-realtime";
-import { getMicrophoneStream } from "@mastra/node-audio";
-import Speaker from "@mastra/node-speaker";
+import { OpenAIRealtimeVoice } from "@kastrax/voice-openai-realtime";
+import { getMicrophoneStream } from "@kastrax/node-audio";
+import Speaker from "@kastrax/node-speaker";
 
 const speaker = new Speaker({
   sampleRate: 24100,  // Audio sample rate in Hz - standard for high-quality audio on MacBook Pro
@@ -43,7 +43,7 @@ await voice.answer();
 ```
 
 
-## Parameters
+## Parameters ✅
 <br/>
 <PropertiesTable
   content={[
@@ -56,11 +56,11 @@ await voice.answer();
   ]}
 />
 
-## Return Value
+## Return Value ✅
 
 Returns a `Promise<void>` that resolves when the response has been triggered.
 
-## Notes
+## Notes ✅
 
 - This method is only implemented by real-time voice providers that support speech-to-speech capabilities
 - If called on a voice provider that doesn't support this functionality, it will log a warning and resolve immediately

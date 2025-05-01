@@ -1,318 +1,275 @@
 ---
-title: "Handling Complex LLM Operations | Workflows (vNext) | Mastra"
-description: "Workflows (vNext) in Mastra help you orchestrate complex sequences of operations with features like branching, parallel execution, resource suspension, and more."
+title: "Handling Complex LLM Operations | Workflows (vNext) | Kastrax"
+description: "Workflows (vNext) in Kastrax help you orchestrate complex sequences of operations with features like branching, parallel execution, resource suspension, and more."
 ---
 
-## Getting Started
+# Workflows (vNext) Overview ✅
+
+## Getting Started ✅
 
 To use vNext workflows, first import the necessary functions from the vNext module:
 
-```typescript
-import { createWorkflow, createStep } from "@mastra/core/workflows/vNext";
-import { z } from "zod"; // For schema validation
+```kotlin
+import ai.kastrax.core.workflow.vnext.createWorkflow
+import ai.kastrax.core.workflow.vnext.createStep
 ```
 
-## Key Concepts
+## Key Concepts ✅
 
 vNext workflows consist of:
 
-- **Schemas**: Type definitions for inputs and outputs using Zod
+- **Schemas**: Type definitions for inputs and outputs
 - **Steps**: Individual units of work with defined inputs and outputs
-- **Workflows**: Orchestrations of steps with defined execution patterns. A workflow is also a step and can be used as such in other workflows.
-- **Workflow execution flow**: How steps are executed and connected to each other
+- **Workflow**: A collection of steps with defined execution flow
+- **Runtime**: The execution environment for workflows
 
-Schemas are defined using Zod both for inputs and outputs of steps and workflows. Schemas can also dictate what data does a step take when resuming from a suspended state, as well as what contextual information should be passed when suspending a step's execution.
+## Creating a Simple Workflow ✅
 
-The inputs and outputs of steps that are connected together should match: the inputSchema of a step should be the same as the outputSchema of the previous step, for instance. The same is true, when using workflows as steps in other workflows, the workflow's inputSchema should match the outputSchema of the step it is used as.
+Here's a basic example of creating a workflow:
 
-Steps are run using an `execute` function that receives a context object with inputs from the previous step and/or resume data if the step is being resumed from a suspended state. The `execute` function should return a value that matches its outputSchema.
+```kotlin
+import ai.kastrax.core.workflow.vnext.createWorkflow
+import ai.kastrax.core.workflow.vnext.createStep
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.runBlocking
 
-Primitives such as `.then()`, `.parallel()` and `.branch()` describe the execution flow of workflows, and how tthe steps within them are connected. Running worksflows (whether standalone or as a step), their execution is dictated by their execution flow instead of an `execute` function. The final result of a workflow will always be the result of its last step, which should match the workflow's outputSchema.
-
-## Creating Workflows
-
-### Steps
-
-Steps are the building blocks of workflows. Create a step using `createStep`:
-
-```typescript
-const myStep = createStep({
-  id: "my-step",
-  description: "Does something useful",
-  inputSchema: z.object({
-    inputValue: z.string(),
-  }),
-  outputSchema: z.object({
-    outputValue: z.string(),
-  }),
-  resumeSchema: z.object({
-    resumeValue: z.string(),
-  }),
-  suspendSchema: z.object({
-    suspendValue: z.string(),
-  }),
-  execute: async ({
-    inputData,
-    mastra,
-    getStepResult,
-    getInitData,
-    runtimeContext,
-  }) => {
-    const otherStepOutput = getStepResult(step2);
-    const initData = getInitData<typeof workflow>(); // typed as the workflow input schema
-    return {
-      outputValue: `Processed: ${inputData.inputValue}, ${initData.startValue} (runtimeContextValue: ${runtimeContext.get("runtimeContextValue")})`,
-    };
-  },
-});
-```
-
-Each step requires:
-
-- `id`: Unique identifier for the step
-- `inputSchema`: Zod schema defining expected input
-- `outputSchema`: Zod schema defining output shape
-- `resumeSchema`: Optional. Zod schema defining resume input
-- `suspendSchema`: Optional. Zod schema defining suspend input
-- `execute`: Async function that performs the step's work
-
-The `execute` function receives a context object with:
-
-- `inputData`: The input data matching the inputSchema
-- `resumeData`: The resume data matching the resumeSchema, when resuming the step from a suspended state. Only exists if the step is being resumed.
-- `mastra`: Access to mastra services (agents, tools, etc.)
-- `getStepResult`: Function to access results from other steps
-- `getInitData`: Function to access the initial input data of the workflow in any step
-- `suspend`: Function to pause workflow execution (for user interaction)
-
-### Workflow Structure
-
-Create a workflow using `createWorkflow`:
-
-```typescript
-const myWorkflow = createWorkflow({
-  id: "my-workflow",
-  inputSchema: z.object({
-    startValue: z.string(),
-  }),
-  outputSchema: z.object({
-    result: z.string(),
-  }),
-  steps: [step1, step2, step3], // Declare steps used in this workflow
-});
-
-const mastra = new Mastra({
-  vnext_workflows: {
-    myWorkflow,
-  },
-});
-
-const run = mastra.vnext_getWorkflow("myWorkflow").createRun();
-```
-
-The `steps` property in the workflow options provides type safety for accessing step results. When you declare the steps used in your workflow, TypeScript will ensure type safety when accessing `result.steps`:
-
-```typescript
-// With steps declared in workflow options
-const workflow = createWorkflow({
-  id: "my-workflow",
-  inputSchema: z.object({}),
-  outputSchema: z.object({}),
-  steps: [step1, step2], // TypeScript knows these steps exist
-});
-
-const result = await workflow.createRun().start({ inputData: {} });
-if (result.status === "success") {
-  console.log(result.result); // only exists if status is success
-} else if (result.status === "failed") {
-  console.error(result.error); // only exists if status is failed, this is an instance of Error
-  throw result.error;
-} else if (result.status === "suspended") {
-  console.log(result.suspended); // only exists if status is suspended
-}
-
-// TypeScript knows these properties exist and their types
-console.log(result.steps.step1.output); // Fully typed
-console.log(result.steps.step2.output); // Fully typed
-```
-
-Workflow definition requires:
-
-- `id`: Unique identifier for the workflow
-- `inputSchema`: Zod schema defining workflow input
-- `outputSchema`: Zod schema defining workflow output
-- `steps`: Array of steps used in the workflow (optional, but recommended for type safety)
-
-### Re-using steps and nested workflows
-
-You can re-use steps and nested workflows by cloning them:
-
-```typescript
-const clonedStep = cloneStep(myStep, { id: "cloned-step" });
-const clonedWorkflow = cloneWorkflow(myWorkflow, { id: "cloned-workflow" });
-```
-
-This way you can use the same step or nested workflow in the same workflow multiple times.
-
-```typescript
-import {
-  createWorkflow,
-  createStep,
-  cloneStep,
-  cloneWorkflow,
-} from "@mastra/core/workflows/vNext";
-
-const myWorkflow = createWorkflow({
-  id: "my-workflow",
-  steps: [step1, step2, step3],
-});
-myWorkflow.then(step1).then(step2).then(step3).commit();
-
-const parentWorkflow = createWorkflow({
-  id: "parent-workflow",
-  steps: [myWorkflow, step4],
-});
-parentWorkflow
-  .then(myWorkflow)
-  .then(step4)
-  .then(cloneWorkflow(myWorkflow, { id: "cloned-workflow" }))
-  .then(cloneStep(step4, { id: "cloned-step-4" }))
-  .commit();
-```
-
-## Running Workflows
-
-After defining a workflow, run it with:
-
-```typescript
-// Create a run instance
-const run = myWorkflow.createRun();
-
-// Start the workflow with input data
-const result = await run.start({
-  inputData: {
-    startValue: "initial data",
-  },
-});
-
-// Access the results
-console.log(result.steps); // All step results
-console.log(result.steps["step-id"].output); // Output from a specific step
-
-if (result.status === "success") {
-  console.log(result.result); // The final result of the workflow, result of the last step (or `.map()` output, if used as last step)
-} else if (result.status === "suspended") {
-  const resumeResult = await run.resume({
-    step: result.suspended[0], // there is always at least one step id in the suspended array, in this case we resume the first suspended execution path
-    resumeData: {
-      /* user input */
-    },
-  });
-} else if (result.status === "failed") {
-  console.error(result.error); // only exists if status is failed, this is an instance of Error
-}
-```
-
-## Workflow Execution Result Schema
-
-The result of running a workflow (either from `start()` or `resume()`) follows this TypeScript interface:
-
-```typescript
-export type WorkflowResult<...> =
-  | {
-      status: 'success';
-      result: z.infer<TOutput>;
-      steps: {
-        [K in keyof StepsRecord<TSteps>]: StepsRecord<TSteps>[K]['outputSchema'] extends undefined
-          ? StepResult<unknown>
-          : StepResult<z.infer<NonNullable<StepsRecord<TSteps>[K]['outputSchema']>>>;
-      };
-    }
-  | {
-      status: 'failed';
-      steps: {
-        [K in keyof StepsRecord<TSteps>]: StepsRecord<TSteps>[K]['outputSchema'] extends undefined
-          ? StepResult<unknown>
-          : StepResult<z.infer<NonNullable<StepsRecord<TSteps>[K]['outputSchema']>>>;
-      };
-      error: Error;
-    }
-  | {
-      status: 'suspended';
-      steps: {
-        [K in keyof StepsRecord<TSteps>]: StepsRecord<TSteps>[K]['outputSchema'] extends undefined
-          ? StepResult<unknown>
-          : StepResult<z.infer<NonNullable<StepsRecord<TSteps>[K]['outputSchema']>>>;
-      };
-      suspended: [string[], ...string[][]];
-    };
-```
-
-### Result Properties Explained
-
-1. **status**: Indicates the final state of the workflow execution
-
-   - `'success'`: Workflow completed successfully
-   - `'failed'`: Workflow encountered an error
-   - `'suspended'`: Workflow is paused waiting for user input
-
-2. **result**: Contains the final output of the workflow, typed according to the workflow's `outputSchema`
-
-3. **suspended**: Optional array of step IDs that are currently suspended. Only present when `status` is `'suspended'`
-
-4. **steps**: A record containing the results of all executed steps
-
-   - Keys are step IDs
-   - Values are `StepResult` objects containing the step's output
-   - Type-safe based on each step's `outputSchema`
-
-5. **error**: Optional error object present when `status` is `'failed'`
-
-## Watching Workflow Execution
-
-You can also watch workflow execution:
-
-```typescript
-const run = myWorkflow.createRun();
-
-// Add a watcher to monitor execution
-run.watch(event => {
-  console.log('Step completed:', event.payload.currentStep.id);
-});
-
-// Start the workflow
-const result = await run.start({ inputData: {...} });
-```
-
-The `event` object has the following schema:
-
-```typescript
-type WatchEvent = {
-  type: "watch";
-  payload: {
-    currentStep?: {
-      id: string;
-      status: "running" | "completed" | "failed" | "suspended";
-      output?: Record<string, any>;
-      payload?: Record<string, any>;
-    };
-    workflowState: {
-      status: "running" | "success" | "failed" | "suspended";
-      steps: Record<
-        string,
-        {
-          status: "running" | "completed" | "failed" | "suspended";
-          output?: Record<string, any>;
-          payload?: Record<string, any>;
+fun main() = runBlocking {
+    // Define a step
+    val generateStep = createStep {
+        name("generate")
+        description("Generate a response to the user's query")
+        
+        // Define input schema
+        input {
+            field("query", String::class, "The user's query")
         }
-      >;
-      result?: Record<string, any>;
-      error?: Record<string, any>;
-      payload?: Record<string, any>;
-    };
-  };
-  eventTimestamp: Date;
-};
+        
+        // Define output schema
+        output {
+            field("response", String::class, "The generated response")
+        }
+        
+        // Define the step's execution logic
+        execute { input ->
+            val query = input.get<String>("query")
+            
+            // Use DeepSeek to generate a response
+            val llm = deepSeek {
+                apiKey("your-deepseek-api-key")
+                model(DeepSeekModel.DEEPSEEK_CHAT)
+                temperature(0.7)
+            }
+            
+            val response = llm.generate(query)
+            
+            // Return the output
+            mapOf("response" to response.text)
+        }
+    }
+    
+    // Create a workflow
+    val simpleWorkflow = createWorkflow {
+        name("SimpleWorkflow")
+        description("A simple workflow that generates a response to a query")
+        
+        // Define workflow input schema
+        input {
+            field("query", String::class, "The user's query")
+        }
+        
+        // Define workflow output schema
+        output {
+            field("response", String::class, "The generated response")
+        }
+        
+        // Add the step to the workflow
+        addStep(generateStep)
+        
+        // Define the workflow's execution flow
+        flow {
+            // Execute the generate step
+            val result = executeStep(generateStep, mapOf("query" to input.get<String>("query")))
+            
+            // Return the workflow output
+            mapOf("response" to result.get<String>("response"))
+        }
+    }
+    
+    // Execute the workflow
+    val result = simpleWorkflow.execute(mapOf("query" to "Tell me about quantum computing"))
+    println("Response: ${result.get<String>("response")}")
+}
 ```
 
-The `currentStep` property is only present when the workflow is running. When the workflow is finished the status on `workflowState` is changed, as well as the `result` and `error` properties. At the same time the `currentStep` property is removed.
+## Advanced Features ✅
+
+vNext workflows support advanced features like:
+
+### Conditional Branching ✅
+
+```kotlin
+flow {
+    val sentiment = executeStep(analyzeSentimentStep, mapOf("text" to input.get<String>("text")))
+    
+    if (sentiment.get<String>("sentiment") == "positive") {
+        executeStep(positiveResponseStep, mapOf("text" to input.get<String>("text")))
+    } else {
+        executeStep(negativeResponseStep, mapOf("text" to input.get<String>("text")))
+    }
+}
+```
+
+### Parallel Execution ✅
+
+```kotlin
+flow {
+    val results = executeParallel(
+        Pair(searchWebStep, mapOf("query" to input.get<String>("query"))),
+        Pair(searchDatabaseStep, mapOf("query" to input.get<String>("query")))
+    )
+    
+    val webResults = results[0].get<List<String>>("results")
+    val dbResults = results[1].get<List<String>>("results")
+    
+    // Combine results
+    val combinedResults = webResults + dbResults
+    
+    mapOf("results" to combinedResults)
+}
+```
+
+### Error Handling ✅
+
+```kotlin
+flow {
+    try {
+        val result = executeStep(riskyStep, mapOf("input" to input.get<String>("input")))
+        mapOf("result" to result.get<String>("output"))
+    } catch (e: Exception) {
+        executeStep(fallbackStep, mapOf("error" to e.message))
+        mapOf("result" to "Used fallback due to error: ${e.message}")
+    }
+}
+```
+
+### Resource Suspension ✅
+
+```kotlin
+flow {
+    // Start a long-running process
+    val processId = executeStep(startProcessStep, mapOf("input" to input.get<String>("input")))
+        .get<String>("processId")
+    
+    // Suspend the workflow until the process completes
+    suspend("process-completion", mapOf("processId" to processId))
+    
+    // When resumed, continue with the result
+    val result = input.get<String>("result")
+    mapOf("result" to result)
+}
+```
+
+## Integrating with Agents and Tools ✅
+
+vNext workflows can integrate with Kastrax agents and tools:
+
+```kotlin
+// Create an agent step
+val agentStep = createStep {
+    name("agent")
+    description("Use an agent to generate a response")
+    
+    input {
+        field("query", String::class, "The user's query")
+    }
+    
+    output {
+        field("response", String::class, "The agent's response")
+    }
+    
+    execute { input ->
+        val query = input.get<String>("query")
+        
+        // Create an agent
+        val agent = agent {
+            name("WorkflowAgent")
+            description("An agent used in a workflow")
+            
+            model = deepSeek {
+                apiKey("your-deepseek-api-key")
+                model(DeepSeekModel.DEEPSEEK_CHAT)
+                temperature(0.7)
+            }
+        }
+        
+        // Generate a response
+        val response = agent.generate(query)
+        
+        mapOf("response" to response.text)
+    }
+}
+
+// Create a tool step
+val toolStep = createStep {
+    name("tool")
+    description("Use a tool to perform an action")
+    
+    input {
+        field("input", String::class, "The tool input")
+    }
+    
+    output {
+        field("result", String::class, "The tool result")
+    }
+    
+    execute { input ->
+        val toolInput = input.get<String>("input")
+        
+        // Create a tool
+        val tool = tool("calculator") {
+            description("Calculate a mathematical expression")
+            parameters {
+                parameter("expression", "Mathematical expression", String::class)
+            }
+            execute { params ->
+                val expression = params["expression"] as String
+                // Simple expression evaluator (for demonstration)
+                val result = when {
+                    expression.contains("+") -> {
+                        val parts = expression.split("+")
+                        parts[0].trim().toDouble() + parts[1].trim().toDouble()
+                    }
+                    expression.contains("-") -> {
+                        val parts = expression.split("-")
+                        parts[0].trim().toDouble() - parts[1].trim().toDouble()
+                    }
+                    else -> throw IllegalArgumentException("Unsupported operation")
+                }
+                "Result: $result"
+            }
+        }
+        
+        // Execute the tool
+        val result = tool.execute(mapOf("expression" to toolInput))
+        
+        mapOf("result" to result)
+    }
+}
+```
+
+## Best Practices ✅
+
+1. **Keep Steps Focused**: Each step should do one thing well
+2. **Handle Errors**: Always include error handling in your workflows
+3. **Use Schemas**: Define clear input and output schemas for type safety
+4. **Test Thoroughly**: Test workflows with various inputs and edge cases
+5. **Monitor Execution**: Use logging and tracing to monitor workflow execution
+
+## Next Steps ✅
+
+Now that you understand vNext workflows, you can:
+
+1. Learn about [using workflows with agents and tools](./using-with-agents-and-tools.mdx)
+2. Explore [conditional branching](../examples/workflows_vNext/conditional-branching.mdx)
+3. Implement [parallel execution](../examples/workflows_vNext/parallel-steps.mdx)

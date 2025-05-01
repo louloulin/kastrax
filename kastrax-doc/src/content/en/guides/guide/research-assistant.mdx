@@ -1,17 +1,17 @@
 ---
-title: "Building a Research Paper Assistant | Mastra RAG Guides"
+title: "Building a Research Paper Assistant | Kastrax RAG Guides"
 description: Guide on creating an AI research assistant that can analyze and answer questions about academic papers using RAG.
 ---
 
 import { Steps } from "nextra/components";
 
-# Building a Research Paper Assistant with RAG
+# Building a Research Paper Assistant with RAG ✅
 
 In this guide, we'll create an AI research assistant that can analyze academic papers and answer specific questions about their content using Retrieval Augmented Generation (RAG).
 
 We'll use the foundational Transformer paper [Attention Is All You Need](https://arxiv.org/html/1706.03762) as our example.
 
-## Understanding RAG Components
+## Understanding RAG Components ✅
 
 Let's understand how RAG works and how we'll implement each component:
 
@@ -36,12 +36,12 @@ Our implementation will:
 3. Use similarity search to find relevant sections
 4. Generate accurate responses using retrieved context
 
-## Project Structure
+## Project Structure ✅
 
 ```
 research-assistant/
 ├── src/
-│   ├── mastra/
+│   ├── kastrax/
 │   │   ├── agents/
 │   │   │   └── researchAgent.ts
 │   │   └── index.ts
@@ -65,7 +65,7 @@ Initialize a new Node.js project and install the required dependencies:
 
 ```bash copy
 npm init -y
-npm install @mastra/core@latest @mastra/rag@latest @mastra/pg@latest @ai-sdk/openai@latest ai@latest zod@latest
+npm install @kastrax/core@latest @kastrax/rag@latest @kastrax/pg@latest @ai-sdk/openai@latest ai@latest zod@latest
 ```
 
 Set up environment variables for API access and database connection:
@@ -78,9 +78,9 @@ POSTGRES_CONNECTION_STRING=your_connection_string
 Create the necessary files for our project:
 
 ```bash copy
-mkdir -p src/mastra/agents
-touch src/mastra/agents/researchAgent.ts
-touch src/mastra/index.ts src/store.ts src/index.ts
+mkdir -p src/kastrax/agents
+touch src/kastrax/agents/researchAgent.ts
+touch src/kastrax/index.ts src/store.ts src/index.ts
 ```
 
 ### Create the Research Assistant Agent
@@ -90,10 +90,10 @@ Now we'll create our RAG-enabled research assistant. The agent uses:
 - GPT-4o-mini for understanding queries and generating responses
 - Custom instructions that guide the agent on how to analyze papers, use retrieved content effectively, and acknowledge limitations
 
-```ts copy showLineNumbers filename="src/mastra/agents/researchAgent.ts"
-import { Agent } from '@mastra/core/agent';
+```ts copy showLineNumbers filename="src/kastrax/agents/researchAgent.ts"
+import { Agent } from '@kastrax/core/agent';
 import { openai } from '@ai-sdk/openai';
-import { createVectorQueryTool } from '@mastra/rag';
+import { createVectorQueryTool } from '@kastrax/rag';
 
 // Create a tool for semantic search over our paper embeddings
 const vectorQueryTool = createVectorQueryTool({
@@ -117,17 +117,17 @@ export const researchAgent = new Agent({
 });
 ```
 
-### Set Up the Mastra Instance and Vector Store
+### Set Up the Kastrax Instance and Vector Store
 
-```ts copy showLineNumbers filename="src/mastra/index.ts"
-import { Mastra } from '@mastra/core';
-import { PgVector } from '@mastra/pg';
+```ts copy showLineNumbers filename="src/kastrax/index.ts"
+import { Kastrax } from '@kastrax/core';
+import { PgVector } from '@kastrax/pg';
 
 import { researchAgent } from './agents/researchAgent';
 
-// Initialize Mastra instance
+// Initialize Kastrax instance
 const pgVector = new PgVector(process.env.POSTGRES_CONNECTION_STRING!);
-export const mastra = new Mastra({
+export const kastrax = new Kastrax({
   agents: { researchAgent },
   vectors: { pgVector },
 });
@@ -142,9 +142,9 @@ This step handles the initial document processing. We:
 
 ```ts copy showLineNumbers filename="src/store.ts"
 import { openai } from "@ai-sdk/openai";
-import { MDocument } from '@mastra/rag';
+import { MDocument } from '@kastrax/rag';
 import { embedMany } from 'ai';
-import { mastra } from "./mastra";
+import { kastrax } from "./kastrax";
 
 // Load the paper
 const paperUrl = "https://arxiv.org/html/1706.03762";
@@ -182,8 +182,8 @@ const { embeddings } = await embedMany({
   values: chunks.map(chunk => chunk.text),
 });
 
-// Get the vector store instance from Mastra
-const vectorStore = mastra.getVector('pgVector');
+// Get the vector store instance from Kastrax
+const vectorStore = kastrax.getVector('pgVector');
 
 // Create an index for our paper chunks
 await vectorStore.createIndex({
@@ -219,8 +219,8 @@ npx bun src/store.ts
 Let's test our research assistant with different types of queries:
 
 ```ts filename="src/index.ts" showLineNumbers copy
-import { mastra } from "./mastra";
-const agent = mastra.getAgent('researchAgent');
+import { kastrax } from "./kastrax";
+const agent = kastrax.getAgent('researchAgent');
 
 // Basic query about concepts
 const query1 = "What problems does sequence modeling face with neural networks?";
@@ -264,10 +264,10 @@ task, while also reducing training costs.
 
 ### Serve the Application
 
-Start the Mastra server to expose your research assistant via API:
+Start the Kastrax server to expose your research assistant via API:
 
 ```bash
-mastra dev
+kastrax dev
 ```
 
 Your research assistant will be available at:
@@ -288,7 +288,7 @@ curl -X POST http://localhost:4111/api/agents/researchAgent/generate \
 ```
 </Steps>
 
-## Advanced RAG Examples
+## Advanced RAG Examples ✅
 
 Explore these examples for more advanced RAG techniques:
 - [Filter RAG](/examples/rag/usage/filter-rag) for filtering results using metadata
