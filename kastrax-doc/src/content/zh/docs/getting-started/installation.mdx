@@ -1,0 +1,176 @@
+# 安装 Kastrax
+
+本指南将帮助您从头开始设置一个新的 Kastrax 项目。
+
+## 前提条件
+
+在开始之前，请确保您已安装以下内容：
+
+- **JDK 17 或更高版本**：Kastrax 需要 Java 17+
+- **Kotlin 2.0 或更高版本**：Kastrax 使用 Kotlin 构建
+- **Gradle 8.0 或更高版本**：用于构建和管理依赖项
+
+## 创建新项目
+
+### 方法 1：使用 Gradle
+
+1. 创建一个新的 Gradle 项目：
+
+```bash
+mkdir my-kastrax-project
+cd my-kastrax-project
+gradle init --type kotlin-application
+```
+
+2. 配置您的 `build.gradle.kts` 文件：
+
+```kotlin
+plugins {
+    kotlin("jvm") version "2.1.10"
+    kotlin("plugin.serialization") version "2.1.10"
+    application
+}
+
+group = "com.example"
+version = "1.0-SNAPSHOT"
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    // Kastrax 核心
+    implementation("ai.kastrax:kastrax-core:0.1.0")
+    
+    // 可选模块，根据您的需求选择
+    implementation("ai.kastrax:kastrax-memory-impl:0.1.0")
+    implementation("ai.kastrax:kastrax-integrations-deepseek:0.1.0")
+    
+    // 测试
+    testImplementation(kotlin("test"))
+}
+
+application {
+    mainClass.set("com.example.MainKt")
+}
+```
+
+### 方法 2：使用 Kastrax CLI（即将推出）
+
+未来，您将能够使用 Kastrax CLI 创建新项目：
+
+```bash
+# 这是未来功能的预览
+kastrax init my-kastrax-project
+cd my-kastrax-project
+```
+
+## API 密钥设置
+
+Kastrax 支持多种 LLM 提供商。您需要为要使用的提供商设置 API 密钥：
+
+### DeepSeek（推荐）
+
+```kotlin
+val llm = deepSeek {
+    apiKey("your-deepseek-api-key")
+    model(DeepSeekModel.DEEPSEEK_CHAT)
+}
+```
+
+### OpenAI
+
+```kotlin
+val llm = openAi {
+    apiKey("your-openai-api-key")
+    model("gpt-4o")
+}
+```
+
+### Anthropic
+
+```kotlin
+val llm = anthropic {
+    apiKey("your-anthropic-api-key")
+    model("claude-3-opus")
+}
+```
+
+## 项目结构
+
+一个典型的 Kastrax 项目具有以下结构：
+
+```
+my-kastrax-project/
+├── build.gradle.kts
+├── settings.gradle.kts
+├── src/
+│   ├── main/
+│   │   ├── kotlin/
+│   │   │   └── com/
+│   │   │       └── example/
+│   │   │           ├── Main.kt
+│   │   │           ├── agents/
+│   │   │           │   └── MyAgent.kt
+│   │   │           ├── tools/
+│   │   │           │   └── MyTools.kt
+│   │   │           └── workflows/
+│   │   │               └── MyWorkflow.kt
+│   │   └── resources/
+│   │       └── application.conf
+│   └── test/
+│       └── kotlin/
+│           └── com/
+│               └── example/
+│                   └── AgentTest.kt
+└── gradle/
+    └── wrapper/
+        ├── gradle-wrapper.jar
+        └── gradle-wrapper.properties
+```
+
+## 验证安装
+
+创建一个简单的代理来验证您的安装：
+
+```kotlin
+// src/main/kotlin/com/example/Main.kt
+package com.example
+
+import ai.kastrax.core.agent.agent
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    val myAgent = agent {
+        name("TestAgent")
+        description("一个简单的测试代理")
+        
+        model = deepSeek {
+            apiKey("your-deepseek-api-key")
+            model(DeepSeekModel.DEEPSEEK_CHAT)
+            temperature(0.7)
+        }
+    }
+    
+    val response = myAgent.generate("你好，世界！")
+    println(response.text)
+}
+```
+
+运行您的应用程序：
+
+```bash
+gradle run
+```
+
+如果一切设置正确，您应该会看到来自您的代理的响应。
+
+## 下一步
+
+现在您已经设置了 Kastrax 项目，您可以：
+
+1. [创建您的第一个代理](./first-agent.mdx)
+2. [探索示例](./examples.mdx)
+3. [了解代理架构](../agents/architectures.mdx)
