@@ -63,7 +63,7 @@ fun main() = runBlocking {
         // 使用 Deepseek 模型
         model = deepSeek {
             model(DeepSeekModel.DEEPSEEK_CHAT)
-            apiKey(System.getenv("DEEPSEEK_API_KEY") ?: "test-api-key")
+            apiKey("sk-85e83081df28490b9ae63188f0cb4f79")
             temperature(0.7)
             maxTokens(2000)
             timeout(60000) // 60秒超时
@@ -90,9 +90,14 @@ fun main() = runBlocking {
         // 使用流式响应
         println("\n计算中...")
 
-        val response = myAgent.stream(input)
-        response.textStream?.collect { chunk ->
-            print(chunk)
+        try {
+            val response = myAgent.stream(input)
+            response.textStream?.collect { chunk ->
+                print(chunk)
+            }
+        } catch (e: Exception) {
+            println("\n错误: ${e.message}")
+            println("\n请确保 API 密钥正确")
         }
     }
 }

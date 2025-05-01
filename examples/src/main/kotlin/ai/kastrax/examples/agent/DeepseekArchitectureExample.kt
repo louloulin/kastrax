@@ -15,11 +15,19 @@ import kotlinx.coroutines.runBlocking
  *
  * 展示如何使用 Deepseek 作为 LLM 提供商创建不同架构的 Agent
  */
+
+/**
+ * 主入口函数
+ */
+fun main() {
+    deepseekArchitectureExample()
+}
+
 fun deepseekArchitectureExample() = runBlocking {
     // 使用 DSL 创建 Deepseek LLM 提供商
     val llm = deepSeek {
-        // 设置 API 密钥（也可以从环境变量 DEEPSEEK_API_KEY 获取）
-        apiKey(System.getenv("DEEPSEEK_API_KEY") ?: "your-api-key")
+        // 直接设置 API 密钥
+        apiKey("sk-85e83081df28490b9ae63188f0cb4f79")
 
         // 设置模型
         model(DeepSeekModel.DEEPSEEK_CHAT)
