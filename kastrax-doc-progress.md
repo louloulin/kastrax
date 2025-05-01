@@ -77,9 +77,9 @@
 
 ### 工作流系统
 
-- [ ] **工作流概述**：介绍 Kastrax 的工作流系统
-- [ ] **工作流定义**：详细说明工作流定义的方法
-- [ ] **工作流执行**：详细说明工作流执行的方法
+- [x] **工作流概述** (overview-kotlin.mdx)：介绍 Kastrax 的工作流系统
+- [x] **工作流定义** (workflow-definition-kotlin.mdx)：详细说明工作流定义的方法
+- [x] **工作流执行** (workflow-execution-kotlin.mdx)：详细说明工作流执行的方法
 - [ ] **工作流与 Agent 集成**：详细说明工作流与 Agent 的集成
 
 ## 下一步计划

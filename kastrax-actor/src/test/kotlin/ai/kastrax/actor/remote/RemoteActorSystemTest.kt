@@ -35,8 +35,11 @@ class RemoteActorSystemTest {
     fun setup() {
         // 使用随机端口避免端口冲突
         testPort = findAvailablePort() // 使用可用的随机端口
-        serverSystemName = "server-system-test"
-        clientSystemName = "client-system-test"
+
+        // 使用唯一的系统名称避免冲突
+        val uniqueId = "${System.currentTimeMillis()}-${System.nanoTime() % 10000}-${java.util.UUID.randomUUID().toString().take(8)}"
+        serverSystemName = "server-system-test-$uniqueId"
+        clientSystemName = "client-system-test-$uniqueId"
 
         println("\n==== Setting up remote actor system test ====")
         println("Server system: $serverSystemName on port $testPort")
@@ -54,7 +57,10 @@ class RemoteActorSystemTest {
 
         // 在服务器系统中注册 Agent
         val props = actor.proto.fromProducer { KastraxActor(mockAgent) }
-        agentPid = serverSystem.root.spawnNamed(props, "remote-agent")
+
+        // 使用唯一的 Actor 名称避免冲突
+        val uniqueActorName = "remote-agent-${System.currentTimeMillis()}-${System.nanoTime() % 10000}"
+        agentPid = serverSystem.root.spawnNamed(props, uniqueActorName)
         println("Registered agent with PID: $agentPid")
 
         // 记录远程系统的地址
@@ -77,15 +83,16 @@ class RemoteActorSystemTest {
     @Timeout(value = 10, unit = TimeUnit.SECONDS)
     fun `should connect to remote actor system`() = runBlocking {
         // 连接到远程系统
-        val remoteAgent = connectToRemoteSystem("127.0.0.1", testPort, "client-test1-${java.util.UUID.randomUUID()}-${System.currentTimeMillis()}")
+        val uniqueClientName = "client-test1-${java.util.UUID.randomUUID()}-${System.currentTimeMillis()}"
+        val remoteAgent = connectToRemoteSystem("127.0.0.1", testPort, uniqueClientName)
 
         // 获取远程 Agent 的 PID
-        val remotePid = remoteAgent.connect("remote-agent")
+        val remotePid = remoteAgent.connect(agentPid.id)
 
         // 验证 PID
         assertNotNull(remotePid)
         assertEquals("127.0.0.1:$testPort", remotePid.address)
-        assertEquals("remote-agent", remotePid.id)
+        assertEquals(agentPid.id, remotePid.id)
     }
 
     @Test
@@ -139,7 +146,8 @@ class RemoteActorSystemTest {
             port
         } catch (e: Exception) {
             // 如果无法获取随机端口，使用默认端口
-            val defaultPort = 29099 + (Math.random() * 1000).toInt()
+            // 使用更大的随机范围避免冲突
+            val defaultPort = 30000 + (Math.random() * 5000).toInt() + (System.nanoTime() % 1000).toInt()
             println("Warning: Could not find available port, using default port: $defaultPort")
             defaultPort
         }
