@@ -1,303 +1,320 @@
 ---
-title: "Creating and Calling Agents | Agent Documentation | Mastra"
-description: Overview of agents in Mastra, detailing their capabilities and how they interact with tools, workflows, and external systems.
+title: "Creating and Using Agents | Agent Documentation | Kastrax"
+description: Overview of agents in Kastrax, detailing their capabilities and how they interact with tools, memory, and external systems.
 ---
 
-# Creating and Calling Agents
+# Creating and Using Agents ✅
 
-Agents in Mastra are systems where the language model can autonomously decide on a sequence of actions to perform tasks. They have access to tools, workflows, and synced data, enabling them to perform complex tasks and interact with external systems. Agents can invoke your custom functions, utilize third-party APIs through integrations, and access knowledge bases you have built.
+Agents in Kastrax are intelligent systems that can autonomously decide on a sequence of actions to perform tasks. They have access to tools, memory, and external systems, enabling them to perform complex tasks and interact with various services. Agents can invoke custom functions, utilize third-party APIs through integrations, and access knowledge bases you have built.
 
-Agents are like employees who can be used for ongoing projects. They have names, persistent memory, consistent model configurations, and instructions across calls, as well as a set of enabled tools.
+## Agent Capabilities ✅
 
-## 1. Creating an Agent
+Kastrax agents provide several key capabilities:
 
-To create an agent in Mastra, you use the `Agent` class and define its properties:
+- **Multiple Architectures**: Choose from adaptive, goal-oriented, hierarchical, reflective, and creative agent architectures
+- **Memory Management**: Store and retrieve information across conversations
+- **Tool Integration**: Use built-in tools or create custom tools for specific tasks
+- **LLM Integration**: Work with various LLM providers including DeepSeek, OpenAI, Anthropic, and Google Gemini
+- **RAG Support**: Incorporate knowledge from documents and other data sources
+- **Actor Model**: Build distributed agent systems using the actor model
 
-```ts showLineNumbers filename="src/mastra/agents/index.ts" copy
-import { Agent } from "@mastra/core/agent";
-import { openai } from "@ai-sdk/openai";
+## Creating an Agent ✅
 
-export const myAgent = new Agent({
-  name: "My Agent",
-  instructions: "You are a helpful assistant.",
-  model: openai("gpt-4o-mini"),
-});
-```
+To create a basic agent in Kastrax, you use the `agent` DSL function:
 
-**Note:** Ensure that you have set the necessary environment variables, such as your OpenAI API key, in your `.env` file:
+```kotlin
+import ai.kastrax.core.agent.agent
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.runBlocking
 
-```.env filename=".env" copy
-OPENAI_API_KEY=your_openai_api_key
-```
-
-Also, make sure you have the `@mastra/core` package installed:
-
-```bash npm2yarn copy
-npm install @mastra/core@latest
-```
-
-### Registering the Agent
-
-Register your agent with Mastra to enable logging and access to configured tools and integrations:
-
-```ts showLineNumbers filename="src/mastra/index.ts" copy
-import { Mastra } from "@mastra/core";
-import { myAgent } from "./agents";
-
-export const mastra = new Mastra({
-  agents: { myAgent },
-});
-```
-
-## 2. Generating and streaming text
-
-### Generating text
-
-Use the `.generate()` method to have your agent produce text responses:
-
-```ts showLineNumbers filename="src/mastra/index.ts" copy
-const response = await myAgent.generate([
-  { role: "user", content: "Hello, how can you assist me today?" },
-]);
-
-console.log("Agent:", response.text);
-```
-
-For more details about the generate method and its options, see the [generate reference documentation](/reference/agents/generate).
-
-### Streaming responses
-
-For more real-time responses, you can stream the agent's response:
-
-```ts showLineNumbers filename="src/mastra/index.ts" copy
-const stream = await myAgent.stream([
-  { role: "user", content: "Tell me a story." },
-]);
-
-console.log("Agent:");
-
-for await (const chunk of stream.textStream) {
-  process.stdout.write(chunk);
+fun main() = runBlocking {
+    val myAgent = agent {
+        name("MyFirstAgent")
+        description("A helpful assistant that can answer questions")
+        
+        // Configure the LLM
+        model = deepSeek {
+            apiKey("your-deepseek-api-key")
+            model(DeepSeekModel.DEEPSEEK_CHAT)
+            temperature(0.7)
+        }
+        
+        // Add system prompt
+        systemPrompt("""
+            You are a helpful, friendly assistant. Your goal is to provide accurate and useful information.
+            Be concise but thorough in your responses.
+        """.trimIndent())
+    }
+    
+    // Use the agent
+    val response = myAgent.generate("What is artificial intelligence?")
+    println(response.text)
 }
 ```
 
-For more details about streaming responses, see the [stream reference documentation](/reference/agents/stream).
+## Adding Memory ✅
 
-## 3. Structured Output
+You can add memory to your agent to help it remember past interactions:
 
-Agents can return structured data by providing a JSON Schema or using a Zod schema.
+```kotlin
+import ai.kastrax.core.agent.agent
+import ai.kastrax.core.memory.memory
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.runBlocking
 
-### Using JSON Schema
-
-```typescript
-const schema = {
-  type: "object",
-  properties: {
-    summary: { type: "string" },
-    keywords: { type: "array", items: { type: "string" } },
-  },
-  additionalProperties: false,
-  required: ["summary", "keywords"],
-};
-
-const response = await myAgent.generate(
-  [
-    {
-      role: "user",
-      content:
-        "Please provide a summary and keywords for the following text: ...",
-    },
-  ],
-  {
-    output: schema,
-  },
-);
-
-console.log("Structured Output:", response.object);
+fun main() = runBlocking {
+    val myAgent = agent {
+        name("AgentWithMemory")
+        description("An agent that remembers past interactions")
+        
+        // Configure the LLM
+        model = deepSeek {
+            apiKey("your-deepseek-api-key")
+            model(DeepSeekModel.DEEPSEEK_CHAT)
+            temperature(0.7)
+        }
+        
+        // Add memory
+        memory = memory {
+            workingMemory(true)
+            conversationHistory(10)
+            semanticMemory(true)
+        }
+    }
+    
+    // Use the agent
+    val response1 = myAgent.generate("My name is Alice.")
+    println(response1.text)
+    
+    val response2 = myAgent.generate("What's my name?")
+    println(response2.text)
+}
 ```
 
-### Using Zod
+## Adding Tools ✅
 
-You can also use Zod schemas for type-safe structured outputs.
+You can add tools to your agent to enable it to perform specific actions:
 
-First, install Zod:
+```kotlin
+import ai.kastrax.core.agent.agent
+import ai.kastrax.core.tools.tool
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.runBlocking
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 
-```bash npm2yarn copy
-npm install zod
+fun main() = runBlocking {
+    val myAgent = agent {
+        name("AgentWithTools")
+        description("An agent that can use tools")
+        
+        // Configure the LLM
+        model = deepSeek {
+            apiKey("your-deepseek-api-key")
+            model(DeepSeekModel.DEEPSEEK_CHAT)
+            temperature(0.7)
+        }
+        
+        // Add tools
+        tools {
+            tool("getCurrentTime") {
+                description("Get the current time")
+                parameters {}
+                execute {
+                    val currentTime = LocalDateTime.now()
+                    val formatter = DateTimeFormatter.ofPattern("HH:mm:ss")
+                    "The current time is ${currentTime.format(formatter)}"
+                }
+            }
+            
+            tool("calculateSum") {
+                description("Calculate the sum of two numbers")
+                parameters {
+                    parameter("a", "First number", Double::class)
+                    parameter("b", "Second number", Double::class)
+                }
+                execute { params ->
+                    val a = params["a"] as Double
+                    val b = params["b"] as Double
+                    "The sum of $a and $b is ${a + b}"
+                }
+            }
+        }
+    }
+    
+    // Use the agent
+    val response1 = myAgent.generate("What time is it now?")
+    println(response1.text)
+    
+    val response2 = myAgent.generate("Calculate the sum of 5.2 and 3.8")
+    println(response2.text)
+}
 ```
 
-Then, define a Zod schema and use it with the agent:
+## Using RAG with Agents ✅
 
-```ts showLineNumbers filename="src/mastra/index.ts" copy
-import { z } from "zod";
+You can incorporate Retrieval-Augmented Generation (RAG) into your agents:
 
-// Define the Zod schema
-const schema = z.object({
-  summary: z.string(),
-  keywords: z.array(z.string()),
-});
+```kotlin
+import ai.kastrax.core.agent.agent
+import ai.kastrax.rag.document.DocumentLoader
+import ai.kastrax.rag.document.TextSplitter
+import ai.kastrax.rag.embedding.EmbeddingModel
+import ai.kastrax.rag.vectorstore.VectorStore
+import ai.kastrax.rag.retrieval.Retriever
+import ai.kastrax.rag.context.ContextBuilder
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.runBlocking
 
-// Use the schema with the agent
-const response = await myAgent.generate(
-  [
-    {
-      role: "user",
-      content:
-        "Please provide a summary and keywords for the following text: ...",
-    },
-  ],
-  {
-    output: schema,
-  },
-);
-
-console.log("Structured Output:", response.object);
+fun main() = runBlocking {
+    // Set up RAG components
+    val loader = DocumentLoader.fromFile("knowledge_base.pdf")
+    val documents = loader.load()
+    
+    val splitter = TextSplitter.recursive(chunkSize = 1000, chunkOverlap = 200)
+    val chunks = splitter.split(documents)
+    
+    val embeddingModel = EmbeddingModel.create("all-MiniLM-L6-v2")
+    val vectorStore = VectorStore.create("chroma")
+    vectorStore.addDocuments(chunks, embeddingModel)
+    
+    val retriever = Retriever.fromVectorStore(
+        vectorStore = vectorStore,
+        embeddingModel = embeddingModel,
+        topK = 5
+    )
+    
+    val contextBuilder = ContextBuilder.create {
+        template("""
+            Answer the question based on the following context:
+            
+            Context:
+            {{context}}
+            
+            Question: {{query}}
+            
+            Answer:
+        """.trimIndent())
+    }
+    
+    // Create a RAG agent
+    val ragAgent = agent {
+        name("RAGAgent")
+        description("An agent with RAG capabilities")
+        
+        // Configure the LLM
+        model = deepSeek {
+            apiKey("your-deepseek-api-key")
+            model(DeepSeekModel.DEEPSEEK_CHAT)
+            temperature(0.7)
+        }
+        
+        // Configure RAG
+        rag {
+            retriever(retriever)
+            contextBuilder(contextBuilder)
+            maxTokens(3000)
+        }
+    }
+    
+    // Use the RAG agent
+    val response = ragAgent.generate("What are the key features of Kastrax?")
+    println(response.text)
+}
 ```
 
-### Using Tools
+## Agent Architectures ✅
 
-If you need to generate structured output alongside tool calls, you'll need to use the `experimental_output` property instead of `output`. Here's how:
+Kastrax provides several specialized agent architectures, each designed for different use cases:
 
-```typescript
-const schema = z.object({
-  summary: z.string(),
-  keywords: z.array(z.string()),
-});
+### Adaptive Agents ✅
 
-const response = await myAgent.generate(
-  [
-    {
-      role: "user",
-      content:
-        "Please analyze this repository and provide a summary and keywords...",
-    },
-  ],
-  {
-    // Use experimental_output to enable both structured output and tool calls
-    experimental_output: schema,
-  },
-);
+Adaptive agents adjust their behavior based on user preferences and feedback:
 
-console.log("Structured Output:", response.object);
+```kotlin
+import ai.kastrax.core.agent.architecture.adaptiveAgent
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    val adaptiveAgent = adaptiveAgent {
+        name("AdaptiveAssistant")
+        description("An assistant that adapts to user preferences")
+        
+        // Configure the LLM
+        model = deepSeek {
+            apiKey("your-deepseek-api-key")
+            model(DeepSeekModel.DEEPSEEK_CHAT)
+            temperature(0.7)
+        }
+        
+        // Define user preferences
+        preferences {
+            // Preference configuration
+        }
+        
+        // Define adaptation strategy
+        adaptationStrategy {
+            // Adaptation logic
+        }
+    }
+    
+    // Use the adaptive agent
+    val response = adaptiveAgent.generate("Tell me about quantum computing")
+    println(response.text)
+}
 ```
 
-<br />
+### Goal-Oriented Agents ✅
 
-This allows you to have strong typing and validation for the structured data returned by the agent.
+Goal-oriented agents focus on achieving specific objectives through planning and task execution:
 
-## 4. Multi-step Tool use Agents
+```kotlin
+import ai.kastrax.core.agent.architecture.goalOrientedAgent
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.runBlocking
 
-Agents can be enhanced with tools - functions that extend their capabilities beyond text generation. Tools allow agents to perform calculations, access external systems, and process data. For details on creating and configuring tools, see the [Adding Tools documentation](/docs/agents/adding-tools).
-
-### Using maxSteps
-
-The `maxSteps` parameter controls the maximum number of sequential LLM calls an agent can make, particularly important when using tool calls. By default, it is set to 1 to prevent infinite loops in case of misconfigured tools. You can increase this limit based on your use case:
-
-```ts showLineNumbers filename="src/mastra/agents/index.ts" copy
-import { Agent } from "@mastra/core/agent";
-import { openai } from "@ai-sdk/openai";
-import * as mathjs from "mathjs";
-import { z } from "zod";
-
-export const myAgent = new Agent({
-  name: "My Agent",
-  instructions: "You are a helpful assistant that can solve math problems.",
-  model: openai("gpt-4o-mini"),
-  tools: {
-    calculate: {
-      description: "Calculator for mathematical expressions",
-      schema: z.object({ expression: z.string() }),
-      execute: async ({ expression }) => mathjs.evaluate(expression),
-    },
-  },
-});
-
-const response = await myAgent.generate(
-  [
-    {
-      role: "user",
-      content:
-        "If a taxi driver earns $9461 per hour and works 12 hours a day, how much does they earn in one day?",
-    },
-  ],
-  {
-    maxSteps: 5, // Allow up to 5 tool usage steps
-  },
-);
+fun main() = runBlocking {
+    val goalOrientedAgent = goalOrientedAgent {
+        name("ProjectManager")
+        description("A goal-oriented agent that helps manage projects")
+        
+        // Configure the LLM
+        model = deepSeek {
+            apiKey("your-deepseek-api-key")
+            model(DeepSeekModel.DEEPSEEK_CHAT)
+            temperature(0.7)
+        }
+        
+        // Define goals and tasks
+        goals {
+            // Goal configuration
+        }
+        
+        tasks("goal-id") {
+            // Task configuration
+        }
+    }
+    
+    // Use the goal-oriented agent
+    val response = goalOrientedAgent.generate("What's the status of the project?")
+    println(response.text)
+}
 ```
 
-### Using onStepFinish
+For more detailed information about agent architectures, see the [Agent Architectures](./architectures.mdx) guide.
 
-You can monitor the progress of multi-step operations using the `onStepFinish` callback. This is useful for debugging or providing progress updates to users.
-`onStepFinish` is only available when streaming or generating text without structured output.
+## Next Steps ✅
 
-```ts showLineNumbers filename="src/mastra/agents/index.ts" copy
-const response = await myAgent.generate(
-  [{ role: "user", content: "Calculate the taxi driver's daily earnings." }],
-  {
-    maxSteps: 5,
-    onStepFinish: ({ text, toolCalls, toolResults }) => {
-      console.log("Step completed:", { text, toolCalls, toolResults });
-    },
-  },
-);
-```
+Now that you understand the basics of creating and using agents in Kastrax, you can:
 
-### Using onFinish
-
-The `onFinish` callback is available when streaming responses and provides detailed information about the completed interaction. It is called after the LLM has finished generating its response and all tool executions have completed.
-This callback receives the final response text, execution steps, token usage statistics, and other metadata that can be useful for monitoring and logging:
-
-```ts showLineNumbers filename="src/mastra/agents/index.ts" copy
-const stream = await myAgent.stream(
-  [{ role: "user", content: "Calculate the taxi driver's daily earnings." }],
-  {
-    maxSteps: 5,
-    onFinish: ({
-      steps,
-      text,
-      finishReason, // 'complete', 'length', 'tool', etc.
-      usage, // token usage statistics
-      reasoningDetails, // additional context about the agent's decisions
-    }) => {
-      console.log("Stream complete:", {
-        totalSteps: steps.length,
-        finishReason,
-        usage,
-      });
-    },
-  },
-);
-```
-
-## 5. Running Agents
-
-Mastra provides a CLI command `mastra dev` to run your agents behind an API. By default, this looks for exported agents in files in the `src/mastra/agents` directory.
-
-### Starting the Server
-
-```bash
-mastra dev
-```
-
-This will start the server and make your agent available at `http://localhost:4111/api/agents/myAgent/generate`.
-
-### Interacting with the Agent
-
-You can interact with the agent using `curl` from the command line:
-
-```bash
-curl -X POST http://localhost:4111/api/agents/myAgent/generate \
-  -H "Content-Type: application/json" \
-  -d '{
-    "messages": [
-      { "role": "user", "content": "Hello, how can you assist me today?" }
-    ]
-  }'
-```
-
-## Next Steps
-
-- Learn about Agent Memory in the [Agent Memory](./agent-memory.mdx) guide.
-- Learn about Agent Tools in the [Agent Tools](./adding-tools.mdx) guide.
-- See an example agent in the [Chef Michel](../../guides/guide/chef-michel.mdx) example.
+1. Explore different [agent architectures](./architectures.mdx)
+2. Learn about [memory systems](../memory/overview.mdx)
+3. Create [custom tools](../tools/custom-tools.mdx)
+4. Build [agent workflows](../workflows/overview.mdx)

@@ -1,40 +1,38 @@
 ---
-title: "Inspecting Agents with `mastra dev` | Mastra Local Dev Docs"
-description: Documentation for the Mastra local development environment for Mastra applications.
+title: "Inspecting Agents with `kastrax dev` | Kastrax Local Dev Docs ✅"
+description: Documentation for the Kastrax local development environment for Kastrax applications.
 ---
 import YouTube from "@/components/youtube";
 
-# Local Development Environment
+# Local Development Environment ✅
 
-Mastra provides a local development environment where you can test your agents, workflows, and tools while developing locally.
+Kastrax provides a local development environment where you can test your agents, workflows, and tools while developing locally.
 
 <YouTube id="spGlcTEjuXY" />
 
-## Launch Development Server
+## Launch Development Server ✅
 
-You can launch the Mastra development environment using the Mastra CLI by running:
+You can launch the Kastrax development environment using the Kastrax CLI by running:
 
 ```bash
-mastra dev
+kastrax dev
 ```
 
 By default, the server runs on localhost at http://localhost:4111. Custom port and host can be configured via the
-mastra server config. 
+kastrax server config.
 
-```typescript
-import { Mastra } from "@mastra/core";
+```kotlin
+import ai.kastrax.core.KastraxServer
 
-export const mastra = new Mastra({
-  server: {
-   port: '4111',
-   host: '0.0.0.0'
-  }
-});
+val server = KastraxServer.create {
+  port = 4111
+  host = "0.0.0.0"
+}
 ```
 
-## Dev Playground
+## Dev Playground ✅
 
-`mastra dev` serves a playground UI for interacting with your agents, workflows, and tools. The playground provides dedicated interfaces for testing each component of your Mastra application during development.
+`kastrax dev` serves a playground UI for interacting with your agents, workflows, and tools. The playground provides dedicated interfaces for testing each component of your Kastrax application during development.
 
 ### Agent Playground
 
@@ -84,55 +82,51 @@ The Tools playground allows you to test your custom tools in isolation:
 - Verify tool input/output schemas.
 - Monitor tool performance and execution time.
 
-## REST API Endpoints
+## REST API Endpoints ✅
 
-`mastra dev` also spins up REST API routes for your agents and workflows via the local [Mastra Server](/docs/deployment/server). This allows you to test your API endpoints before deployment. See [Mastra Dev reference](/reference/cli/dev#routes) for more details about all endpoints.
+`kastrax dev` also spins up REST API routes for your agents and workflows via the local [Kastrax Server](/docs/deployment/server). This allows you to test your API endpoints before deployment. See [Kastrax Dev reference](/reference/cli/dev#routes) for more details about all endpoints.
 
-You can then leverage the [Mastra Client](/docs/deployment/client) SDK to interact with your served REST API routes seamlessly.
+You can then leverage the [Kastrax Client](/docs/deployment/client) SDK to interact with your served REST API routes seamlessly.
 
-## OpenAPI Specification
+## OpenAPI Specification ✅
 
-`mastra dev` provides an OpenAPI spec at http://localhost:4111/openapi.json
+`kastrax dev` provides an OpenAPI spec at http://localhost:4111/openapi.json
 
-To enable OpenAPI documentation in your Mastra instance, add the following configuration:
+To enable OpenAPI documentation in your Kastrax instance, add the following configuration:
 
-```typescript
-import { Mastra } from "@mastra/core";
+```kotlin
+import ai.kastrax.core.KastraxServer
 
-export const mastra = new Mastra({
-  server: {
-    build: {
-      openAPIDocs: true,  // Enable OpenAPI documentation
-      // ... other build config options
-    }
+val server = KastraxServer.create {
+  build {
+    openAPIDocs = true  // Enable OpenAPI documentation
+    // ... other build config options
   }
-});
+}
 ```
 
-## Swagger UI
+## Swagger UI ✅
 
-Swagger UI provides an interactive interface for testing your API endpoints at `mastra dev` provides an OpenAPI spec at http://localhost:4111/swagger-ui. 
-To enable Swagger UI in your Mastra instance, add the following configuration:
+Swagger UI provides an interactive interface for testing your API endpoints at `kastrax dev` provides an OpenAPI spec at http://localhost:4111/swagger-ui.
+To enable Swagger UI in your Kastrax instance, add the following configuration:
 
-```typescript
-import { Mastra } from "@mastra/core";
+```kotlin
+import ai.kastrax.core.KastraxServer
 
-export const mastra = new Mastra({
-  server: {
-    build: {
-      openAPIDocs: true,  // Enable OpenAPI documentation
-      swaggerUI: true,  // Enable Swagger UI
-      // ... other build config options
-    }
+val server = KastraxServer.create {
+  build {
+    openAPIDocs = true  // Enable OpenAPI documentation
+    swaggerUI = true  // Enable Swagger UI
+    // ... other build config options
   }
-});
+}
 ```
 
-## Local Dev Architecture
+## Local Dev Architecture ✅
 
 The local development server is designed to run without any external dependencies or containerization. This is achieved through:
 
-- **Dev Server**: Uses [Hono](https://hono.dev) as the underlying framework to power the [Mastra Server](/docs/deployment/server).
+- **Dev Server**: Uses [Ktor](https://ktor.io) as the underlying framework to power the [Kastrax Server](/docs/deployment/server).
 
 - **In-Memory Storage**: Uses [LibSQL](https://libsql.org/) memory adapters for:
   - Agent memory management.
@@ -147,9 +141,9 @@ The local development server is designed to run without any external dependencie
 
 This architecture allows you to start developing immediately without setting up databases or vector stores, while still maintaining production-like behavior in your local environment.
 
-### Model settings 
+### Model settings
 
-The local devleopment server also lets you configure the model settings in Overview > Model Settings. 
+The local devleopment server also lets you configure the model settings in Overview > Model Settings.
 
 You can configure the following settings:
 
@@ -163,8 +157,8 @@ You can configure the following settings:
 - **Max Retries**: Number of times to retry failed API calls or model requests before giving up. Helps handle temporary failures gracefully.
 
 
-## Summary
+## Summary ✅
 
-`mastra dev` makes it easy to develop, debug, and iterate on your AI logic in a self-contained environment before deploying to production.
+`kastrax dev` makes it easy to develop, debug, and iterate on your AI logic in a self-contained environment before deploying to production.
 
-- [Mastra Dev reference](../../reference/cli/dev.mdx)
+- [Kastrax Dev reference](../../reference/cli/dev.mdx)

@@ -1,85 +1,412 @@
 ---
-title: RAG (Retrieval-Augmented Generation) in Mastra | Mastra Docs
-description: Overview of Retrieval-Augmented Generation (RAG) in Mastra, detailing its capabilities for enhancing LLM outputs with relevant context.
+title: RAG System Overview | Kastrax Docs
+description: Overview of Retrieval-Augmented Generation (RAG) in Kastrax, detailing its capabilities for enhancing LLM outputs with relevant context.
 ---
 
-# RAG (Retrieval-Augmented Generation) in Mastra
+# RAG System Overview ✅
 
-RAG in Mastra helps you enhance LLM outputs by incorporating relevant context from your own data sources, improving accuracy and grounding responses in real information.
+The Kastrax Retrieval-Augmented Generation (RAG) system provides a comprehensive framework for building knowledge-based applications that combine the power of large language models with external data sources. This guide explains the RAG system architecture and how to use it effectively.
 
-Mastra's RAG system provides:
+## What is RAG? ✅
 
-- Standardized APIs to process and embed documents
-- Support for multiple vector stores
-- Chunking and embedding strategies for optimal retrieval
-- Observability for tracking embedding and retrieval performance
+Retrieval-Augmented Generation (RAG) is a technique that enhances language model outputs by retrieving relevant information from external knowledge sources and incorporating it into the generation process. This approach helps to:
 
-## Example
+- Provide up-to-date information beyond the model's training data
+- Ground responses in factual, verifiable sources
+- Reduce hallucinations and improve accuracy
+- Customize responses based on domain-specific knowledge
 
-To implement RAG, you process your documents into chunks, create embeddings, store them in a vector database, and then retrieve relevant context at query time.
+## RAG System Architecture ✅
 
-```ts showLineNumbers copy
-import { embedMany } from "ai";
-import { openai } from "@ai-sdk/openai";
-import { PgVector } from "@mastra/pg";
-import { MDocument } from "@mastra/rag";
-import { z } from "zod";
+The Kastrax RAG system consists of several components:
 
-// 1. Initialize document
-const doc = MDocument.fromText(`Your document text here...`);
+1. **Document Processing**: Loading, chunking, and transforming documents
+2. **Embedding**: Converting text into vector representations
+3. **Vector Storage**: Storing and retrieving vectors efficiently
+4. **Retrieval**: Finding relevant information based on queries
+5. **Reranking**: Improving retrieval quality through additional ranking
+6. **Context Building**: Constructing effective prompts with retrieved information
+7. **Generation**: Producing responses using the enhanced context
 
-// 2. Create chunks
-const chunks = await doc.chunk({
-  strategy: "recursive",
-  size: 512,
-  overlap: 50,
-});
+## Basic RAG Pipeline ✅
 
-// 3. Generate embeddings; we need to pass the text of each chunk
-const { embeddings } = await embedMany({
-  values: chunks.map(chunk => chunk.text),
-  model: openai.embedding("text-embedding-3-small"),
-});
+Here's a simple example of creating a RAG pipeline in Kastrax:
 
-// 4. Store in vector database
-const pgVector = new PgVector(process.env.POSTGRES_CONNECTION_STRING);
-await pgVector.upsert({
-  indexName: "embeddings",
-  vectors: embeddings,
-}); // using an index name of 'embeddings'
+```kotlin
+import ai.kastrax.rag.document.DocumentLoader
+import ai.kastrax.rag.document.TextSplitter
+import ai.kastrax.rag.embedding.EmbeddingModel
+import ai.kastrax.rag.vectorstore.VectorStore
+import ai.kastrax.rag.retrieval.Retriever
+import ai.kastrax.rag.context.ContextBuilder
+import ai.kastrax.core.agent.agent
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.runBlocking
 
-// 5. Query similar chunks
-const results = await pgVector.query({
-  indexName: "embeddings",
-  queryVector: queryVector,
-  topK: 3,
-}); // queryVector is the embedding of the query
-
-console.log("Similar chunks:", results);
+fun createRagPipeline() = runBlocking {
+    // 1. Load documents
+    val loader = DocumentLoader.fromFile("knowledge_base.pdf")
+    val documents = loader.load()
+    
+    // 2. Split documents into chunks
+    val splitter = TextSplitter.recursive(
+        chunkSize = 1000,
+        chunkOverlap = 200
+    )
+    val chunks = splitter.split(documents)
+    
+    // 3. Create embeddings
+    val embeddingModel = EmbeddingModel.create("all-MiniLM-L6-v2")
+    
+    // 4. Store in vector database
+    val vectorStore = VectorStore.create("chroma")
+    vectorStore.addDocuments(chunks, embeddingModel)
+    
+    // 5. Create retriever
+    val retriever = Retriever.fromVectorStore(
+        vectorStore = vectorStore,
+        embeddingModel = embeddingModel,
+        topK = 5
+    )
+    
+    // 6. Create context builder
+    val contextBuilder = ContextBuilder.create {
+        template("""
+            Answer the question based on the following context:
+            
+            Context:
+            {{context}}
+            
+            Question: {{query}}
+            
+            Answer:
+        """.trimIndent())
+    }
+    
+    // 7. Create RAG agent
+    val ragAgent = agent {
+        name("RAGAgent")
+        description("An agent with RAG capabilities")
+        
+        // Configure the LLM
+        model = deepSeek {
+            apiKey("your-deepseek-api-key")
+            model(DeepSeekModel.DEEPSEEK_CHAT)
+            temperature(0.7)
+        }
+        
+        // Configure RAG
+        rag {
+            retriever(retriever)
+            contextBuilder(contextBuilder)
+            maxTokens(3000)
+        }
+    }
+    
+    // Use the RAG agent
+    val query = "What are the key features of Kastrax?"
+    val response = ragAgent.generate(query)
+    println(response.text)
+}
 ```
 
-This example shows the essentials: initialize a document, create chunks, generate embeddings, store them, and query for similar content.
+## Document Processing ✅
 
-## Document Processing
+### Loading Documents ✅
 
-The basic building block of RAG is document processing. Documents can be chunked using various strategies (recursive, sliding window, etc.) and enriched with metadata. See the [chunking and embedding doc](./chunking-and-embedding.mdx).
+Kastrax supports loading documents from various sources:
 
-## Vector Storage
+```kotlin
+// Load from a file
+val fileLoader = DocumentLoader.fromFile("document.pdf")
 
-Mastra supports multiple vector stores for embedding persistence and similarity search, including pgvector, Pinecone, and Qdrant. See the [vector database doc](./vector-databases.mdx).
+// Load from a directory
+val dirLoader = DocumentLoader.fromDirectory("documents/")
 
-## Observability and Debugging
+// Load from a URL
+val webLoader = DocumentLoader.fromUrl("https://example.com/document")
 
-Mastra's RAG system includes observability features to help you optimize your retrieval pipeline:
+// Load from a database
+val dbLoader = DocumentLoader.fromDatabase(
+    connection = dbConnection,
+    query = "SELECT content FROM documents"
+)
+```
 
-- Track embedding generation performance and costs
-- Monitor chunk quality and retrieval relevance
-- Analyze query patterns and cache hit rates
-- Export metrics to your observability platform
+### Document Formats ✅
 
-See the [OTel Configuration](../../reference/observability/otel-config.mdx) page for more details.
+Kastrax supports multiple document formats:
 
-## More resources
+- PDF
+- Word (DOCX)
+- Text
+- HTML
+- Markdown
+- CSV
+- JSON
+- XML
+- Databases
 
-- [Chain of Thought RAG Example](../../examples/rag/usage/cot-rag.mdx)
-- [All RAG Examples](../../examples/) (including different chunking strategies, embedding models, and vector stores)
+### Chunking Documents ✅
+
+Documents can be split into chunks for better processing:
+
+```kotlin
+// Recursive text splitter (splits by paragraphs, then sentences, etc.)
+val recursiveSplitter = TextSplitter.recursive(
+    chunkSize = 1000,
+    chunkOverlap = 200
+)
+
+// Character text splitter
+val charSplitter = TextSplitter.byCharacter(
+    chunkSize = 1000,
+    chunkOverlap = 200,
+    separator = "\n\n"
+)
+
+// Token text splitter
+val tokenSplitter = TextSplitter.byToken(
+    chunkSize = 500,
+    chunkOverlap = 100,
+    encoderName = "cl100k_base" // OpenAI's tokenizer
+)
+
+// Semantic text splitter
+val semanticSplitter = TextSplitter.semantic(
+    embeddingModel = embeddingModel,
+    similarityThreshold = 0.7
+)
+```
+
+## Embedding ✅
+
+### Embedding Models ✅
+
+Kastrax supports various embedding models:
+
+```kotlin
+// Use a local model
+val localModel = EmbeddingModel.create("all-MiniLM-L6-v2")
+
+// Use OpenAI embeddings
+val openAiModel = EmbeddingModel.openAi(
+    apiKey = "your-openai-api-key",
+    model = "text-embedding-3-small"
+)
+
+// Use custom embeddings
+val customModel = EmbeddingModel.custom(
+    embeddingFunction = { text ->
+        // Custom embedding logic
+        floatArrayOf(/* ... */)
+    },
+    dimensions = 384
+)
+```
+
+## Vector Storage ✅
+
+### Vector Stores ✅
+
+Kastrax supports multiple vector stores:
+
+```kotlin
+// In-memory vector store
+val memoryStore = VectorStore.inMemory()
+
+// Chroma vector store
+val chromaStore = VectorStore.chroma(
+    collectionName = "documents",
+    url = "http://localhost:8000"
+)
+
+// FAISS vector store
+val faissStore = VectorStore.faiss(
+    indexPath = "faiss_index",
+    dimensions = 384
+)
+
+// Pinecone vector store
+val pineconeStore = VectorStore.pinecone(
+    apiKey = "your-pinecone-api-key",
+    environment = "us-west1-gcp",
+    index = "documents"
+)
+```
+
+## Retrieval ✅
+
+### Retrievers ✅
+
+Retrievers find relevant information based on queries:
+
+```kotlin
+// Vector store retriever
+val vectorRetriever = Retriever.fromVectorStore(
+    vectorStore = vectorStore,
+    embeddingModel = embeddingModel,
+    topK = 5
+)
+
+// Keyword retriever
+val keywordRetriever = Retriever.keyword(
+    documents = documents,
+    topK = 5
+)
+
+// Hybrid retriever (combines vector and keyword search)
+val hybridRetriever = Retriever.hybrid(
+    vectorRetriever = vectorRetriever,
+    keywordRetriever = keywordRetriever,
+    vectorWeight = 0.7,
+    keywordWeight = 0.3
+)
+```
+
+## Reranking ✅
+
+### Rerankers ✅
+
+Rerankers improve retrieval quality:
+
+```kotlin
+// Cross-encoder reranker
+val crossEncoderReranker = Reranker.crossEncoder(
+    model = "cross-encoder/ms-marco-MiniLM-L-6-v2",
+    topK = 3
+)
+
+// LLM reranker
+val llmReranker = Reranker.llm(
+    llm = deepSeekLlm,
+    prompt = "Rank these documents based on relevance to the query: {{query}}\n\nDocuments:\n{{documents}}",
+    topK = 3
+)
+```
+
+## Complete RAG Example ✅
+
+Here's a complete example of a sophisticated RAG system:
+
+```kotlin
+import ai.kastrax.rag.*
+import ai.kastrax.core.agent.agent
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.runBlocking
+
+fun createAdvancedRagSystem() = runBlocking {
+    // 1. Load and process documents
+    val loader = DocumentLoader.fromDirectory("knowledge_base/")
+    val documents = loader.load()
+    
+    val splitter = TextSplitter.recursive(
+        chunkSize = 1000,
+        chunkOverlap = 200
+    )
+    val chunks = splitter.split(documents)
+    
+    // 2. Set up embedding and vector store
+    val embeddingModel = EmbeddingModel.create("all-MiniLM-L6-v2")
+    val vectorStore = VectorStore.chroma("kastrax_docs")
+    
+    // 3. Add documents to vector store
+    vectorStore.addDocuments(
+        documents = chunks,
+        embeddingModel = embeddingModel
+    )
+    
+    // 4. Create a hybrid retriever
+    val vectorRetriever = Retriever.fromVectorStore(
+        vectorStore = vectorStore,
+        embeddingModel = embeddingModel,
+        topK = 10
+    )
+    
+    val keywordRetriever = Retriever.keyword(
+        documents = chunks,
+        topK = 10
+    )
+    
+    val hybridRetriever = Retriever.hybrid(
+        vectorRetriever = vectorRetriever,
+        keywordRetriever = keywordRetriever,
+        vectorWeight = 0.7,
+        keywordWeight = 0.3
+    )
+    
+    // 5. Add reranking
+    val reranker = Reranker.crossEncoder(
+        model = "cross-encoder/ms-marco-MiniLM-L-6-v2",
+        topK = 5
+    )
+    
+    val enhancedRetriever = Retriever.withReranker(
+        baseRetriever = hybridRetriever,
+        reranker = reranker
+    )
+    
+    // 6. Create context builder with compression
+    val contextBuilder = ContextBuilder.create {
+        template("""
+            You are a helpful assistant for Kastrax, a powerful AI Agent framework.
+            Answer the question based on the following context from the Kastrax documentation.
+            
+            Context:
+            {{#each documents}}
+            Document {{@index}} (Source: {{metadata.source}}):
+            {{pageContent}}
+            
+            {{/each}}
+            
+            Question: {{query}}
+            
+            Answer the question using only the information provided in the context.
+            If you don't have enough information, say "I don't have enough information."
+            Always cite the source documents when providing information.
+        """.trimIndent())
+        
+        compression {
+            enabled(true)
+            method(CompressionMethod.MAP_REDUCE)
+            maxTokens(3000)
+        }
+    }
+    
+    // 7. Create RAG agent
+    val ragAgent = agent {
+        name("KastraxDocumentationAssistant")
+        description("An assistant that helps with Kastrax documentation")
+        
+        // Configure the LLM
+        model = deepSeek {
+            apiKey("your-deepseek-api-key")
+            model(DeepSeekModel.DEEPSEEK_CHAT)
+            temperature(0.3) // Lower temperature for more factual responses
+        }
+        
+        // Configure RAG
+        rag {
+            retriever(enhancedRetriever)
+            contextBuilder(contextBuilder)
+            maxTokens(3000)
+        }
+    }
+    
+    // 8. Use the RAG agent
+    val query = "How do I implement a custom tool in Kastrax?"
+    val response = ragAgent.generate(query)
+    println(response.text)
+}
+```
+
+## Next Steps ✅
+
+Now that you understand the RAG system, you can:
+
+1. Learn about [document processing](./document-processing.mdx)
+2. Explore [vector stores](./vector-stores.mdx)
+3. Implement [advanced retrieval techniques](./advanced-retrieval.mdx)
+4. Set up [RAG evaluation](./evaluation.mdx)

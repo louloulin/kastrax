@@ -1,0 +1,403 @@
+---
+title: Actor Model Overview | Kastrax Docs
+description: Overview of the Actor model in Kastrax, detailing how it provides a foundation for building distributed, concurrent, and resilient AI agent systems.
+---
+
+# Actor Model Overview ✅
+
+The Kastrax framework integrates the Actor model from the kactor library to provide a powerful foundation for building distributed, concurrent, and resilient AI agent systems. This guide explains the Actor model and how it's used in Kastrax.
+
+## What is the Actor Model? ✅
+
+The Actor model is a mathematical model of concurrent computation that treats "actors" as the universal primitives of concurrent computation. In response to a message it receives, an actor can:
+
+1. Make local decisions
+2. Create more actors
+3. Send more messages
+4. Determine how to respond to the next message received
+
+Actors are isolated from each other and communicate only through messages, which provides a clean separation of concerns and makes it easier to reason about concurrent systems.
+
+## Actor Model in Kastrax ✅
+
+In Kastrax, the Actor model is used to:
+
+1. **Distribute Agents**: Run agents across multiple machines
+2. **Manage Concurrency**: Handle multiple agent interactions simultaneously
+3. **Ensure Resilience**: Recover from failures gracefully
+4. **Scale Systems**: Easily scale agent systems up or down
+
+## Basic Actor Concepts ✅
+
+### Actors ✅
+
+An actor is the fundamental unit of computation. It has:
+
+- A mailbox for receiving messages
+- Behavior that defines how to process messages
+- State that can be modified when processing messages
+- The ability to create other actors
+- The ability to send messages to other actors
+
+### Messages ✅
+
+Messages are the only way actors communicate. They are:
+
+- Immutable
+- Asynchronous
+- Processed one at a time by each actor
+
+### Actor Systems ✅
+
+Actor systems manage the lifecycle of actors and provide:
+
+- Actor creation and supervision
+- Message routing
+- Resource management
+- Configuration
+
+## Creating a Basic Actor ✅
+
+Here's how to create a simple actor in Kastrax:
+
+```kotlin
+import actor.proto.Actor
+import actor.proto.Context
+import actor.proto.Props
+import actor.proto.spawn
+import kotlinx.coroutines.runBlocking
+
+// Define a message
+data class Greeting(val who: String)
+
+// Define an actor
+class GreetingActor : Actor {
+    override suspend fun receive(context: Context) {
+        val message = context.message
+        
+        when (message) {
+            is Greeting -> {
+                println("Hello, ${message.who}!")
+            }
+            else -> {
+                println("Unknown message: $message")
+            }
+        }
+    }
+}
+
+fun main() = runBlocking {
+    // Create an actor system
+    val system = actor.proto.ActorSystem.create()
+    
+    // Create an actor
+    val greeter = system.spawn(Props.create(GreetingActor::class.java), "greeter")
+    
+    // Send a message to the actor
+    greeter.tell(Greeting("World"))
+    
+    // Wait a bit for the message to be processed
+    kotlinx.coroutines.delay(100)
+    
+    // Shutdown the system
+    system.shutdown()
+}
+```
+
+## Integrating Actors with Agents ✅
+
+Kastrax allows you to wrap agents in actors to create distributed agent systems:
+
+```kotlin
+import actor.proto.Actor
+import actor.proto.Context
+import actor.proto.Props
+import actor.proto.spawn
+import ai.kastrax.core.agent.Agent
+import ai.kastrax.core.agent.agent
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.runBlocking
+
+// Define messages
+data class GenerateRequest(val prompt: String)
+data class GenerateResponse(val text: String)
+
+// Define an actor that wraps an agent
+class AgentActor(private val agent: Agent) : Actor {
+    override suspend fun receive(context: Context) {
+        val message = context.message
+        
+        when (message) {
+            is GenerateRequest -> {
+                val response = agent.generate(message.prompt)
+                context.sender.tell(GenerateResponse(response.text))
+            }
+            else -> {
+                println("Unknown message: $message")
+            }
+        }
+    }
+    
+    companion object {
+        fun props(agent: Agent): Props {
+            return Props.create { AgentActor(agent) }
+        }
+    }
+}
+
+fun main() = runBlocking {
+    // Create an agent
+    val myAgent = agent {
+        name("MyAgent")
+        description("A simple agent")
+        
+        model = deepSeek {
+            apiKey("your-deepseek-api-key")
+            model(DeepSeekModel.DEEPSEEK_CHAT)
+            temperature(0.7)
+        }
+    }
+    
+    // Create an actor system
+    val system = actor.proto.ActorSystem.create()
+    
+    // Create an actor that wraps the agent
+    val agentActor = system.spawn(AgentActor.props(myAgent), "agent-actor")
+    
+    // Create a future for the response
+    val future = agentActor.ask(GenerateRequest("Tell me a joke"), 5000)
+    
+    // Wait for the response
+    val response = future.await() as GenerateResponse
+    println("Agent response: ${response.text}")
+    
+    // Shutdown the system
+    system.shutdown()
+}
+```
+
+## Remote Actors ✅
+
+One of the most powerful features of the Actor model is the ability to distribute actors across multiple machines. Kastrax supports this through remote actors:
+
+```kotlin
+import actor.proto.Actor
+import actor.proto.Context
+import actor.proto.Props
+import actor.proto.remote.RemoteConfig
+import actor.proto.remote.RemoteActorSystem
+import kotlinx.coroutines.runBlocking
+
+// Define a message
+data class Ping(val message: String)
+data class Pong(val message: String)
+
+// Define an actor
+class PongActor : Actor {
+    override suspend fun receive(context: Context) {
+        val message = context.message
+        
+        when (message) {
+            is Ping -> {
+                println("Received ping: ${message.message}")
+                context.sender.tell(Pong("Pong response to: ${message.message}"))
+            }
+            else -> {
+                println("Unknown message: $message")
+            }
+        }
+    }
+}
+
+// Server code
+fun startServer() = runBlocking {
+    // Create a remote configuration
+    val config = RemoteConfig.create {
+        hostname = "localhost"
+        port = 8090
+    }
+    
+    // Create a remote actor system
+    val system = RemoteActorSystem.create("server-system", config)
+    
+    // Create an actor
+    val pongActor = system.spawn(Props.create(PongActor::class.java), "pong-actor")
+    
+    // Register the actor so it can be accessed remotely
+    system.registerActor("pong", pongActor)
+    
+    println("Server started, press enter to exit...")
+    readLine()
+    
+    // Shutdown the system
+    system.shutdown()
+}
+
+// Client code
+fun startClient() = runBlocking {
+    // Create a remote configuration
+    val config = RemoteConfig.create {
+        hostname = "localhost"
+        port = 0 // Use any available port
+    }
+    
+    // Create a remote actor system
+    val system = RemoteActorSystem.create("client-system", config)
+    
+    // Get a reference to the remote actor
+    val remotePongActor = system.getActorRef("pong@localhost:8090")
+    
+    // Send a message to the remote actor
+    val future = remotePongActor.ask(Ping("Hello from client"), 5000)
+    
+    // Wait for the response
+    val response = future.await() as Pong
+    println("Received response: ${response.message}")
+    
+    // Shutdown the system
+    system.shutdown()
+}
+```
+
+## Actor Supervision ✅
+
+Actors can supervise other actors, which allows for fault tolerance and recovery:
+
+```kotlin
+import actor.proto.Actor
+import actor.proto.Context
+import actor.proto.Props
+import actor.proto.SupervisorStrategy
+import actor.proto.Directive
+import actor.proto.spawn
+import kotlinx.coroutines.runBlocking
+
+// Define messages
+data class Work(val input: Int)
+data class Result(val output: Int)
+
+// Define an actor that might fail
+class WorkerActor : Actor {
+    override suspend fun receive(context: Context) {
+        val message = context.message
+        
+        when (message) {
+            is Work -> {
+                if (message.input == 0) {
+                    throw ArithmeticException("Division by zero")
+                }
+                
+                val result = 100 / message.input
+                context.sender.tell(Result(result))
+            }
+            else -> {
+                println("Unknown message: $message")
+            }
+        }
+    }
+}
+
+// Define a supervisor actor
+class SupervisorActor : Actor {
+    private var workerRef: actor.proto.PID? = null
+    
+    override suspend fun receive(context: Context) {
+        val message = context.message
+        
+        when (message) {
+            is actor.proto.Started -> {
+                // Create a worker when the supervisor starts
+                workerRef = context.spawn(Props.create(WorkerActor::class.java), "worker")
+            }
+            is Work -> {
+                // Forward the work to the worker
+                workerRef?.tell(message)
+            }
+            is Result -> {
+                println("Worker produced result: ${message.output}")
+            }
+            else -> {
+                println("Unknown message: $message")
+            }
+        }
+    }
+    
+    override fun supervisorStrategy(): SupervisorStrategy {
+        return SupervisorStrategy.restartStrategy { _, _ ->
+            // Restart the worker on any exception
+            Directive.Restart
+        }
+    }
+}
+
+fun main() = runBlocking {
+    // Create an actor system
+    val system = actor.proto.ActorSystem.create()
+    
+    // Create a supervisor actor
+    val supervisor = system.spawn(Props.create(SupervisorActor::class.java), "supervisor")
+    
+    // Send work to the supervisor
+    supervisor.tell(Work(4)) // Should work fine
+    kotlinx.coroutines.delay(100)
+    
+    supervisor.tell(Work(0)) // Will cause an exception
+    kotlinx.coroutines.delay(100)
+    
+    supervisor.tell(Work(5)) // Should work again after restart
+    kotlinx.coroutines.delay(100)
+    
+    // Shutdown the system
+    system.shutdown()
+}
+```
+
+## Actor Patterns ✅
+
+### Request-Response Pattern ✅
+
+```kotlin
+// Send a request and wait for a response
+val future = actorRef.ask(Request("some data"), 5000)
+val response = future.await() as Response
+println("Received response: ${response.data}")
+```
+
+### Publish-Subscribe Pattern ✅
+
+```kotlin
+// Create a topic
+val topic = system.createTopic("events")
+
+// Subscribe to the topic
+topic.subscribe { event ->
+    println("Received event: $event")
+}
+
+// Publish to the topic
+topic.publish(Event("something happened"))
+```
+
+### Router Pattern ✅
+
+```kotlin
+// Create a round-robin router with 5 worker instances
+val router = system.createRouter(
+    RouterConfig.roundRobin(5),
+    Props.create(WorkerActor::class.java)
+)
+
+// Send messages to the router
+for (i in 1..10) {
+    router.tell(Work(i))
+}
+```
+
+## Next Steps ✅
+
+Now that you understand the Actor model in Kastrax, you can:
+
+1. Learn about [remote actor configuration](./remote-configuration.mdx)
+2. Explore [actor supervision strategies](./supervision.mdx)
+3. Implement [actor-based agent systems](./agent-actors.mdx)
