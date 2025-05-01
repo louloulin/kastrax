@@ -5,7 +5,7 @@ plugins {
 }
 
 application {
-    mainClass.set("actor.proto.examples.inprocessbenchmark.InProcessBenchmarkKt")
+    mainClass.set("ai.kastrax.examples.RunAdaptiveAgent")
 }
 
 dependencies {
@@ -61,6 +61,78 @@ tasks.register<JavaExec>("runMessageBatchExample") {
     jvmArgs = listOf("-Xms512m", "-Xmx1024m")
 }
 
+// Task to run AdaptiveAgentExample
+tasks.register<JavaExec>("runAdaptiveAgentExample") {
+    group = "examples"
+    description = "Run the AdaptiveAgentExample example"
+    classpath = sourceSets["main"].runtimeClasspath
+    mainClass.set("ai.kastrax.examples.agent.AdaptiveAgentExampleKt")
+    jvmArgs = listOf("-Xms512m", "-Xmx1g")
+}
+
+// Task to run GoalOrientedAgentExample
+tasks.register<JavaExec>("runGoalOrientedAgentExample") {
+    group = "examples"
+    description = "Run the GoalOrientedAgentExample example"
+    classpath = sourceSets["main"].runtimeClasspath
+    mainClass.set("ai.kastrax.examples.agent.GoalOrientedAgentExampleKt")
+    jvmArgs = listOf("-Xms512m", "-Xmx1g")
+}
+
+// Task to run HierarchicalAgentExample
+tasks.register<JavaExec>("runHierarchicalAgentExample") {
+    group = "examples"
+    description = "Run the HierarchicalAgentExample example"
+    classpath = sourceSets["main"].runtimeClasspath
+    mainClass.set("ai.kastrax.examples.agent.HierarchicalAgentExampleKt")
+    jvmArgs = listOf("-Xms512m", "-Xmx1g")
+}
+
+// Task to run ReflectiveAgentExample
+tasks.register<JavaExec>("runReflectiveAgentExample") {
+    group = "examples"
+    description = "Run the ReflectiveAgentExample example"
+    classpath = sourceSets["main"].runtimeClasspath
+    mainClass.set("ai.kastrax.examples.agent.ReflectiveAgentExampleKt")
+    jvmArgs = listOf("-Xms512m", "-Xmx1g")
+}
+
+// Task to run DeepseekToolAgentExample
+tasks.register<JavaExec>("runDeepseekToolAgentExample") {
+    group = "examples"
+    description = "Run the DeepseekToolAgentExample example"
+    classpath = sourceSets["main"].runtimeClasspath
+    mainClass.set("ai.kastrax.examples.agent.DeepseekToolAgentExampleKt")
+    jvmArgs = listOf("-Xms512m", "-Xmx1g")
+}
+
+// Task to run DeepseekMemoryExample
+tasks.register<JavaExec>("runDeepseekMemoryExample") {
+    group = "examples"
+    description = "Run the DeepseekMemoryExample example"
+    classpath = sourceSets["main"].runtimeClasspath
+    mainClass.set("ai.kastrax.examples.agent.DeepseekMemoryExampleKt")
+    jvmArgs = listOf("-Xms512m", "-Xmx1g")
+}
+
+// Task to run AgentNetworkExample
+tasks.register<JavaExec>("runAgentNetworkExample") {
+    group = "examples"
+    description = "Run the AgentNetworkExample example"
+    classpath = sourceSets["main"].runtimeClasspath
+    mainClass.set("ai.kastrax.examples.agent.AgentNetworkExampleKt")
+    jvmArgs = listOf("-Xms512m", "-Xmx1g")
+}
+
+// Task to run AdvancedAgentExample
+tasks.register<JavaExec>("runAdvancedAgentExample") {
+    group = "examples"
+    description = "Run the AdvancedAgentExample example"
+    classpath = sourceSets["main"].runtimeClasspath
+    mainClass.set("ai.kastrax.examples.agent.AdvancedAgentExampleKt")
+    jvmArgs = listOf("-Xms512m", "-Xmx1g")
+}
+
 // GraalVM 配置已禁用，因为插件应用方式不兼容
 // graalvmNative {
 //     binaries {
@@ -77,3 +149,19 @@ tasks.register<JavaExec>("runMessageBatchExample") {
 //         enabled.set(true)
 //     }
 // }
+
+// Task to print classpath
+tasks.register("printClasspath") {
+    doLast {
+        println(sourceSets["main"].runtimeClasspath.asPath)
+    }
+}
+
+// Task to run AdaptiveAgentExample directly
+tasks.register<JavaExec>("runAdaptiveAgent") {
+    group = "examples"
+    description = "Run the AdaptiveAgentExample directly"
+    classpath = sourceSets["main"].runtimeClasspath
+    mainClass.set("ai.kastrax.examples.RunAdaptiveAgent")
+    jvmArgs = listOf("-Xms512m", "-Xmx1g")
+}

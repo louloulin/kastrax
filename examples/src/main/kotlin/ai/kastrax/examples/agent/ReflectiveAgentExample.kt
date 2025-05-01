@@ -4,7 +4,8 @@ import ai.kastrax.core.agent.AgentGenerateOptions
 import ai.kastrax.core.agent.agent
 import ai.kastrax.core.agent.architecture.ReflectiveAgent
 import ai.kastrax.core.agent.architecture.reflectiveAgent
-import ai.kastrax.core.llm.deepseek.DeepseekLlm
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
 import kotlinx.coroutines.runBlocking
 
 /**
@@ -12,10 +13,18 @@ import kotlinx.coroutines.runBlocking
  */
 fun main() = runBlocking {
     // 创建基础LLM
-    val llm = DeepseekLlm(
-        apiKey = System.getenv("DEEPSEEK_API_KEY") ?: "your-api-key",
-        model = "deepseek-chat"
-    )
+    val llm = deepSeek {
+        // 直接设置 API 密钥
+        apiKey("sk-85e83081df28490b9ae63188f0cb4f79")
+
+        // 设置模型
+        model(DeepSeekModel.DEEPSEEK_CHAT)
+
+        // 设置生成参数
+        temperature(0.7)
+        maxTokens(2000)
+        topP(0.95)
+    }
 
     // 使用DSL创建基础Agent
     val baseAgent = agent {
