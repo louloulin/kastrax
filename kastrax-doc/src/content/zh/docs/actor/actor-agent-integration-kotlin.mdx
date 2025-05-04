@@ -1,0 +1,862 @@
+---
+title: Actor-代理集成 | Actor 模型 | Kastrax 文档
+description: 将 Kastrax 代理与 Actor 模型集成的详细指南，使分布式、并发代理系统成为可能。
+---
+
+# Actor-代理集成 ✅
+
+Kastrax 提供了 AI 代理和 Actor 模型之间的强大集成，使分布式、并发代理系统成为可能。本指南解释了如何将 Kastrax 代理与 actor 集成。
+
+## 集成基础 ✅
+
+Kastrax 代理与 Actor 模型的集成允许您：
+
+- 在分布式系统中将代理作为 actor 运行
+- 启用代理之间的异步通信
+- 创建协作代理网络
+- 水平扩展代理系统
+- 提供容错和监督
+
+## KastraxActor ✅
+
+`KastraxActor` 类是将 Kastrax 代理包装为 actor 的核心组件：
+
+```kotlin
+import ai.kastrax.actor.KastraxActor
+import ai.kastrax.core.agent.agent
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import actor.proto.ActorSystem
+import actor.proto.Props
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    // 创建 Actor 系统
+    val system = ActorSystem("kastrax-system")
+    
+    // 创建 Kastrax 代理
+    val myAgent = agent {
+        name("MyAgent")
+        description("一个简单的代理")
+        
+        model = deepSeek {
+            apiKey("your-deepseek-api-key")
+            model(DeepSeekModel.DEEPSEEK_CHAT)
+            temperature(0.7)
+        }
+    }
+    
+    // 使用代理创建 KastraxActor
+    val props = Props.create { KastraxActor(myAgent) }
+    val agentPid = system.root.spawn(props)
+    
+    // 向代理发送消息
+    system.root.send(agentPid, AgentRequest("你好，代理！"))
+    
+    system.shutdown()
+}
+
+// 消息类
+data class AgentRequest(val query: String)
+```
+
+## ActorAgent DSL ✅
+
+Kastrax 提供了用于创建基于 actor 的代理的 DSL：
+
+```kotlin
+import ai.kastrax.actor.actorAgent
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import actor.proto.ActorSystem
+import kotlinx.coroutines.runBlocking
+import java.time.Duration
+
+fun main() = runBlocking {
+    // 创建 Actor 系统
+    val system = ActorSystem("kastrax-system")
+    
+    // 使用 DSL 创建 actor-agent
+    val agentPid = system.actorAgent {
+        // 配置代理
+        agent {
+            name("AssistantAgent")
+            description("一个有帮助的助手")
+            
+            model = deepSeek {
+                apiKey("your-deepseek-api-key")
+                model(DeepSeekModel.DEEPSEEK_CHAT)
+                temperature(0.7)
+            }
+            
+            tools {
+                tool("calculator") {
+                    description("执行基本算术运算")
+                    parameters {
+                        parameter("expression", "要计算的数学表达式", String::class)
+                    }
+                    execute { params ->
+                        val expression = params["expression"] as String
+                        // 简单的表达式计算器
+                        "结果: ${evaluateExpression(expression)}"
+                    }
+                }
+            }
+        }
+        
+        // 配置 actor
+        actor {
+            // 设置监督策略
+            oneForOneStrategy {
+                maxRetries = 3
+                withinTimeRange = Duration.ofMinutes(1)
+            }
+            
+            // 设置邮箱类型
+            unboundedMailbox()
+        }
+    }
+    
+    // 使用 actor-agent
+    system.sendMessage(agentPid, "2 + 2 等于多少？")
+    
+    // 请求-响应模式
+    val response = system.askMessage(agentPid, "法国的首都是什么？")
+    println("响应: $response")
+    
+    // 流式模式
+    system.streamMessage(agentPid, "讲个故事") { chunk ->
+        print(chunk)
+    }
+    
+    system.shutdown()
+}
+
+// 简单的表达式计算器
+fun evaluateExpression(expression: String): Double {
+    // 实现...
+    return 4.0
+}
+```
+
+## 通信模式 ✅
+
+该集成支持各种通信模式：
+
+### 发送后忘记 ✅
+
+```kotlin
+// 发送消息而不等待响应
+system.sendMessage(agentPid, "你好，代理！")
+```
+
+### 请求-响应 ✅
+
+```kotlin
+// 发送消息并等待响应
+val response = system.askMessage(agentPid, "法国的首都是什么？")
+println("响应: $response")
+```
+
+### 流式 ✅
+
+```kotlin
+// 发送消息并接收响应流
+system.streamMessage(agentPid, "讲个故事") { chunk ->
+    print(chunk)
+}
+```
+
+## 代理网络 ✅
+
+Kastrax 支持创建可以协作的代理网络：
+
+```kotlin
+import ai.kastrax.actor.agentNetwork
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import actor.proto.ActorSystem
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    // 创建 Actor 系统
+    val system = ActorSystem("kastrax-system")
+    
+    // 创建代理网络
+    val network = system.agentNetwork {
+        // 配置协调员代理
+        coordinator {
+            agent {
+                name("Coordinator")
+                description("一个管理多个专家代理的协调员")
+                
+                model = deepSeek {
+                    apiKey("your-deepseek-api-key")
+                    model(DeepSeekModel.DEEPSEEK_CHAT)
+                    temperature(0.7)
+                }
+            }
+            
+            actor {
+                oneForOneStrategy {
+                    maxRetries = 5
+                }
+            }
+        }
+        
+        // 添加专家代理
+        agent("researcher") {
+            agent {
+                name("Researcher")
+                description("一个研究专家")
+                
+                model = deepSeek {
+                    apiKey("your-deepseek-api-key")
+                    model(DeepSeekModel.DEEPSEEK_CHAT)
+                    temperature(0.7)
+                }
+            }
+        }
+        
+        agent("writer") {
+            agent {
+                name("Writer")
+                description("一个写作专家")
+                
+                model = deepSeek {
+                    apiKey("your-deepseek-api-key")
+                    model(DeepSeekModel.DEEPSEEK_CHAT)
+                    temperature(0.7)
+                }
+            }
+        }
+        
+        agent("critic") {
+            agent {
+                name("Critic")
+                description("一个批评性审阅者")
+                
+                model = deepSeek {
+                    apiKey("your-deepseek-api-key")
+                    model(DeepSeekModel.DEEPSEEK_CHAT)
+                    temperature(0.7)
+                }
+            }
+        }
+    }
+    
+    // 使用网络
+    val response = network.process("研究 AI 对医疗保健的影响")
+    println(response)
+    
+    system.shutdown()
+}
+```
+
+## 代理监督 ✅
+
+基于 actor 的代理可以被监督以处理故障：
+
+```kotlin
+import ai.kastrax.actor.actorAgent
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import actor.proto.ActorSystem
+import actor.proto.SupervisorStrategy
+import kotlinx.coroutines.runBlocking
+import java.time.Duration
+
+fun main() = runBlocking {
+    // 创建 Actor 系统
+    val system = ActorSystem("kastrax-system")
+    
+    // 创建监督代理
+    val supervisorPid = system.actorAgent {
+        agent {
+            name("Supervisor")
+            description("一个监督代理")
+            
+            model = deepSeek {
+                apiKey("your-deepseek-api-key")
+                model(DeepSeekModel.DEEPSEEK_CHAT)
+                temperature(0.7)
+            }
+        }
+        
+        actor {
+            // 配置监督策略
+            oneForOneStrategy {
+                maxRetries = 3
+                withinTimeRange = Duration.ofMinutes(1)
+                decider = { _, exception ->
+                    when (exception) {
+                        is IllegalArgumentException -> SupervisorStrategy.Directive.Restart
+                        is IllegalStateException -> SupervisorStrategy.Directive.Stop
+                        else -> SupervisorStrategy.Directive.Escalate
+                    }
+                }
+            }
+        }
+    }
+    
+    // 创建子代理
+    val childPid = system.actorAgent {
+        agent {
+            name("Child")
+            description("一个子代理")
+            
+            model = deepSeek {
+                apiKey("your-deepseek-api-key")
+                model(DeepSeekModel.DEEPSEEK_CHAT)
+                temperature(0.7)
+            }
+        }
+        
+        actor {
+            // 设置父级
+            parent = supervisorPid
+        }
+    }
+    
+    // 使用子代理
+    system.sendMessage(childPid, "你好，子代理！")
+    
+    // 模拟错误
+    system.sendMessage(childPid, "error") // 这将触发错误并重启
+    
+    system.shutdown()
+}
+```
+
+## 远程代理集成 ✅
+
+基于 actor 的代理可以分布在多个系统中：
+
+```kotlin
+import ai.kastrax.actor.actorAgent
+import ai.kastrax.actor.remoteActorAgent
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import actor.proto.ActorSystem
+import actor.proto.remote.Remote
+import kotlinx.coroutines.runBlocking
+
+// 服务器代码
+fun startServer() = runBlocking {
+    // 创建 Actor 系统
+    val system = ActorSystem("kastrax-server")
+    
+    // 配置远程功能
+    val remote = Remote(system)
+    remote.start("localhost", 8080)
+    
+    // 创建远程 actor-agent
+    val agentPid = system.actorAgent {
+        agent {
+            name("RemoteAgent")
+            description("一个远程代理")
+            
+            model = deepSeek {
+                apiKey("your-deepseek-api-key")
+                model(DeepSeekModel.DEEPSEEK_CHAT)
+                temperature(0.7)
+            }
+        }
+        
+        remote {
+            name = "remote-agent" // 用于远程访问的名称
+        }
+    }
+    
+    // 保持系统运行
+    println("远程代理运行在 localhost:8080")
+    println("按 Enter 键退出")
+    readLine()
+    
+    system.shutdown()
+}
+
+// 客户端代码
+fun startClient() = runBlocking {
+    // 创建 Actor 系统
+    val system = ActorSystem("kastrax-client")
+    
+    // 连接到远程代理
+    val remoteAgent = system.remoteActorAgent("localhost:8080", "remote-agent")
+    
+    // 使用远程代理
+    val response = remoteAgent.generate("法国的首都是什么？")
+    println("代理响应: ${response.text}")
+    
+    system.shutdown()
+}
+
+// 主函数
+fun main(args: Array<String>) {
+    if (args.isEmpty() || args[0] == "server") {
+        startServer()
+    } else if (args[0] == "client") {
+        startClient()
+    } else {
+        println("无效参数。使用 'server' 或 'client'。")
+    }
+}
+```
+
+## 代理状态管理 ✅
+
+基于 actor 的代理可以在交互之间维护状态：
+
+```kotlin
+import ai.kastrax.actor.actorAgent
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import actor.proto.ActorSystem
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    // 创建 Actor 系统
+    val system = ActorSystem("kastrax-system")
+    
+    // 创建有状态的 actor-agent
+    val agentPid = system.actorAgent {
+        agent {
+            name("StatefulAgent")
+            description("一个有状态的代理")
+            
+            model = deepSeek {
+                apiKey("your-deepseek-api-key")
+                model(DeepSeekModel.DEEPSEEK_CHAT)
+                temperature(0.7)
+            }
+        }
+        
+        actor {
+            // 定义状态
+            state {
+                var userPreferences = mutableMapOf<String, String>()
+                var interactionCount = 0
+            }
+            
+            // 处理消息
+            receive { message, context ->
+                when (message) {
+                    is String -> {
+                        // 更新状态
+                        context.state.interactionCount++
+                        
+                        // 检查偏好更新
+                        if (message.contains("prefer")) {
+                            // 提取偏好
+                            val preference = extractPreference(message)
+                            if (preference != null) {
+                                context.state.userPreferences[preference.first] = preference.second
+                            }
+                        }
+                        
+                        // 生成具有状态感知的响应
+                        val response = context.agent.generate(
+                            """
+                            用户偏好: ${context.state.userPreferences}
+                            交互计数: ${context.state.interactionCount}
+                            
+                            用户消息: $message
+                            """.trimIndent()
+                        )
+                        
+                        // 发送响应
+                        context.respond(response.text)
+                    }
+                    else -> context.respond("不支持的消息类型")
+                }
+            }
+        }
+    }
+    
+    // 使用有状态代理
+    val response1 = system.askMessage(agentPid, "你好，我是 Alice")
+    println("响应 1: $response1")
+    
+    val response2 = system.askMessage(agentPid, "我喜欢简洁的回答")
+    println("响应 2: $response2")
+    
+    val response3 = system.askMessage(agentPid, "告诉我关于量子计算的信息")
+    println("响应 3: $response3")
+    
+    system.shutdown()
+}
+
+// 提取偏好的辅助函数
+fun extractPreference(message: String): Pair<String, String>? {
+    // 实现...
+    return if (message.contains("prefer concise")) {
+        "responseStyle" to "concise"
+    } else {
+        null
+    }
+}
+```
+
+## 代理生命周期管理 ✅
+
+基于 actor 的代理有一个可以管理的生命周期：
+
+```kotlin
+import ai.kastrax.actor.actorAgent
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import actor.proto.ActorSystem
+import actor.proto.PoisonPill
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    // 创建 Actor 系统
+    val system = ActorSystem("kastrax-system")
+    
+    // 创建 actor-agent
+    val agentPid = system.actorAgent {
+        agent {
+            name("LifecycleAgent")
+            description("一个具有生命周期管理的代理")
+            
+            model = deepSeek {
+                apiKey("your-deepseek-api-key")
+                model(DeepSeekModel.DEEPSEEK_CHAT)
+                temperature(0.7)
+            }
+        }
+        
+        actor {
+            // 定义生命周期钩子
+            preStart { context ->
+                println("代理启动: ${context.agent.name}")
+                // 初始化资源
+            }
+            
+            postStop { context ->
+                println("代理停止: ${context.agent.name}")
+                // 清理资源
+            }
+            
+            preRestart { context, reason ->
+                println("代理重启: ${context.agent.name}, 原因: $reason")
+                // 重启前清理
+            }
+            
+            postRestart { context ->
+                println("代理已重启: ${context.agent.name}")
+                // 重启后初始化
+            }
+        }
+    }
+    
+    // 使用代理
+    system.sendMessage(agentPid, "你好，代理！")
+    
+    // 停止代理
+    system.root.send(agentPid, PoisonPill.Instance)
+    
+    // 等待代理停止
+    Thread.sleep(1000)
+    
+    system.shutdown()
+}
+```
+
+## 完整示例 ✅
+
+以下是使用 Actor 模型的复杂代理系统的完整示例：
+
+```kotlin
+import ai.kastrax.actor.actorAgent
+import ai.kastrax.actor.agentNetwork
+import ai.kastrax.memory.api.memory
+import ai.kastrax.memory.impl.MemoryFactory
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import actor.proto.ActorSystem
+import actor.proto.SupervisorStrategy
+import actor.proto.remote.Remote
+import kotlinx.coroutines.runBlocking
+import java.time.Duration
+
+fun main() = runBlocking {
+    // 创建 Actor 系统
+    val system = ActorSystem("kastrax-system")
+    
+    // 配置远程功能
+    val remote = Remote(system)
+    remote.start("localhost", 8080)
+    
+    // 创建代理网络
+    val network = system.agentNetwork {
+        // 配置协调员代理
+        coordinator {
+            agent {
+                name("Coordinator")
+                description("一个管理多个专家代理的协调员")
+                
+                model = deepSeek {
+                    apiKey("your-deepseek-api-key")
+                    model(DeepSeekModel.DEEPSEEK_CHAT)
+                    temperature(0.7)
+                }
+                
+                // 配置记忆
+                memory = memory {
+                    storage(MemoryFactory.createInMemoryStorage())
+                    lastMessages(20)
+                    workingMemory(WorkingMemoryConfig(enabled = true))
+                }
+            }
+            
+            actor {
+                oneForOneStrategy {
+                    maxRetries = 5
+                    withinTimeRange = Duration.ofMinutes(5)
+                    decider = { _, exception ->
+                        when (exception) {
+                            is IllegalArgumentException -> SupervisorStrategy.Directive.Restart
+                            is IllegalStateException -> SupervisorStrategy.Directive.Stop
+                            else -> SupervisorStrategy.Directive.Escalate
+                        }
+                    }
+                }
+                
+                state {
+                    var taskCount = 0
+                    var activeAgents = mutableSetOf<String>()
+                }
+                
+                preStart { context ->
+                    println("协调员启动: ${context.agent.name}")
+                }
+                
+                postStop { context ->
+                    println("协调员停止: ${context.agent.name}")
+                }
+            }
+        }
+        
+        // 添加专家代理
+        agent("researcher") {
+            agent {
+                name("Researcher")
+                description("一个研究专家")
+                
+                model = deepSeek {
+                    apiKey("your-deepseek-api-key")
+                    model(DeepSeekModel.DEEPSEEK_CHAT)
+                    temperature(0.7)
+                }
+                
+                tools {
+                    tool("searchWeb") {
+                        description("在网上搜索信息")
+                        parameters {
+                            parameter("query", "搜索查询", String::class)
+                        }
+                        execute { params ->
+                            val query = params["query"] as String
+                            // 实现...
+                            "搜索结果: $query"
+                        }
+                    }
+                }
+                
+                memory = memory {
+                    storage(MemoryFactory.createInMemoryStorage())
+                    lastMessages(10)
+                }
+            }
+            
+            actor {
+                state {
+                    var researchCount = 0
+                    var specialties = listOf("AI", "Healthcare", "Finance")
+                }
+            }
+        }
+        
+        agent("writer") {
+            agent {
+                name("Writer")
+                description("一个写作专家")
+                
+                model = deepSeek {
+                    apiKey("your-deepseek-api-key")
+                    model(DeepSeekModel.DEEPSEEK_CHAT)
+                    temperature(0.7)
+                }
+                
+                memory = memory {
+                    storage(MemoryFactory.createInMemoryStorage())
+                    lastMessages(10)
+                }
+            }
+            
+            actor {
+                state {
+                    var writingCount = 0
+                    var styles = mutableMapOf(
+                        "technical" to 0,
+                        "creative" to 0,
+                        "business" to 0
+                    )
+                }
+            }
+        }
+        
+        agent("critic") {
+            agent {
+                name("Critic")
+                description("一个批评性审阅者")
+                
+                model = deepSeek {
+                    apiKey("your-deepseek-api-key")
+                    model(DeepSeekModel.DEEPSEEK_CHAT)
+                    temperature(0.7)
+                }
+                
+                memory = memory {
+                    storage(MemoryFactory.createInMemoryStorage())
+                    lastMessages(10)
+                }
+            }
+            
+            actor {
+                state {
+                    var reviewCount = 0
+                    var feedbackProvided = mutableMapOf<String, Int>()
+                }
+            }
+        }
+        
+        // 配置远程访问
+        remote {
+            name = "agent-network"
+        }
+    }
+    
+    // 创建独立的助手代理
+    val assistantPid = system.actorAgent {
+        agent {
+            name("Assistant")
+            description("一个有帮助的助手")
+            
+            model = deepSeek {
+                apiKey("your-deepseek-api-key")
+                model(DeepSeekModel.DEEPSEEK_CHAT)
+                temperature(0.7)
+            }
+            
+            tools {
+                tool("calculator") {
+                    description("执行基本算术运算")
+                    parameters {
+                        parameter("expression", "要计算的数学表达式", String::class)
+                    }
+                    execute { params ->
+                        val expression = params["expression"] as String
+                        // 简单的表达式计算器
+                        "结果: ${evaluateExpression(expression)}"
+                    }
+                }
+                
+                tool("getWeather") {
+                    description("获取位置的当前天气")
+                    parameters {
+                        parameter("location", "要获取天气的位置", String::class)
+                    }
+                    execute { params ->
+                        val location = params["location"] as String
+                        // 实现...
+                        "$location 的天气目前是晴朗，22°C。"
+                    }
+                }
+            }
+            
+            memory = memory {
+                storage(MemoryFactory.createInMemoryStorage())
+                lastMessages(20)
+                workingMemory(WorkingMemoryConfig(enabled = true))
+            }
+        }
+        
+        actor {
+            oneForOneStrategy {
+                maxRetries = 3
+                withinTimeRange = Duration.ofMinutes(1)
+            }
+            
+            state {
+                var userPreferences = mutableMapOf<String, String>()
+                var interactionCount = 0
+            }
+            
+            receive { message, context ->
+                when (message) {
+                    is String -> {
+                        // 更新状态
+                        context.state.interactionCount++
+                        
+                        // 生成响应
+                        val response = context.agent.generate(message)
+                        
+                        // 发送响应
+                        context.respond(response.text)
+                    }
+                    else -> context.respond("不支持的消息类型")
+                }
+            }
+        }
+        
+        remote {
+            name = "assistant"
+        }
+    }
+    
+    // 使用助手代理
+    println("向助手发送消息...")
+    val response = system.askMessage(assistantPid, "2 + 2 等于多少？")
+    println("助手响应: $response")
+    
+    // 使用代理网络
+    println("使用代理网络处理任务...")
+    val networkResponse = network.process("研究 AI 对医疗保健的影响并撰写全面报告")
+    println("网络响应: $networkResponse")
+    
+    // 保持系统运行
+    println("系统运行在 localhost:8080")
+    println("按 Enter 键退出")
+    readLine()
+    
+    system.shutdown()
+}
+
+// 辅助函数
+fun evaluateExpression(expression: String): Double {
+    // 实现...
+    return 4.0
+}
+```
+
+## 最佳实践 ✅
+
+1. **消息不可变性**：确保消息是不可变的，以避免并发问题
+2. **Actor 隔离**：保持 actor 隔离并避免共享状态
+3. **监督策略**：使用适当的监督策略进行错误处理
+4. **状态管理**：使用 actor 状态维护交互之间的上下文
+5. **资源管理**：正确管理 actor 生命周期和资源
+6. **错误处理**：为代理故障实现强大的错误处理
+7. **记忆集成**：集成记忆系统以获得持久上下文
+8. **工具集成**：集成工具以增强代理能力
+
+## 下一步 ✅
+
+现在您已经了解了 actor-代理集成，您可以：
+
+1. 了解[代理网络](./agent-networks.mdx)
+2. 探索[集群](./clustering.mdx)
+3. 实现[监督层次结构](./supervision.mdx)
+4. 设置[分布式工作流](../workflows/distributed-workflows.mdx)

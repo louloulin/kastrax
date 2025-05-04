@@ -1,0 +1,108 @@
+---
+title: "创建步骤并添加到工作流 | Kastrax 文档"
+description: "Kastrax 工作流中的步骤通过定义输入、输出和执行逻辑，提供了一种结构化的方式来管理操作。"
+---
+
+# 在工作流中定义步骤 ✅
+
+当您构建工作流时，通常会将操作分解为可以链接和重用的较小任务。步骤通过定义输入、输出和执行逻辑，提供了一种结构化的方式来管理这些任务。
+
+下面的代码展示了如何内联或单独定义这些步骤。
+
+## 内联步骤创建 ✅
+
+您可以使用 `.step()` 和 `.then()` 直接在工作流中创建步骤。此代码展示了如何按顺序定义、链接和执行两个步骤。
+
+```typescript showLineNumbers filename="src/kastrax/workflows/index.ts" copy
+import { Step, Workflow, Kastrax } from "@kastrax/core";
+import { z } from "zod";
+
+export const myWorkflow = new Workflow({
+  name: "my-workflow",
+  triggerSchema: z.object({
+    inputValue: z.number(),
+  }),
+});
+
+myWorkflow
+  .step(
+    new Step({
+      id: "stepOne",
+      outputSchema: z.object({
+        doubledValue: z.number(),
+      }),
+      execute: async ({ context }) => ({
+        doubledValue: context.triggerData.inputValue * 2,
+      }),
+    }),
+  )
+  .then(
+    new Step({
+      id: "stepTwo",
+      outputSchema: z.object({
+        incrementedValue: z.number(),
+      }),
+      execute: async ({ context }) => {
+        if (context.steps.stepOne.status !== "success") {
+          return { incrementedValue: 0 };
+        }
+
+        return { incrementedValue: context.steps.stepOne.output.doubledValue + 1 };
+      },
+    }),
+  ).commit();
+
+  // 向 Kastrax 注册工作流
+  export const kastrax = new Kastrax({
+    workflows: { myWorkflow },
+  });
+```
+
+## 单独创建步骤 ✅
+
+如果您更喜欢在单独的实体中管理步骤逻辑，可以在外部定义步骤，然后将它们添加到工作流中。此代码展示了如何独立定义步骤，然后将它们链接起来。
+
+```typescript showLineNumbers filename="src/kastrax/workflows/index.ts" copy
+import { Step, Workflow, Kastrax } from "@kastrax/core";
+import { z } from "zod";
+
+// 单独定义步骤
+const stepOne = new Step({
+  id: "stepOne",
+  outputSchema: z.object({
+    doubledValue: z.number(),
+  }),
+  execute: async ({ context }) => ({
+    doubledValue: context.triggerData.inputValue * 2,
+  }),
+});
+
+const stepTwo = new Step({
+  id: "stepTwo",
+  outputSchema: z.object({
+    incrementedValue: z.number(),
+  }),
+  execute: async ({ context }) => {
+    if (context.steps.stepOne.status !== "success") {
+      return { incrementedValue: 0 };
+    }
+    return { incrementedValue: context.steps.stepOne.output.doubledValue + 1 };
+  },
+});
+
+// 构建工作流
+const myWorkflow = new Workflow({
+  name: "my-workflow",
+  triggerSchema: z.object({
+    inputValue: z.number(),
+  }),
+});
+
+myWorkflow.step(stepOne).then(stepTwo);
+myWorkflow.commit();
+
+// 向 Kastrax 注册工作流
+export const kastrax = new Kastrax({
+  workflows: { myWorkflow },
+});
+```
