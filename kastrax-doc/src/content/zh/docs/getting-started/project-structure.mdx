@@ -1,0 +1,81 @@
+---
+title: "本地项目结构 | 入门指南 | Kastrax 文档"
+description: 关于在 Kastrax 中组织文件夹和文件的指南，包括最佳实践和推荐结构。
+---
+
+import { FileTree } from 'nextra/components';
+
+# 项目结构 ✅
+
+本页面提供了在 Kastrax 中组织文件夹和文件的指南。Kastrax 是一个模块化框架，您可以单独或一起使用任何模块。
+
+您可以将所有内容写在一个文件中（如我们在快速入门中所示），或者将每个代理、工具和工作流分离到它们自己的文件中。
+
+我们不强制特定的文件夹结构，但我们确实推荐一些最佳实践，CLI 将使用合理的结构搭建项目。
+
+## 使用 CLI ✅
+
+`kastrax init` 是一个交互式 CLI，允许您：
+
+- **为 Kastrax 文件选择目录**：指定您希望放置 Kastrax 文件的位置（默认为 `src/kastrax`）。
+- **选择要安装的组件**：选择您希望包含在项目中的组件：
+  - 代理
+  - 工具
+  - 工作流
+- **选择默认的 LLM 提供商**：从支持的提供商中选择，如 OpenAI、Anthropic、Groq、Google 或 Cerebras。
+- **包含示例代码**：决定是否包含示例代码以帮助您入门。
+- **安装 Kastrax 文档 MCP 服务器**：使您的 AI IDE 成为 Kastrax 专家
+
+### 示例项目结构
+
+假设您选择所有组件并包含示例代码，您的项目结构将如下所示：
+
+<FileTree>
+  <FileTree.Folder name="root" defaultOpen>
+    <FileTree.Folder name="src" defaultOpen>
+      <FileTree.Folder name="kastrax" defaultOpen>
+        <FileTree.Folder name="agents" defaultOpen>
+          <FileTree.File name="index.ts" />
+        </FileTree.Folder>
+        <FileTree.Folder name="tools" defaultOpen>
+          <FileTree.File name="index.ts" />
+        </FileTree.Folder>
+        <FileTree.Folder name="workflows" defaultOpen>
+          <FileTree.File name="index.ts" />
+        </FileTree.Folder>
+        <FileTree.File name="index.ts" />
+      </FileTree.Folder>
+    </FileTree.Folder>
+    <FileTree.File name=".env" />
+  </FileTree.Folder>
+</FileTree>
+{/* 
+```
+root/
+├── src/
+│   └── kastrax/
+│       ├── agents/
+│       │   └── index.ts
+│       ├── tools/
+│       │   └── index.ts
+│       ├── workflows/
+│       │   └── index.ts
+│       ├── index.ts
+├── .env
+``` */}
+
+### 顶级文件夹
+
+| 文件夹                 | 描述                          |
+| ---------------------- | ------------------------------------ |
+| `src/kastrax`           | 核心应用程序文件夹              |
+| `src/kastrax/agents`    | 代理配置和定义 |
+| `src/kastrax/tools`     | 自定义工具定义              |
+| `src/kastrax/workflows` | 工作流定义                 |
+
+### 顶级文件
+
+| 文件                  | 描述                        |
+| --------------------- | ---------------------------------- |
+| `src/kastrax/index.ts` | Kastrax 的主配置文件 |
+| `.env`                | 环境变量              |

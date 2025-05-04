@@ -1,0 +1,387 @@
+---
+title: "创建您的第一个代理 | 入门指南 | Kastrax 文档"
+description: "学习如何使用 Kastrax 创建您的第一个 AI 代理，包括基本配置、记忆和工具。"
+---
+
+# 创建您的第一个 Kastrax 代理 ✅
+
+本指南将引导您使用 Kastrax 框架创建您的第一个代理。我们将构建一个简单的对话代理，能够响应用户查询。
+
+## 基本代理结构 ✅
+
+在 Kastrax 中，代理使用 DSL（领域特定语言）创建，这使得定义它们的行为变得容易。以下是 Kastrax 代理的基本结构：
+
+```kotlin
+val myAgent = agent {
+    name("我的第一个代理")
+    description("一个简单的对话代理")
+    
+    model = deepSeek {
+        apiKey("your-api-key")
+        model(DeepSeekModel.DEEPSEEK_CHAT)
+        temperature(0.7)
+    }
+    
+    // 可选组件
+    memory(...)
+    tools(...)
+}
+```
+
+## 逐步指南 ✅
+
+让我们逐步创建一个简单的对话代理：
+
+### 1. 创建代理文件 ✅
+
+在您的项目中创建一个新的 Kotlin 文件，例如 `src/main/kotlin/com/example/agents/ConversationAgent.kt`：
+
+```kotlin
+package com.example.agents
+
+import ai.kastrax.core.agent.agent
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.runBlocking
+
+/**
+ * 一个能够响应用户查询的简单对话代理。
+ */
+class ConversationAgent {
+    companion object {
+        @JvmStatic
+        fun main(args: Array<String>) = runBlocking {
+            // 创建代理
+            val conversationAgent = createConversationAgent()
+            
+            // 测试代理
+            val response = conversationAgent.generate("你好！你能介绍一下自己吗？")
+            println("代理响应: ${response.text}")
+        }
+    }
+}
+
+/**
+ * 创建一个简单的对话代理。
+ */
+fun createConversationAgent() = agent {
+    name("对话代理")
+    description("一个友好的对话代理，可以与用户聊天")
+    
+    // 定义系统提示
+    systemPrompt("""
+        你是一个有帮助、友好的助手。你的目标是与用户进行有趣的对话。
+        
+        指导方针：
+        - 保持礼貌和尊重
+        - 提供简洁但信息丰富的回答
+        - 提出后续问题以保持对话进行
+        - 如果你不知道某事，承认它而不是编造信息
+    """.trimIndent())
+    
+    // 配置 LLM
+    model = deepSeek {
+        apiKey("your-deepseek-api-key") // 替换为您的实际 API 密钥
+        model(DeepSeekModel.DEEPSEEK_CHAT)
+        temperature(0.7)
+        maxTokens(1000)
+    }
+}
+```
+
+### 2. 运行代理 ✅
+
+您可以直接从 IDE 或使用 Gradle 运行代理：
+
+```bash
+gradle run -PmainClass=com.example.agents.ConversationAgent
+```
+
+您应该看到类似以下的输出：
+
+```
+代理响应: 你好！我是你的友好助手，我在这里与你聊天。
+很高兴认识你！我可以帮助回答问题，讨论各种话题，或者只是进行轻松的对话。
+今天有什么特别想聊的话题吗？
+```
+
+## 添加记忆 ✅
+
+让我们通过添加记忆来增强我们的代理，使其能够记住之前的交互：
+
+```kotlin
+import ai.kastrax.core.agent.agent
+import ai.kastrax.core.memory.memory
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.runBlocking
+
+fun createConversationAgentWithMemory() = agent {
+    name("带记忆的对话代理")
+    description("一个具有记忆能力的友好对话代理")
+    
+    systemPrompt("""
+        你是一个有帮助、友好的助手。你的目标是与用户进行有趣的对话。
+        
+        指导方针：
+        - 保持礼貌和尊重
+        - 提供简洁但信息丰富的回答
+        - 提出后续问题以保持对话进行
+        - 如果你不知道某事，承认它而不是编造信息
+        - 记住关于用户的重要细节
+    """.trimIndent())
+    
+    // 配置 LLM
+    model = deepSeek {
+        apiKey("your-deepseek-api-key")
+        model(DeepSeekModel.DEEPSEEK_CHAT)
+        temperature(0.7)
+        maxTokens(1000)
+    }
+    
+    // 添加记忆
+    memory = memory {
+        workingMemory(true)
+        conversationHistory(20) // 记住最后 20 条消息
+    }
+}
+```
+
+## 添加工具 ✅
+
+现在，让我们为我们的代理添加一个可以获取当前时间的简单工具：
+
+```kotlin
+import ai.kastrax.core.agent.agent
+import ai.kastrax.core.memory.memory
+import ai.kastrax.core.tools.tool
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.runBlocking
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
+
+fun createConversationAgentWithTools() = agent {
+    name("带工具的对话代理")
+    description("一个带有工具的友好对话代理")
+    
+    systemPrompt("""
+        你是一个有帮助、友好的助手。你的目标是与用户进行有趣的对话。
+        
+        指导方针：
+        - 保持礼貌和尊重
+        - 提供简洁但信息丰富的回答
+        - 提出后续问题以保持对话进行
+        - 如果你不知道某事，承认它而不是编造信息
+        - 在适当的时候使用你的工具
+    """.trimIndent())
+    
+    // 配置 LLM
+    model = deepSeek {
+        apiKey("your-deepseek-api-key")
+        model(DeepSeekModel.DEEPSEEK_CHAT)
+        temperature(0.7)
+        maxTokens(1000)
+    }
+    
+    // 添加工具
+    tools {
+        tool("getCurrentTime") {
+            description("获取当前时间")
+            parameters {}
+            execute {
+                val currentTime = LocalDateTime.now()
+                val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+                val formattedTime = currentTime.format(formatter)
+                "当前时间是 $formattedTime"
+            }
+        }
+    }
+}
+```
+
+## 使用对话测试代理 ✅
+
+让我们创建一个简单的函数来与我们的代理进行对话：
+
+```kotlin
+import ai.kastrax.core.agent.Agent
+import kotlinx.coroutines.runBlocking
+
+suspend fun conversationTest(agent: Agent) {
+    val conversation = listOf(
+        "你好！我的名字是小明。",
+        "你能帮我做什么？",
+        "现在几点了？",
+        "谢谢！你还记得我的名字吗？",
+        "再见！"
+    )
+    
+    for (message in conversation) {
+        println("\n用户: $message")
+        val response = agent.generate(message)
+        println("代理: ${response.text}")
+    }
+}
+
+fun main() = runBlocking {
+    val agent = createConversationAgentWithTools()
+    conversationTest(agent)
+}
+```
+
+## 完整示例 ✅
+
+以下是将所有内容整合在一起的完整示例：
+
+```kotlin
+package com.example.agents
+
+import ai.kastrax.core.agent.Agent
+import ai.kastrax.core.agent.agent
+import ai.kastrax.core.memory.memory
+import ai.kastrax.core.tools.tool
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.runBlocking
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
+
+/**
+ * 一个具有记忆和工具的完整对话代理示例。
+ */
+class CompleteAgentExample {
+    companion object {
+        @JvmStatic
+        fun main(args: Array<String>) = runBlocking {
+            // 创建代理
+            val agent = createCompleteAgent()
+            
+            // 使用对话测试
+            conversationTest(agent)
+        }
+        
+        /**
+         * 创建一个具有记忆和工具的完整代理。
+         */
+        fun createCompleteAgent() = agent {
+            name("完整代理")
+            description("一个具有记忆和工具的友好对话代理")
+            
+            systemPrompt("""
+                你是一个有帮助、友好的助手。你的目标是与用户进行有趣的对话。
+                
+                指导方针：
+                - 保持礼貌和尊重
+                - 提供简洁但信息丰富的回答
+                - 提出后续问题以保持对话进行
+                - 如果你不知道某事，承认它而不是编造信息
+                - 记住关于用户的重要细节
+                - 在适当的时候使用你的工具
+            """.trimIndent())
+            
+            // 配置 LLM
+            model = deepSeek {
+                apiKey("your-deepseek-api-key")
+                model(DeepSeekModel.DEEPSEEK_CHAT)
+                temperature(0.7)
+                maxTokens(1000)
+            }
+            
+            // 添加记忆
+            memory = memory {
+                workingMemory(true)
+                conversationHistory(20)
+            }
+            
+            // 添加工具
+            tools {
+                tool("getCurrentTime") {
+                    description("获取当前时间")
+                    parameters {}
+                    execute {
+                        val currentTime = LocalDateTime.now()
+                        val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+                        val formattedTime = currentTime.format(formatter)
+                        "当前时间是 $formattedTime"
+                    }
+                }
+            }
+        }
+        
+        /**
+         * 使用对话测试代理。
+         */
+        suspend fun conversationTest(agent: Agent) {
+            val conversation = listOf(
+                "你好！我的名字是小明。",
+                "你能帮我做什么？",
+                "现在几点了？",
+                "谢谢！你还记得我的名字吗？",
+                "再见！"
+            )
+            
+            for (message in conversation) {
+                println("\n用户: $message")
+                val response = agent.generate(message)
+                println("代理: ${response.text}")
+            }
+        }
+    }
+}
+```
+
+## 理解代码 ✅
+
+让我们分解我们代理的关键组件：
+
+### 代理配置 ✅
+
+```kotlin
+agent {
+    name("完整代理")
+    description("一个具有记忆和工具的友好对话代理")
+    
+    systemPrompt("...")
+    
+    model = deepSeek { ... }
+}
+```
+
+这定义了代理的基本属性，包括其名称、描述、系统提示和它使用的 LLM。
+
+### 记忆配置 ✅
+
+```kotlin
+memory = memory {
+    workingMemory(true)
+    conversationHistory(20)
+}
+```
+
+这配置了代理的记忆系统，启用工作记忆和容量为 20 条消息的对话历史。
+
+### 工具配置 ✅
+
+```kotlin
+tools {
+    tool("getCurrentTime") {
+        description("获取当前时间")
+        parameters {}
+        execute {
+            // 工具实现
+        }
+    }
+}
+```
+
+这为代理添加了一个可以获取当前时间的工具。该工具有一个名称、描述、参数（本例中没有）和一个执行函数。
+
+## 下一步 ✅
+
+现在您已经创建了您的第一个代理，您可以：
+
+1. 探索不同的[代理架构](../agents/architectures-kotlin.mdx)
+2. 了解[记忆系统](../memory/overview.mdx)
+3. 创建[自定义工具](../tools/custom-tools.mdx)
+4. 构建[代理工作流](../workflows/overview-kotlin.mdx)

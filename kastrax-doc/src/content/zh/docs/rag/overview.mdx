@@ -1,17 +1,22 @@
-# RAG 系统概述
+---
+title: RAG 系统概述 | Kastrax 文档
+description: Kastrax 中检索增强生成 (RAG) 的概述，详细说明其使用相关上下文增强 LLM 输出的能力。
+---
 
-Kastrax 检索增强生成（RAG）系统提供了一个全面的框架，用于构建结合大型语言模型和外部数据源的知识型应用程序。本指南解释了 RAG 系统架构以及如何有效地使用它。
+# RAG 系统概述 ✅
 
-## 什么是 RAG？
+Kastrax 检索增强生成 (RAG) 系统提供了一个全面的框架，用于构建结合大型语言模型和外部数据源的基于知识的应用程序。本指南解释了 RAG 系统架构以及如何有效地使用它。
 
-检索增强生成（RAG）是一种通过从外部知识源检索相关信息并将其纳入生成过程来增强语言模型输出的技术。这种方法有助于：
+## 什么是 RAG？ ✅
+
+检索增强生成 (RAG) 是一种通过从外部知识源检索相关信息并将其纳入生成过程来增强语言模型输出的技术。这种方法有助于：
 
 - 提供超出模型训练数据的最新信息
-- 将响应建立在可验证的事实来源上
+- 将响应基于事实、可验证的来源
 - 减少幻觉并提高准确性
 - 基于特定领域知识定制响应
 
-## RAG 系统架构
+## RAG 系统架构 ✅
 
 Kastrax RAG 系统由几个组件组成：
 
@@ -19,11 +24,11 @@ Kastrax RAG 系统由几个组件组成：
 2. **嵌入**：将文本转换为向量表示
 3. **向量存储**：高效存储和检索向量
 4. **检索**：基于查询查找相关信息
-5. **重排序**：通过额外排序提高检索质量
+5. **重排序**：通过额外的排序提高检索质量
 6. **上下文构建**：使用检索到的信息构建有效的提示
 7. **生成**：使用增强的上下文生成响应
 
-## 基本 RAG 流程
+## 基本 RAG 流程 ✅
 
 以下是在 Kastrax 中创建 RAG 流程的简单示例：
 
@@ -81,8 +86,8 @@ fun createRagPipeline() = runBlocking {
     
     // 7. 创建 RAG 代理
     val ragAgent = agent {
-        name("RAGAgent")
-        description("具有 RAG 功能的代理")
+        name("RAG代理")
+        description("一个具有 RAG 能力的代理")
         
         // 配置 LLM
         model = deepSeek {
@@ -100,15 +105,15 @@ fun createRagPipeline() = runBlocking {
     }
     
     // 使用 RAG 代理
-    val query = "Kastrax 的主要特性是什么？"
+    val query = "Kastrax 的主要特点是什么？"
     val response = ragAgent.generate(query)
     println(response.text)
 }
 ```
 
-## 文档处理
+## 文档处理 ✅
 
-### 加载文档
+### 加载文档 ✅
 
 Kastrax 支持从各种来源加载文档：
 
@@ -129,7 +134,7 @@ val dbLoader = DocumentLoader.fromDatabase(
 )
 ```
 
-### 文档格式
+### 文档格式 ✅
 
 Kastrax 支持多种文档格式：
 
@@ -143,9 +148,9 @@ Kastrax 支持多种文档格式：
 - XML
 - 数据库
 
-### 分块文档
+### 分块文档 ✅
 
-文档可以分割成块以便更好地处理：
+文档可以被分割成块以便更好地处理：
 
 ```kotlin
 // 递归文本分割器（按段落、句子等分割）
@@ -175,34 +180,9 @@ val semanticSplitter = TextSplitter.semantic(
 )
 ```
 
-### 文档转换
+## 嵌入 ✅
 
-文档可以在嵌入前进行转换：
-
-```kotlin
-// 清理 HTML
-val htmlCleaner = DocumentTransformer.htmlCleaner()
-
-// 删除多余的空白
-val whitespaceNormalizer = DocumentTransformer.whitespaceNormalizer()
-
-// 提取特定信息
-val keywordExtractor = DocumentTransformer.keywordExtractor()
-
-// 链接转换器
-val pipeline = DocumentTransformer.pipeline(
-    htmlCleaner,
-    whitespaceNormalizer,
-    keywordExtractor
-)
-
-// 应用转换
-val transformedDocuments = pipeline.transform(documents)
-```
-
-## 嵌入
-
-### 嵌入模型
+### 嵌入模型 ✅
 
 Kastrax 支持各种嵌入模型：
 
@@ -226,21 +206,9 @@ val customModel = EmbeddingModel.custom(
 )
 ```
 
-### 批量嵌入
+## 向量存储 ✅
 
-为了提高效率，文档可以批量嵌入：
-
-```kotlin
-// 批量嵌入文档
-val embeddings = embeddingModel.embedBatch(
-    texts = chunks.map { it.pageContent },
-    batchSize = 32
-)
-```
-
-## 向量存储
-
-### 向量存储
+### 向量存储 ✅
 
 Kastrax 支持多种向量存储：
 
@@ -268,54 +236,9 @@ val pineconeStore = VectorStore.pinecone(
 )
 ```
 
-### 添加文档
+## 检索 ✅
 
-文档可以添加到向量存储中：
-
-```kotlin
-// 添加带有元数据的文档
-vectorStore.addDocuments(
-    documents = chunks,
-    embeddingModel = embeddingModel,
-    metadata = mapOf(
-        "source" to "knowledge_base.pdf",
-        "author" to "Kastrax Team",
-        "date" to "2023-09-15"
-    )
-)
-```
-
-### 相似度搜索
-
-可以在向量存储中搜索相似文档：
-
-```kotlin
-// 按文本搜索
-val results = vectorStore.similaritySearch(
-    query = "什么是 RAG？",
-    embeddingModel = embeddingModel,
-    k = 5
-)
-
-// 按向量搜索
-val queryVector = embeddingModel.embed("什么是 RAG？")
-val vectorResults = vectorStore.similaritySearchByVector(
-    embedding = queryVector,
-    k = 5
-)
-
-// 带元数据过滤的搜索
-val filteredResults = vectorStore.similaritySearch(
-    query = "什么是 RAG？",
-    embeddingModel = embeddingModel,
-    k = 5,
-    filter = mapOf("source" to "knowledge_base.pdf")
-)
-```
-
-## 检索
-
-### 检索器
+### 检索器 ✅
 
 检索器基于查询查找相关信息：
 
@@ -340,33 +263,11 @@ val hybridRetriever = Retriever.hybrid(
     vectorWeight = 0.7,
     keywordWeight = 0.3
 )
-
-// 多查询检索器（从原始查询生成多个查询）
-val multiQueryRetriever = Retriever.multiQuery(
-    baseRetriever = vectorRetriever,
-    llm = deepSeekLlm,
-    numQueries = 3
-)
 ```
 
-### 带元数据过滤的检索
+## 重排序 ✅
 
-检索器可以基于元数据过滤结果：
-
-```kotlin
-// 带元数据过滤的检索
-val results = retriever.retrieve(
-    query = "什么是 RAG？",
-    filter = mapOf(
-        "source" to "knowledge_base.pdf",
-        "date" to mapOf("$gte" to "2023-01-01")
-    )
-)
-```
-
-## 重排序
-
-### 重排序器
+### 重排序器 ✅
 
 重排序器提高检索质量：
 
@@ -383,75 +284,9 @@ val llmReranker = Reranker.llm(
     prompt = "根据与查询的相关性对这些文档进行排名：{{query}}\n\n文档：\n{{documents}}",
     topK = 3
 )
-
-// 应用重排序
-val retrievedDocuments = retriever.retrieve("什么是 RAG？")
-val rerankedDocuments = crossEncoderReranker.rerank(
-    query = "什么是 RAG？",
-    documents = retrievedDocuments
-)
 ```
 
-## 上下文构建
-
-### 上下文模板
-
-上下文模板定义了检索信息的格式化方式：
-
-```kotlin
-// 简单模板
-val simpleTemplate = ContextBuilder.create {
-    template("""
-        根据以下上下文回答问题：
-        
-        上下文：
-        {{context}}
-        
-        问题：{{query}}
-        
-        回答：
-    """.trimIndent())
-}
-
-// 带文档来源的高级模板
-val advancedTemplate = ContextBuilder.create {
-    template("""
-        根据以下上下文回答问题：
-        
-        上下文：
-        {{#each documents}}
-        文档 {{@index}}（来源：{{metadata.source}}）：
-        {{pageContent}}
-        
-        {{/each}}
-        
-        问题：{{query}}
-        
-        仅使用上下文中提供的信息回答问题。
-        如果根据上下文你不知道答案，请说"我没有足够的信息"。
-        始终引用源文档。
-    """.trimIndent())
-}
-```
-
-### 上下文压缩
-
-上下文可以压缩以适应令牌限制：
-
-```kotlin
-// 创建带压缩的上下文构建器
-val compressedContextBuilder = ContextBuilder.create {
-    template("...")
-    compression {
-        enabled(true)
-        method(CompressionMethod.MAP_REDUCE)
-        llm(deepSeekLlm)
-        maxTokens(3000)
-    }
-}
-```
-
-## 完整 RAG 示例
+## 完整 RAG 示例 ✅
 
 以下是一个复杂 RAG 系统的完整示例：
 
@@ -516,8 +351,8 @@ fun createAdvancedRagSystem() = runBlocking {
     // 6. 创建带压缩的上下文构建器
     val contextBuilder = ContextBuilder.create {
         template("""
-            你是 Kastrax 的助手，Kastrax 是一个强大的 AI Agent 框架。
-            根据 Kastrax 文档中的以下上下文回答问题。
+            你是 Kastrax（一个强大的 AI 代理框架）的有帮助的助手。
+            根据以下来自 Kastrax 文档的上下文回答问题。
             
             上下文：
             {{#each documents}}
@@ -529,8 +364,8 @@ fun createAdvancedRagSystem() = runBlocking {
             问题：{{query}}
             
             仅使用上下文中提供的信息回答问题。
-            如果你没有足够的信息，请说"我没有足够的信息"。
-            提供信息时始终引用源文档。
+            如果你没有足够的信息，请说"我没有足够的信息。"
+            提供信息时，始终引用源文档。
         """.trimIndent())
         
         compression {
@@ -542,8 +377,8 @@ fun createAdvancedRagSystem() = runBlocking {
     
     // 7. 创建 RAG 代理
     val ragAgent = agent {
-        name("KastraxDocumentationAssistant")
-        description("帮助 Kastrax 文档的助手")
+        name("Kastrax文档助手")
+        description("一个帮助处理 Kastrax 文档的助手")
         
         // 配置 LLM
         model = deepSeek {
@@ -557,81 +392,19 @@ fun createAdvancedRagSystem() = runBlocking {
             retriever(enhancedRetriever)
             contextBuilder(contextBuilder)
             maxTokens(3000)
-            
-            // 添加指标收集
-            metrics {
-                enabled(true)
-                retrievalMetrics(true)
-                responseMetrics(true)
-            }
-        }
-        
-        // 添加内存以记住对话上下文
-        memory = memory {
-            workingMemory(true)
-            conversationHistory(10)
         }
     }
     
     // 8. 使用 RAG 代理
-    val query = "如何在 Kastrax 中实现自定义工具？"
+    val query = "我如何在 Kastrax 中实现自定义工具？"
     val response = ragAgent.generate(query)
     println(response.text)
-    
-    // 9. 获取指标
-    val metrics = ragAgent.rag.metrics
-    println("检索延迟：${metrics.retrievalLatency}ms")
-    println("检索到的文档数量：${metrics.documentsRetrieved}")
-    println("响应延迟：${metrics.responseLatency}ms")
 }
 ```
 
-## RAG 评估
+## 下一步 ✅
 
-Kastrax 提供了评估 RAG 系统的工具：
-
-```kotlin
-import ai.kastrax.rag.metrics.RagEvaluator
-import ai.kastrax.rag.metrics.rag.*
-
-// 创建评估器
-val evaluator = RagEvaluator.create {
-    // 配置指标
-    metrics {
-        retrievalPrecision(true)
-        retrievalRecall(true)
-        answerRelevance(true)
-        answerCorrectness(true)
-        answerCompleteness(true)
-        citationAccuracy(true)
-    }
-    
-    // 配置评估 LLM
-    evaluationLlm = deepSeek {
-        apiKey("your-deepseek-api-key")
-        model(DeepSeekModel.DEEPSEEK_CHAT)
-        temperature(0.1) // 低温度以获得一致的评估
-    }
-    
-    // 配置真实情况
-    groundTruth = loadGroundTruth("evaluation_data.json")
-}
-
-// 运行评估
-val evaluationResults = evaluator.evaluate(ragAgent, evaluationQueries)
-
-// 打印结果
-println("检索精度：${evaluationResults.retrievalPrecision}")
-println("检索召回率：${evaluationResults.retrievalRecall}")
-println("回答相关性：${evaluationResults.answerRelevance}")
-println("回答正确性：${evaluationResults.answerCorrectness}")
-println("回答完整性：${evaluationResults.answerCompleteness}")
-println("引用准确性：${evaluationResults.citationAccuracy}")
-```
-
-## 下一步
-
-现在您了解了 RAG 系统，您可以：
+现在您已经了解了 RAG 系统，您可以：
 
 1. 了解[文档处理](./document-processing.mdx)
 2. 探索[向量存储](./vector-stores.mdx)

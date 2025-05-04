@@ -1,0 +1,431 @@
+---
+title: 代理版本控制和状态管理 | Kastrax 文档
+description: Kastrax 中管理代理版本和状态的详细指南，包括版本创建、激活、回滚和状态持久化。
+---
+
+# 代理版本控制和状态管理 ✅
+
+Kastrax 提供了强大的代理版本和状态管理功能，使您能够跟踪更改、回滚到以前的版本，并在会话之间维护代理状态。本指南解释了如何有效地使用这些功能。
+
+## 代理版本控制 ✅
+
+代理版本控制允许您创建、管理和切换代理指令和配置的不同版本。这对以下情况很有用：
+
+- 跟踪代理行为随时间的变化
+- 对不同的代理配置进行 A/B 测试
+- 如果出现问题，回滚到以前的版本
+- 维护代理开发的历史记录
+
+### 创建代理版本 ✅
+
+您可以使用 `createVersion` 方法创建代理的版本：
+
+```kotlin
+import ai.kastrax.core.agent.agent
+import ai.kastrax.core.agent.version.AgentVersionManager
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    // 创建带有版本管理的代理
+    val myAgent = agent {
+        name("版本化代理")
+        description("一个带有版本管理的代理")
+        
+        model = deepSeek {
+            apiKey("your-deepseek-api-key")
+            model(DeepSeekModel.DEEPSEEK_CHAT)
+            temperature(0.7)
+        }
+        
+        // 启用版本管理
+        versionManager = AgentVersionManager.create()
+    }
+    
+    // 创建初始版本
+    val initialVersion = myAgent.createVersion(
+        instructions = "你是一个提供简洁回答的有帮助的助手。",
+        name = "v1.0",
+        description = "具有基本功能的初始版本",
+        activateImmediately = true
+    )
+    
+    println("创建了初始版本: ${initialVersion?.id}")
+    
+    // 创建改进版本
+    val improvedVersion = myAgent.createVersion(
+        instructions = """
+            你是一个提供简洁、准确回答的有帮助的助手。
+            提供信息时，始终引用你的来源。
+            如果你不确定某事，请承认不确定性。
+        """.trimIndent(),
+        name = "v1.1",
+        description = "带有来源引用的改进版本",
+        metadata = mapOf("author" to "AI 团队", "approved" to "true"),
+        activateImmediately = false
+    )
+    
+    println("创建了改进版本: ${improvedVersion?.id}")
+}
+```
+
+### 管理版本 ✅
+
+您可以列出、检索和管理代理版本：
+
+```kotlin
+// 获取所有版本
+val versions = myAgent.getVersions()
+println("可用版本:")
+versions?.forEach { version ->
+    println("- ${version.name}: ${version.description}")
+}
+
+// 获取活动版本
+val activeVersion = myAgent.getActiveVersion()
+println("活动版本: ${activeVersion?.name}")
+
+// 激活特定版本
+val versionToActivate = versions?.find { it.name == "v1.1" }
+if (versionToActivate != null) {
+    val activated = myAgent.activateVersion(versionToActivate.id)
+    println("激活的版本: ${activated?.name}")
+}
+```
+
+### 回滚 ✅
+
+如果需要，您可以回滚到以前的版本：
+
+```kotlin
+// 回滚到以前的版本
+val versionToRollback = versions?.find { it.name == "v1.0" }
+if (versionToRollback != null) {
+    val rolledBack = myAgent.rollbackToVersion(versionToRollback.id)
+    println("回滚到版本: ${rolledBack?.name}")
+}
+```
+
+### 版本比较 ✅
+
+您可以比较不同的版本以了解变化：
+
+```kotlin
+import ai.kastrax.core.agent.version.compareVersions
+
+// 比较两个版本
+val v1 = versions?.find { it.name == "v1.0" }
+val v2 = versions?.find { it.name == "v1.1" }
+
+if (v1 != null && v2 != null) {
+    val comparison = compareVersions(v1, v2)
+    println("从 ${v1.name} 到 ${v2.name} 的变化:")
+    println("- 指令: ${comparison.instructionsDiff}")
+    println("- 元数据变化: ${comparison.metadataChanges}")
+}
+```
+
+## 代理状态管理 ✅
+
+代理状态管理允许您在交互之间维护和控制代理的状态。这对以下情况很有用：
+
+- 在会话之间维护上下文
+- 跟踪代理在长时间运行任务上的进度
+- 实现有状态行为
+- 持久化重要信息
+
+### 代理状态基础 ✅
+
+代理状态包括：
+
+- **状态**：代理的当前操作状态
+- **数据**：与代理关联的自定义数据
+- **上下文**：代理操作的上下文信息
+- **元数据**：关于状态的附加信息
+
+### 管理代理状态 ✅
+
+您可以获取和更新代理的状态：
+
+```kotlin
+import ai.kastrax.core.agent.agent
+import ai.kastrax.core.agent.state.AgentStatus
+import ai.kastrax.core.agent.state.StateManager
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.runBlocking
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+
+fun main() = runBlocking {
+    // 创建带有状态管理的代理
+    val myAgent = agent {
+        name("有状态代理")
+        description("一个带有状态管理的代理")
+        
+        model = deepSeek {
+            apiKey("your-deepseek-api-key")
+            model(DeepSeekModel.DEEPSEEK_CHAT)
+            temperature(0.7)
+        }
+        
+        // 启用状态管理
+        stateManager = StateManager.create()
+    }
+    
+    // 获取当前状态
+    val currentState = myAgent.getState()
+    println("当前状态: ${currentState?.status}")
+    
+    // 更新代理的状态
+    val updatedState = myAgent.updateState(
+        AgentStatus.BUSY,
+        data = JsonObject(mapOf(
+            "currentTask" to JsonPrimitive("研究量子计算"),
+            "progress" to JsonPrimitive(25)
+        )),
+        context = JsonObject(mapOf(
+            "userQuery" to JsonPrimitive("解释量子计算")
+        )),
+        metadata = mapOf(
+            "priority" to "high",
+            "estimatedCompletionTime" to "5 minutes"
+        )
+    )
+    
+    println("更新后的状态: ${updatedState?.status}")
+    println("状态数据: ${updatedState?.data}")
+}
+```
+
+### 持久状态 ✅
+
+您可以配置状态管理器以在会话之间持久化状态：
+
+```kotlin
+import ai.kastrax.core.agent.agent
+import ai.kastrax.core.agent.state.StateManager
+import ai.kastrax.core.agent.state.storage.FileStateStorage
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    // 创建持久状态管理器
+    val stateManager = StateManager.create(
+        storage = FileStateStorage("agent_states")
+    )
+    
+    // 创建带有持久状态管理的代理
+    val myAgent = agent {
+        name("持久状态代理")
+        description("一个带有持久状态的代理")
+        
+        model = deepSeek {
+            apiKey("your-deepseek-api-key")
+            model(DeepSeekModel.DEEPSEEK_CHAT)
+            temperature(0.7)
+        }
+        
+        // 使用持久状态管理器
+        stateManager = stateManager
+    }
+    
+    // 代理状态现在将在应用程序重启之间持久化
+}
+```
+
+### 状态转换 ✅
+
+您可以定义和强制执行状态转换：
+
+```kotlin
+import ai.kastrax.core.agent.agent
+import ai.kastrax.core.agent.state.AgentStatus
+import ai.kastrax.core.agent.state.StateManager
+import ai.kastrax.core.agent.state.StateTransition
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    // 定义状态转换
+    val transitions = listOf(
+        StateTransition(from = AgentStatus.IDLE, to = AgentStatus.BUSY),
+        StateTransition(from = AgentStatus.BUSY, to = AgentStatus.IDLE),
+        StateTransition(from = AgentStatus.BUSY, to = AgentStatus.ERROR),
+        StateTransition(from = AgentStatus.ERROR, to = AgentStatus.IDLE)
+    )
+    
+    // 创建带有定义转换的状态管理器
+    val stateManager = StateManager.create(
+        allowedTransitions = transitions
+    )
+    
+    // 创建带有状态管理器的代理
+    val myAgent = agent {
+        name("转换代理")
+        description("一个带有状态转换的代理")
+        
+        model = deepSeek {
+            apiKey("your-deepseek-api-key")
+            model(DeepSeekModel.DEEPSEEK_CHAT)
+            temperature(0.7)
+        }
+        
+        // 使用带有转换的状态管理器
+        stateManager = stateManager
+    }
+    
+    // 有效转换
+    myAgent.updateState(AgentStatus.BUSY)
+    
+    // 无效转换会抛出异常
+    try {
+        myAgent.updateState(AgentStatus.PAUSED)
+    } catch (e: IllegalStateException) {
+        println("无效的状态转换: ${e.message}")
+    }
+}
+```
+
+## 结合版本控制和状态 ✅
+
+您可以结合版本控制和状态管理进行全面的代理管理：
+
+```kotlin
+import ai.kastrax.core.agent.agent
+import ai.kastrax.core.agent.state.StateManager
+import ai.kastrax.core.agent.version.AgentVersionManager
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    // 创建同时具有版本和状态管理的代理
+    val myAgent = agent {
+        name("管理代理")
+        description("一个带有版本和状态管理的代理")
+        
+        model = deepSeek {
+            apiKey("your-deepseek-api-key")
+            model(DeepSeekModel.DEEPSEEK_CHAT)
+            temperature(0.7)
+        }
+        
+        // 启用版本管理
+        versionManager = AgentVersionManager.create()
+        
+        // 启用状态管理
+        stateManager = StateManager.create()
+    }
+    
+    // 创建版本
+    val version = myAgent.createVersion(
+        instructions = "你是一个有帮助的助手。",
+        name = "v1.0",
+        activateImmediately = true
+    )
+    
+    // 更新状态
+    myAgent.updateState(AgentStatus.IDLE)
+    
+    // 使用代理
+    val response = myAgent.generate("你好，你能帮我什么忙？")
+    println(response.text)
+    
+    // 创建新版本并激活它
+    val newVersion = myAgent.createVersion(
+        instructions = "你是一个在编程方面有专长的有帮助的助手。",
+        name = "v1.1",
+        activateImmediately = true
+    )
+    
+    // 使用更新后的代理
+    val newResponse = myAgent.generate("你能帮我解决 Python 问题吗？")
+    println(newResponse.text)
+}
+```
+
+## 监控和诊断 ✅
+
+您可以监控代理版本和状态进行诊断：
+
+```kotlin
+import ai.kastrax.core.agent.agent
+import ai.kastrax.core.agent.monitoring.AgentMonitor
+import ai.kastrax.core.agent.state.StateManager
+import ai.kastrax.core.agent.version.AgentVersionManager
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    // 创建监控器
+    val monitor = AgentMonitor.create()
+    
+    // 创建带有监控的代理
+    val myAgent = agent {
+        name("被监控的代理")
+        description("一个带有监控的代理")
+        
+        model = deepSeek {
+            apiKey("your-deepseek-api-key")
+            model(DeepSeekModel.DEEPSEEK_CHAT)
+            temperature(0.7)
+        }
+        
+        // 启用版本管理
+        versionManager = AgentVersionManager.create()
+        
+        // 启用状态管理
+        stateManager = StateManager.create()
+        
+        // 启用监控
+        monitor = monitor
+    }
+    
+    // 创建版本并更新状态
+    myAgent.createVersion(
+        instructions = "你是一个有帮助的助手。",
+        name = "v1.0",
+        activateImmediately = true
+    )
+    
+    myAgent.updateState(AgentStatus.IDLE)
+    
+    // 获取监控数据
+    val versionHistory = monitor.getVersionHistory(myAgent.name)
+    println("版本历史: $versionHistory")
+    
+    val stateHistory = monitor.getStateHistory(myAgent.name)
+    println("状态历史: $stateHistory")
+    
+    // 获取性能指标
+    val metrics = monitor.getPerformanceMetrics(myAgent.name)
+    println("性能指标: $metrics")
+}
+```
+
+## 最佳实践 ✅
+
+使用代理版本控制和状态管理时，请遵循以下最佳实践：
+
+1. **版本命名**：使用一致的版本命名方案（例如，语义版本控制）
+2. **版本文档**：为每个版本包含详细的描述和元数据
+3. **状态验证**：验证状态数据以确保一致性
+4. **错误处理**：为状态转换和版本激活实现适当的错误处理
+5. **监控**：监控版本和状态变化，用于调试和分析
+6. **持久化**：为生产环境使用持久存储
+7. **测试**：彻底测试不同的版本和状态转换
+
+## 结论 ✅
+
+代理版本控制和状态管理为在 Kastrax 中构建复杂、可维护的 AI 代理系统提供了强大的功能。通过跟踪版本和管理状态，您可以创建随时间演变的代理，同时保持可靠性和一致性。
+
+## 下一步 ✅
+
+- 了解[代理架构](./architectures-kotlin.mdx)
+- 探索[记忆集成](../memory/overview.mdx)
+- 理解[代理监控](./monitoring-kotlin.mdx)

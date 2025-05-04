@@ -1,0 +1,141 @@
+---
+title: "介绍 | Kastrax 文档"
+description: "Kastrax 是一个 Kotlin 代理框架。它通过代理、actor、记忆、工具和 RAG 等强大的原语，帮助您快速构建 AI 应用程序和功能。"
+---
+
+# 关于 Kastrax ✅
+
+Kastrax 是一个开源的 Kotlin 代理框架，旨在提供构建复杂 AI 应用程序和功能所需的原语。
+
+## 主要特点 ✅
+
+Kastrax 为构建 AI 代理系统提供了一套全面的功能：
+
+- **多种代理架构**：从自适应、目标导向、层次化、反思性和创造性代理架构中选择
+- **Actor 模型集成**：使用 actor 模型构建分布式、并发和弹性代理系统
+- **高级记忆系统**：管理工作记忆、对话历史和语义回忆
+- **灵活的工具系统**：创建和使用工具扩展代理能力
+- **RAG 系统**：为基于知识的应用实现检索增强生成
+- **工作流引擎**：创建复杂的多步骤代理工作流
+- **多种 LLM 集成**：支持 DeepSeek、OpenAI、Anthropic 等
+
+## 入门 ✅
+
+您可以使用 Kastrax 构建具有记忆能力并可执行函数的 [AI 代理](/docs/agents/overview.mdx)，使用 actor 模型创建[分布式代理系统](/docs/actor/overview.mdx)，并使用 RAG 实现[基于知识的应用程序](/docs/rag/overview.mdx)。
+
+以下是使用 Kastrax 创建代理的简单示例：
+
+```kotlin
+import ai.kastrax.core.agent.agent
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    // 创建一个简单的代理
+    val myAgent = agent {
+        name("我的第一个代理")
+        description("一个能够回答问题的有帮助的助手")
+        
+        // 配置 LLM
+        model = deepSeek {
+            apiKey("your-deepseek-api-key")
+            model(DeepSeekModel.DEEPSEEK_CHAT)
+            temperature(0.7)
+        }
+    }
+    
+    // 使用代理
+    val response = myAgent.generate("什么是人工智能？")
+    println(response.text)
+}
+```
+
+## 核心组件 ✅
+
+Kastrax 围绕几个核心组件构建：
+
+### 代理系统 ✅
+
+代理系统提供了一个灵活的框架，用于创建具有不同架构的 AI 代理：
+
+```kotlin
+// 创建自适应代理
+val adaptiveAgent = adaptiveAgent {
+    name("自适应助手")
+    // 配置...
+}
+
+// 创建目标导向代理
+val goalAgent = goalOrientedAgent {
+    name("项目经理")
+    // 配置...
+}
+```
+
+### Actor 模型 ✅
+
+Actor 模型支持分布式、并发的代理系统：
+
+```kotlin
+// 创建 actor 系统
+val system = actor.proto.ActorSystem.create()
+
+// 创建 actor
+val greeter = system.spawn(Props.create(GreetingActor::class.java), "greeter")
+
+// 向 actor 发送消息
+greeter.tell(Greeting("世界"))
+```
+
+### 记忆系统 ✅
+
+记忆系统帮助代理记住过去的交互和重要信息：
+
+```kotlin
+// 配置记忆
+memory = memory {
+    workingMemory(true)
+    conversationHistory(10)
+    semanticMemory(true)
+}
+```
+
+### 工具系统 ✅
+
+工具系统允许代理执行操作：
+
+```kotlin
+// 向代理添加工具
+tools {
+    tool("getCurrentTime") {
+        description("获取当前时间")
+        parameters {}
+        execute {
+            "当前时间是 ${java.time.LocalTime.now()}"
+        }
+    }
+}
+```
+
+### RAG 系统 ✅
+
+RAG 系统支持基于知识的应用：
+
+```kotlin
+// 配置 RAG
+rag {
+    retriever(retriever)
+    contextBuilder(contextBuilder)
+    maxTokens(3000)
+}
+```
+
+## 下一步 ✅
+
+准备深入了解？以下是接下来的步骤：
+
+1. [安装指南](/docs/getting-started/installation.mdx)：在您的项目中设置 Kastrax
+2. [第一个代理教程](/docs/getting-started/first-agent.mdx)：创建您的第一个 Kastrax 代理
+3. [代理架构](/docs/agents/architectures.mdx)：了解不同的代理类型
+4. [Actor 模型](/docs/actor/overview.mdx)：理解分布式 actor 系统
