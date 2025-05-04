@@ -1,0 +1,164 @@
+---
+title: 文档分块和嵌入 | RAG | Kastrax 文档
+description: Kastrax 中文档分块和嵌入的指南，用于高效处理和检索。
+---
+
+## 文档分块和嵌入 ✅
+
+在处理之前，从您的内容创建一个 MDocument 实例。您可以从各种格式初始化它：
+
+```ts showLineNumbers copy
+const docFromText = MDocument.fromText("您的纯文本内容...");
+const docFromHTML = MDocument.fromHTML("<html>您的 HTML 内容...</html>");
+const docFromMarkdown = MDocument.fromMarkdown("# 您的 Markdown 内容...");
+const docFromJSON = MDocument.fromJSON(`{ "key": "value" }`);
+```
+
+## 步骤 1：文档处理 ✅
+
+使用 `chunk` 将文档分割成可管理的片段。Kastrax 支持多种针对不同文档类型优化的分块策略：
+
+- `recursive`：基于内容结构的智能分割
+- `character`：简单的基于字符的分割
+- `token`：基于令牌的分割
+- `markdown`：Markdown 感知分割
+- `html`：HTML 结构感知分割
+- `json`：JSON 结构感知分割
+- `latex`：LaTeX 结构感知分割
+
+以下是如何使用 `recursive` 策略的示例：
+
+```ts showLineNumbers copy
+const chunks = await doc.chunk({
+  strategy: "recursive",
+  size: 512,
+  overlap: 50,
+  separator: "\n",
+  extract: {
+    metadata: true, // 可选择提取元数据
+  },
+});
+```
+
+**注意：** 元数据提取可能使用 LLM 调用，因此请确保设置了您的 API 密钥。
+
+我们在[分块文档](/reference/rag/chunk.mdx)中深入探讨了分块策略。
+
+## 步骤 2：生成嵌入 ✅
+
+使用您首选的提供商将分块转换为嵌入。Kastrax 支持多种嵌入提供商，包括 OpenAI 和 Cohere：
+
+### 使用 OpenAI
+
+```ts showLineNumbers copy
+import { openai } from "@ai-sdk/openai";
+import { embedMany } from "ai";
+
+const { embeddings } = await embedMany({
+  model: openai.embedding('text-embedding-3-small'),
+  values: chunks.map(chunk => chunk.text),
+});
+```
+
+### 使用 Cohere
+
+```ts showLineNumbers copy
+import { cohere } from '@ai-sdk/cohere';
+import { embedMany } from 'ai';
+
+const { embeddings } = await embedMany({
+  model: cohere.embedding('embed-english-v3.0'),
+  values: chunks.map(chunk => chunk.text),
+});
+```
+
+嵌入函数返回向量，即表示文本语义含义的数字数组，可用于在向量数据库中进行相似性搜索。
+
+### 配置嵌入维度
+
+嵌入模型通常输出具有固定维度数的向量（例如，OpenAI 的 `text-embedding-3-small` 为 1536）。
+一些模型支持降低这种维度，这可以帮助：
+- 减少向量数据库中的存储需求
+- 降低相似性搜索的计算成本
+
+以下是一些支持的模型：
+
+OpenAI (text-embedding-3 模型)：
+  ```ts
+  const { embeddings } = await embedMany({
+    model: openai.embedding('text-embedding-3-small', {
+      dimensions: 256  // 仅在 text-embedding-3 及更高版本中支持
+    }),
+    values: chunks.map(chunk => chunk.text),
+  });
+  ```
+
+Google (text-embedding-004)：
+  ```ts
+  const { embeddings } = await embedMany({
+    model: google.textEmbeddingModel('text-embedding-004', {
+      outputDimensionality: 256  // 从末尾截断多余的值
+    }),
+    values: chunks.map(chunk => chunk.text),
+  });
+  ```
+
+### 向量数据库兼容性
+
+存储嵌入时，向量数据库索引必须配置为匹配嵌入模型的输出大小。如果维度不匹配，可能会出现错误或数据损坏。
+
+## 示例：完整流程 ✅
+
+以下是一个示例，展示了使用两种提供商进行文档处理和嵌入生成：
+
+```ts showLineNumbers copy
+import { embedMany } from "ai";
+import { openai } from "@ai-sdk/openai";
+import { cohere } from "@ai-sdk/cohere";
+
+import { MDocument } from "@kastrax/rag";
+
+// 初始化文档
+const doc = MDocument.fromText(`
+  气候变化对全球农业构成重大挑战。
+  气温上升和降水模式变化影响作物产量。
+`);
+
+// 创建分块
+const chunks = await doc.chunk({
+  strategy: "recursive",
+  size: 256,
+  overlap: 50,
+});
+
+// 使用 OpenAI 生成嵌入
+const { embeddings: openAIEmbeddings } = await embedMany({
+  model: openai.embedding('text-embedding-3-small'),
+  values: chunks.map(chunk => chunk.text),
+});
+
+// 或者
+
+// 使用 Cohere 生成嵌入
+const { embeddings: cohereEmbeddings } = await embedMany({
+  model: cohere.embedding('embed-english-v3.0'),
+  values: chunks.map(chunk => chunk.text),
+});
+
+// 在向量数据库中存储嵌入
+await vectorStore.upsert({
+  indexName: "embeddings",
+  vectors: embeddings,
+});
+```
+
+##
+有关不同分块策略和嵌入配置的更多示例，请参见：
+
+- [调整分块大小](/reference/rag/chunk.mdx#adjust-chunk-size)
+- [调整分块分隔符](/reference/rag/chunk.mdx#adjust-chunk-delimiters)
+- [使用 Cohere 嵌入文本](/reference/rag/embeddings.mdx#using-cohere)
+
+有关向量数据库和嵌入的更多详细信息，请参见：
+- [向量数据库](./vector-databases.mdx)
+- [嵌入 API 参考](/reference/rag/embeddings.mdx)

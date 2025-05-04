@@ -1,0 +1,363 @@
+---
+title: "在向量数据库中存储嵌入 | Kastrax 文档"
+description: Kastrax 中向量存储选项的指南，包括用于相似度搜索的嵌入式和专用向量数据库。
+---
+
+import { Tabs } from "nextra/components";
+
+## 在向量数据库中存储嵌入 ✅
+
+生成嵌入后，您需要将它们存储在支持向量相似度搜索的数据库中。Kastrax 为不同的向量数据库提供了一致的接口，用于存储和查询嵌入。
+
+## 支持的数据库 ✅
+
+<Tabs items={['Pg Vector', 'Pinecone', 'Qdrant', 'Chroma', 'Astra', 'LibSQL', 'Upstash', 'Cloudflare', 'MongoDB']}>
+  <Tabs.Tab>
+  ```ts filename="vector-store.ts" showLineNumbers copy
+  import { PgVector } from '@kastrax/pg';
+
+  const store = new PgVector(process.env.POSTGRES_CONNECTION_STRING)
+  await store.createIndex({
+    indexName: "myCollection",
+    dimension: 1536,
+  });
+  await store.upsert({
+    indexName: "myCollection",
+    vectors: embeddings,
+    metadata: chunks.map(chunk => ({ text: chunk.text })),
+  });
+
+  ```
+
+  ### 使用带 pgvector 的 PostgreSQL
+
+  带有 pgvector 扩展的 PostgreSQL 对于已经使用 PostgreSQL 并希望最小化基础设施复杂性的团队来说是一个很好的解决方案。
+  有关详细的设置说明和最佳实践，请参见[官方 pgvector 仓库](https://github.com/pgvector/pgvector)。
+</Tabs.Tab>
+<Tabs.Tab>
+  ```ts filename="vector-store.ts" showLineNumbers copy
+  import { PineconeVector } from '@kastrax/pinecone'
+
+  const store = new PineconeVector(process.env.PINECONE_API_KEY)
+  await store.createIndex({
+    indexName: "myCollection",
+    dimension: 1536,
+  });
+  await store.upsert({
+    indexName: "myCollection",
+    vectors: embeddings,
+    metadata: chunks.map(chunk => ({ text: chunk.text })),
+  });
+  ```
+</Tabs.Tab>
+<Tabs.Tab>
+  ```ts filename="vector-store.ts" showLineNumbers copy
+  import { QdrantVector } from '@kastrax/qdrant'
+
+  const store = new QdrantVector({
+    url: process.env.QDRANT_URL,
+    apiKey: process.env.QDRANT_API_KEY
+  })
+  await store.createIndex({
+    indexName: "myCollection",
+    dimension: 1536,
+  });
+  await store.upsert({
+    indexName: "myCollection",
+    vectors: embeddings,
+    metadata: chunks.map(chunk => ({ text: chunk.text })),
+  });
+  ```
+</Tabs.Tab>
+<Tabs.Tab>
+  ```ts filename="vector-store.ts" showLineNumbers copy
+  import { ChromaVector } from '@kastrax/chroma'
+
+  const store = new ChromaVector()
+  await store.createIndex({
+    indexName: "myCollection",
+    dimension: 1536,
+  });
+  await store.upsert({
+    indexName: "myCollection",
+    vectors: embeddings,
+    metadata: chunks.map(chunk => ({ text: chunk.text })),
+  });
+  ```
+</Tabs.Tab>
+<Tabs.Tab>
+  ```ts filename="vector-store.ts" showLineNumbers copy
+  import { AstraVector } from '@kastrax/astra'
+
+  const store = new AstraVector({
+    token: process.env.ASTRA_DB_TOKEN,
+    endpoint: process.env.ASTRA_DB_ENDPOINT,
+    keyspace: process.env.ASTRA_DB_KEYSPACE
+  })
+  await store.createIndex({
+    indexName: "myCollection",
+    dimension: 1536,
+  });
+  await store.upsert({
+    indexName: "myCollection",
+    vectors: embeddings,
+    metadata: chunks.map(chunk => ({ text: chunk.text })),
+  });
+  ```
+</Tabs.Tab>
+<Tabs.Tab>
+  ```ts filename="vector-store.ts" showLineNumbers copy
+import { LibSQLVector } from "@kastrax/core/vector/libsql";
+
+  const store = new LibSQLVector({
+    connectionUrl: process.env.DATABASE_URL,
+    authToken: process.env.DATABASE_AUTH_TOKEN // 可选：用于 Turso 云数据库
+  })
+  await store.createIndex({
+    indexName: "myCollection",
+    dimension: 1536,
+  });
+  await store.upsert({
+    indexName: "myCollection",
+    vectors: embeddings,
+    metadata: chunks.map(chunk => ({ text: chunk.text })),
+  });
+  ```
+</Tabs.Tab>
+<Tabs.Tab>
+  ```ts filename="vector-store.ts" showLineNumbers copy
+  import { UpstashVector } from '@kastrax/upstash'
+
+  const store = new UpstashVector({
+    url: process.env.UPSTASH_URL,
+    token: process.env.UPSTASH_TOKEN
+  })
+  await store.createIndex({
+    indexName: "myCollection",
+    dimension: 1536,
+  });
+  await store.upsert({
+    indexName: "myCollection",
+    vectors: embeddings,
+    metadata: chunks.map(chunk => ({ text: chunk.text })),
+  });
+  ```
+</Tabs.Tab>
+<Tabs.Tab>
+  ```ts filename="vector-store.ts" showLineNumbers copy
+  import { CloudflareVector } from '@kastrax/vectorize'
+
+  const store = new CloudflareVector({
+    accountId: process.env.CF_ACCOUNT_ID,
+    apiToken: process.env.CF_API_TOKEN
+  })
+  await store.createIndex({
+    indexName: "myCollection",
+    dimension: 1536,
+  });
+  await store.upsert({
+    indexName: "myCollection",
+    vectors: embeddings,
+    metadata: chunks.map(chunk => ({ text: chunk.text })),
+  });
+  ```
+</Tabs.Tab>
+<Tabs.Tab>
+  ```ts filename="vector-store.ts" showLineNumbers copy
+  import { MongoDBVector } from '@kastrax/mongodb'
+
+  const store = new MongoDBVector({
+    url: process.env.MONGODB_URL,
+    database: process.env.MONGODB_DATABASE
+  })
+  await store.createIndex({
+    indexName: "myCollection",
+    dimension: 1536,
+  });
+  await store.upsert({
+    indexName: "myCollection",
+    vectors: embeddings,
+    metadata: chunks.map(chunk => ({ text: chunk.text })),
+  });
+  ```
+</Tabs.Tab>
+</Tabs>
+
+## 使用向量存储 ✅
+
+初始化后，所有向量存储共享相同的接口用于创建索引、更新嵌入和查询。
+
+### 创建索引
+
+在存储嵌入之前，您需要创建一个具有适合您的嵌入模型的维度大小的索引：
+
+```ts filename="store-embeddings.ts" showLineNumbers copy
+// 创建维度为 1536 的索引（适用于 text-embedding-3-small）
+await store.createIndex({
+  indexName: 'myCollection',
+  dimension: 1536,
+});
+```
+
+维度大小必须与您选择的嵌入模型的输出维度匹配。常见的维度大小有：
+- OpenAI text-embedding-3-small：1536 维（或自定义，例如 256）
+- Cohere embed-multilingual-v3：1024 维
+- Google `text-embedding-004`：768 维（或自定义）
+
+> **重要**：索引维度在创建后无法更改。要使用不同的模型，请删除并使用新的维度大小重新创建索引。
+
+### 数据库命名规则
+
+每个向量数据库都强制执行特定的索引和集合命名约定，以确保兼容性并防止冲突。
+
+<Tabs items={['Pg Vector', 'Pinecone', 'Qdrant', 'Chroma', 'Astra', 'LibSQL', 'Upstash', 'Cloudflare', 'MongoDB']}>
+  <Tabs.Tab>
+    索引名称必须：
+    - 以字母或下划线开头
+    - 只包含字母、数字和下划线
+    - 示例：`my_index_123` 有效
+    - 示例：`my-index` 无效（包含连字符）
+  </Tabs.Tab>
+  <Tabs.Tab>
+    索引名称必须：
+    - 只使用小写字母、数字和破折号
+    - 不包含点（用于 DNS 路由）
+    - 不使用非拉丁字符或表情符号
+    - 与项目 ID 组合的长度不超过 52 个字符
+      - 示例：`my-index-123` 有效
+      - 示例：`my.index` 无效（包含点）
+  </Tabs.Tab>
+  <Tabs.Tab>
+    集合名称必须：
+    - 长度为 1-255 个字符
+    - 不包含以下特殊字符：
+      - `< > : " / \ | ? *`
+      - 空字符 (`\0`)
+      - 单元分隔符 (`\u{1F}`)
+    - 示例：`my_collection_123` 有效
+    - 示例：`my/collection` 无效（包含斜杠）
+  </Tabs.Tab>
+  <Tabs.Tab>
+    集合名称必须：
+    - 长度为 3-63 个字符
+    - 以字母或数字开头和结尾
+    - 只包含字母、数字、下划线或连字符
+    - 不包含连续的句点（..）
+    - 不是有效的 IPv4 地址
+    - 示例：`my-collection-123` 有效
+    - 示例：`my..collection` 无效（连续句点）
+  </Tabs.Tab>
+  <Tabs.Tab>
+    集合名称必须：
+    - 不为空
+    - 不超过 48 个字符
+    - 只包含字母、数字和下划线
+    - 示例：`my_collection_123` 有效
+    - 示例：`my-collection` 无效（包含连字符）
+  </Tabs.Tab>
+  <Tabs.Tab>
+    索引名称必须：
+    - 以字母或下划线开头
+    - 只包含字母、数字和下划线
+    - 示例：`my_index_123` 有效
+    - 示例：`my-index` 无效（包含连字符）
+  </Tabs.Tab>
+  <Tabs.Tab>
+    命名空间名称必须：
+    - 长度为 2-100 个字符
+    - 只包含：
+      - 字母数字字符（a-z、A-Z、0-9）
+      - 下划线、连字符、点
+    - 不以特殊字符（_、-、.）开头或结尾
+    - 可以区分大小写
+    - 示例：`MyNamespace123` 有效
+    - 示例：`_namespace` 无效（以下划线开头）
+  </Tabs.Tab>
+  <Tabs.Tab>
+    索引名称必须：
+    - 以字母开头
+    - 长度小于 32 个字符
+    - 只包含小写 ASCII 字母、数字和破折号
+    - 使用破折号代替空格
+    - 示例：`my-index-123` 有效
+    - 示例：`My_Index` 无效（大写和下划线）
+  </Tabs.Tab>
+  <Tabs.Tab>
+    集合（索引）名称必须：
+    - 以字母或下划线开头
+    - 长度不超过 120 字节
+    - 只包含字母、数字、下划线或点
+    - 不能包含 `$` 或空字符
+    - 示例：`my_collection.123` 有效
+    - 示例：`my-index` 无效（包含连字符）
+    - 示例：`My$Collection` 无效（包含 `$`）
+  </Tabs.Tab>
+</Tabs>
+
+### 更新嵌入
+
+创建索引后，您可以存储嵌入及其基本元数据：
+
+```ts filename="store-embeddings.ts" showLineNumbers copy
+// 存储嵌入及其对应的元数据
+await store.upsert({
+  indexName: 'myCollection',  // 索引名称
+  vectors: embeddings,       // 嵌入向量数组
+  metadata: chunks.map(chunk => ({
+    text: chunk.text,  // 原始文本内容
+    id: chunk.id       // 可选的唯一标识符
+  }))
+});
+```
+
+upsert 操作：
+- 接受嵌入向量数组及其对应的元数据
+- 如果共享相同的 ID，则更新现有向量
+- 如果不存在，则创建新向量
+- 自动处理大型数据集的批处理
+
+有关在不同向量存储中更新嵌入的完整示例，请参见[更新嵌入](../../examples/rag/upsert/upsert-embeddings.mdx)指南。
+
+## 添加元数据 ✅
+
+向量存储支持丰富的元数据（任何可 JSON 序列化的字段）用于过滤和组织。由于元数据存储没有固定的模式，请使用一致的字段命名以避免意外的查询结果。
+
+**重要**：元数据对于向量存储至关重要 - 没有它，您只有数值嵌入，没有办法返回原始文本或过滤结果。始终至少将源文本存储为元数据。
+
+```ts showLineNumbers copy
+// 存储嵌入及丰富的元数据，以便更好地组织和过滤
+await store.upsert({
+  indexName: "myCollection",
+  vectors: embeddings,
+  metadata: chunks.map((chunk) => ({
+    // 基本内容
+    text: chunk.text,
+    id: chunk.id,
+    
+    // 文档组织
+    source: chunk.source,
+    category: chunk.category,
+    
+    // 时间元数据
+    createdAt: new Date().toISOString(),
+    version: "1.0",
+    
+    // 自定义字段
+    language: chunk.language,
+    author: chunk.author,
+    confidenceScore: chunk.score,
+  })),
+});
+```
+
+元数据关键考虑因素：
+- 严格遵守字段命名 - 'category' 与 'Category' 等不一致会影响查询
+- 只包含您计划过滤或排序的字段 - 额外的字段会增加开销
+- 添加时间戳（例如，'createdAt'、'lastUpdated'）以跟踪内容的新鲜度
+
+## 最佳实践 ✅
+
+- 在批量插入之前创建索引
+- 对大型插入使用批处理操作（upsert 方法自动处理批处理）
+- 只存储您将查询的元数据
+- 将嵌入维度与您的模型匹配（例如，`text-embedding-3-small` 为 1536）

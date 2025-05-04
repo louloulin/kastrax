@@ -1,0 +1,217 @@
+# 记忆处理器 ✅
+
+记忆处理器允许您在将从记忆中检索的消息添加到代理的上下文窗口并发送到 LLM _之前_ 修改它们。这对于管理上下文大小、过滤内容和优化性能非常有用。
+
+处理器根据您的记忆配置（例如，对话历史、语义记忆）对检索的消息进行操作。它们**不**影响新的传入用户消息。
+
+## 内置处理器 ✅
+
+Kastrax 提供了几个内置处理器：
+
+### 总结器 ✅
+
+总结器压缩长对话以节省令牌空间。在处理冗长的对话历史时特别有用。
+
+```kotlin
+memory = memory {
+    // 启用总结器
+    summarizer(true)
+    
+    // 配置何时应该进行总结
+    summarizerThreshold(10) // 10 条消息后进行总结
+    
+    // 配置总结模型（可选）
+    summarizerModel(deepSeek {
+        apiKey("your-deepseek-api-key")
+        model(DeepSeekModel.DEEPSEEK_CHAT)
+        temperature(0.3) // 较低的温度以获得更事实性的总结
+    })
+}
+```
+
+### 上下文优化器 ✅
+
+上下文优化器为当前上下文选择最相关的记忆，确保在令牌限制内包含最重要的信息。
+
+```kotlin
+memory = memory {
+    // 启用上下文优化器
+    contextOptimizer(true)
+    
+    // 配置令牌限制
+    contextTokenLimit(2000) // 将上下文限制为 2000 个令牌
+    
+    // 配置相关性阈值（可选）
+    contextRelevanceThreshold(0.6) // 只包含相关性 > 0.6 的记忆
+}
+```
+
+### 重要性评估器 ✅
+
+重要性评估器评估新信息的重要性，以确定是否应将其存储在记忆中。
+
+```kotlin
+memory = memory {
+    // 启用重要性评估器
+    importanceEvaluator(true)
+    
+    // 配置重要性阈值
+    importanceThreshold(0.6) // 只存储重要性 > 0.6 的记忆
+}
+```
+
+### 令牌限制器 ✅
+
+此处理器防止因超出 LLM 的上下文窗口限制而导致的错误。它计算检索的记忆消息中的令牌数，并删除最旧的消息，直到总计数低于指定限制。
+
+```kotlin
+memory = memory {
+    // 配置令牌限制
+    tokenLimit(4000) // 将总令牌限制为 4000
+    
+    // 配置令牌计数方法（可选）
+    tokenCounter { text ->
+        // 自定义令牌计数逻辑
+        text.split(" ").size // 简单的单词计数作为示例
+    }
+}
+```
+
+## 创建自定义处理器 ✅
+
+您可以创建自定义记忆处理器来为您的应用程序实现专门的逻辑：
+
+```kotlin
+import ai.kastrax.core.memory.MemoryProcessor
+import ai.kastrax.core.memory.Message
+
+class CustomMemoryProcessor : MemoryProcessor {
+    override fun process(messages: List<Message>, query: String): List<Message> {
+        // 您的自定义处理逻辑在这里
+        
+        // 示例：过滤掉包含某些关键词的消息
+        return messages.filter { message ->
+            !message.content.contains("机密", ignoreCase = true)
+        }
+    }
+}
+
+// 使用自定义处理器
+memory = memory {
+    // 添加您的自定义处理器
+    addProcessor(CustomMemoryProcessor())
+}
+```
+
+## 组合处理器 ✅
+
+您可以组合多个处理器来创建复杂的记忆处理管道：
+
+```kotlin
+memory = memory {
+    // 启用内置处理器
+    summarizer(true)
+    contextOptimizer(true)
+    importanceEvaluator(true)
+    
+    // 添加自定义处理器
+    addProcessor(CustomMemoryProcessor())
+    
+    // 配置处理顺序（可选）
+    processingOrder(listOf(
+        "Summarizer",
+        "CustomMemoryProcessor",
+        "ContextOptimizer",
+        "TokenLimiter"
+    ))
+}
+```
+
+## 示例：高级记忆配置 ✅
+
+以下是具有高级记忆处理的代理的完整示例：
+
+```kotlin
+import ai.kastrax.core.agent.agent
+import ai.kastrax.core.memory.memory
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    // 创建具有高级记忆处理的代理
+    val advancedAgent = agent {
+        name("高级记忆代理")
+        description("具有高级记忆处理的代理")
+        
+        // 配置 LLM
+        model = deepSeek {
+            apiKey("your-deepseek-api-key")
+            model(DeepSeekModel.DEEPSEEK_CHAT)
+            temperature(0.7)
+        }
+        
+        // 配置带处理器的记忆
+        memory = memory {
+            // 基本记忆配置
+            workingMemory(true)
+            conversationHistory(20)
+            semanticMemory(true)
+            
+            // 记忆处理器
+            summarizer(true)
+            summarizerThreshold(15)
+            
+            contextOptimizer(true)
+            contextTokenLimit(3000)
+            
+            importanceEvaluator(true)
+            importanceThreshold(0.5)
+            
+            // 用于过滤敏感信息的自定义处理器
+            addProcessor(object : MemoryProcessor {
+                override fun process(messages: List<Message>, query: String): List<Message> {
+                    return messages.map { message ->
+                        // 编辑敏感信息
+                        val redactedContent = message.content
+                            .replace(Regex("\\b\\d{4}-\\d{4}-\\d{4}-\\d{4}\\b"), "[信用卡]")
+                            .replace(Regex("\\b\\d{3}-\\d{2}-\\d{4}\\b"), "[身份证]")
+                        
+                        // 创建带有编辑内容的新消息
+                        Message(
+                            role = message.role,
+                            content = redactedContent,
+                            timestamp = message.timestamp,
+                            metadata = message.metadata
+                        )
+                    }
+                }
+            })
+        }
+    }
+    
+    // 使用代理
+    val response = advancedAgent.generate("告诉我我们之前关于量子计算的对话")
+    println(response.text)
+}
+```
+
+## 最佳实践 ✅
+
+1. **从简单开始**：在创建自定义处理器之前，先使用内置处理器。
+
+2. **监控性能**：记忆处理可能影响响应时间，因此在生产环境中监控性能。
+
+3. **彻底测试**：使用各种对话场景测试您的处理器，以确保它们按预期行为。
+
+4. **考虑令牌限制**：始终包含令牌限制以防止上下文窗口错误。
+
+5. **顺序很重要**：处理器的顺序可能显著影响最终上下文。通常，总结应该在优化之前进行。
+
+## 下一步 ✅
+
+现在您已经了解了记忆处理器，您可以：
+
+1. 了解[工作记忆](./working-memory.mdx)
+2. 探索[语义回忆](./semantic-recall.mdx)
+3. 实现[自定义记忆存储](./implementations.mdx)

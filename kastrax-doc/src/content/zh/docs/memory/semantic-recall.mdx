@@ -1,0 +1,206 @@
+# 语义回忆 ✅
+
+如果你问你的朋友上周末做了什么，他们会在记忆中搜索与"上周末"相关的事件，然后告诉你他们做了什么。这有点像 Kastrax 中语义回忆的工作方式。
+
+## 语义回忆的工作原理 ✅
+
+语义回忆是基于 RAG 的搜索，帮助代理在消息不再位于[最近对话历史](./overview.mdx#conversation-history)中时，在更长的交互中维持上下文。
+
+它使用消息的向量嵌入进行相似性搜索，与各种向量存储集成，并具有围绕检索消息的可配置上下文窗口。
+
+<br />
+<img
+  src="/image/semantic-recall.png"
+  alt="展示 Kastrax 记忆语义回忆的图表"
+  width={800}
+/>
+
+当启用时，新消息用于查询向量数据库以获取语义相似的消息。
+
+从 LLM 获得响应后，所有新消息（用户、助手和工具调用/结果）都会插入到向量数据库中，以便在后续交互中回忆。
+
+## 快速开始 ✅
+
+以下是设置带有语义回忆的代理的最小示例：
+
+```kotlin
+import ai.kastrax.core.agent.agent
+import ai.kastrax.core.memory.memory
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    // 创建启用语义回忆的代理
+    val myAgent = agent {
+        name("带语义回忆的代理")
+        description("使用语义回忆的代理")
+        
+        // 配置 LLM
+        model = deepSeek {
+            apiKey("your-deepseek-api-key")
+            model(DeepSeekModel.DEEPSEEK_CHAT)
+            temperature(0.7)
+        }
+        
+        // 配置启用语义回忆的记忆
+        memory = memory {
+            conversationHistory(10) // 记住最后 10 条消息
+            semanticMemory(true) // 启用语义回忆
+            semanticMemoryModel("all-MiniLM-L6-v2") // 用于语义搜索的嵌入模型
+        }
+    }
+    
+    // 使用代理
+    val response = myAgent.generate("告诉我关于量子计算的信息")
+    println(response.text)
+}
+```
+
+## 配置选项 ✅
+
+语义回忆可以通过几个选项进行配置：
+
+```kotlin
+memory = memory {
+    // 启用语义记忆
+    semanticMemory(true)
+    
+    // 指定嵌入模型
+    semanticMemoryModel("all-MiniLM-L6-v2")
+    
+    // 设置要检索的相似记忆数量
+    semanticMemoryTopK(5)
+    
+    // 设置相似度阈值（0.0 到 1.0）
+    semanticMemorySimilarityThreshold(0.7)
+    
+    // 配置向量存储
+    semanticMemoryVectorStore(InMemoryVectorStore())
+    // 或使用持久存储
+    // semanticMemoryVectorStore(ChromaVectorStore("memory_db"))
+}
+```
+
+## 语义回忆如何增强对话 ✅
+
+语义回忆通过几种方式帮助代理维持上下文：
+
+1. **长期记忆**：代理可以回忆对话中更早的信息，超出最近历史限制。
+
+2. **上下文相关性**：基于与当前查询的语义相似性，只回忆最相关的过去消息。
+
+3. **知识持久性**：即使对话通过不同主题演变，重要信息也会被保留。
+
+4. **自然对话流**：用户不需要重复已经分享的信息，创造更自然的体验。
+
+## 示例：长对话代理 ✅
+
+以下是使用语义回忆在长对话中维持上下文的代理的完整示例：
+
+```kotlin
+import ai.kastrax.core.agent.agent
+import ai.kastrax.core.memory.memory
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    // 创建带有语义回忆的代理
+    val longConversationAgent = agent {
+        name("长对话代理")
+        description("在长对话中维持上下文的代理")
+        
+        // 配置 LLM
+        model = deepSeek {
+            apiKey("your-deepseek-api-key")
+            model(DeepSeekModel.DEEPSEEK_CHAT)
+            temperature(0.7)
+        }
+        
+        // 配置记忆
+        memory = memory {
+            conversationHistory(5) // 只保留 5 条最近消息
+            semanticMemory(true) // 启用语义回忆
+            semanticMemoryModel("all-MiniLM-L6-v2")
+            semanticMemoryTopK(3) // 检索前 3 个相似记忆
+        }
+    }
+    
+    // 模拟长对话
+    val conversation = listOf(
+        "你好，我叫小明，我是一名从事量子计算的物理学家。",
+        "我特别对量子错误纠正感兴趣。",
+        "今天天气怎么样？",
+        "回到量子计算，量子错误纠正的最新发展是什么？",
+        "你还记得我从事什么领域吗？",
+        "我叫什么名字来着？"
+    )
+    
+    // 运行对话
+    for (message in conversation) {
+        println("\n用户: $message")
+        val response = longConversationAgent.generate(message)
+        println("代理: ${response.text}")
+    }
+}
+```
+
+在这个示例中，即使对话历史只保留最近的 5 条消息，当在对话后期被问到时，代理仍然可以回忆起用户的名字是小明，以及他从事量子计算工作。
+
+## 向量存储 ✅
+
+Kastrax 支持多种用于语义回忆的向量存储：
+
+### 内存向量存储 ✅
+
+```kotlin
+memory = memory {
+    semanticMemory(true)
+    semanticMemoryVectorStore(InMemoryVectorStore())
+}
+```
+
+### Chroma 向量存储 ✅
+
+```kotlin
+memory = memory {
+    semanticMemory(true)
+    semanticMemoryVectorStore(ChromaVectorStore(
+        collectionName = "agent_memories",
+        url = "http://localhost:8000"
+    ))
+}
+```
+
+### FAISS 向量存储 ✅
+
+```kotlin
+memory = memory {
+    semanticMemory(true)
+    semanticMemoryVectorStore(FAISSVectorStore(
+        indexPath = "faiss_index",
+        dimensions = 384
+    ))
+}
+```
+
+## 最佳实践 ✅
+
+1. **平衡历史和回忆**：使用语义回忆时，使用较小的对话历史（5-10 条消息）以避免冗余。
+
+2. **选择合适的嵌入模型**：选择平衡性能和质量的嵌入模型，适合您的用例。
+
+3. **调整相似度阈值**：根据您的需求调整相似度阈值 - 较低的值会回忆更多，但可能包含相关性较低的信息。
+
+4. **持久存储**：对于生产应用，使用持久向量存储，如 Chroma 或 FAISS。
+
+5. **与工作记忆结合**：将语义回忆与工作记忆结合使用，以获得最佳结果。
+
+## 下一步 ✅
+
+现在您已经了解了语义回忆，您可以：
+
+1. 了解[工作记忆](./working-memory.mdx)
+2. 探索[记忆处理器](./memory-processors.mdx)
+3. 实现[自定义记忆存储](./implementations.mdx)

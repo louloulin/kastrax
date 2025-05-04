@@ -1,0 +1,375 @@
+# 记忆实现 ✅
+
+Kastrax 为记忆提供了多种存储后端，让您可以为应用程序的需求选择合适的解决方案。本指南解释了可用的实现及其配置方法。
+
+## 记忆存储后端 ✅
+
+### 内存存储 ✅
+
+默认存储是内存存储，适用于简单应用程序和开发：
+
+```kotlin
+import ai.kastrax.core.agent.agent
+import ai.kastrax.core.memory.memory
+import ai.kastrax.core.memory.storage.InMemoryStorage
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    val myAgent = agent {
+        name("内存存储代理")
+        description("使用内存存储的代理")
+        
+        // 配置 LLM
+        model = deepSeek {
+            apiKey("your-deepseek-api-key")
+            model(DeepSeekModel.DEEPSEEK_CHAT)
+            temperature(0.7)
+        }
+        
+        // 配置带内存存储的记忆
+        memory = memory {
+            workingMemory(true)
+            conversationHistory(20)
+            
+            // 显式设置内存存储（这是默认设置）
+            storage(InMemoryStorage())
+        }
+    }
+    
+    // 使用代理
+    val response = myAgent.generate("你好，世界！")
+    println(response.text)
+}
+```
+
+### SQLite 存储 ✅
+
+对于单用户应用程序的持久存储，您可以使用 SQLite：
+
+```kotlin
+import ai.kastrax.core.agent.agent
+import ai.kastrax.core.memory.memory
+import ai.kastrax.core.memory.storage.SQLiteStorage
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    val myAgent = agent {
+        name("SQLite存储代理")
+        description("使用SQLite存储的代理")
+        
+        // 配置 LLM
+        model = deepSeek {
+            apiKey("your-deepseek-api-key")
+            model(DeepSeekModel.DEEPSEEK_CHAT)
+            temperature(0.7)
+        }
+        
+        // 配置带SQLite存储的记忆
+        memory = memory {
+            workingMemory(true)
+            conversationHistory(20)
+            
+            // 设置SQLite存储
+            storage(SQLiteStorage("memory.db"))
+        }
+    }
+    
+    // 使用代理
+    val response = myAgent.generate("你好，世界！")
+    println(response.text)
+}
+```
+
+### Redis 存储 ✅
+
+对于分布式应用程序，您可以使用 Redis：
+
+```kotlin
+import ai.kastrax.core.agent.agent
+import ai.kastrax.core.memory.memory
+import ai.kastrax.core.memory.storage.RedisStorage
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    val myAgent = agent {
+        name("Redis存储代理")
+        description("使用Redis存储的代理")
+        
+        // 配置 LLM
+        model = deepSeek {
+            apiKey("your-deepseek-api-key")
+            model(DeepSeekModel.DEEPSEEK_CHAT)
+            temperature(0.7)
+        }
+        
+        // 配置带Redis存储的记忆
+        memory = memory {
+            workingMemory(true)
+            conversationHistory(20)
+            
+            // 设置Redis存储
+            storage(RedisStorage(
+                host = "localhost",
+                port = 6379,
+                password = "password" // 可选
+            ))
+        }
+    }
+    
+    // 使用代理
+    val response = myAgent.generate("你好，世界！")
+    println(response.text)
+}
+```
+
+### PostgreSQL 存储 ✅
+
+对于企业应用程序，您可以使用 PostgreSQL：
+
+```kotlin
+import ai.kastrax.core.agent.agent
+import ai.kastrax.core.memory.memory
+import ai.kastrax.core.memory.storage.PostgreSQLStorage
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    val myAgent = agent {
+        name("PostgreSQL存储代理")
+        description("使用PostgreSQL存储的代理")
+        
+        // 配置 LLM
+        model = deepSeek {
+            apiKey("your-deepseek-api-key")
+            model(DeepSeekModel.DEEPSEEK_CHAT)
+            temperature(0.7)
+        }
+        
+        // 配置带PostgreSQL存储的记忆
+        memory = memory {
+            workingMemory(true)
+            conversationHistory(20)
+            
+            // 设置PostgreSQL存储
+            storage(PostgreSQLStorage(
+                url = "jdbc:postgresql://localhost:5432/kastrax",
+                username = "postgres",
+                password = "password"
+            ))
+        }
+    }
+    
+    // 使用代理
+    val response = myAgent.generate("你好，世界！")
+    println(response.text)
+}
+```
+
+## 自定义存储实现 ✅
+
+您可以通过实现 `MemoryStorage` 接口创建自定义存储实现：
+
+```kotlin
+import ai.kastrax.core.memory.storage.MemoryStorage
+import ai.kastrax.core.memory.Message
+import ai.kastrax.core.memory.MemoryPriority
+
+class CustomStorage : MemoryStorage {
+    private val messages = mutableListOf<Message>()
+    
+    override suspend fun addMessage(message: Message) {
+        messages.add(message)
+    }
+    
+    override suspend fun getMessages(limit: Int): List<Message> {
+        return messages.takeLast(limit)
+    }
+    
+    override suspend fun addMemory(content: String, metadata: Map<String, Any>, priority: MemoryPriority): String {
+        val memory = Message(
+            role = "system",
+            content = content,
+            timestamp = System.currentTimeMillis(),
+            metadata = metadata
+        )
+        messages.add(memory)
+        return memory.id
+    }
+    
+    override suspend fun getMemory(id: String): Message? {
+        return messages.find { it.id == id }
+    }
+    
+    override suspend fun getAllMemories(): List<Message> {
+        return messages.toList()
+    }
+    
+    override suspend fun forgetMemory(id: String) {
+        messages.removeIf { it.id == id }
+    }
+    
+    override suspend fun clear() {
+        messages.clear()
+    }
+}
+
+// 使用自定义存储
+memory = memory {
+    storage(CustomStorage())
+}
+```
+
+## 向量存储实现 ✅
+
+对于语义记忆，Kastrax 支持多种向量存储实现：
+
+### 内存向量存储 ✅
+
+```kotlin
+import ai.kastrax.core.memory.memory
+import ai.kastrax.core.memory.vectorstore.InMemoryVectorStore
+
+memory = memory {
+    semanticMemory(true)
+    semanticMemoryModel("all-MiniLM-L6-v2")
+    semanticMemoryVectorStore(InMemoryVectorStore())
+}
+```
+
+### Chroma 向量存储 ✅
+
+```kotlin
+import ai.kastrax.core.memory.memory
+import ai.kastrax.core.memory.vectorstore.ChromaVectorStore
+
+memory = memory {
+    semanticMemory(true)
+    semanticMemoryModel("all-MiniLM-L6-v2")
+    semanticMemoryVectorStore(ChromaVectorStore(
+        collectionName = "agent_memories",
+        url = "http://localhost:8000"
+    ))
+}
+```
+
+### FAISS 向量存储 ✅
+
+```kotlin
+import ai.kastrax.core.memory.memory
+import ai.kastrax.core.memory.vectorstore.FAISSVectorStore
+
+memory = memory {
+    semanticMemory(true)
+    semanticMemoryModel("all-MiniLM-L6-v2")
+    semanticMemoryVectorStore(FAISSVectorStore(
+        indexPath = "faiss_index",
+        dimensions = 384
+    ))
+}
+```
+
+### Pinecone 向量存储 ✅
+
+```kotlin
+import ai.kastrax.core.memory.memory
+import ai.kastrax.core.memory.vectorstore.PineconeVectorStore
+
+memory = memory {
+    semanticMemory(true)
+    semanticMemoryModel("all-MiniLM-L6-v2")
+    semanticMemoryVectorStore(PineconeVectorStore(
+        apiKey = "your-pinecone-api-key",
+        environment = "us-west1-gcp",
+        index = "agent_memories"
+    ))
+}
+```
+
+## 选择合适的实现 ✅
+
+以下是选择合适的记忆实现的一些指导原则：
+
+| 实现 | 最适合 | 优点 | 缺点 |
+|----------------|----------|------|------|
+| 内存 | 开发，简单应用 | 快速，无需设置 | 不持久，受 RAM 限制 |
+| SQLite | 单用户应用，桌面 | 持久，设置简单 | 并发有限 |
+| Redis | 多用户应用，网络 | 快速，可扩展 | 需要 Redis 服务器 |
+| PostgreSQL | 企业应用 | 强大，可扩展 | 设置更复杂 |
+
+对于向量存储：
+
+| 向量存储 | 最适合 | 优点 | 缺点 |
+|--------------|----------|------|------|
+| 内存 | 开发，测试 | 快速，无需设置 | 不持久，受 RAM 限制 |
+| Chroma | 生产，中小规模 | 易于使用，性能良好 | 需要 Chroma 服务器 |
+| FAISS | 大规模，离线 | 非常快，高效 | 设置更复杂 |
+| Pinecone | 基于云，大规模 | 托管服务，可扩展 | 付费服务 |
+
+## 示例：完整记忆配置 ✅
+
+以下是同时包含常规记忆存储和向量存储的完整示例：
+
+```kotlin
+import ai.kastrax.core.agent.agent
+import ai.kastrax.core.memory.memory
+import ai.kastrax.core.memory.storage.SQLiteStorage
+import ai.kastrax.core.memory.vectorstore.ChromaVectorStore
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    val myAgent = agent {
+        name("完整记忆代理")
+        description("具有完整记忆配置的代理")
+        
+        // 配置 LLM
+        model = deepSeek {
+            apiKey("your-deepseek-api-key")
+            model(DeepSeekModel.DEEPSEEK_CHAT)
+            temperature(0.7)
+        }
+        
+        // 配置记忆
+        memory = memory {
+            // 基本记忆配置
+            workingMemory(true)
+            conversationHistory(20)
+            semanticMemory(true)
+            
+            // 存储配置
+            storage(SQLiteStorage("memory.db"))
+            
+            // 向量存储配置
+            semanticMemoryModel("all-MiniLM-L6-v2")
+            semanticMemoryVectorStore(ChromaVectorStore(
+                collectionName = "agent_memories",
+                url = "http://localhost:8000"
+            ))
+            
+            // 记忆处理器
+            summarizer(true)
+            contextOptimizer(true)
+        }
+    }
+    
+    // 使用代理
+    val response = myAgent.generate("你好，世界！")
+    println(response.text)
+}
+```
+
+## 下一步 ✅
+
+现在您已经了解了记忆实现，您可以：
+
+1. 了解[工作记忆](./working-memory.mdx)
+2. 探索[语义回忆](./semantic-recall.mdx)
+3. 配置[记忆处理器](./memory-processors.mdx)

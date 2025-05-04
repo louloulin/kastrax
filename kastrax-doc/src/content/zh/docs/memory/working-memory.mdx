@@ -1,0 +1,155 @@
+# 工作记忆 ✅
+
+虽然[对话历史](/docs/memory/overview#conversation-history)和[语义回忆](./semantic-recall.mdx)帮助代理记住对话，但工作记忆允许它们在线程内的交互中维持关于用户的持久信息。
+
+可以将其视为代理的活跃思想或草稿本 - 它们保持可用的关于用户或任务的关键信息。这类似于一个人在对话中自然地记住某人的名字、偏好或重要细节的方式。
+
+这对于维护始终相关且应始终对代理可用的持续状态非常有用。
+
+## 快速开始 ✅
+
+以下是设置带有工作记忆的代理的最小示例：
+
+```kotlin
+import ai.kastrax.core.agent.agent
+import ai.kastrax.core.memory.memory
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    // 创建启用工作记忆的代理
+    val myAgent = agent {
+        name("带工作记忆的代理")
+        description("使用工作记忆的代理")
+        
+        // 配置 LLM
+        model = deepSeek {
+            apiKey("your-deepseek-api-key")
+            model(DeepSeekModel.DEEPSEEK_CHAT)
+            temperature(0.7)
+        }
+        
+        // 配置启用工作记忆的记忆
+        memory = memory {
+            workingMemory(true)
+            workingMemoryContent("用户的名字是小明，他喜欢简洁的回答。")
+        }
+    }
+    
+    // 使用代理
+    val response = myAgent.generate("告诉我关于量子计算的信息")
+    println(response.text)
+}
+```
+
+## 工作记忆的工作原理 ✅
+
+工作记忆包含在发送给模型的每个提示中。它是一种提供在消息之间不变的持久上下文的方式。
+
+工作记忆内容通常添加到系统提示中，或作为对话历史开始处的单独消息。这确保模型在生成响应时始终能够访问这些信息。
+
+## 向工作记忆添加信息 ✅
+
+您可以通过几种方式向工作记忆添加信息：
+
+### 1. 在代理创建期间 ✅
+
+```kotlin
+memory = memory {
+    workingMemory(true)
+    workingMemoryContent("用户：小明，偏好：技术解释，简洁回答")
+}
+```
+
+### 2. 以编程方式更新工作记忆 ✅
+
+```kotlin
+// 使用新信息更新工作记忆
+agent.memory.updateWorkingMemory("用户：小明，偏好：技术解释，简洁回答，示例：首选")
+```
+
+### 3. 结构化工作记忆 ✅
+
+对于更复杂的场景，您可以使用结构化工作记忆：
+
+```kotlin
+// 创建结构化工作记忆
+val userProfile = mapOf(
+    "name" to "小明",
+    "preferences" to listOf("技术解释", "简洁回答"),
+    "expertise" to "量子物理初学者"
+)
+
+// 转换为字符串表示
+val workingMemoryContent = "用户资料：\n" + 
+    "姓名：${userProfile["name"]}\n" +
+    "偏好：${(userProfile["preferences"] as List<String>).joinToString("、")}\n" +
+    "专业知识：${userProfile["expertise"]}"
+
+// 更新工作记忆
+agent.memory.updateWorkingMemory(workingMemoryContent)
+```
+
+## 最佳实践 ✅
+
+1. **保持简洁**：工作记忆应该只包含在每次交互中都需要可用的最重要信息。
+
+2. **结构化格式**：为工作记忆使用清晰的结构化格式，使模型易于解析。
+
+3. **选择性更新**：只有当您有新的、应在整个对话中持续存在的重要信息时，才更新工作记忆。
+
+4. **与其他记忆类型结合**：将工作记忆与对话历史和语义回忆结合使用，以获得最佳结果。
+
+## 示例：用户偏好代理 ✅
+
+以下是使用工作记忆记住用户偏好的代理的完整示例：
+
+```kotlin
+import ai.kastrax.core.agent.agent
+import ai.kastrax.core.memory.memory
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    // 创建带有工作记忆的代理
+    val preferencesAgent = agent {
+        name("偏好代理")
+        description("记住用户偏好的代理")
+        
+        // 配置 LLM
+        model = deepSeek {
+            apiKey("your-deepseek-api-key")
+            model(DeepSeekModel.DEEPSEEK_CHAT)
+            temperature(0.7)
+        }
+        
+        // 配置记忆
+        memory = memory {
+            workingMemory(true)
+            conversationHistory(10)
+        }
+    }
+    
+    // 初始交互
+    val response1 = preferencesAgent.generate("你好，我叫小明，我喜欢简洁的技术解释。")
+    println("代理：${response1.text}")
+    
+    // 提取偏好并更新工作记忆
+    val preferences = "用户：小明，偏好：技术解释，简洁回答"
+    preferencesAgent.memory.updateWorkingMemory(preferences)
+    
+    // 下一次交互应反映偏好
+    val response2 = preferencesAgent.generate("你能解释量子纠缠吗？")
+    println("代理：${response2.text}")
+}
+```
+
+## 下一步 ✅
+
+现在您已经了解了工作记忆，您可以：
+
+1. 了解[语义回忆](./semantic-recall.mdx)
+2. 探索[记忆处理器](./memory-processors.mdx)
+3. 实现[自定义记忆存储](./implementations.mdx)

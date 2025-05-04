@@ -1,0 +1,332 @@
+# 记忆系统概述 ✅
+
+Kastrax 记忆系统为代理提供了记住过去交互、存储重要信息和检索相关上下文的能力。本指南解释了记忆系统的架构以及如何有效地使用它。
+
+## 记忆系统架构 ✅
+
+Kastrax 记忆系统由几个组件组成：
+
+1. **记忆类型**：用于不同目的的不同类型的记忆
+2. **记忆管理器**：协调记忆操作
+3. **记忆处理器**：处理和优化记忆内容
+4. **记忆存储**：存储记忆数据的后端
+
+## 记忆类型 ✅
+
+Kastrax 支持几种类型的记忆：
+
+### 工作记忆 ✅
+
+工作记忆包含系统指令、用户信息和其他应该包含在每个提示中的上下文。它就像代理的"RAM"，保存着立即相关的信息。
+
+```kotlin
+memory {
+    workingMemory(true)
+    workingMemoryContent("用户的名字是小明，他喜欢简洁的回答。")
+}
+```
+
+### 对话历史 ✅
+
+对话历史存储用户和代理之间的最近消息。它为当前对话提供了即时上下文。
+
+```kotlin
+memory {
+    conversationHistory(10) // 存储最后 10 条消息
+}
+```
+
+### 语义记忆 ✅
+
+语义记忆存储代理可能需要稍后回忆的重要信息。它可以通过语义相似性进行搜索，使代理能够根据当前上下文检索相关信息。
+
+```kotlin
+memory {
+    semanticMemory(true)
+    semanticMemoryModel("all-MiniLM-L6-v2") // 用于语义搜索的嵌入模型
+}
+```
+
+### 情景记忆 ✅
+
+情景记忆存储完整的交互序列或"情景"。它帮助代理理解其与用户随时间的交互历史。
+
+```kotlin
+memory {
+    episodicMemory(true)
+    episodicMemoryCapacity(50) // 存储最多 50 个情景
+}
+```
+
+## 记忆配置 ✅
+
+以下是如何为代理配置记忆系统：
+
+```kotlin
+import ai.kastrax.core.agent.agent
+import ai.kastrax.core.memory.memory
+import ai.kastrax.core.memory.MemoryPriority
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.runBlocking
+
+fun createAgentWithMemory() = agent {
+    name("记忆代理")
+    description("具有记忆能力的代理")
+    
+    // 配置 LLM
+    model = deepSeek {
+        apiKey("your-deepseek-api-key")
+        model(DeepSeekModel.DEEPSEEK_CHAT)
+        temperature(0.7)
+    }
+    
+    // 配置记忆
+    memory = memory {
+        // 启用工作记忆
+        workingMemory(true)
+        workingMemoryContent("用户喜欢技术性解释。")
+        
+        // 配置对话历史
+        conversationHistory(15) // 记住最后 15 条消息
+        
+        // 启用语义记忆
+        semanticMemory(true)
+        semanticMemoryModel("all-MiniLM-L6-v2")
+        
+        // 配置记忆处理器
+        summarizer(true) // 总结长对话
+        contextOptimizer(true) // 优化上下文以提高令牌效率
+    }
+}
+
+fun main() = runBlocking {
+    val agent = createAgentWithMemory()
+    
+    // 测试代理
+    println(agent.generate("告诉我关于量子计算的信息").text)
+    
+    // 添加记忆
+    agent.memory.add("用户是一位在量子力学领域有专业知识的物理学家", MemoryPriority.HIGH)
+    
+    // 使用新记忆再次生成
+    println(agent.generate("告诉我更多关于量子纠缠的信息").text)
+}
+```
+
+## 记忆操作 ✅
+
+### 添加记忆 ✅
+
+您可以通过编程方式向代理添加记忆：
+
+```kotlin
+// 添加简单记忆
+agent.memory.add("用户对机器学习感兴趣", MemoryPriority.MEDIUM)
+
+// 添加结构化记忆
+agent.memory.add(
+    content = "用户最喜欢的编程语言是 Kotlin",
+    metadata = mapOf(
+        "category" to "preferences",
+        "topic" to "programming"
+    ),
+    priority = MemoryPriority.MEDIUM
+)
+```
+
+### 检索记忆 ✅
+
+您可以基于语义相似性检索记忆：
+
+```kotlin
+// 检索与查询相关的记忆
+val memories = agent.memory.retrieve("编程语言", 3) // 获取前 3 个匹配项
+
+// 打印检索到的记忆
+memories.forEach { memory ->
+    println("记忆: ${memory.content}")
+    println("相关性: ${memory.relevance}")
+    println("创建时间: ${memory.createdAt}")
+    println()
+}
+```
+
+### 遗忘记忆 ✅
+
+您可以删除不再需要的记忆：
+
+```kotlin
+// 通过 ID 遗忘特定记忆
+agent.memory.forget(memoryId)
+
+// 通过过滤器遗忘记忆
+agent.memory.forgetWhere { memory ->
+    memory.metadata["category"] == "outdated"
+}
+```
+
+## 记忆存储后端 ✅
+
+Kastrax 支持多种记忆存储后端：
+
+### 内存存储 ✅
+
+默认存储是内存存储，适用于简单应用：
+
+```kotlin
+memory {
+    storage(InMemoryStorage())
+}
+```
+
+### SQLite 存储 ✅
+
+对于持久存储，您可以使用 SQLite：
+
+```kotlin
+memory {
+    storage(SQLiteStorage("memory.db"))
+}
+```
+
+### Redis 存储 ✅
+
+对于分布式应用，您可以使用 Redis：
+
+```kotlin
+memory {
+    storage(RedisStorage(
+        host = "localhost",
+        port = 6379,
+        password = "password"
+    ))
+}
+```
+
+## 记忆处理器 ✅
+
+记忆处理器优化记忆的存储和检索方式：
+
+### 总结器 ✅
+
+总结器压缩长对话以节省令牌空间：
+
+```kotlin
+memory {
+    summarizer(true)
+    summarizerThreshold(10) // 10 条消息后进行总结
+}
+```
+
+### 上下文优化器 ✅
+
+上下文优化器为当前上下文选择最相关的记忆：
+
+```kotlin
+memory {
+    contextOptimizer(true)
+    contextTokenLimit(2000) // 将上下文限制为 2000 个令牌
+}
+```
+
+### 重要性评估器 ✅
+
+重要性评估器评估新信息的重要性：
+
+```kotlin
+memory {
+    importanceEvaluator(true)
+    importanceThreshold(0.6) // 只存储重要性 > 0.6 的记忆
+}
+```
+
+## 高级记忆用法 ✅
+
+### 记忆标签 ✅
+
+您可以为记忆添加标签，以便更轻松地组织和检索：
+
+```kotlin
+// 添加带标签的记忆
+agent.memory.add(
+    content = "用户提到他有一只名叫旺财的狗",
+    tags = listOf("宠物", "个人信息"),
+    priority = MemoryPriority.MEDIUM
+)
+
+// 通过标签检索记忆
+val petMemories = agent.memory.retrieveByTags(listOf("宠物"), 5)
+```
+
+### 记忆过期 ✅
+
+您可以设置记忆在一定时间后过期：
+
+```kotlin
+// 添加 24 小时后过期的记忆
+agent.memory.add(
+    content = "用户当前正在处理项目截止日期",
+    expiresIn = Duration.ofHours(24),
+    priority = MemoryPriority.HIGH
+)
+```
+
+### 记忆反思 ✅
+
+您可以启用定期反思以整合和组织记忆：
+
+```kotlin
+memory {
+    reflection(true)
+    reflectionFrequency(10) // 每 10 次交互后进行反思
+}
+```
+
+## 示例：完整记忆配置 ✅
+
+以下是一个复杂记忆配置的完整示例：
+
+```kotlin
+memory = memory {
+    // 基本记忆类型
+    workingMemory(true)
+    conversationHistory(20)
+    semanticMemory(true)
+    episodicMemory(true)
+    
+    // 存储配置
+    storage(SQLiteStorage("agent_memory.db"))
+    
+    // 用于语义搜索的嵌入模型
+    semanticMemoryModel("all-MiniLM-L6-v2")
+    
+    // 记忆处理器
+    summarizer(true)
+    summarizerThreshold(15)
+    contextOptimizer(true)
+    contextTokenLimit(3000)
+    importanceEvaluator(true)
+    importanceThreshold(0.5)
+    
+    // 高级功能
+    reflection(true)
+    reflectionFrequency(20)
+    
+    // 记忆保留策略
+    retentionPolicy {
+        defaultRetention(Duration.ofDays(30))
+        retentionByPriority(MemoryPriority.LOW, Duration.ofDays(7))
+        retentionByPriority(MemoryPriority.MEDIUM, Duration.ofDays(30))
+        retentionByPriority(MemoryPriority.HIGH, Duration.ofDays(90))
+    }
+}
+```
+
+## 下一步 ✅
+
+现在您已经了解了记忆系统，您可以：
+
+1. 了解[记忆实现](./implementations.mdx)
+2. 探索[记忆查询](./querying.mdx)
+3. 实现[自定义记忆处理器](./custom-processors.mdx)

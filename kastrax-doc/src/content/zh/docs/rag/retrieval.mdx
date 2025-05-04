@@ -1,0 +1,389 @@
+---
+title: "检索、语义搜索、重排序 | RAG | Kastrax 文档"
+description: Kastrax RAG 系统中检索过程的指南，包括语义搜索、过滤和重排序。
+---
+
+import { Tabs } from "nextra/components";
+
+## RAG 系统中的检索 ✅
+
+存储嵌入后，您需要检索相关的分块来回答用户查询。
+
+Kastrax 提供灵活的检索选项，支持语义搜索、过滤和重排序。
+
+## 检索的工作原理 ✅
+
+1. 用户的查询使用与文档嵌入相同的模型转换为嵌入
+2. 使用向量相似度将此嵌入与存储的嵌入进行比较
+3. 检索最相似的分块，并可以选择性地：
+  - 通过元数据进行过滤
+  - 重排序以获得更好的相关性
+  - 通过知识图谱进行处理
+
+## 基本检索 ✅
+
+最简单的方法是直接语义搜索。此方法使用向量相似度来查找与查询在语义上相似的分块：
+
+```ts showLineNumbers copy
+import { openai } from "@ai-sdk/openai";
+import { embed } from "ai";
+import { PgVector } from "@kastrax/pg";
+
+// 将查询转换为嵌入
+const { embedding } = await embed({
+  value: "文章中的主要观点是什么？",
+  model: openai.embedding('text-embedding-3-small'),
+});
+
+// 查询向量存储
+const pgVector = new PgVector(process.env.POSTGRES_CONNECTION_STRING);
+const results = await pgVector.query({
+  indexName: "embeddings",
+  queryVector: embedding,
+  topK: 10,
+});
+
+// 显示结果
+console.log(results);
+```
+
+结果包括文本内容和相似度分数：
+
+```ts showLineNumbers copy
+[
+  {
+    text: "气候变化对全球农业构成重大挑战...",
+    score: 0.89,
+    metadata: { source: "article1.txt" }
+  },
+  {
+    text: "气温上升影响作物产量...",
+    score: 0.82,
+    metadata: { source: "article1.txt" }
+  }
+  // ... 更多结果
+]
+```
+
+有关如何使用基本检索方法的示例，请参见[检索结果](../../examples/rag/query/retrieve-results.mdx)示例。
+
+## 高级检索选项 ✅
+
+### 元数据过滤
+
+基于元数据字段过滤结果以缩小搜索范围。当您有来自不同来源、时间段或具有特定属性的文档时，这非常有用。Kastrax 提供了一种统一的 MongoDB 风格查询语法，适用于所有支持的向量存储。
+
+有关可用运算符和语法的详细信息，请参见[元数据过滤器参考](/reference/rag/metadata-filters)。
+
+基本过滤示例：
+
+```ts showLineNumbers copy
+// 简单相等过滤
+const results = await pgVector.query({
+  indexName: "embeddings",
+  queryVector: embedding,
+  topK: 10,
+  filter: {
+    source: "article1.txt"
+  }
+});
+
+// 数值比较
+const results = await pgVector.query({
+  indexName: "embeddings",
+  queryVector: embedding,
+  topK: 10,
+  filter: {
+    price: { $gt: 100 }
+  }
+});
+
+// 多个条件
+const results = await pgVector.query({
+  indexName: "embeddings",
+  queryVector: embedding,
+  topK: 10,
+  filter: {
+    category: "electronics",
+    price: { $lt: 1000 },
+    inStock: true
+  }
+});
+
+// 数组操作
+const results = await pgVector.query({
+  indexName: "embeddings",
+  queryVector: embedding,
+  topK: 10,
+  filter: {
+    tags: { $in: ["sale", "new"] }
+  }
+});
+
+// 逻辑运算符
+const results = await pgVector.query({
+  indexName: "embeddings",
+  queryVector: embedding,
+  topK: 10,
+  filter: {
+    $or: [
+      { category: "electronics" },
+      { category: "accessories" }
+    ],
+    $and: [
+      { price: { $gt: 50 } },
+      { price: { $lt: 200 } }
+    ]
+  }
+});
+``` 
+
+元数据过滤的常见用例：
+- 按文档来源或类型过滤
+- 按日期范围过滤
+- 按特定类别或标签过滤
+- 按数值范围过滤（例如，价格、评分）
+- 组合多个条件进行精确查询
+- 按文档属性过滤（例如，语言、作者）
+
+有关如何使用元数据过滤的示例，请参见[混合向量搜索](../../examples/rag/query/hybrid-vector-search.mdx)示例。
+
+### 向量查询工具
+
+有时您希望让您的代理能够直接查询向量数据库。向量查询工具允许您的代理负责检索决策，根据代理对用户需求的理解，将语义搜索与可选的过滤和重排序相结合。
+
+```ts showLineNumbers copy
+const vectorQueryTool = createVectorQueryTool({
+  vectorStoreName: 'pgVector',
+  indexName: 'embeddings',
+  model: openai.embedding('text-embedding-3-small'),
+});
+```
+
+创建工具时，特别注意工具的名称和描述 - 这些有助于代理理解何时以及如何使用检索功能。例如，您可以将其命名为"SearchKnowledgeBase"，并将其描述为"搜索我们的文档以查找有关 X 主题的相关信息。"
+
+这在以下情况下特别有用：
+- 您的代理需要动态决定要检索哪些信息
+- 检索过程需要复杂的决策
+- 您希望代理根据上下文组合多种检索策略
+
+有关详细配置选项和高级用法，请参见[向量查询工具参考](/reference/tools/vector-query-tool)。
+
+### 向量存储提示
+
+向量存储提示为每个向量数据库实现定义查询模式和过滤功能。
+实现过滤时，这些提示需要在代理的指令中指定，以指定每个向量存储实现的有效运算符和语法。
+
+<Tabs items={['Pg Vector', 'Pinecone', 'Qdrant', 'Chroma', 'Astra', 'LibSQL', 'Upstash', 'Cloudflare', 'MongoDB']}>
+  <Tabs.Tab>
+```ts showLineNumbers copy
+import { openai } from '@ai-sdk/openai';
+import { PGVECTOR_PROMPT } from "@kastrax/pg";
+
+export const ragAgent = new Agent({
+  name: 'RAG 代理',
+  model: openai('gpt-4o-mini'),
+  instructions: `
+  使用提供的上下文处理查询。构建简洁相关的响应。
+  ${PGVECTOR_PROMPT}
+  `,
+  tools: { vectorQueryTool },
+});
+```
+</Tabs.Tab>
+
+<Tabs.Tab>
+```ts filename="vector-store.ts" showLineNumbers copy
+import { openai } from '@ai-sdk/openai';
+import { PINECONE_PROMPT } from "@kastrax/pinecone";
+
+export const ragAgent = new Agent({
+  name: 'RAG 代理',
+  model: openai('gpt-4o-mini'),
+  instructions: `
+  使用提供的上下文处理查询。构建简洁相关的响应。
+  ${PINECONE_PROMPT}
+  `,
+  tools: { vectorQueryTool },
+});
+```
+</Tabs.Tab>
+
+<Tabs.Tab>
+```ts filename="vector-store.ts" showLineNumbers copy
+import { openai } from '@ai-sdk/openai';
+import { QDRANT_PROMPT } from "@kastrax/qdrant";
+
+export const ragAgent = new Agent({
+  name: 'RAG 代理',
+  model: openai('gpt-4o-mini'),
+  instructions: `
+  使用提供的上下文处理查询。构建简洁相关的响应。
+  ${QDRANT_PROMPT}
+  `,
+  tools: { vectorQueryTool },
+});
+```
+</Tabs.Tab>
+
+<Tabs.Tab>
+```ts filename="vector-store.ts" showLineNumbers copy
+import { openai } from '@ai-sdk/openai';
+import { CHROMA_PROMPT } from "@kastrax/chroma";
+
+export const ragAgent = new Agent({
+  name: 'RAG 代理',
+  model: openai('gpt-4o-mini'),
+  instructions: `
+  使用提供的上下文处理查询。构建简洁相关的响应。
+  ${CHROMA_PROMPT}
+  `,
+  tools: { vectorQueryTool },
+});
+```
+</Tabs.Tab>
+
+<Tabs.Tab>
+```ts filename="vector-store.ts" showLineNumbers copy
+import { openai } from '@ai-sdk/openai';
+import { ASTRA_PROMPT } from "@kastrax/astra";
+
+export const ragAgent = new Agent({
+  name: 'RAG 代理',
+  model: openai('gpt-4o-mini'),
+  instructions: `
+  使用提供的上下文处理查询。构建简洁相关的响应。
+  ${ASTRA_PROMPT}
+  `,
+  tools: { vectorQueryTool },
+});
+```
+</Tabs.Tab>
+
+<Tabs.Tab>
+```ts filename="vector-store.ts" showLineNumbers copy
+import { openai } from '@ai-sdk/openai';
+import { LIBSQL_PROMPT } from "@kastrax/libsql";
+
+export const ragAgent = new Agent({
+  name: 'RAG 代理',
+  model: openai('gpt-4o-mini'),
+  instructions: `
+  使用提供的上下文处理查询。构建简洁相关的响应。
+  ${LIBSQL_PROMPT}
+  `,
+  tools: { vectorQueryTool },
+});
+```
+</Tabs.Tab>
+
+<Tabs.Tab>
+```ts filename="vector-store.ts" showLineNumbers copy
+import { openai } from '@ai-sdk/openai';
+import { UPSTASH_PROMPT } from "@kastrax/upstash";
+
+export const ragAgent = new Agent({
+  name: 'RAG 代理',
+  model: openai('gpt-4o-mini'),
+  instructions: `
+  使用提供的上下文处理查询。构建简洁相关的响应。
+  ${UPSTASH_PROMPT}
+  `,
+  tools: { vectorQueryTool },
+});
+```
+</Tabs.Tab>
+
+<Tabs.Tab>
+```ts filename="vector-store.ts" showLineNumbers copy
+import { openai } from '@ai-sdk/openai';
+import { VECTORIZE_PROMPT } from "@kastrax/vectorize";
+
+export const ragAgent = new Agent({
+  name: 'RAG 代理',
+  model: openai('gpt-4o-mini'),
+  instructions: `
+  使用提供的上下文处理查询。构建简洁相关的响应。
+  ${VECTORIZE_PROMPT}
+  `,
+  tools: { vectorQueryTool },
+});
+```
+</Tabs.Tab>
+
+<Tabs.Tab>
+```ts filename="vector-store.ts" showLineNumbers copy
+import { openai } from '@ai-sdk/openai';
+import { MONGODB_PROMPT } from "@kastrax/mongodb";
+
+export const ragAgent = new Agent({
+  name: 'RAG 代理',
+  model: openai('gpt-4o-mini'),
+  instructions: `
+  使用提供的上下文处理查询。构建简洁相关的响应。
+  ${MONGODB_PROMPT}
+  `,
+  tools: { vectorQueryTool },
+});
+```
+</Tabs.Tab>
+
+</Tabs>
+
+### 重排序
+
+初始向量相似度搜索有时可能会错过细微的相关性。重排序是一种计算成本更高但更准确的算法，通过以下方式改进结果：
+
+- 考虑词序和精确匹配
+- 应用更复杂的相关性评分
+- 使用查询和文档之间的交叉注意力方法
+
+以下是如何使用重排序：
+
+```ts showLineNumbers copy
+import { openai } from "@ai-sdk/openai";
+import { rerank } from "@kastrax/rag";
+
+// 从向量搜索获取初始结果
+const initialResults = await pgVector.query({
+  indexName: "embeddings",
+  queryVector: queryEmbedding,
+  topK: 10,
+});
+
+// 重排序结果
+const rerankedResults = await rerank(initialResults, query, openai('gpt-4o-mini'));
+```
+
+> **注意：** 为了使语义评分在重排序期间正常工作，每个结果必须在其 `metadata.text` 字段中包含文本内容。
+
+重排序的结果将向量相似度与语义理解相结合，以提高检索质量。
+
+有关重排序的更多详细信息，请参见 [rerank()](/reference/rag/rerank) 方法。
+
+有关如何使用重排序方法的示例，请参见[重排序结果](../../examples/rag/rerank/rerank.mdx)示例。
+
+### 基于图的检索
+
+对于具有复杂关系的文档，基于图的检索可以跟踪分块之间的连接。这在以下情况下很有帮助：
+
+- 信息分布在多个文档中
+- 文档相互引用
+- 您需要遍历关系以找到完整答案
+
+示例设置：
+
+```ts showLineNumbers copy
+const graphQueryTool = createGraphQueryTool({
+  vectorStoreName: 'pgVector',
+  indexName: 'embeddings',
+  model: openai.embedding('text-embedding-3-small'),
+  graphOptions: {
+    threshold: 0.7,
+  }
+});
+```
+
+有关基于图的检索的更多详细信息，请参见 [GraphRAG](/reference/rag/graph-rag) 类和 [createGraphQueryTool()](/reference/tools/graph-rag-tool) 函数。
+
+有关如何使用基于图的检索方法的示例，请参见[基于图的检索](../../examples/rag/usage/graph-rag.mdx)示例。
