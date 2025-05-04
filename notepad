@@ -37,3 +37,4 @@
 
 @kastrax-doc/src/content/en 按计划将所有的文档全改成kastrax的文档，内容要分析整个kastrax代码实现
 
+ 按计划将所有的文档全改成kastrax的文档，内容要分析整个kastrax代码实现，并在dox.md标记实现的功能
