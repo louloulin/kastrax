@@ -1,0 +1,403 @@
+---
+title: Actor 模型概述 | Kastrax 文档
+description: Kastrax 中 Actor 模型的概述，详细说明它如何为构建分布式、并发和弹性 AI 代理系统提供基础。
+---
+
+# Actor 模型概述 ✅
+
+Kastrax 框架集成了来自 kactor 库的 Actor 模型，为构建分布式、并发和弹性 AI 代理系统提供了强大的基础。本指南解释了 Actor 模型以及它在 Kastrax 中的使用方式。
+
+## 什么是 Actor 模型？ ✅
+
+Actor 模型是一种并发计算的数学模型，将"actors"视为并发计算的通用原语。在响应接收到的消息时，actor 可以：
+
+1. 做出本地决策
+2. 创建更多 actors
+3. 发送更多消息
+4. 确定如何响应下一条接收到的消息
+
+Actors 彼此隔离，只通过消息进行通信，这提供了关注点的清晰分离，使推理并发系统变得更容易。
+
+## Kastrax 中的 Actor 模型 ✅
+
+在 Kastrax 中，Actor 模型用于：
+
+1. **分布代理**：在多台机器上运行代理
+2. **管理并发**：同时处理多个代理交互
+3. **确保弹性**：优雅地从故障中恢复
+4. **扩展系统**：轻松扩大或缩小代理系统
+
+## 基本 Actor 概念 ✅
+
+### Actors ✅
+
+Actor 是计算的基本单位。它具有：
+
+- 用于接收消息的邮箱
+- 定义如何处理消息的行为
+- 在处理消息时可以修改的状态
+- 创建其他 actors 的能力
+- 向其他 actors 发送消息的能力
+
+### 消息 ✅
+
+消息是 actors 通信的唯一方式。它们是：
+
+- 不可变的
+- 异步的
+- 由每个 actor 一次处理一条
+
+### Actor 系统 ✅
+
+Actor 系统管理 actors 的生命周期并提供：
+
+- Actor 创建和监督
+- 消息路由
+- 资源管理
+- 配置
+
+## 创建基本 Actor ✅
+
+以下是在 Kastrax 中创建简单 actor 的方法：
+
+```kotlin
+import actor.proto.Actor
+import actor.proto.Context
+import actor.proto.Props
+import actor.proto.spawn
+import kotlinx.coroutines.runBlocking
+
+// 定义消息
+data class Greeting(val who: String)
+
+// 定义 actor
+class GreetingActor : Actor {
+    override suspend fun receive(context: Context) {
+        val message = context.message
+        
+        when (message) {
+            is Greeting -> {
+                println("你好，${message.who}！")
+            }
+            else -> {
+                println("未知消息：$message")
+            }
+        }
+    }
+}
+
+fun main() = runBlocking {
+    // 创建 actor 系统
+    val system = actor.proto.ActorSystem.create()
+    
+    // 创建 actor
+    val greeter = system.spawn(Props.create(GreetingActor::class.java), "greeter")
+    
+    // 向 actor 发送消息
+    greeter.tell(Greeting("世界"))
+    
+    // 等待一会儿让消息被处理
+    kotlinx.coroutines.delay(100)
+    
+    // 关闭系统
+    system.shutdown()
+}
+```
+
+## 将 Actors 与代理集成 ✅
+
+Kastrax 允许您将代理包装在 actors 中，以创建分布式代理系统：
+
+```kotlin
+import actor.proto.Actor
+import actor.proto.Context
+import actor.proto.Props
+import actor.proto.spawn
+import ai.kastrax.core.agent.Agent
+import ai.kastrax.core.agent.agent
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.runBlocking
+
+// 定义消息
+data class GenerateRequest(val prompt: String)
+data class GenerateResponse(val text: String)
+
+// 定义包装代理的 actor
+class AgentActor(private val agent: Agent) : Actor {
+    override suspend fun receive(context: Context) {
+        val message = context.message
+        
+        when (message) {
+            is GenerateRequest -> {
+                val response = agent.generate(message.prompt)
+                context.sender.tell(GenerateResponse(response.text))
+            }
+            else -> {
+                println("未知消息：$message")
+            }
+        }
+    }
+    
+    companion object {
+        fun props(agent: Agent): Props {
+            return Props.create { AgentActor(agent) }
+        }
+    }
+}
+
+fun main() = runBlocking {
+    // 创建代理
+    val myAgent = agent {
+        name("我的代理")
+        description("一个简单的代理")
+        
+        model = deepSeek {
+            apiKey("your-deepseek-api-key")
+            model(DeepSeekModel.DEEPSEEK_CHAT)
+            temperature(0.7)
+        }
+    }
+    
+    // 创建 actor 系统
+    val system = actor.proto.ActorSystem.create()
+    
+    // 创建包装代理的 actor
+    val agentActor = system.spawn(AgentActor.props(myAgent), "agent-actor")
+    
+    // 为响应创建 future
+    val future = agentActor.ask(GenerateRequest("讲个笑话"), 5000)
+    
+    // 等待响应
+    val response = future.await() as GenerateResponse
+    println("代理响应：${response.text}")
+    
+    // 关闭系统
+    system.shutdown()
+}
+```
+
+## 远程 Actors ✅
+
+Actor 模型最强大的特性之一是能够在多台机器上分布 actors。Kastrax 通过远程 actors 支持这一点：
+
+```kotlin
+import actor.proto.Actor
+import actor.proto.Context
+import actor.proto.Props
+import actor.proto.remote.RemoteConfig
+import actor.proto.remote.RemoteActorSystem
+import kotlinx.coroutines.runBlocking
+
+// 定义消息
+data class Ping(val message: String)
+data class Pong(val message: String)
+
+// 定义 actor
+class PongActor : Actor {
+    override suspend fun receive(context: Context) {
+        val message = context.message
+        
+        when (message) {
+            is Ping -> {
+                println("收到 ping：${message.message}")
+                context.sender.tell(Pong("对 ${message.message} 的 Pong 响应"))
+            }
+            else -> {
+                println("未知消息：$message")
+            }
+        }
+    }
+}
+
+// 服务器代码
+fun startServer() = runBlocking {
+    // 创建远程配置
+    val config = RemoteConfig.create {
+        hostname = "localhost"
+        port = 8090
+    }
+    
+    // 创建远程 actor 系统
+    val system = RemoteActorSystem.create("server-system", config)
+    
+    // 创建 actor
+    val pongActor = system.spawn(Props.create(PongActor::class.java), "pong-actor")
+    
+    // 注册 actor 以便可以远程访问
+    system.registerActor("pong", pongActor)
+    
+    println("服务器已启动，按回车键退出...")
+    readLine()
+    
+    // 关闭系统
+    system.shutdown()
+}
+
+// 客户端代码
+fun startClient() = runBlocking {
+    // 创建远程配置
+    val config = RemoteConfig.create {
+        hostname = "localhost"
+        port = 0 // 使用任何可用端口
+    }
+    
+    // 创建远程 actor 系统
+    val system = RemoteActorSystem.create("client-system", config)
+    
+    // 获取远程 actor 的引用
+    val remotePongActor = system.getActorRef("pong@localhost:8090")
+    
+    // 向远程 actor 发送消息
+    val future = remotePongActor.ask(Ping("来自客户端的问候"), 5000)
+    
+    // 等待响应
+    val response = future.await() as Pong
+    println("收到响应：${response.message}")
+    
+    // 关闭系统
+    system.shutdown()
+}
+```
+
+## Actor 监督 ✅
+
+Actors 可以监督其他 actors，这允许容错和恢复：
+
+```kotlin
+import actor.proto.Actor
+import actor.proto.Context
+import actor.proto.Props
+import actor.proto.SupervisorStrategy
+import actor.proto.Directive
+import actor.proto.spawn
+import kotlinx.coroutines.runBlocking
+
+// 定义消息
+data class Work(val input: Int)
+data class Result(val output: Int)
+
+// 定义可能失败的 actor
+class WorkerActor : Actor {
+    override suspend fun receive(context: Context) {
+        val message = context.message
+        
+        when (message) {
+            is Work -> {
+                if (message.input == 0) {
+                    throw ArithmeticException("除以零")
+                }
+                
+                val result = 100 / message.input
+                context.sender.tell(Result(result))
+            }
+            else -> {
+                println("未知消息：$message")
+            }
+        }
+    }
+}
+
+// 定义监督 actor
+class SupervisorActor : Actor {
+    private var workerRef: actor.proto.PID? = null
+    
+    override suspend fun receive(context: Context) {
+        val message = context.message
+        
+        when (message) {
+            is actor.proto.Started -> {
+                // 当监督者启动时创建工作者
+                workerRef = context.spawn(Props.create(WorkerActor::class.java), "worker")
+            }
+            is Work -> {
+                // 将工作转发给工作者
+                workerRef?.tell(message)
+            }
+            is Result -> {
+                println("工作者产生结果：${message.output}")
+            }
+            else -> {
+                println("未知消息：$message")
+            }
+        }
+    }
+    
+    override fun supervisorStrategy(): SupervisorStrategy {
+        return SupervisorStrategy.restartStrategy { _, _ ->
+            // 在任何异常上重启工作者
+            Directive.Restart
+        }
+    }
+}
+
+fun main() = runBlocking {
+    // 创建 actor 系统
+    val system = actor.proto.ActorSystem.create()
+    
+    // 创建监督 actor
+    val supervisor = system.spawn(Props.create(SupervisorActor::class.java), "supervisor")
+    
+    // 向监督者发送工作
+    supervisor.tell(Work(4)) // 应该正常工作
+    kotlinx.coroutines.delay(100)
+    
+    supervisor.tell(Work(0)) // 将导致异常
+    kotlinx.coroutines.delay(100)
+    
+    supervisor.tell(Work(5)) // 重启后应该再次工作
+    kotlinx.coroutines.delay(100)
+    
+    // 关闭系统
+    system.shutdown()
+}
+```
+
+## Actor 模式 ✅
+
+### 请求-响应模式 ✅
+
+```kotlin
+// 发送请求并等待响应
+val future = actorRef.ask(Request("一些数据"), 5000)
+val response = future.await() as Response
+println("收到响应：${response.data}")
+```
+
+### 发布-订阅模式 ✅
+
+```kotlin
+// 创建主题
+val topic = system.createTopic("events")
+
+// 订阅主题
+topic.subscribe { event ->
+    println("收到事件：$event")
+}
+
+// 发布到主题
+topic.publish(Event("发生了某事"))
+```
+
+### 路由器模式 ✅
+
+```kotlin
+// 创建一个具有 5 个工作者实例的轮询路由器
+val router = system.createRouter(
+    RouterConfig.roundRobin(5),
+    Props.create(WorkerActor::class.java)
+)
+
+// 向路由器发送消息
+for (i in 1..10) {
+    router.tell(Work(i))
+}
+```
+
+## 下一步 ✅
+
+现在您已经了解了 Kastrax 中的 Actor 模型，您可以：
+
+1. 了解[远程 actor 配置](./remote-configuration.mdx)
+2. 探索[actor 监督策略](./supervision.mdx)
+3. 实现[基于 actor 的代理系统](./agent-actors.mdx)
