@@ -1,0 +1,777 @@
+---
+title: "A2A 代理发现 | A2A 协议 | Kastrax 文档"
+description: "A2A 协议的代理发现机制，包括代理注册、发现和查询。"
+---
+
+# A2A 代理发现 ✅
+
+## 代理发现概述 ✅
+
+代理发现是 A2A 协议的核心功能之一，允许代理发现其他代理的存在和能力。通过代理发现，代理可以动态地找到具有所需能力的其他代理，并与之协作。
+
+Kastrax 实现了全面的 A2A 代理发现机制，包括代理注册、发现和查询，支持构建灵活的多代理系统。
+
+## 代理卡片 (Agent Card) ✅
+
+代理卡片是代理发现的基础，它描述了代理的元数据、能力和认证需求。每个代理都有一个唯一的代理卡片，通常以 JSON 格式提供：
+
+```json
+{
+  "id": "data-analysis-agent",
+  "name": "数据分析代理",
+  "description": "提供数据分析和可视化能力的代理",
+  "version": "1.0.0",
+  "capabilities": [
+    {
+      "id": "data_analysis",
+      "name": "数据分析",
+      "description": "分析提供的数据集并返回统计结果",
+      "parameters": [
+        {
+          "name": "dataset_url",
+          "type": "string",
+          "description": "数据集URL",
+          "required": true
+        },
+        {
+          "name": "analysis_type",
+          "type": "string",
+          "description": "分析类型",
+          "required": true
+        }
+      ],
+      "returnType": "json"
+    }
+  ],
+  "authentication": {
+    "type": "api_key"
+  },
+  "endpoint": "https://example.com/api/agent"
+}
+```
+
+在 Kastrax 中，可以使用 DSL 创建代理卡片：
+
+```kotlin
+// 创建代理卡片
+val agentCard = agentCard {
+    id = "data-analysis-agent"
+    name = "数据分析代理"
+    description = "提供数据分析和可视化能力的代理"
+    version = "1.0.0"
+    
+    // 添加能力
+    capability {
+        id = "data_analysis"
+        name = "数据分析"
+        description = "分析提供的数据集并返回统计结果"
+        
+        // 添加参数
+        parameter {
+            name = "dataset_url"
+            type = "string"
+            description = "数据集URL"
+            required = true
+        }
+        
+        parameter {
+            name = "analysis_type"
+            type = "string"
+            description = "分析类型"
+            required = true
+        }
+        
+        returnType = "json"
+    }
+    
+    // 配置认证
+    authentication {
+        type = AuthType.API_KEY
+    }
+    
+    // 设置端点
+    endpoint = "https://example.com/api/agent"
+}
+```
+
+## 代理注册 ✅
+
+代理注册是将代理信息添加到代理注册表的过程，使其可被其他代理发现。Kastrax 提供了多种代理注册方式：
+
+### 本地注册 ✅
+
+本地注册是将代理添加到本地代理注册表的过程：
+
+```kotlin
+// 创建代理注册表
+val agentRegistry = A2AAgentRegistry()
+
+// 注册代理
+agentRegistry.register(dataAnalysisAgent)
+agentRegistry.register(reportGeneratorAgent)
+
+// 或者使用 DSL
+val a2aInstance = a2a {
+    // 注册 kastrax 代理
+    agent(assistantAgent)
+    
+    // 注册 A2A 代理
+    a2aAgent {
+        id = "data-analysis-agent"
+        name = "数据分析代理"
+        description = "提供数据分析和可视化能力的代理"
+        
+        // 配置...
+    }
+}
+```
+
+### 远程注册 ✅
+
+远程注册是将代理注册到远程代理注册中心的过程：
+
+```kotlin
+// 创建代理发现服务
+val discoveryService = A2ADiscoveryService()
+
+// 添加注册中心
+discoveryService.addRegistryServer("https://registry.example.com")
+
+// 注册代理
+discoveryService.registerAgent(agentCard)
+
+// 或者使用 DSL
+val a2aInstance = a2a {
+    // 配置发现服务
+    discovery {
+        // 添加注册中心
+        registryServer("https://registry.example.com")
+        
+        // 自动注册
+        autoRegister = true
+    }
+    
+    // 注册代理...
+}
+```
+
+### 自动发现 ✅
+
+自动发现是定期扫描已知服务器，发现新代理的过程：
+
+```kotlin
+// 创建代理发现服务，启用自动发现
+val discoveryService = A2ADiscoveryService(
+    config = A2ADiscoveryConfig(
+        enableAutoDiscovery = true,
+        discoveryInterval = 60000 // 60 秒
+    )
+)
+
+// 添加已知服务器
+discoveryService.addServer("https://agent1.example.com")
+discoveryService.addServer("https://agent2.example.com")
+
+// 或者使用 DSL
+val a2aInstance = a2a {
+    // 配置发现服务
+    discovery {
+        // 启用自动发现
+        autoDiscovery = true
+        discoveryInterval = 60000 // 60 秒
+        
+        // 添加已知服务器
+        server("https://agent1.example.com")
+        server("https://agent2.example.com")
+    }
+}
+```
+
+## 代理查询 ✅
+
+代理查询是查找具有特定特征的代理的过程。Kastrax 提供了多种代理查询方式：
+
+### 按 ID 查询 ✅
+
+按 ID 查询是查找具有特定 ID 的代理的过程：
+
+```kotlin
+// 按 ID 查询代理
+val agent = agentRegistry.getAgent("data-analysis-agent")
+
+// 或者使用发现服务
+val agent = discoveryService.findAgentById("data-analysis-agent")
+```
+
+### 按能力查询 ✅
+
+按能力查询是查找具有特定能力的代理的过程：
+
+```kotlin
+// 按能力查询代理
+val agents = agentRegistry.findAgentsByCapability("data_analysis")
+
+// 或者使用发现服务
+val agents = discoveryService.findAgentsByCapability("data_analysis")
+
+// 按能力和参数查询
+val agents = discoveryService.findAgentsByCapability(
+    capabilityId = "data_analysis",
+    parameters = listOf(
+        Parameter("dataset_url", "string"),
+        Parameter("analysis_type", "string")
+    )
+)
+```
+
+### 按属性查询 ✅
+
+按属性查询是查找具有特定属性的代理的过程：
+
+```kotlin
+// 按属性查询代理
+val agents = agentRegistry.findAgentsByAttributes(
+    attributes = mapOf(
+        "name" to "数据分析代理",
+        "version" to "1.0.0"
+    )
+)
+
+// 或者使用发现服务
+val agents = discoveryService.findAgentsByAttributes(
+    attributes = mapOf(
+        "name" to "数据分析代理",
+        "version" to "1.0.0"
+    )
+)
+```
+
+### 复杂查询 ✅
+
+复杂查询是组合多个条件查询代理的过程：
+
+```kotlin
+// 创建查询
+val query = AgentQuery.Builder()
+    .withCapability("data_analysis")
+    .withParameter("dataset_url", "string")
+    .withAttribute("version", "1.0.0")
+    .withAuthType(AuthType.API_KEY)
+    .build()
+
+// 执行查询
+val agents = discoveryService.findAgents(query)
+```
+
+## 代理发现服务 ✅
+
+Kastrax 提供了完整的代理发现服务，管理代理的注册、发现和查询：
+
+```kotlin
+/**
+ * A2A 代理发现服务，用于发现和注册 A2A 代理
+ */
+class A2ADiscoveryService(
+    private val config: A2ADiscoveryConfig = A2ADiscoveryConfig(),
+    private val scope: CoroutineScope = CoroutineScope(Dispatchers.Default)
+) {
+    /**
+     * 代理注册表
+     */
+    private val registry = ConcurrentHashMap<String, AgentRegistryEntry>()
+    
+    /**
+     * 已知的服务器 URL
+     */
+    private val knownServers = ConcurrentHashMap.newKeySet<String>()
+    
+    /**
+     * 互斥锁，用于保护注册表
+     */
+    private val mutex = Mutex()
+    
+    init {
+        if (config.enableAutoDiscovery) {
+            startAutoDiscovery()
+        }
+    }
+    
+    /**
+     * 注册代理
+     */
+    suspend fun registerAgent(agentCard: AgentCard) {
+        mutex.withLock {
+            registry[agentCard.id] = AgentRegistryEntry(
+                agentCard = agentCard,
+                registeredAt = System.currentTimeMillis(),
+                lastSeenAt = System.currentTimeMillis()
+            )
+        }
+    }
+    
+    /**
+     * 获取代理
+     */
+    suspend fun getAgent(agentId: String): AgentCard? {
+        return mutex.withLock {
+            registry[agentId]?.agentCard
+        }
+    }
+    
+    /**
+     * 获取所有代理
+     */
+    suspend fun getAllAgents(): List<AgentCard> {
+        return mutex.withLock {
+            registry.values.map { it.agentCard }
+        }
+    }
+    
+    /**
+     * 按能力查找代理
+     */
+    suspend fun findAgentsByCapability(capabilityId: String): List<AgentCard> {
+        return mutex.withLock {
+            registry.values
+                .filter { entry ->
+                    entry.agentCard.capabilities.any { it.id == capabilityId }
+                }
+                .map { it.agentCard }
+        }
+    }
+    
+    /**
+     * 添加服务器 URL
+     */
+    fun addServer(serverUrl: String) {
+        knownServers.add(serverUrl)
+    }
+    
+    /**
+     * 移除服务器 URL
+     */
+    fun removeServer(serverUrl: String) {
+        knownServers.remove(serverUrl)
+    }
+    
+    /**
+     * 启动自动发现
+     */
+    private fun startAutoDiscovery() {
+        scope.launch {
+            while (true) {
+                try {
+                    discoverAgents()
+                    cleanupRegistry()
+                } catch (e: Exception) {
+                    // 记录错误但不中断循环
+                    println("Error during auto discovery: ${e.message}")
+                }
+                
+                delay(config.discoveryInterval)
+            }
+        }
+    }
+    
+    /**
+     * 发现代理
+     */
+    private suspend fun discoverAgents() {
+        for (serverUrl in knownServers) {
+            try {
+                val client = A2AClient(A2AClientConfig(serverUrl = serverUrl))
+                
+                // 获取服务器上的所有代理
+                val agents = client.getAgentCard()
+                
+                // 注册代理
+                registerAgent(agents)
+                
+                client.close()
+            } catch (e: Exception) {
+                // 记录错误但继续处理其他服务器
+                println("Error discovering agents from $serverUrl: ${e.message}")
+            }
+        }
+    }
+    
+    /**
+     * 清理注册表
+     */
+    private suspend fun cleanupRegistry() {
+        mutex.withLock {
+            val now = System.currentTimeMillis()
+            val expiredEntries = registry.entries.filter { (_, entry) ->
+                now - entry.lastSeenAt > config.entryTtl
+            }
+            
+            for ((agentId, _) in expiredEntries) {
+                registry.remove(agentId)
+            }
+        }
+    }
+}
+```
+
+使用 DSL 配置代理发现服务：
+
+```kotlin
+// 使用 DSL 配置代理发现服务
+val a2aInstance = a2a {
+    // 配置发现服务
+    discovery {
+        // 启用自动发现
+        autoDiscovery = true
+        discoveryInterval = 60000 // 60 秒
+        entryTtl = 3600000 // 1 小时
+        
+        // 添加已知服务器
+        server("https://agent1.example.com")
+        server("https://agent2.example.com")
+        
+        // 添加注册中心
+        registryServer("https://registry.example.com")
+        
+        // 自动注册
+        autoRegister = true
+    }
+}
+```
+
+## 代理发现协议 ✅
+
+A2A 协议定义了标准的代理发现协议，包括以下端点：
+
+### 1. 代理卡片端点 ✅
+
+代理卡片端点返回代理的代理卡片：
+
+```
+GET /.well-known/agent.json
+```
+
+响应示例：
+
+```json
+{
+  "id": "data-analysis-agent",
+  "name": "数据分析代理",
+  "description": "提供数据分析和可视化能力的代理",
+  "version": "1.0.0",
+  "capabilities": [
+    {
+      "id": "data_analysis",
+      "name": "数据分析",
+      "description": "分析提供的数据集并返回统计结果",
+      "parameters": [
+        {
+          "name": "dataset_url",
+          "type": "string",
+          "description": "数据集URL",
+          "required": true
+        },
+        {
+          "name": "analysis_type",
+          "type": "string",
+          "description": "分析类型",
+          "required": true
+        }
+      ],
+      "returnType": "json"
+    }
+  ],
+  "authentication": {
+    "type": "api_key"
+  },
+  "endpoint": "https://example.com/api/agent"
+}
+```
+
+### 2. 能力查询端点 ✅
+
+能力查询端点返回代理的能力列表：
+
+```
+GET /api/capabilities
+```
+
+响应示例：
+
+```json
+{
+  "capabilities": [
+    {
+      "id": "data_analysis",
+      "name": "数据分析",
+      "description": "分析提供的数据集并返回统计结果",
+      "parameters": [
+        {
+          "name": "dataset_url",
+          "type": "string",
+          "description": "数据集URL",
+          "required": true
+        },
+        {
+          "name": "analysis_type",
+          "type": "string",
+          "description": "分析类型",
+          "required": true
+        }
+      ],
+      "returnType": "json"
+    }
+  ]
+}
+```
+
+### 3. 代理注册端点 ✅
+
+代理注册端点允许代理向注册中心注册：
+
+```
+POST /api/registry/agents
+```
+
+请求示例：
+
+```json
+{
+  "agent_card": {
+    "id": "data-analysis-agent",
+    "name": "数据分析代理",
+    "description": "提供数据分析和可视化能力的代理",
+    "version": "1.0.0",
+    "capabilities": [
+      {
+        "id": "data_analysis",
+        "name": "数据分析",
+        "description": "分析提供的数据集并返回统计结果",
+        "parameters": [
+          {
+            "name": "dataset_url",
+            "type": "string",
+            "description": "数据集URL",
+            "required": true
+          },
+          {
+            "name": "analysis_type",
+            "type": "string",
+            "description": "分析类型",
+            "required": true
+          }
+        ],
+        "returnType": "json"
+      }
+    ],
+    "authentication": {
+      "type": "api_key"
+    },
+    "endpoint": "https://example.com/api/agent"
+  }
+}
+```
+
+响应示例：
+
+```json
+{
+  "success": true,
+  "agent_id": "data-analysis-agent",
+  "message": "Agent registered successfully"
+}
+```
+
+### 4. 代理查询端点 ✅
+
+代理查询端点允许查询注册中心中的代理：
+
+```
+GET /api/registry/agents?capability=data_analysis
+```
+
+响应示例：
+
+```json
+{
+  "agents": [
+    {
+      "id": "data-analysis-agent",
+      "name": "数据分析代理",
+      "description": "提供数据分析和可视化能力的代理",
+      "version": "1.0.0",
+      "capabilities": [
+        {
+          "id": "data_analysis",
+          "name": "数据分析",
+          "description": "分析提供的数据集并返回统计结果",
+          "parameters": [
+            {
+              "name": "dataset_url",
+              "type": "string",
+              "description": "数据集URL",
+              "required": true
+            },
+            {
+              "name": "analysis_type",
+              "type": "string",
+              "description": "分析类型",
+              "required": true
+            }
+          ],
+          "returnType": "json"
+        }
+      ],
+      "authentication": {
+        "type": "api_key"
+      },
+      "endpoint": "https://example.com/api/agent"
+    }
+  ]
+}
+```
+
+## 代理发现客户端 ✅
+
+Kastrax 提供了代理发现客户端，用于与代理发现服务交互：
+
+```kotlin
+// 创建代理发现客户端
+val discoveryClient = A2ADiscoveryClient(
+    config = A2ADiscoveryClientConfig(
+        registryUrl = "https://registry.example.com"
+    )
+)
+
+// 注册代理
+val registrationResult = discoveryClient.registerAgent(agentCard)
+
+// 查询代理
+val agents = discoveryClient.findAgentsByCapability("data_analysis")
+
+// 获取代理卡片
+val agentCard = discoveryClient.getAgentCard("data-analysis-agent")
+```
+
+## 代理发现示例 ✅
+
+以下是一个完整的代理发现示例：
+
+```kotlin
+// 创建 A2A 实例
+val a2aInstance = a2a {
+    // 配置发现服务
+    discovery {
+        // 启用自动发现
+        autoDiscovery = true
+        discoveryInterval = 60000 // 60 秒
+        
+        // 添加已知服务器
+        server("https://agent1.example.com")
+        server("https://agent2.example.com")
+        
+        // 添加注册中心
+        registryServer("https://registry.example.com")
+        
+        // 自动注册
+        autoRegister = true
+    }
+    
+    // 注册 A2A 代理
+    a2aAgent {
+        id = "data-analysis-agent"
+        name = "数据分析代理"
+        description = "提供数据分析和可视化能力的代理"
+        
+        // 添加能力
+        capability {
+            id = "data_analysis"
+            name = "数据分析"
+            description = "分析提供的数据集并返回统计结果"
+            
+            // 添加参数
+            parameter {
+                name = "dataset_url"
+                type = "string"
+                description = "数据集URL"
+                required = true
+            }
+            
+            parameter {
+                name = "analysis_type"
+                type = "string"
+                description = "分析类型"
+                required = true
+            }
+            
+            returnType = "json"
+        }
+        
+        // 配置认证
+        authentication {
+            type = AuthType.API_KEY
+        }
+    }
+    
+    // 配置服务器
+    server {
+        port = 8080
+        enableCors = true
+    }
+}
+
+// 启动 A2A 实例
+a2aInstance.start()
+
+// 使用发现服务查找代理
+val discoveryService = a2aInstance.getDiscoveryService()
+
+// 查找具有数据分析能力的代理
+val dataAnalysisAgents = discoveryService.findAgentsByCapability("data_analysis")
+
+// 选择第一个代理
+val selectedAgent = dataAnalysisAgents.firstOrNull()
+
+// 如果找到代理，则调用其能力
+if (selectedAgent != null) {
+    // 创建 A2A 客户端
+    val client = A2AClient(
+        config = A2AClientConfig(
+            serverUrl = selectedAgent.endpoint,
+            apiKey = "your-api-key"
+        )
+    )
+    
+    // 调用代理能力
+    val response = client.invoke(
+        agentId = selectedAgent.id,
+        capabilityId = "data_analysis",
+        parameters = mapOf(
+            "dataset_url" to "https://example.com/data.csv",
+            "analysis_type" to "statistical"
+        )
+    )
+    
+    // 处理响应
+    println("分析结果：${response.result}")
+    
+    // 关闭客户端
+    client.close()
+}
+
+// 停止 A2A 实例
+a2aInstance.stop()
+```
+
+## 总结 ✅
+
+Kastrax 的 A2A 实现提供了全面的代理发现机制，包括代理注册、发现和查询，支持构建灵活的多代理系统。通过代理发现，代理可以动态地找到具有所需能力的其他代理，并与之协作，实现复杂的多代理协作场景。
+
+## 下一步 ✅
+
+了解了 A2A 代理发现后，您可以：
+
+1. 了解 [A2A 任务委派](/docs/a2a/a2a-delegation.mdx)
+2. 研究 [A2A 安全机制](/docs/a2a/a2a-security.mdx)
+3. 探索 [多代理协作](/docs/a2a/a2a-collaboration.mdx)
+4. 学习 [工作流引擎](/docs/a2a/a2a-workflow.mdx)
+5. 研究 [A2A 协议规范](/docs/a2a/a2a-specification.mdx)

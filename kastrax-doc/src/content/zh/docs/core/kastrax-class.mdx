@@ -1,0 +1,628 @@
+---
+title: "KastraX 核心类 | 核心概念 | Kastrax 文档"
+description: "KastraX 类的文档，这是 Kastrax 框架中管理代理、工具和其他组件的核心入口点。"
+---
+
+# KastraX 核心类 ✅
+
+`KastraX` 类是 Kastrax 框架的中央入口点，为管理代理、工具和其他组件提供了统一的接口。本指南解释了如何使用 KastraX 类构建 AI 代理应用程序。
+
+## 概述 ✅
+
+`KastraX` 类作为各种组件的容器和管理器：
+
+- **代理**：具有不同能力的 AI 代理
+- **工具**：代理可以用来与外部系统交互的函数
+- **记忆**：用于存储和检索对话历史的系统
+- **RAG**：检索增强生成组件
+- **工作流**：定义和执行复杂任务的工作流
+- **Actor 系统**：分布式计算的 Actor 系统
+
+## 基本用法 ✅
+
+以下是创建和使用 KastraX 类的简单示例：
+
+```kotlin
+import ai.kastrax.core.kastrax
+import ai.kastrax.core.agent.agent
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    // 创建 KastraX 实例
+    val kastraxInstance = kastrax {
+        // 配置代理
+        agent("assistant") {
+            name("助手")
+            description("一个有帮助的助手")
+            
+            model = deepSeek {
+                apiKey("your-deepseek-api-key")
+                model(DeepSeekModel.DEEPSEEK_CHAT)
+                temperature(0.7)
+            }
+        }
+    }
+    
+    // 获取代理
+    val assistant = kastraxInstance.getAgent("assistant")
+    
+    // 使用代理
+    val response = assistant.generate("你好，你能帮我什么忙？")
+    println(response.text)
+}
+```
+
+## KastraX 类 API ✅
+
+`KastraX` 类提供了以下主要方法：
+
+### 代理管理 ✅
+
+```kotlin
+// 获取代理
+fun getAgent(agentId: String): Agent
+
+// 获取所有代理
+fun getAgents(): Map<String, Agent>
+
+// 添加代理
+fun addAgent(agentId: String, agent: Agent): KastraX
+
+// 移除代理
+fun removeAgent(agentId: String): KastraX
+```
+
+### 工具管理 ✅
+
+```kotlin
+// 获取工具
+fun getTool(toolId: String): Tool
+
+// 获取所有工具
+fun getTools(): Map<String, Tool>
+
+// 添加工具
+fun addTool(toolId: String, tool: Tool): KastraX
+
+// 移除工具
+fun removeTool(toolId: String): KastraX
+```
+
+### 记忆管理 ✅
+
+```kotlin
+// 获取记忆
+fun getMemory(memoryId: String): Memory
+
+// 获取所有记忆
+fun getMemories(): Map<String, Memory>
+
+// 添加记忆
+fun addMemory(memoryId: String, memory: Memory): KastraX
+
+// 移除记忆
+fun removeMemory(memoryId: String): KastraX
+```
+
+### RAG 管理 ✅
+
+```kotlin
+// 获取 RAG
+fun getRag(ragId: String): RAG
+
+// 获取所有 RAG
+fun getRags(): Map<String, RAG>
+
+// 添加 RAG
+fun addRag(ragId: String, rag: RAG): KastraX
+
+// 移除 RAG
+fun removeRag(ragId: String): KastraX
+```
+
+### 工作流管理 ✅
+
+```kotlin
+// 获取工作流
+fun getWorkflow(workflowId: String): Workflow
+
+// 获取所有工作流
+fun getWorkflows(): Map<String, Workflow>
+
+// 添加工作流
+fun addWorkflow(workflowId: String, workflow: Workflow): KastraX
+
+// 移除工作流
+fun removeWorkflow(workflowId: String): KastraX
+```
+
+### Actor 系统管理 ✅
+
+```kotlin
+// 获取 Actor 系统
+fun getActorSystem(): ActorSystem
+
+// 设置 Actor 系统
+fun setActorSystem(actorSystem: ActorSystem): KastraX
+
+// 创建 Actor 代理
+fun createActorAgent(agentId: String): PID
+```
+
+## KastraX 构建器 ✅
+
+`KastraXBuilder` 类提供了一个流畅的 API 来创建 `KastraX` 实例：
+
+```kotlin
+// 使用构建器创建 KastraX 实例
+val kastraxInstance = KastraXBuilder()
+    .agent("assistant", assistantAgent)
+    .agent("researcher", researcherAgent)
+    .tool("calculator", calculatorTool)
+    .tool("weather", weatherTool)
+    .memory("conversation", conversationMemory)
+    .rag("knowledge-base", knowledgeBaseRag)
+    .workflow("research", researchWorkflow)
+    .actorSystem(actorSystem)
+    .build()
+```
+
+或者使用 DSL 创建：
+
+```kotlin
+// 使用 DSL 创建 KastraX 实例
+val kastraxInstance = kastrax {
+    // 配置代理
+    agent("assistant") {
+        name("助手")
+        description("一个有帮助的助手")
+        
+        model = deepSeek {
+            apiKey("your-deepseek-api-key")
+            model(DeepSeekModel.DEEPSEEK_CHAT)
+            temperature(0.7)
+        }
+    }
+    
+    agent("researcher") {
+        name("研究员")
+        description("一个专注于研究的代理")
+        
+        model = deepSeek {
+            apiKey("your-deepseek-api-key")
+            model(DeepSeekModel.DEEPSEEK_CHAT)
+            temperature(0.3)
+        }
+    }
+    
+    // 配置工具
+    tool("calculator") {
+        id = "calculator"
+        name = "计算器"
+        description = "执行数学计算"
+        
+        // 工具配置...
+    }
+    
+    // 配置记忆
+    memory("conversation") {
+        inMemoryStorage()
+        lastMessages(10)
+        workingMemory(true)
+    }
+    
+    // 配置 RAG
+    rag("knowledge-base") {
+        vectorStore(inMemoryVectorStore())
+        embeddingService(openAiEmbedding())
+        // RAG 配置...
+    }
+    
+    // 配置工作流
+    workflow("research") {
+        name = "研究工作流"
+        description = "执行研究任务的工作流"
+        
+        // 工作流配置...
+    }
+    
+    // 配置 Actor 系统
+    actorSystem {
+        name = "kastrax-system"
+        // Actor 系统配置...
+    }
+}
+```
+
+## 与 Actor 系统集成 ✅
+
+`KastraX` 类可以与 Actor 系统集成，创建基于 Actor 的代理：
+
+```kotlin
+import ai.kastrax.core.kastrax
+import ai.kastrax.core.agent.agent
+import ai.kastrax.actor.actorSystem
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    // 创建 actor 系统
+    val actorSystem = actorSystem("kastrax-system")
+    
+    // 创建带有 actor 系统的 KastraX 实例
+    val kastraxInstance = kastrax {
+        // 配置 actor 系统
+        actorSystem(actorSystem)
+        
+        // 配置代理
+        agent("assistant") {
+            name("助手")
+            description("一个有帮助的助手")
+            
+            model = deepSeek {
+                apiKey("your-deepseek-api-key")
+                model(DeepSeekModel.DEEPSEEK_CHAT)
+                temperature(0.7)
+            }
+        }
+    }
+    
+    // 创建基于 actor 的代理
+    val agentActor = kastraxInstance.createActorAgent("assistant")
+    
+    // 向代理 actor 发送消息
+    actorSystem.root.send(agentActor, "你好，你能帮我什么忙？")
+}
+```
+
+## 配置 KastraX ✅
+
+`KastraX` 类可以通过配置系统进行配置：
+
+```kotlin
+// 使用配置创建 KastraX 实例
+val kastraxInstance = kastrax {
+    // 全局配置
+    config {
+        // 应用程序 ID
+        appId = "my-kastrax-app"
+        
+        // 环境（开发、测试、生产）
+        environment = "development"
+        
+        // 版本
+        version = "1.0.0"
+        
+        // LLM 配置
+        llm {
+            defaultProvider = "deepseek"
+            timeout = 30000 // 30 秒
+            retryCount = 3
+        }
+        
+        // 记忆配置
+        memory {
+            defaultStorage = "in-memory"
+            maxMessages = 100
+            workingMemoryEnabled = true
+        }
+        
+        // RAG 配置
+        rag {
+            defaultVectorStore = "in-memory"
+            chunkSize = 1000
+            chunkOverlap = 200
+        }
+        
+        // 日志配置
+        logging {
+            level = "INFO"
+            format = "json"
+        }
+    }
+    
+    // 代理配置...
+}
+```
+
+## 事件系统 ✅
+
+`KastraX` 类提供了事件系统，允许您监听和响应各种事件：
+
+```kotlin
+// 创建 KastraX 实例
+val kastraxInstance = kastrax {
+    // 配置...
+}
+
+// 添加事件监听器
+kastraxInstance.events.addListener(KastraxEvent.AGENT_CREATED) { event ->
+    println("代理已创建：${event.data["agentId"]}")
+}
+
+kastraxInstance.events.addListener(KastraxEvent.AGENT_GENERATE_START) { event ->
+    println("代理开始生成：${event.data["agentId"]}")
+}
+
+kastraxInstance.events.addListener(KastraxEvent.AGENT_GENERATE_COMPLETE) { event ->
+    println("代理生成完成：${event.data["agentId"]}")
+}
+
+// 移除事件监听器
+val listenerId = kastraxInstance.events.addListener(KastraxEvent.AGENT_ERROR) { event ->
+    println("代理错误：${event.data["error"]}")
+}
+
+kastraxInstance.events.removeListener(listenerId)
+```
+
+## 多代理系统 ✅
+
+`KastraX` 类支持创建多代理系统，代理之间可以协作：
+
+```kotlin
+// 创建多代理系统
+val kastraxInstance = kastrax {
+    // 配置助手代理
+    agent("assistant") {
+        name("助手")
+        description("一个有帮助的助手")
+        
+        model = deepSeek {
+            apiKey("your-deepseek-api-key")
+            model(DeepSeekModel.DEEPSEEK_CHAT)
+            temperature(0.7)
+        }
+    }
+    
+    // 配置研究员代理
+    agent("researcher") {
+        name("研究员")
+        description("一个专注于研究的代理")
+        
+        model = deepSeek {
+            apiKey("your-deepseek-api-key")
+            model(DeepSeekModel.DEEPSEEK_CHAT)
+            temperature(0.3)
+        }
+    }
+    
+    // 配置编辑代理
+    agent("editor") {
+        name("编辑")
+        description("一个专注于编辑和改进文本的代理")
+        
+        model = deepSeek {
+            apiKey("your-deepseek-api-key")
+            model(DeepSeekModel.DEEPSEEK_CHAT)
+            temperature(0.5)
+        }
+    }
+    
+    // 配置代理网络
+    agentNetwork {
+        // 添加代理
+        addAgent("assistant")
+        addAgent("researcher")
+        addAgent("editor")
+        
+        // 配置路由
+        routing {
+            // 根据查询类型路由到不同的代理
+            route("research") to "researcher"
+            route("edit") to "editor"
+            route("*") to "assistant" // 默认路由
+        }
+    }
+}
+
+// 使用代理网络
+val agentNetwork = kastraxInstance.getAgentNetwork()
+val response = agentNetwork.generate("我需要研究人工智能的历史")
+println(response.text)
+```
+
+## 服务器集成 ✅
+
+`KastraX` 类可以与 HTTP 服务器集成，提供 API 接口：
+
+```kotlin
+// 创建 KastraX 实例
+val kastraxInstance = kastrax {
+    // 配置...
+    
+    // 配置服务器
+    server {
+        port = 8080
+        host = "localhost"
+        enableCors = true
+        
+        // 配置路由
+        routes {
+            // 代理路由
+            route("/agents/{agentId}/generate") {
+                post {
+                    // 处理生成请求
+                }
+            }
+            
+            // 工具路由
+            route("/tools/{toolId}/execute") {
+                post {
+                    // 处理工具执行请求
+                }
+            }
+            
+            // 工作流路由
+            route("/workflows/{workflowId}/execute") {
+                post {
+                    // 处理工作流执行请求
+                }
+            }
+        }
+    }
+}
+
+// 启动服务器
+kastraxInstance.startServer()
+```
+
+## 最佳实践 ✅
+
+使用 `KastraX` 类的最佳实践：
+
+1. **使用 DSL**：使用 DSL 创建和配置 KastraX 实例，提高代码可读性
+2. **组件命名**：为代理、工具和其他组件使用有意义的名称
+3. **错误处理**：添加事件监听器监听错误事件，及时处理错误
+4. **资源管理**：在不再需要 KastraX 实例时关闭它，释放资源
+5. **配置分离**：将配置与代码分离，使用配置文件或环境变量
+6. **模块化**：将代理、工具和其他组件分离到不同的文件中
+7. **测试**：为 KastraX 实例编写单元测试和集成测试
+8. **监控**：使用事件系统监控 KastraX 实例的运行状态
+
+## 示例应用 ✅
+
+以下是一个完整的示例应用，展示了如何使用 `KastraX` 类创建一个多代理系统：
+
+```kotlin
+import ai.kastrax.core.kastrax
+import ai.kastrax.core.agent.agent
+import ai.kastrax.core.tools.tool
+import ai.kastrax.core.memory.memory
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.runBlocking
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
+
+fun main() = runBlocking {
+    // 创建 KastraX 实例
+    val kastraxInstance = kastrax {
+        // 配置助手代理
+        agent("assistant") {
+            name("助手")
+            description("一个有帮助的助手")
+            
+            instructions("""
+                你是一个有帮助的助手，旨在提供准确、有用的信息。
+                
+                遵循这些准则：
+                1. 提供简洁、准确的回答
+                2. 如果你不知道答案，坦率地承认
+                3. 避免编造信息
+                
+                你可以使用以下工具：
+                - getCurrentTime：获取当前时间
+                - calculateExpression：计算数学表达式
+            """.trimIndent())
+            
+            model = deepSeek {
+                apiKey(System.getenv("DEEPSEEK_API_KEY") ?: "your-deepseek-api-key")
+                model(DeepSeekModel.DEEPSEEK_CHAT)
+                temperature(0.7)
+            }
+            
+            memory = memory {
+                inMemoryStorage()
+                lastMessages(10)
+                workingMemory(true)
+            }
+            
+            tools {
+                // 获取当前时间的工具
+                tool("getCurrentTime") {
+                    description("获取当前时间和日期")
+                    parameters {}
+                    execute {
+                        val now = LocalDateTime.now()
+                        val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+                        "当前时间是：${now.format(formatter)}"
+                    }
+                }
+                
+                // 计算表达式的工具
+                tool("calculateExpression") {
+                    description("计算数学表达式")
+                    parameters {
+                        parameter("expression", "要计算的数学表达式", String::class)
+                    }
+                    execute { params ->
+                        try {
+                            val expression = params["expression"] as String
+                            val result = evaluateExpression(expression)
+                            "表达式 '$expression' 的结果是：$result"
+                        } catch (e: Exception) {
+                            "无法计算表达式：${e.message}"
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    // 添加事件监听器
+    kastraxInstance.events.addListener(KastraxEvent.AGENT_GENERATE_START) { event ->
+        println("代理开始生成：${event.data["agentId"]}")
+    }
+    
+    kastraxInstance.events.addListener(KastraxEvent.AGENT_GENERATE_COMPLETE) { event ->
+        println("代理生成完成：${event.data["agentId"]}")
+    }
+    
+    // 获取代理
+    val assistant = kastraxInstance.getAgent("assistant")
+    
+    // 创建对话线程
+    val threadId = "user-session-1"
+    
+    // 使用代理
+    println("与助手对话。输入 'exit' 退出。")
+    
+    while (true) {
+        print("\n> ")
+        val input = readLine() ?: ""
+        
+        if (input.lowercase() == "exit") {
+            break
+        }
+        
+        val response = assistant.generate(
+            input,
+            options = ai.kastrax.core.agent.AgentGenerateOptions(
+                threadId = threadId,
+                memoryOptions = ai.kastrax.core.memory.MemoryOptions(
+                    enabled = true
+                )
+            )
+        )
+        
+        println("\n${response.text}")
+    }
+}
+
+// 简单的表达式计算器
+fun evaluateExpression(expression: String): Double {
+    // 注意：这是一个简化的实现，仅用于演示
+    // 在生产环境中，应使用更安全、更强大的表达式计算库
+    return javax.script.ScriptEngineManager().getEngineByName("JavaScript")
+        .eval(expression).toString().toDouble()
+}
+```
+
+## 总结 ✅
+
+`KastraX` 类是 Kastrax 框架的中央入口点，提供了管理代理、工具和其他组件的统一接口。通过 `KastraX` 类，您可以创建和配置 AI 代理应用程序，实现复杂的 AI 功能。
+
+## 下一步 ✅
+
+了解了 `KastraX` 类后，您可以：
+
+1. 探索 [Agent 系统](/docs/agents/overview.mdx)
+2. 学习 [工具系统](/docs/tools/overview.mdx)
+3. 了解 [记忆系统](/docs/memory/overview.mdx)
+4. 研究 [RAG 系统](/docs/rag/overview.mdx)
+5. 探索 [工作流系统](/docs/workflows/overview.mdx)
+6. 学习 [Actor 模型](/docs/actor/overview.mdx)

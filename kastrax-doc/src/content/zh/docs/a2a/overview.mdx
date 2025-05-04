@@ -1,0 +1,456 @@
+---
+title: "A2A 协议概述 | A2A 协议 | Kastrax 文档"
+description: "A2A (Agent-to-Agent) 协议的概述，包括核心概念、设计目标和实现方式。"
+---
+
+# A2A 协议概述 ✅
+
+## 什么是 A2A 协议 ✅
+
+A2A (Agent-to-Agent) 是一个开放协议，旨在实现 AI 代理之间的通信和协作。Kastrax 实现了完整的 A2A 协议，使用 Kotlin 的 actor 风格编程模型，实现代理之间的互操作性。
+
+A2A 协议允许不同的 AI 代理发现彼此的能力，并通过标准化的接口进行通信和协作，从而构建复杂的多代理系统。
+
+## 核心概念 ✅
+
+### Agent Card ✅
+
+Agent Card 是描述代理能力、技能、端点 URL 和认证需求的 JSON 文件，通常位于 `/.well-known/agent.json`，用于能力发现。它包含以下信息：
+
+- **代理元数据**：ID、名称、描述、版本等
+- **能力列表**：代理提供的能力，包括参数和返回类型
+- **认证需求**：访问代理所需的认证方式
+- **端点 URL**：代理的 API 端点
+
+```json
+{
+  "id": "data-analysis-agent",
+  "name": "数据分析代理",
+  "description": "提供数据分析和可视化能力的代理",
+  "version": "1.0.0",
+  "capabilities": [
+    {
+      "id": "data_analysis",
+      "name": "数据分析",
+      "description": "分析提供的数据集并返回统计结果",
+      "parameters": [
+        {
+          "name": "dataset_url",
+          "type": "string",
+          "description": "数据集URL",
+          "required": true
+        },
+        {
+          "name": "analysis_type",
+          "type": "string",
+          "description": "分析类型",
+          "required": true
+        }
+      ],
+      "returnType": "json"
+    }
+  ],
+  "authentication": {
+    "type": "api_key"
+  },
+  "endpoint": "https://example.com/api/agent"
+}
+```
+
+### A2A 消息 ✅
+
+A2A 协议定义了一组标准消息类型，用于代理之间的通信：
+
+- **CapabilityRequest**：请求代理的能力列表
+- **CapabilityResponse**：返回代理的能力列表
+- **InvokeRequest**：调用代理的能力
+- **InvokeResponse**：返回调用结果
+- **QueryRequest**：查询代理的状态
+- **QueryResponse**：返回代理的状态
+- **ErrorMessage**：表示错误情况
+
+### 代理发现 ✅
+
+代理发现是 A2A 协议的核心功能之一，允许代理发现其他代理的存在和能力。Kastrax 实现了以下代理发现机制：
+
+- **静态配置**：通过配置文件指定已知代理
+- **自动发现**：定期扫描已知服务器，发现新代理
+- **注册中心**：代理可以向中央注册中心注册自己
+
+### 安全机制 ✅
+
+A2A 协议支持多种安全机制，确保代理之间的通信安全：
+
+- **API 密钥**：使用 API 密钥进行认证
+- **JWT**：使用 JSON Web Token 进行认证
+- **OAuth2**：使用 OAuth2 进行认证
+- **授权**：基于角色和权限的授权
+- **数据加密**：通信数据的加密
+
+## Kastrax 中的 A2A 实现 ✅
+
+Kastrax 提供了完整的 A2A 协议实现，包括以下组件：
+
+### 核心组件 ✅
+
+1. **A2A Protocol Core**：协议核心实现，定义基本接口和数据结构
+2. **Agent Discovery**：代理发现机制，包括注册、查询和更新
+3. **Agent Card**：代理能力描述，包括元数据、能力和认证需求
+4. **Agent Communication**：代理间通信机制，包括消息格式和传输
+5. **Message Bus**：基于 Kotlin 协程和 Channel 的消息总线，处理代理间的异步通信
+6. **Agent Orchestration**：代理编排机制，协调多个代理的协作
+7. **Workflow Engine**：工作流引擎，管理代理间的复杂交互和任务流程
+8. **Security Service**：安全服务，提供认证和授权功能
+9. **Task Manager**：任务管理器，管理代理任务的创建、执行和状态跟踪
+10. **Monitoring Service**：监控服务，收集代理的指标、日志和跟踪信息
+
+### DSL 接口 ✅
+
+Kastrax 提供了与 Kastrax 风格一致的 DSL 接口，简化了 A2A 代理的创建和配置：
+
+```kotlin
+// 创建 A2A 实例
+val a2aInstance = a2a {
+    // 注册 kastrax 代理
+    agent(assistantAgent)
+
+    // 注册 A2A 代理
+    a2aAgent {
+        id = "data-analysis-agent"
+        name = "数据分析代理"
+        description = "提供数据分析和可视化能力的代理"
+        baseAgent = assistantAgent
+
+        capability {
+            id = "data_analysis"
+            name = "数据分析"
+            description = "分析提供的数据集并返回统计结果"
+
+            parameter {
+                name = "dataset_url"
+                type = "string"
+                description = "数据集URL"
+                required = true
+            }
+
+            parameter {
+                name = "analysis_type"
+                type = "string"
+                description = "分析类型"
+                required = true
+            }
+
+            returnType = "json"
+        }
+
+        authentication {
+            type = AuthType.API_KEY
+        }
+    }
+
+    // 配置服务器
+    server {
+        port = 8080
+        enableCors = true
+    }
+
+    // 添加服务器到发现服务
+    discovery("http://localhost:8080")
+}
+```
+
+### 与 Kastrax 集成 ✅
+
+Kastrax 的 A2A 实现与现有的 Kastrax 代理系统无缝集成：
+
+- **代理适配器**：将 Kastrax 代理适配为 A2A 代理
+- **工具集成**：A2A 能力可以作为 Kastrax 工具使用
+- **记忆集成**：A2A 代理可以访问 Kastrax 的记忆系统
+- **工作流集成**：A2A 代理可以参与 Kastrax 工作流
+
+## 多代理协作 ✅
+
+A2A 协议的主要目标是实现多代理协作，Kastrax 提供了多种协作模式：
+
+### 直接调用 ✅
+
+最简单的协作模式是直接调用，一个代理直接调用另一个代理的能力：
+
+```kotlin
+// 创建数据收集代理
+val dataCollectorAgent = a2aAgent {
+    id = "data-collector"
+    name = "数据收集代理"
+    // 配置...
+}
+
+// 创建数据分析代理
+val dataAnalysisAgent = a2aAgent {
+    id = "data-analysis"
+    name = "数据分析代理"
+    // 配置...
+}
+
+// 创建报告生成代理
+val reportGeneratorAgent = a2aAgent {
+    id = "report-generator"
+    name = "报告生成代理"
+    // 配置...
+}
+
+// 多代理协作
+suspend fun generateMarketReport(marketId: String): MarketReport {
+    // 1. 收集数据
+    val dataRequest = InvokeRequest(
+        capability = "collect_market_data",
+        parameters = mapOf("market_id" to marketId)
+    )
+    val dataResponse = dataCollectorAgent.invoke(dataRequest)
+    val marketData = dataResponse.result as MarketData
+
+    // 2. 分析数据
+    val analysisRequest = InvokeRequest(
+        capability = "analyze_market_data",
+        parameters = mapOf("market_data" to marketData)
+    )
+    val analysisResponse = dataAnalysisAgent.invoke(analysisRequest)
+    val marketAnalysis = analysisResponse.result as MarketAnalysis
+
+    // 3. 生成报告
+    val reportRequest = InvokeRequest(
+        capability = "generate_market_report",
+        parameters = mapOf(
+            "market_data" to marketData,
+            "market_analysis" to marketAnalysis
+        )
+    )
+    val reportResponse = reportGeneratorAgent.invoke(reportRequest)
+    return reportResponse.result as MarketReport
+}
+```
+
+### 代理发现和动态协作 ✅
+
+更高级的协作模式是代理发现和动态协作，代理可以动态发现具有所需能力的其他代理：
+
+```kotlin
+// 代理注册表
+val agentRegistry = A2AAgentRegistry()
+
+// 注册代理
+agentRegistry.register(dataCollectorAgent)
+agentRegistry.register(dataAnalysisAgent)
+agentRegistry.register(reportGeneratorAgent)
+
+// 动态发现和协作
+suspend fun dynamicCollaboration(task: Task): Result {
+    // 1. 发现具有所需能力的代理
+    val capableAgents = agentRegistry.findAgentsByCapability(task.requiredCapabilities)
+
+    // 2. 选择最合适的代理
+    val selectedAgent = selectBestAgent(capableAgents, task)
+
+    // 3. 执行任务
+    val request = InvokeRequest(
+        capability = task.capability,
+        parameters = task.parameters
+    )
+    val response = selectedAgent.invoke(request)
+    return response.result
+}
+```
+
+### 工作流引擎 ✅
+
+最复杂的协作模式是使用工作流引擎，定义和执行复杂的多代理协作流程：
+
+```kotlin
+// 创建工作流
+val marketReportWorkflow = workflow {
+    id = "market-report-workflow"
+    name = "市场报告工作流"
+    description = "生成市场报告的工作流"
+
+    // 输入参数
+    input {
+        parameter("market_id", "市场ID", String::class)
+    }
+
+    // 工作流步骤
+    steps {
+        // 步骤 1：收集数据
+        step("collect_data") {
+            agentId = "data-collector"
+            capabilityId = "collect_market_data"
+            parameters {
+                parameter("market_id", context.get<String>("market_id"))
+            }
+            output = "market_data"
+        }
+
+        // 步骤 2：分析数据
+        step("analyze_data") {
+            agentId = "data-analysis"
+            capabilityId = "analyze_market_data"
+            parameters {
+                parameter("market_data", context.get<MarketData>("market_data"))
+            }
+            output = "market_analysis"
+            dependsOn = listOf("collect_data")
+        }
+
+        // 步骤 3：生成报告
+        step("generate_report") {
+            agentId = "report-generator"
+            capabilityId = "generate_market_report"
+            parameters {
+                parameter("market_data", context.get<MarketData>("market_data"))
+                parameter("market_analysis", context.get<MarketAnalysis>("market_analysis"))
+            }
+            output = "market_report"
+            dependsOn = listOf("analyze_data")
+        }
+    }
+
+    // 输出参数
+    output {
+        parameter("market_report", "市场报告", MarketReport::class)
+    }
+}
+
+// 执行工作流
+val workflowEngine = WorkflowEngine()
+val result = workflowEngine.execute(marketReportWorkflow, mapOf("market_id" to "MARKET-123"))
+val marketReport = result.get<MarketReport>("market_report")
+```
+
+## 任务管理 ✅
+
+Kastrax 的 A2A 实现提供了完整的任务管理功能，支持任务的创建、执行、取消和状态跟踪：
+
+```kotlin
+// 创建任务管理器
+val taskManager = TaskManager()
+
+// 创建任务
+val message = Message(
+    parts = listOf(
+        TextPart(
+            text = "分析市场数据并生成报告"
+        )
+    )
+)
+val task = taskManager.createTask(message, sessionId = "user-session-1")
+
+// 设置推送通知
+taskManager.setTaskPushNotification(
+    taskId = task.id,
+    config = PushNotificationConfig(
+        url = "https://example.com/webhook",
+        events = listOf("task.completed", "task.failed")
+    )
+)
+
+// 处理任务
+taskManager.processTask(agent, task)
+
+// 获取任务状态
+val taskStatus = taskManager.getTaskStatus(task.id)
+
+// 取消任务
+taskManager.cancelTask(task.id)
+```
+
+## 安全机制 ✅
+
+Kastrax 的 A2A 实现提供了多种安全机制，确保代理之间的通信安全：
+
+```kotlin
+// 创建安全服务
+val securityService = security {
+    // 配置 API 密钥认证
+    type = AuthType.API_KEY
+    apiKeys = mapOf(
+        "api-key-1" to Principal("user-1", listOf("user"), listOf("read", "write"))
+    )
+}
+
+// 或者配置 JWT 认证
+val securityService = security {
+    type = AuthType.JWT
+    jwtSecret = "your-jwt-secret"
+    jwtIssuer = "kastrax"
+    jwtAudience = "a2a-api"
+}
+
+// 验证 API 密钥
+val authResult = securityService.validateApiKey("api-key-1")
+if (authResult is AuthResult.Success) {
+    val principal = authResult.principal
+    // 检查权限
+    val hasPermission = securityService.checkPermission(principal, "read")
+    // 检查角色
+    val hasRole = securityService.checkRole(principal, "user")
+}
+
+// 生成 JWT 令牌
+val token = securityService.generateJwt(
+    userId = "user-1",
+    roles = listOf("user"),
+    permissions = listOf("read", "write"),
+    expirationSeconds = 3600
+)
+
+// 验证 JWT 令牌
+val authResult = securityService.validateJwt(token)
+```
+
+## 监控和指标 ✅
+
+Kastrax 的 A2A 实现提供了全面的监控系统，支持指标收集、日志记录和跟踪：
+
+```kotlin
+// 创建监控服务
+val monitoringService = monitoring {
+    // 指标事件处理
+    onMetric { event ->
+        println("Metric: ${event.name} = ${event.value}")
+    }
+
+    // 日志事件处理
+    onLog { event ->
+        println("Log: ${event.level} - ${event.message}")
+    }
+
+    // 跟踪事件处理
+    onTrace { event ->
+        println("Trace: ${event.name} - ${event.duration}ms")
+    }
+}
+
+// 记录指标
+monitoringService.recordMetric("requests_count", 1)
+
+// 记录日志
+monitoringService.log(LogLevel.INFO, "处理请求")
+
+// 记录跟踪
+monitoringService.startTrace("process_request").use { trace ->
+    // 处理请求
+    trace.addAttribute("request_id", "req-123")
+}
+```
+
+## 总结 ✅
+
+Kastrax 的 A2A 实现提供了完整的代理间通信和协作功能，包括代理发现、能力调用、多代理协作、工作流引擎、任务管理、安全机制和监控系统。通过 A2A 协议，Kastrax 代理可以与其他代理无缝协作，构建复杂的多代理系统。
+
+## 下一步 ✅
+
+了解了 A2A 协议的基本概念后，您可以：
+
+1. 学习 [A2A 代理发现](/docs/a2a/a2a-discovery.mdx)
+2. 了解 [A2A 任务委派](/docs/a2a/a2a-delegation.mdx)
+3. 研究 [A2A 安全机制](/docs/a2a/a2a-security.mdx)
+4. 探索 [多代理协作](/docs/a2a/a2a-collaboration.mdx)
+5. 学习 [工作流引擎](/docs/a2a/a2a-workflow.mdx)
