@@ -1,0 +1,366 @@
+---
+title: "A2A Protocol Overview | Kastrax Docs"
+description: "Overview of the Agent-to-Agent (A2A) protocol in Kastrax, detailing how agents can communicate and collaborate."
+---
+
+# A2A Protocol Overview ✅
+
+The Kastrax Agent-to-Agent (A2A) protocol provides a standardized way for AI agents to communicate, discover each other's capabilities, and collaborate on complex tasks. This guide explains the A2A protocol architecture and how to use it effectively.
+
+## What is the A2A Protocol? ✅
+
+The Agent-to-Agent (A2A) protocol is a communication standard that enables AI agents to:
+
+- Discover other agents and their capabilities
+- Exchange structured messages
+- Invoke capabilities provided by other agents
+- Collaborate on complex tasks
+- Maintain security and access control
+
+## A2A Protocol Architecture ✅
+
+The Kastrax A2A protocol consists of several key components:
+
+1. **Agent Card**: A structured description of an agent's capabilities
+2. **Capabilities**: Functions that agents can expose to other agents
+3. **Messages**: Structured communication between agents
+4. **Discovery Service**: A registry for finding agents and their capabilities
+5. **Security Layer**: Authentication and authorization mechanisms
+
+## Basic A2A Implementation ✅
+
+Here's a simple example of creating an A2A agent in Kastrax:
+
+```kotlin
+import ai.kastrax.a2a.a2a
+import ai.kastrax.a2a.agent.a2aAgent
+import ai.kastrax.a2a.model.AuthType
+import ai.kastrax.core.agent.agent
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    // Create a base agent
+    val baseAgent = agent {
+        name("DataAnalysisAgent")
+        description("An agent that can analyze data")
+        
+        model = deepSeek {
+            apiKey("your-deepseek-api-key")
+            model(DeepSeekModel.DEEPSEEK_CHAT)
+            temperature(0.7)
+        }
+    }
+    
+    // Create an A2A instance
+    val a2aInstance = a2a {
+        // Register the base agent
+        agent(baseAgent)
+        
+        // Create an A2A agent
+        a2aAgent {
+            id = "data-analysis-agent"
+            name = "Data Analysis Agent"
+            description = "Provides data analysis and visualization capabilities"
+            baseAgent = baseAgent
+            
+            // Define a capability
+            capability {
+                id = "analyze_data"
+                name = "Analyze Data"
+                description = "Analyzes a dataset and returns statistical results"
+                
+                // Define parameters
+                parameter {
+                    name = "dataset_url"
+                    type = "string"
+                    description = "URL of the dataset to analyze"
+                    required = true
+                }
+                
+                parameter {
+                    name = "analysis_type"
+                    type = "string"
+                    description = "Type of analysis to perform"
+                    required = true
+                }
+                
+                returnType = "json"
+            }
+            
+            // Configure authentication
+            authentication {
+                type = AuthType.API_KEY
+            }
+        }
+        
+        // Configure the server
+        server {
+            port = 8080
+            enableCors = true
+        }
+        
+        // Add discovery service
+        discovery("http://localhost:8080")
+    }
+    
+    // Start the A2A server
+    a2aInstance.start()
+    
+    println("A2A server started on port 8080")
+    println("Press Enter to exit...")
+    readLine()
+    
+    // Stop the A2A server
+    a2aInstance.stop()
+}
+```
+
+## Agent Card ✅
+
+The Agent Card is a structured description of an agent's capabilities:
+
+```kotlin
+// Define an agent card
+val agentCard = AgentCard(
+    id = "data-analysis-agent",
+    name = "Data Analysis Agent",
+    description = "Provides data analysis and visualization capabilities",
+    version = "1.0.0",
+    endpoint = "http://localhost:8080/a2a/v1",
+    capabilities = listOf(
+        Capability(
+            id = "analyze_data",
+            name = "Analyze Data",
+            description = "Analyzes a dataset and returns statistical results",
+            parameters = listOf(
+                Parameter(
+                    name = "dataset_url",
+                    type = "string",
+                    description = "URL of the dataset to analyze",
+                    required = true
+                ),
+                Parameter(
+                    name = "analysis_type",
+                    type = "string",
+                    description = "Type of analysis to perform",
+                    required = true
+                )
+            ),
+            returnType = "json"
+        )
+    ),
+    authentication = Authentication(
+        type = AuthType.API_KEY
+    )
+)
+```
+
+## A2A Messages ✅
+
+A2A agents communicate using structured messages:
+
+```kotlin
+// Create a capability request message
+val capabilityRequest = CapabilityRequest(
+    id = UUID.randomUUID().toString()
+)
+
+// Create an invoke request message
+val invokeRequest = InvokeRequest(
+    id = UUID.randomUUID().toString(),
+    capabilityId = "analyze_data",
+    parameters = mapOf(
+        "dataset_url" to JsonPrimitive("https://example.com/dataset.csv"),
+        "analysis_type" to JsonPrimitive("statistical")
+    )
+)
+```
+
+## A2A Client ✅
+
+You can use the A2A client to interact with A2A agents:
+
+```kotlin
+import ai.kastrax.a2a.client.A2AClient
+import ai.kastrax.a2a.client.A2AClientConfig
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    // Create an A2A client
+    val client = A2AClient(
+        A2AClientConfig(
+            serverUrl = "http://localhost:8080",
+            apiKey = "your-api-key"
+        )
+    )
+    
+    // Get the agent card
+    val agentCard = client.getAgentCard()
+    println("Agent: ${agentCard.name}")
+    println("Capabilities: ${agentCard.capabilities.map { it.name }}")
+    
+    // Invoke a capability
+    val response = client.invoke(
+        "analyze_data",
+        mapOf(
+            "dataset_url" to "https://example.com/dataset.csv",
+            "analysis_type" to "statistical"
+        )
+    )
+    
+    println("Response: $response")
+    
+    // Close the client
+    client.close()
+}
+```
+
+## A2A Server ✅
+
+The A2A server exposes agent capabilities via HTTP:
+
+```kotlin
+import ai.kastrax.a2a.server.A2AServer
+import ai.kastrax.a2a.server.A2AServerConfig
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    // Create an A2A server
+    val server = A2AServer(
+        A2AServerConfig(
+            port = 8080,
+            enableCors = true
+        )
+    )
+    
+    // Register an agent
+    server.registerAgent(a2aAgent)
+    
+    // Start the server
+    server.start()
+    
+    println("A2A server started on port 8080")
+    println("Press Enter to exit...")
+    readLine()
+    
+    // Stop the server
+    server.stop()
+}
+```
+
+## A2A Discovery Service ✅
+
+The discovery service helps agents find each other:
+
+```kotlin
+import ai.kastrax.a2a.discovery.A2ADiscoveryService
+import ai.kastrax.a2a.discovery.A2ADiscoveryConfig
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    // Create a discovery service
+    val discoveryService = A2ADiscoveryService(
+        A2ADiscoveryConfig(
+            enableAutoDiscovery = true,
+            discoveryInterval = 60000 // 1 minute
+        )
+    )
+    
+    // Add a server
+    discoveryService.addServer("http://localhost:8080")
+    
+    // Find agents by capability
+    val agents = discoveryService.findAgentsByCapability("analyze_data")
+    
+    for (agent in agents) {
+        println("Found agent: ${agent.name}")
+    }
+}
+```
+
+## Multi-Agent Collaboration ✅
+
+A2A enables complex multi-agent collaboration:
+
+```kotlin
+import ai.kastrax.a2a.a2a
+import ai.kastrax.a2a.agent.a2aAgent
+import ai.kastrax.a2a.model.AuthType
+import ai.kastrax.core.agent.agent
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    // Create A2A instance
+    val a2aInstance = a2a {
+        // Register data analysis agent
+        a2aAgent {
+            id = "data-analysis-agent"
+            name = "Data Analysis Agent"
+            description = "Provides data analysis capabilities"
+            // Configuration...
+        }
+        
+        // Register visualization agent
+        a2aAgent {
+            id = "visualization-agent"
+            name = "Visualization Agent"
+            description = "Provides data visualization capabilities"
+            // Configuration...
+        }
+        
+        // Register coordinator agent
+        a2aAgent {
+            id = "coordinator-agent"
+            name = "Coordinator Agent"
+            description = "Coordinates analysis and visualization tasks"
+            // Configuration...
+        }
+        
+        // Configure server
+        server {
+            port = 8080
+            enableCors = true
+        }
+    }
+    
+    // Start the A2A server
+    a2aInstance.start()
+    
+    // Create a task
+    val task = a2aInstance.createTask(
+        Message(
+            role = "user",
+            parts = listOf(
+                TextPart(
+                    text = "Analyze and visualize this dataset: https://example.com/dataset.csv"
+                )
+            )
+        )
+    )
+    
+    // Monitor task progress
+    task.onUpdate { status ->
+        println("Task status: ${status.state}")
+    }
+    
+    // Wait for task completion
+    val result = task.await()
+    println("Task result: $result")
+    
+    // Stop the A2A server
+    a2aInstance.stop()
+}
+```
+
+## Next Steps ✅
+
+Now that you understand the A2A protocol, you can:
+
+1. Learn about [creating A2A agents](./creating-a2a-agents.mdx)
+2. Explore [A2A capabilities](./a2a-capabilities.mdx)
+3. Implement [multi-agent systems](./multi-agent-systems.mdx)
+4. Set up [A2A security](./a2a-security.mdx)

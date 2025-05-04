@@ -1,0 +1,491 @@
+---
+title: "A2A Security | Kastrax Docs"
+description: "Detailed guide on security mechanisms in the Agent-to-Agent (A2A) protocol."
+---
+
+# A2A Security ✅
+
+Security is a critical aspect of the A2A protocol, ensuring that agent communications are protected and that only authorized agents can access capabilities. This guide explains the security mechanisms in the Kastrax A2A implementation.
+
+## Security Overview ✅
+
+The Kastrax A2A protocol implements several security mechanisms:
+
+1. **Authentication**: Verifying the identity of agents
+2. **Authorization**: Controlling access to capabilities
+3. **Encryption**: Protecting data in transit
+4. **Rate Limiting**: Preventing abuse
+5. **Audit Logging**: Tracking agent interactions
+6. **Input Validation**: Preventing injection attacks
+
+## Authentication Methods ✅
+
+The A2A protocol supports multiple authentication methods:
+
+### API Key Authentication ✅
+
+API key authentication is the simplest method:
+
+```kotlin
+import ai.kastrax.a2a.a2a
+import ai.kastrax.a2a.agent.a2aAgent
+import ai.kastrax.a2a.model.AuthType
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    val a2aInstance = a2a {
+        a2aAgent {
+            id = "secure-agent"
+            name = "Secure Agent"
+            description = "An agent with API key authentication"
+            
+            // Configure API key authentication
+            authentication {
+                type = AuthType.API_KEY
+                details = mapOf(
+                    "header" to "X-API-Key"
+                )
+            }
+            
+            // Define capabilities...
+        }
+        
+        // Configure server with security
+        server {
+            port = 8080
+            enableCors = true
+            
+            // Configure API keys
+            apiKeys = mapOf(
+                "client1" to "api-key-1",
+                "client2" to "api-key-2"
+            )
+        }
+    }
+}
+```
+
+### JWT Authentication ✅
+
+JWT (JSON Web Token) authentication provides more advanced security:
+
+```kotlin
+import ai.kastrax.a2a.a2a
+import ai.kastrax.a2a.agent.a2aAgent
+import ai.kastrax.a2a.model.AuthType
+import ai.kastrax.a2a.security.JwtConfig
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    val a2aInstance = a2a {
+        a2aAgent {
+            id = "secure-agent"
+            name = "Secure Agent"
+            description = "An agent with JWT authentication"
+            
+            // Configure JWT authentication
+            authentication {
+                type = AuthType.JWT
+                details = mapOf(
+                    "issuer" to "kastrax-a2a",
+                    "audience" to "secure-agent"
+                )
+            }
+            
+            // Define capabilities...
+        }
+        
+        // Configure server with JWT security
+        server {
+            port = 8080
+            enableCors = true
+            
+            // Configure JWT
+            jwt {
+                secret = "your-jwt-secret" // In production, use a secure secret
+                issuer = "kastrax-a2a"
+                audience = "secure-agent"
+                expirationMs = 3600000 // 1 hour
+            }
+        }
+    }
+}
+```
+
+### OAuth2 Authentication ✅
+
+OAuth2 authentication enables integration with external identity providers:
+
+```kotlin
+import ai.kastrax.a2a.a2a
+import ai.kastrax.a2a.agent.a2aAgent
+import ai.kastrax.a2a.model.AuthType
+import ai.kastrax.a2a.security.OAuth2Config
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    val a2aInstance = a2a {
+        a2aAgent {
+            id = "secure-agent"
+            name = "Secure Agent"
+            description = "An agent with OAuth2 authentication"
+            
+            // Configure OAuth2 authentication
+            authentication {
+                type = AuthType.OAUTH2
+                details = mapOf(
+                    "issuer" to "https://auth.example.com",
+                    "audience" to "secure-agent"
+                )
+            }
+            
+            // Define capabilities...
+        }
+        
+        // Configure server with OAuth2 security
+        server {
+            port = 8080
+            enableCors = true
+            
+            // Configure OAuth2
+            oauth2 {
+                issuer = "https://auth.example.com"
+                audience = "secure-agent"
+                jwksUrl = "https://auth.example.com/.well-known/jwks.json"
+            }
+        }
+    }
+}
+```
+
+## Authorization ✅
+
+Authorization controls which agents can access which capabilities:
+
+```kotlin
+import ai.kastrax.a2a.a2a
+import ai.kastrax.a2a.agent.a2aAgent
+import ai.kastrax.a2a.model.AuthType
+import ai.kastrax.a2a.security.Role
+import ai.kastrax.a2a.security.Permission
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    val a2aInstance = a2a {
+        // Define roles
+        role("reader") {
+            permission(Permission.READ)
+        }
+        
+        role("writer") {
+            permission(Permission.READ)
+            permission(Permission.WRITE)
+        }
+        
+        role("admin") {
+            permission(Permission.READ)
+            permission(Permission.WRITE)
+            permission(Permission.ADMIN)
+        }
+        
+        a2aAgent {
+            id = "secure-agent"
+            name = "Secure Agent"
+            description = "An agent with role-based authorization"
+            
+            // Configure authentication
+            authentication {
+                type = AuthType.API_KEY
+            }
+            
+            // Define a capability with role-based access
+            capability {
+                id = "get_sensitive_data"
+                name = "Get Sensitive Data"
+                description = "Gets sensitive data that requires authorization"
+                
+                // Require admin role
+                requiredRole = "admin"
+                
+                // Define parameters...
+                
+                returnType = "json"
+            }
+            
+            // Define a capability with lower access requirements
+            capability {
+                id = "get_public_data"
+                name = "Get Public Data"
+                description = "Gets public data that requires minimal authorization"
+                
+                // Require reader role
+                requiredRole = "reader"
+                
+                // Define parameters...
+                
+                returnType = "json"
+            }
+        }
+        
+        // Configure server with role assignments
+        server {
+            port = 8080
+            enableCors = true
+            
+            // Configure API keys with roles
+            apiKeys = mapOf(
+                "client1" to Pair("api-key-1", "reader"),
+                "client2" to Pair("api-key-2", "writer"),
+                "admin" to Pair("admin-api-key", "admin")
+            )
+        }
+    }
+}
+```
+
+## Encryption ✅
+
+The A2A protocol uses HTTPS to encrypt data in transit:
+
+```kotlin
+import ai.kastrax.a2a.a2a
+import ai.kastrax.a2a.agent.a2aAgent
+import ai.kastrax.a2a.model.AuthType
+import ai.kastrax.a2a.security.TlsConfig
+import kotlinx.coroutines.runBlocking
+import java.io.File
+
+fun main() = runBlocking {
+    val a2aInstance = a2a {
+        a2aAgent {
+            id = "secure-agent"
+            name = "Secure Agent"
+            description = "An agent with HTTPS encryption"
+            
+            // Configure authentication
+            authentication {
+                type = AuthType.API_KEY
+            }
+            
+            // Define capabilities...
+        }
+        
+        // Configure server with HTTPS
+        server {
+            port = 8443
+            enableCors = true
+            
+            // Configure TLS
+            tls {
+                keyStore = File("keystore.jks")
+                keyStorePassword = "password"
+                keyAlias = "a2a-server"
+                privateKeyPassword = "password"
+            }
+        }
+    }
+}
+```
+
+## Rate Limiting ✅
+
+Rate limiting prevents abuse of the A2A API:
+
+```kotlin
+import ai.kastrax.a2a.a2a
+import ai.kastrax.a2a.agent.a2aAgent
+import ai.kastrax.a2a.model.AuthType
+import ai.kastrax.a2a.security.RateLimitConfig
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    val a2aInstance = a2a {
+        a2aAgent {
+            id = "secure-agent"
+            name = "Secure Agent"
+            description = "An agent with rate limiting"
+            
+            // Configure authentication
+            authentication {
+                type = AuthType.API_KEY
+            }
+            
+            // Define capabilities...
+        }
+        
+        // Configure server with rate limiting
+        server {
+            port = 8080
+            enableCors = true
+            
+            // Configure rate limiting
+            rateLimit {
+                requestsPerMinute = 60 // 1 request per second
+                burstSize = 10 // Allow bursts of up to 10 requests
+                
+                // Configure per-client limits
+                clientLimits = mapOf(
+                    "client1" to 30, // 30 requests per minute
+                    "client2" to 120 // 120 requests per minute
+                )
+            }
+        }
+    }
+}
+```
+
+## Audit Logging ✅
+
+Audit logging tracks all agent interactions:
+
+```kotlin
+import ai.kastrax.a2a.a2a
+import ai.kastrax.a2a.agent.a2aAgent
+import ai.kastrax.a2a.model.AuthType
+import ai.kastrax.a2a.monitoring.AuditLogConfig
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    val a2aInstance = a2a {
+        a2aAgent {
+            id = "secure-agent"
+            name = "Secure Agent"
+            description = "An agent with audit logging"
+            
+            // Configure authentication
+            authentication {
+                type = AuthType.API_KEY
+            }
+            
+            // Define capabilities...
+        }
+        
+        // Configure monitoring with audit logging
+        monitoring {
+            // Configure audit logging
+            auditLog {
+                enabled = true
+                logRequests = true
+                logResponses = true
+                sensitiveFields = listOf("password", "apiKey", "token")
+                
+                // Configure storage
+                storage = "file" // Options: "file", "database", "cloud"
+                filePath = "logs/audit.log"
+                
+                // Configure retention
+                retentionDays = 90
+            }
+        }
+    }
+}
+```
+
+## Input Validation ✅
+
+Input validation prevents injection attacks:
+
+```kotlin
+import ai.kastrax.a2a.a2a
+import ai.kastrax.a2a.agent.a2aAgent
+import ai.kastrax.a2a.model.AuthType
+import ai.kastrax.a2a.model.JsonObject
+import ai.kastrax.a2a.validation.ParameterValidator
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    val a2aInstance = a2a {
+        a2aAgent {
+            id = "secure-agent"
+            name = "Secure Agent"
+            description = "An agent with input validation"
+            
+            // Configure authentication
+            authentication {
+                type = AuthType.API_KEY
+            }
+            
+            // Define a capability with schema validation
+            capability {
+                id = "process_data"
+                name = "Process Data"
+                description = "Processes data with strict validation"
+                
+                // Define a parameter with a JSON schema
+                parameter {
+                    name = "data"
+                    type = "object"
+                    description = "Data to process"
+                    required = true
+                    schema = JsonObject(
+                        mapOf(
+                            "type" to JsonPrimitive("object"),
+                            "required" to JsonArray(listOf("id", "value")),
+                            "properties" to JsonObject(
+                                mapOf(
+                                    "id" to JsonObject(
+                                        mapOf(
+                                            "type" to JsonPrimitive("string"),
+                                            "pattern" to JsonPrimitive("^[a-zA-Z0-9_-]+$") // Alphanumeric only
+                                        )
+                                    ),
+                                    "value" to JsonObject(
+                                        mapOf(
+                                            "type" to JsonPrimitive("string"),
+                                            "maxLength" to JsonPrimitive(1000)
+                                        )
+                                    )
+                                )
+                            )
+                        )
+                    )
+                }
+                
+                // Define return type
+                returnType = "json"
+            }
+            
+            // Implement capability handler
+            handler("process_data") { request ->
+                // Parameters are automatically validated against the schema
+                // If validation fails, an error response is returned
+                
+                // Process the validated data
+                val data = request.parameters["data"]?.jsonObject
+                
+                // Return result
+                InvokeResponse(
+                    id = request.id,
+                    result = buildJsonObject {
+                        put("status", JsonPrimitive("success"))
+                        put("message", JsonPrimitive("Data processed successfully"))
+                    }
+                )
+            }
+        }
+    }
+}
+```
+
+## Security Best Practices ✅
+
+When implementing A2A security, follow these best practices:
+
+1. **Use HTTPS**: Always use HTTPS in production to encrypt data in transit
+2. **Implement Authentication**: Choose an appropriate authentication method for your use case
+3. **Apply Authorization**: Use role-based access control to restrict capability access
+4. **Validate Input**: Use schema validation to prevent injection attacks
+5. **Implement Rate Limiting**: Protect your API from abuse
+6. **Enable Audit Logging**: Track all agent interactions for security monitoring
+7. **Rotate Secrets**: Regularly rotate API keys, JWT secrets, and other credentials
+8. **Minimize Attack Surface**: Only expose necessary capabilities
+9. **Apply Principle of Least Privilege**: Grant minimal permissions required for each agent
+10. **Monitor for Suspicious Activity**: Set up alerts for unusual patterns
+
+## Next Steps ✅
+
+Now that you understand A2A security, you can:
+
+1. Learn about [multi-agent systems](./multi-agent-systems.mdx)
+2. Explore [A2A workflows](./a2a-workflows.mdx)
+3. Implement [A2A monitoring](./a2a-monitoring.mdx)
