@@ -1,0 +1,271 @@
+---
+title: KastraX Core Class | Kastrax Docs
+description: Documentation for the KastraX class, the core entry point for managing agents, tools, and other components in the Kastrax framework.
+---
+
+# KastraX Core Class ✅
+
+The `KastraX` class is the central entry point for the Kastrax framework, providing a unified interface for managing agents, tools, and other components. This guide explains how to use the KastraX class to build AI agent applications.
+
+## Overview ✅
+
+The `KastraX` class serves as a container and manager for various components:
+
+- **Agents**: AI agents with different capabilities
+- **Tools**: Functions that agents can use to interact with external systems
+- **Memory**: Systems for storing and retrieving conversation history
+- **RAG**: Retrieval-Augmented Generation components
+
+## Basic Usage ✅
+
+Here's a simple example of creating and using the KastraX class:
+
+```kotlin
+import ai.kastrax.core.kastrax
+import ai.kastrax.core.agent.agent
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    // Create a KastraX instance
+    val kastraxInstance = kastrax {
+        // Add an agent
+        agent("assistant") {
+            name("Assistant")
+            description("A helpful assistant")
+            
+            model = deepSeek {
+                apiKey("your-deepseek-api-key")
+                model(DeepSeekModel.DEEPSEEK_CHAT)
+                temperature(0.7)
+            }
+        }
+    }
+    
+    // Get the agent
+    val assistant = kastraxInstance.getAgent("assistant")
+    
+    // Use the agent
+    val response = assistant.generate("Hello, how can you help me?")
+    println(response.text)
+}
+```
+
+## Creating a KastraX Instance ✅
+
+You can create a KastraX instance using the DSL function:
+
+```kotlin
+import ai.kastrax.core.kastrax
+import ai.kastrax.core.agent.agent
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    val kastraxInstance = kastrax {
+        // Configure agents
+        agent("assistant") {
+            name("Assistant")
+            description("A helpful assistant")
+            
+            model = deepSeek {
+                apiKey("your-deepseek-api-key")
+                model(DeepSeekModel.DEEPSEEK_CHAT)
+                temperature(0.7)
+            }
+        }
+        
+        agent("researcher") {
+            name("Researcher")
+            description("A research specialist")
+            
+            model = deepSeek {
+                apiKey("your-deepseek-api-key")
+                model(DeepSeekModel.DEEPSEEK_CHAT)
+                temperature(0.5)
+            }
+        }
+    }
+}
+```
+
+## Managing Agents ✅
+
+The KastraX class provides methods for managing agents:
+
+```kotlin
+// Get an agent by ID
+val assistant = kastraxInstance.getAgent("assistant")
+
+// Get all agents
+val allAgents = kastraxInstance.getAgents()
+
+// Check if an agent exists
+if (kastraxInstance.hasAgent("assistant")) {
+    // Use the agent
+}
+```
+
+## Advanced Configuration ✅
+
+You can configure the KastraX instance with additional components:
+
+```kotlin
+import ai.kastrax.core.kastrax
+import ai.kastrax.core.agent.agent
+import ai.kastrax.core.tools.tool
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    // Create shared tools
+    val calculatorTool = tool {
+        id = "calculator"
+        name = "Calculator"
+        description = "Performs basic arithmetic operations"
+        
+        // Tool configuration...
+    }
+    
+    // Create KastraX instance with shared components
+    val kastraxInstance = kastrax {
+        // Configure global tools
+        globalTool(calculatorTool)
+        
+        // Configure agents
+        agent("assistant") {
+            name("Assistant")
+            description("A helpful assistant")
+            
+            model = deepSeek {
+                apiKey("your-deepseek-api-key")
+                model(DeepSeekModel.DEEPSEEK_CHAT)
+                temperature(0.7)
+            }
+            
+            // Use global tools
+            useGlobalTools(true)
+        }
+    }
+}
+```
+
+## Integration with Other Systems ✅
+
+The KastraX class can be integrated with other systems:
+
+### Actor System Integration
+
+```kotlin
+import ai.kastrax.core.kastrax
+import ai.kastrax.core.agent.agent
+import ai.kastrax.actor.actorSystem
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    // Create an actor system
+    val actorSystem = actorSystem("kastrax-system")
+    
+    // Create KastraX instance with actor system
+    val kastraxInstance = kastrax {
+        // Configure actor system
+        actorSystem(actorSystem)
+        
+        // Configure agents
+        agent("assistant") {
+            name("Assistant")
+            description("A helpful assistant")
+            
+            model = deepSeek {
+                apiKey("your-deepseek-api-key")
+                model(DeepSeekModel.DEEPSEEK_CHAT)
+                temperature(0.7)
+            }
+        }
+    }
+    
+    // Create actor-based agents
+    val agentActor = kastraxInstance.createActorAgent("assistant")
+    
+    // Send messages to the agent actor
+    actorSystem.root.send(agentActor, "Hello, how can you help me?")
+}
+```
+
+### RAG System Integration
+
+```kotlin
+import ai.kastrax.core.kastrax
+import ai.kastrax.core.agent.agent
+import ai.kastrax.rag.RAG
+import ai.kastrax.rag.document.DocumentLoader
+import ai.kastrax.rag.embedding.FastEmbeddingService
+import ai.kastrax.rag.vectorstore.InMemoryVectorStore
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    // Create RAG components
+    val embeddingService = FastEmbeddingService.create()
+    val vectorStore = InMemoryVectorStore()
+    val rag = RAG(vectorStore, embeddingService)
+    
+    // Load documents
+    val loader = DocumentLoader.fromFile("knowledge_base.pdf")
+    val documents = loader.load()
+    rag.addDocuments(documents)
+    
+    // Create KastraX instance with RAG
+    val kastraxInstance = kastrax {
+        // Configure RAG
+        ragSystem(rag)
+        
+        // Configure agents
+        agent("assistant") {
+            name("Assistant")
+            description("A helpful assistant with knowledge access")
+            
+            model = deepSeek {
+                apiKey("your-deepseek-api-key")
+                model(DeepSeekModel.DEEPSEEK_CHAT)
+                temperature(0.7)
+            }
+            
+            // Use RAG
+            useRag(true)
+        }
+    }
+    
+    // Use the agent with RAG
+    val assistant = kastraxInstance.getAgent("assistant")
+    val response = assistant.generate("What does the knowledge base say about climate change?")
+    println(response.text)
+}
+```
+
+## Best Practices ✅
+
+When using the KastraX class, follow these best practices:
+
+1. **Centralized Configuration**: Use the KastraX class as a central configuration point for your application
+2. **Resource Management**: Properly close resources when they're no longer needed
+3. **Error Handling**: Implement proper error handling for agent interactions
+4. **Shared Components**: Use shared components (tools, memory) across agents when appropriate
+5. **Modular Design**: Design your application in a modular way, with each agent having clear responsibilities
+
+## Conclusion ✅
+
+The KastraX class provides a powerful and flexible way to manage AI agents and related components in your application. By centralizing configuration and management, it simplifies the development of complex AI agent systems.
+
+## Next Steps ✅
+
+- Learn about [Agent Creation](../agents/creating-agents-kotlin.mdx)
+- Explore [Tool Integration](../tools/overview-kotlin.mdx)
+- Understand [Memory Systems](../memory/overview-kotlin.mdx)
+- Discover [RAG Integration](../rag/overview.mdx)

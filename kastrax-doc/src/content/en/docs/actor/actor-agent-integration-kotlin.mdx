@@ -1,0 +1,493 @@
+---
+title: Actor-Agent Integration | Kastrax Docs
+description: Detailed guide on integrating Kastrax AI agents with the Actor model for building distributed, concurrent agent systems.
+---
+
+# Actor-Agent Integration ✅
+
+Kastrax provides a powerful integration between AI agents and the Actor model, allowing you to build distributed, concurrent agent systems. This guide explains how to integrate Kastrax agents with the Actor model using Kotlin.
+
+## Overview ✅
+
+The Actor-Agent integration in Kastrax combines:
+
+1. **Kastrax Agents**: Intelligent AI agents with LLM capabilities
+2. **kactor**: A Kotlin implementation of the Actor model
+
+This integration enables:
+
+- Distributed agent networks
+- Asynchronous communication between agents
+- Fault tolerance through supervision
+- Horizontal scaling across multiple machines
+
+## KastraxActor ✅
+
+The `KastraxActor` class wraps a Kastrax agent as an actor:
+
+```kotlin
+import ai.kastrax.actor.KastraxActor
+import ai.kastrax.core.agent.agent
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import actor.proto.ActorSystem
+import actor.proto.Props
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    // Create an Actor system
+    val system = ActorSystem("kastrax-system")
+    
+    // Create a Kastrax agent
+    val myAgent = agent {
+        name("MyAgent")
+        description("A simple agent")
+        
+        model = deepSeek {
+            apiKey("your-deepseek-api-key")
+            model(DeepSeekModel.DEEPSEEK_CHAT)
+            temperature(0.7)
+        }
+    }
+    
+    // Create a KastraxActor with the agent
+    val props = Props.create { KastraxActor(myAgent) }
+    val agentPid = system.root.spawn(props)
+    
+    // Send a message to the agent
+    system.root.send(agentPid, AgentRequest("Hello, agent!"))
+    
+    system.shutdown()
+}
+```
+
+## Message Types ✅
+
+The Actor-Agent integration supports several message types:
+
+### AgentRequest
+
+Used to send a text prompt to an agent:
+
+```kotlin
+val request = AgentRequest(
+    prompt = "What is the capital of France?",
+    options = AgentGenerateOptions(temperature = 0.5)
+)
+system.root.send(agentPid, request)
+```
+
+### AgentStreamRequest
+
+Used for streaming responses:
+
+```kotlin
+val streamRequest = AgentStreamRequest(
+    prompt = "Tell me a story",
+    options = AgentStreamOptions(temperature = 0.7),
+    sender = senderPid
+)
+system.root.send(agentPid, streamRequest)
+```
+
+### MultimodalRequest
+
+Used for sending multimodal content (text, images, etc.):
+
+```kotlin
+val multimodalRequest = MultimodalRequest(
+    message = MultimodalMessage(
+        content = "Describe this image",
+        type = MultimodalType.TEXT
+    ),
+    options = AgentGenerateOptions()
+)
+system.root.send(agentPid, multimodalRequest)
+```
+
+### ToolCallRequest
+
+Used to directly call a tool:
+
+```kotlin
+val toolRequest = ToolCallRequest(
+    toolName = "calculator",
+    input = JsonObject(mapOf("expression" to JsonPrimitive("2+2")))
+)
+system.root.send(agentPid, toolRequest)
+```
+
+### CollaborationRequest
+
+Used for agent collaboration:
+
+```kotlin
+val collaborationRequest = CollaborationRequest(
+    task = "Research quantum computing",
+    sender = "ResearchAgent",
+    metadata = mapOf("priority" to "high")
+)
+system.root.send(agentPid, collaborationRequest)
+```
+
+## DSL for Actor-Agent Integration ✅
+
+Kastrax provides a DSL for creating actor-based agents:
+
+```kotlin
+import ai.kastrax.actor.actorAgent
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import actor.proto.ActorSystem
+import kotlinx.coroutines.runBlocking
+import java.time.Duration
+
+fun main() = runBlocking {
+    // Create an Actor system
+    val system = ActorSystem("kastrax-system")
+    
+    // Create an actor-agent using the DSL
+    val agentPid = system.actorAgent {
+        // Configure the agent
+        agent {
+            name("AssistantAgent")
+            description("A helpful assistant")
+            
+            model = deepSeek {
+                apiKey("your-deepseek-api-key")
+                model(DeepSeekModel.DEEPSEEK_CHAT)
+                temperature(0.7)
+            }
+            
+            tools {
+                tool("calculator") {
+                    description("Performs basic arithmetic operations")
+                    parameters {
+                        parameter("expression", "Mathematical expression to evaluate", String::class)
+                    }
+                    execute { params ->
+                        val expression = params["expression"] as String
+                        // Simple expression evaluator
+                        "Result: ${evaluateExpression(expression)}"
+                    }
+                }
+            }
+        }
+        
+        // Configure the actor
+        actor {
+            // Set supervision strategy
+            oneForOneStrategy {
+                maxRetries = 3
+                withinTimeRange = Duration.ofMinutes(1)
+            }
+            
+            // Set mailbox type
+            unboundedMailbox()
+        }
+    }
+    
+    // Use the actor-agent
+    system.root.send(agentPid, AgentRequest("What is 2 + 2?"))
+    
+    system.shutdown()
+}
+
+// Simple expression evaluator
+fun evaluateExpression(expression: String): Double {
+    // Implementation...
+    return 4.0
+}
+```
+
+## Agent Networks ✅
+
+You can create networks of agents that collaborate to solve complex tasks:
+
+```kotlin
+import ai.kastrax.actor.agentNetwork
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import actor.proto.ActorSystem
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    // Create an Actor system
+    val system = ActorSystem("kastrax-system")
+    
+    // Create an agent network
+    val network = system.agentNetwork {
+        // Configure the coordinator agent
+        coordinator {
+            agent {
+                name("Coordinator")
+                description("A coordinator that manages multiple expert agents")
+                
+                model = deepSeek {
+                    apiKey("your-deepseek-api-key")
+                    model(DeepSeekModel.DEEPSEEK_CHAT)
+                    temperature(0.7)
+                }
+            }
+            
+            actor {
+                oneForOneStrategy {
+                    maxRetries = 5
+                }
+            }
+        }
+        
+        // Add expert agents
+        agent("researcher") {
+            agent {
+                name("Researcher")
+                description("A research expert")
+                
+                model = deepSeek {
+                    apiKey("your-deepseek-api-key")
+                    model(DeepSeekModel.DEEPSEEK_CHAT)
+                    temperature(0.7)
+                }
+            }
+        }
+        
+        agent("writer") {
+            agent {
+                name("Writer")
+                description("A writing expert")
+                
+                model = deepSeek {
+                    apiKey("your-deepseek-api-key")
+                    model(DeepSeekModel.DEEPSEEK_CHAT)
+                    temperature(0.7)
+                }
+            }
+        }
+        
+        agent("critic") {
+            agent {
+                name("Critic")
+                description("A critical reviewer")
+                
+                model = deepSeek {
+                    apiKey("your-deepseek-api-key")
+                    model(DeepSeekModel.DEEPSEEK_CHAT)
+                    temperature(0.7)
+                }
+            }
+        }
+    }
+    
+    // Use the network
+    val response = network.process("Research the impact of AI on healthcare")
+    println(response)
+    
+    system.shutdown()
+}
+```
+
+## Communication Patterns ✅
+
+The Actor-Agent integration supports various communication patterns:
+
+### Fire and Forget
+
+```kotlin
+// Send a message without waiting for a response
+system.root.send(agentPid, AgentRequest("Hello, agent!"))
+```
+
+### Request-Response
+
+```kotlin
+// Send a message and wait for a response
+val response = system.root.requestAwait<AgentResponse>(
+    agentPid, 
+    AgentRequest("What is your name?")
+)
+println("Response: ${response.text}")
+```
+
+### Streaming
+
+```kotlin
+// Send a message and receive a stream of responses
+system.root.send(
+    agentPid, 
+    AgentStreamRequest(
+        prompt = "Generate a story",
+        options = AgentStreamOptions(),
+        sender = self
+    )
+)
+
+// Handle stream chunks in the receiving actor
+override suspend fun Context.receive(msg: Any) {
+    when (msg) {
+        is AgentStreamChunk -> print(msg.chunk)
+        is AgentStreamComplete -> println("\nStream complete")
+    }
+}
+```
+
+## Error Handling and Supervision ✅
+
+The Actor model provides robust error handling through supervision:
+
+```kotlin
+actor {
+    oneForOneStrategy {
+        maxRetries = 3
+        withinTimeRange = Duration.ofMinutes(1)
+        decider = { pid, exception ->
+            when (exception) {
+                is IllegalArgumentException -> SupervisorDirective.Resume
+                is RuntimeException -> SupervisorDirective.Restart
+                else -> SupervisorDirective.Stop
+            }
+        }
+    }
+}
+```
+
+## Distributed Agent Systems ✅
+
+You can create distributed agent systems using remote actors:
+
+```kotlin
+import actor.proto.ActorSystem
+import actor.proto.remote.Remote
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    // Create an Actor system
+    val system = ActorSystem("kastrax-system")
+    
+    // Configure remote capabilities
+    val remote = Remote(system)
+    remote.start("localhost", 8080)
+    
+    // Create an actor-agent
+    val agentPid = system.actorAgent {
+        agent {
+            name("RemoteAgent")
+            // Agent configuration...
+        }
+    }
+    
+    // Register the agent so it can be accessed remotely
+    remote.register("remote-agent", agentPid)
+    
+    // Keep the system running
+    println("Remote system running at localhost:8080")
+    readLine()
+    
+    system.shutdown()
+}
+```
+
+And connecting to remote agents:
+
+```kotlin
+import actor.proto.ActorSystem
+import actor.proto.PID
+import actor.proto.remote.Remote
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    // Create an Actor system
+    val system = ActorSystem("kastrax-client")
+    
+    // Configure remote capabilities
+    val remote = Remote(system)
+    
+    // Create a reference to the remote agent
+    val remoteAgentPid = PID("localhost:8080", "remote-agent")
+    
+    // Send a message to the remote agent
+    system.root.send(
+        remoteAgentPid, 
+        AgentRequest("Hello from the client!")
+    )
+    
+    system.shutdown()
+}
+```
+
+## Best Practices ✅
+
+1. **Message Immutability**: Ensure messages are immutable to avoid concurrency issues
+2. **Actor Isolation**: Keep actors isolated and avoid shared state
+3. **Supervision Strategies**: Use appropriate supervision strategies for error handling
+4. **Message Patterns**: Choose the right message pattern for your use case
+5. **Resource Management**: Properly manage actor lifecycles and resources
+6. **Distributed Systems**: Consider network latency and failures in distributed systems
+7. **Testing**: Test actors in isolation and in integration
+
+## Advanced Features ✅
+
+### Multimodal Support
+
+The Actor-Agent integration supports multimodal interactions:
+
+```kotlin
+// Send a text message
+val textRequest = MultimodalRequest(
+    message = MultimodalMessage(
+        content = "What is the capital of France?",
+        type = MultimodalType.TEXT
+    ),
+    options = AgentGenerateOptions()
+)
+system.root.send(agentPid, textRequest)
+
+// Send an image (if supported by the agent)
+val imageRequest = MultimodalRequest(
+    message = MultimodalMessage(
+        content = imageBytes,
+        type = MultimodalType.IMAGE
+    ),
+    options = AgentGenerateOptions()
+)
+system.root.send(agentPid, imageRequest)
+```
+
+### Tool Integration
+
+Actors can directly call tools:
+
+```kotlin
+val toolRequest = ToolCallRequest(
+    toolName = "calculator",
+    input = JsonObject(mapOf("expression" to JsonPrimitive("2+2")))
+)
+val response = system.root.requestAwait<ToolCallResponse>(agentPid, toolRequest)
+println("Result: ${response.result}")
+```
+
+### Collaboration
+
+Agents can collaborate on complex tasks:
+
+```kotlin
+val collaborationRequest = CollaborationRequest(
+    task = "Research quantum computing and write a summary",
+    sender = "UserAgent",
+    metadata = mapOf("priority" to "high")
+)
+val response = system.root.requestAwait<CollaborationResponse>(
+    agentPid, 
+    collaborationRequest
+)
+println("Collaboration result: ${response.result}")
+```
+
+## Conclusion ✅
+
+The Actor-Agent integration in Kastrax provides a powerful framework for building distributed, concurrent agent systems. By combining the intelligence of AI agents with the robustness of the Actor model, you can create complex agent networks that can solve a wide range of problems.
+
+## Next Steps ✅
+
+- Learn about [Remote Actors](./remote-actors-kotlin.mdx)
+- Explore [Agent Network Topologies](./agent-networks-kotlin.mdx)
+- Understand [Supervision Strategies](./supervision-kotlin.mdx)

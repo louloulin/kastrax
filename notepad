@@ -35,4 +35,5 @@
 
 @kastrax-doc/src/content 将所有en的mastra文档全部改成kastrax，标记实现的文档编写
 
+@kastrax-doc/src/content/en 按计划将所有的文档全改成kastrax的文档，内容要分析整个kastrax代码实现
 

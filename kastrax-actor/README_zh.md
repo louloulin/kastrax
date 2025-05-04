@@ -35,6 +35,15 @@ kastrax-actor 模块提供了三种 DSL，使得创建和管理 Actor 化的 Age
 
 有关 DSL 的详细信息，请参阅 [DSL 文档](docs/dsl-zh.md)。
 
+## 文档导航
+
+- [DSL 文档](docs/dsl-zh.md) - 详细介绍 kastrax-actor 模块的 DSL 功能
+- [Agent 网络文档](docs/agent-network-zh.md) - 详细介绍 Agent 协作网络功能
+- [远程 Actor 配置文档](docs/remote-zh.md) - 详细介绍远程 Actor 配置功能
+- [故障排除指南](docs/troubleshooting-zh.md) - 提供常见问题的故障排除步骤
+- [性能优化指南](docs/performance-optimization-zh.md) - 提供性能优化的最佳实践
+- [实现总结](docs/implementation-summary-zh.md) - 总结 kastrax-actor 模块的实现情况
+
 ### 基本使用
 
 ```kotlin
@@ -154,6 +163,10 @@ system.shutdown()
 
 ## 常见问题解决
 
+如果您在使用 kastrax-actor 模块时遇到问题，请参考[故障排除指南](docs/troubleshooting-zh.md)了解详细的故障排除步骤和解决方案。
+
+以下是一些常见问题的简要解决方法：
+
 ### 堆栈溢出错误
 
 如果遇到堆栈溢出错误，可能是由于Agent之间的循环引用或消息传递导致的。解决方法：
@@ -177,6 +190,8 @@ system.shutdown()
 1. 确保服务器和客户端之间的网络连接畅通
 2. 使用可用的随机端口，避免端口冲突
 3. 检查防火墙设置，确保端口已开放
+
+更多详细信息和高级故障排除技巧，请参考[故障排除指南](docs/troubleshooting-zh.md)。
 
 ## 技术架构
 

@@ -1,0 +1,605 @@
+---
+title: Agent Monitoring and Diagnostics | Kastrax Docs
+description: Detailed guide on monitoring and diagnosing agent performance in Kastrax, including metrics collection, performance analysis, and debugging tools.
+---
+
+# Agent Monitoring and Diagnostics ✅
+
+Kastrax provides comprehensive monitoring and diagnostic capabilities for AI agents, allowing you to track performance, identify issues, and optimize behavior. This guide explains how to use these features effectively.
+
+## Monitoring Overview ✅
+
+Agent monitoring in Kastrax enables you to:
+
+- Track agent performance metrics
+- Monitor resource usage
+- Analyze agent behavior patterns
+- Identify and diagnose issues
+- Generate reports and visualizations
+- Set up alerts for anomalies
+
+## Basic Monitoring Setup ✅
+
+Here's how to set up basic monitoring for a Kastrax agent:
+
+```kotlin
+import ai.kastrax.core.agent.agent
+import ai.kastrax.core.agent.monitoring.AgentMonitor
+import ai.kastrax.core.agent.monitoring.MonitoringConfig
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    // Create a monitor with default configuration
+    val monitor = AgentMonitor.create(
+        MonitoringConfig(
+            enabled = true,
+            collectPerformanceMetrics = true,
+            collectUsageMetrics = true,
+            collectBehaviorMetrics = true,
+            samplingRate = 1.0 // Monitor all interactions
+        )
+    )
+    
+    // Create an agent with monitoring
+    val myAgent = agent {
+        name("MonitoredAgent")
+        description("An agent with monitoring capabilities")
+        
+        model = deepSeek {
+            apiKey("your-deepseek-api-key")
+            model(DeepSeekModel.DEEPSEEK_CHAT)
+            temperature(0.7)
+        }
+        
+        // Enable monitoring
+        monitor = monitor
+    }
+    
+    // Use the agent
+    repeat(5) { i ->
+        val response = myAgent.generate("Tell me something interesting about ${i + 1}")
+        println("Response ${i + 1}: ${response.text}")
+    }
+    
+    // Get monitoring data
+    val metrics = monitor.getMetrics(myAgent.name)
+    println("Collected metrics: $metrics")
+}
+```
+
+## Performance Metrics ✅
+
+Kastrax collects various performance metrics for agents:
+
+### Response Time Metrics
+
+```kotlin
+// Get response time metrics
+val responseTimeMetrics = monitor.getResponseTimeMetrics(myAgent.name)
+println("Average response time: ${responseTimeMetrics.average} ms")
+println("Median response time: ${responseTimeMetrics.median} ms")
+println("95th percentile response time: ${responseTimeMetrics.percentile95} ms")
+println("Maximum response time: ${responseTimeMetrics.max} ms")
+```
+
+### Token Usage Metrics
+
+```kotlin
+// Get token usage metrics
+val tokenUsageMetrics = monitor.getTokenUsageMetrics(myAgent.name)
+println("Total input tokens: ${tokenUsageMetrics.totalInputTokens}")
+println("Total output tokens: ${tokenUsageMetrics.totalOutputTokens}")
+println("Average tokens per request: ${tokenUsageMetrics.averageTokensPerRequest}")
+println("Token usage trend: ${tokenUsageMetrics.usageTrend}")
+```
+
+### Error Rate Metrics
+
+```kotlin
+// Get error rate metrics
+val errorMetrics = monitor.getErrorMetrics(myAgent.name)
+println("Error rate: ${errorMetrics.errorRate * 100}%")
+println("Common error types: ${errorMetrics.commonErrorTypes}")
+println("Error trend: ${errorMetrics.errorTrend}")
+```
+
+## Resource Usage Monitoring ✅
+
+You can monitor resource usage of your agents:
+
+```kotlin
+// Get resource usage metrics
+val resourceMetrics = monitor.getResourceMetrics(myAgent.name)
+println("Memory usage: ${resourceMetrics.memoryUsage} MB")
+println("CPU usage: ${resourceMetrics.cpuUsage}%")
+println("Network usage: ${resourceMetrics.networkUsage} KB")
+```
+
+## Behavior Analysis ✅
+
+Kastrax can analyze agent behavior patterns:
+
+```kotlin
+// Get behavior metrics
+val behaviorMetrics = monitor.getBehaviorMetrics(myAgent.name)
+println("Tool usage distribution: ${behaviorMetrics.toolUsageDistribution}")
+println("Response length distribution: ${behaviorMetrics.responseLengthDistribution}")
+println("Common topics: ${behaviorMetrics.commonTopics}")
+println("Sentiment distribution: ${behaviorMetrics.sentimentDistribution}")
+```
+
+## Custom Metrics ✅
+
+You can define and collect custom metrics for your agents:
+
+```kotlin
+import ai.kastrax.core.agent.agent
+import ai.kastrax.core.agent.monitoring.AgentMonitor
+import ai.kastrax.core.agent.monitoring.CustomMetric
+import ai.kastrax.core.agent.monitoring.MetricType
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    // Create a monitor with custom metrics
+    val monitor = AgentMonitor.create()
+    
+    // Define custom metrics
+    monitor.defineCustomMetric(
+        CustomMetric(
+            name = "user_satisfaction",
+            description = "User satisfaction score",
+            type = MetricType.GAUGE,
+            unit = "score"
+        )
+    )
+    
+    monitor.defineCustomMetric(
+        CustomMetric(
+            name = "task_completion_rate",
+            description = "Rate of successful task completions",
+            type = MetricType.RATE,
+            unit = "percent"
+        )
+    )
+    
+    // Create an agent with monitoring
+    val myAgent = agent {
+        name("CustomMetricsAgent")
+        description("An agent with custom metrics")
+        
+        model = deepSeek {
+            apiKey("your-deepseek-api-key")
+            model(DeepSeekModel.DEEPSEEK_CHAT)
+            temperature(0.7)
+        }
+        
+        // Enable monitoring
+        monitor = monitor
+    }
+    
+    // Use the agent and record custom metrics
+    val response = myAgent.generate("Help me solve this math problem: 2x + 5 = 15")
+    println("Response: ${response.text}")
+    
+    // Record custom metrics
+    monitor.recordCustomMetric(
+        agentName = myAgent.name,
+        metricName = "user_satisfaction",
+        value = 4.5 // On a scale of 1-5
+    )
+    
+    monitor.recordCustomMetric(
+        agentName = myAgent.name,
+        metricName = "task_completion_rate",
+        value = 1.0 // 100% completion
+    )
+    
+    // Get custom metrics
+    val customMetrics = monitor.getCustomMetrics(myAgent.name)
+    println("Custom metrics: $customMetrics")
+}
+```
+
+## Real-time Monitoring ✅
+
+You can set up real-time monitoring with callbacks:
+
+```kotlin
+import ai.kastrax.core.agent.agent
+import ai.kastrax.core.agent.monitoring.AgentMonitor
+import ai.kastrax.core.agent.monitoring.MonitoringCallback
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    // Create a monitor with real-time callbacks
+    val monitor = AgentMonitor.create()
+    
+    // Define monitoring callback
+    monitor.addCallback(object : MonitoringCallback {
+        override fun onRequestStart(agentName: String, requestId: String) {
+            println("[$agentName] Request started: $requestId")
+        }
+        
+        override fun onRequestComplete(agentName: String, requestId: String, durationMs: Long) {
+            println("[$agentName] Request completed: $requestId (${durationMs}ms)")
+        }
+        
+        override fun onError(agentName: String, requestId: String, error: Throwable) {
+            println("[$agentName] Error in request $requestId: ${error.message}")
+        }
+        
+        override fun onMetricUpdate(agentName: String, metricName: String, value: Double) {
+            println("[$agentName] Metric update: $metricName = $value")
+        }
+    })
+    
+    // Create an agent with monitoring
+    val myAgent = agent {
+        name("RealTimeMonitoredAgent")
+        description("An agent with real-time monitoring")
+        
+        model = deepSeek {
+            apiKey("your-deepseek-api-key")
+            model(DeepSeekModel.DEEPSEEK_CHAT)
+            temperature(0.7)
+        }
+        
+        // Enable monitoring
+        monitor = monitor
+    }
+    
+    // Use the agent
+    val response = myAgent.generate("Tell me a joke")
+    println("Response: ${response.text}")
+}
+```
+
+## Monitoring Dashboard ✅
+
+Kastrax provides a monitoring dashboard for visualizing agent metrics:
+
+```kotlin
+import ai.kastrax.core.agent.monitoring.AgentMonitor
+import ai.kastrax.core.agent.monitoring.dashboard.MonitoringDashboard
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    // Get the monitor
+    val monitor = AgentMonitor.getInstance()
+    
+    // Create a monitoring dashboard
+    val dashboard = MonitoringDashboard.create(monitor)
+    
+    // Start the dashboard on a specific port
+    dashboard.start(port = 8080)
+    
+    println("Monitoring dashboard started at http://localhost:8080")
+    
+    // Keep the application running
+    readLine()
+    
+    // Stop the dashboard when done
+    dashboard.stop()
+}
+```
+
+## Alerting ✅
+
+You can set up alerts for specific conditions:
+
+```kotlin
+import ai.kastrax.core.agent.monitoring.AgentMonitor
+import ai.kastrax.core.agent.monitoring.alert.AlertCondition
+import ai.kastrax.core.agent.monitoring.alert.AlertSeverity
+import ai.kastrax.core.agent.monitoring.alert.AlertChannel
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    // Get the monitor
+    val monitor = AgentMonitor.getInstance()
+    
+    // Configure email alert channel
+    val emailChannel = AlertChannel.email(
+        recipients = listOf("admin@example.com"),
+        smtpConfig = mapOf(
+            "host" to "smtp.example.com",
+            "port" to "587",
+            "username" to "alerts@example.com",
+            "password" to "password"
+        )
+    )
+    
+    // Configure Slack alert channel
+    val slackChannel = AlertChannel.slack(
+        webhookUrl = "https://hooks.slack.com/services/T00000000/B00000000/XXXXXXXXXXXXXXXXXXXXXXXX",
+        channel = "#agent-alerts"
+    )
+    
+    // Add alert conditions
+    monitor.addAlertCondition(
+        AlertCondition(
+            name = "High Error Rate",
+            metricName = "error_rate",
+            threshold = 0.05, // 5% error rate
+            comparison = AlertCondition.Comparison.GREATER_THAN,
+            duration = 300, // 5 minutes
+            severity = AlertSeverity.HIGH,
+            channels = listOf(emailChannel, slackChannel)
+        )
+    )
+    
+    monitor.addAlertCondition(
+        AlertCondition(
+            name = "Slow Response Time",
+            metricName = "response_time_p95",
+            threshold = 5000.0, // 5 seconds
+            comparison = AlertCondition.Comparison.GREATER_THAN,
+            duration = 600, // 10 minutes
+            severity = AlertSeverity.MEDIUM,
+            channels = listOf(slackChannel)
+        )
+    )
+    
+    println("Alert conditions configured")
+}
+```
+
+## Diagnostic Tools ✅
+
+Kastrax provides diagnostic tools for troubleshooting agent issues:
+
+### Request Tracing
+
+```kotlin
+import ai.kastrax.core.agent.agent
+import ai.kastrax.core.agent.monitoring.AgentMonitor
+import ai.kastrax.core.agent.monitoring.diagnostics.RequestTracer
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    // Create a monitor with request tracing
+    val monitor = AgentMonitor.create()
+    val tracer = RequestTracer.create(monitor)
+    
+    // Create an agent with monitoring
+    val myAgent = agent {
+        name("DiagnosticAgent")
+        description("An agent with diagnostic capabilities")
+        
+        model = deepSeek {
+            apiKey("your-deepseek-api-key")
+            model(DeepSeekModel.DEEPSEEK_CHAT)
+            temperature(0.7)
+        }
+        
+        // Enable monitoring
+        monitor = monitor
+    }
+    
+    // Start tracing a request
+    val traceId = tracer.startTrace()
+    
+    // Use the agent with the trace ID
+    val response = myAgent.generate(
+        "Explain quantum computing",
+        options = AgentGenerateOptions(
+            metadata = mapOf("traceId" to traceId)
+        )
+    )
+    
+    // Get the trace
+    val trace = tracer.getTrace(traceId)
+    
+    // Print trace details
+    println("Trace ID: $traceId")
+    println("Request duration: ${trace.duration} ms")
+    println("Steps:")
+    trace.steps.forEachIndexed { index, step ->
+        println("  Step ${index + 1}: ${step.name} (${step.duration} ms)")
+        println("    Input: ${step.input}")
+        println("    Output: ${step.output}")
+    }
+}
+```
+
+### Performance Profiling
+
+```kotlin
+import ai.kastrax.core.agent.agent
+import ai.kastrax.core.agent.monitoring.AgentMonitor
+import ai.kastrax.core.agent.monitoring.diagnostics.PerformanceProfiler
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    // Create a monitor
+    val monitor = AgentMonitor.create()
+    val profiler = PerformanceProfiler.create(monitor)
+    
+    // Create an agent with monitoring
+    val myAgent = agent {
+        name("ProfiledAgent")
+        description("An agent with performance profiling")
+        
+        model = deepSeek {
+            apiKey("your-deepseek-api-key")
+            model(DeepSeekModel.DEEPSEEK_CHAT)
+            temperature(0.7)
+        }
+        
+        // Enable monitoring
+        monitor = monitor
+    }
+    
+    // Start profiling
+    profiler.start(myAgent.name)
+    
+    // Use the agent
+    repeat(10) { i ->
+        val response = myAgent.generate("Tell me about topic ${i + 1}")
+        println("Response ${i + 1}: ${response.text.take(50)}...")
+    }
+    
+    // Stop profiling and get results
+    val profile = profiler.stop(myAgent.name)
+    
+    // Print profile results
+    println("Performance Profile:")
+    println("Total duration: ${profile.totalDuration} ms")
+    println("Average response time: ${profile.averageResponseTime} ms")
+    println("Token processing rate: ${profile.tokenProcessingRate} tokens/second")
+    println("Hotspots:")
+    profile.hotspots.forEach { (component, time) ->
+        println("  $component: ${time} ms (${(time / profile.totalDuration.toDouble() * 100).toInt()}%)")
+    }
+}
+```
+
+### Log Analysis
+
+```kotlin
+import ai.kastrax.core.agent.monitoring.AgentMonitor
+import ai.kastrax.core.agent.monitoring.diagnostics.LogAnalyzer
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    // Create a monitor
+    val monitor = AgentMonitor.getInstance()
+    val logAnalyzer = LogAnalyzer.create(monitor)
+    
+    // Analyze logs for a specific agent
+    val analysis = logAnalyzer.analyzeAgentLogs("MyAgent", timeRange = TimeRange.last(hours = 24))
+    
+    // Print analysis results
+    println("Log Analysis:")
+    println("Total requests: ${analysis.totalRequests}")
+    println("Error rate: ${analysis.errorRate * 100}%")
+    println("Common error patterns:")
+    analysis.errorPatterns.forEach { (pattern, count) ->
+        println("  $pattern: $count occurrences")
+    }
+    println("Performance anomalies:")
+    analysis.performanceAnomalies.forEach { anomaly ->
+        println("  ${anomaly.timestamp}: ${anomaly.description} (${anomaly.severity})")
+    }
+}
+```
+
+## Exporting Monitoring Data ✅
+
+You can export monitoring data for further analysis:
+
+```kotlin
+import ai.kastrax.core.agent.monitoring.AgentMonitor
+import ai.kastrax.core.agent.monitoring.export.MetricsExporter
+import kotlinx.coroutines.runBlocking
+import java.io.File
+
+fun main() = runBlocking {
+    // Get the monitor
+    val monitor = AgentMonitor.getInstance()
+    
+    // Create exporters
+    val csvExporter = MetricsExporter.csv()
+    val jsonExporter = MetricsExporter.json()
+    val prometheusExporter = MetricsExporter.prometheus()
+    
+    // Export metrics for a specific agent
+    val agentName = "MyAgent"
+    val timeRange = TimeRange.last(days = 7)
+    
+    // Export to CSV
+    val csvData = csvExporter.exportMetrics(monitor, agentName, timeRange)
+    File("agent_metrics.csv").writeText(csvData)
+    
+    // Export to JSON
+    val jsonData = jsonExporter.exportMetrics(monitor, agentName, timeRange)
+    File("agent_metrics.json").writeText(jsonData)
+    
+    // Start Prometheus exporter
+    prometheusExporter.start(port = 9090)
+    
+    println("Metrics exported to CSV and JSON files")
+    println("Prometheus metrics available at http://localhost:9090/metrics")
+    
+    // Keep the application running
+    readLine()
+    
+    // Stop Prometheus exporter
+    prometheusExporter.stop()
+}
+```
+
+## Integration with External Monitoring Systems ✅
+
+Kastrax can integrate with external monitoring systems:
+
+```kotlin
+import ai.kastrax.core.agent.monitoring.AgentMonitor
+import ai.kastrax.core.agent.monitoring.integration.DatadogIntegration
+import ai.kastrax.core.agent.monitoring.integration.PrometheusIntegration
+import ai.kastrax.core.agent.monitoring.integration.GrafanaIntegration
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    // Get the monitor
+    val monitor = AgentMonitor.getInstance()
+    
+    // Configure Datadog integration
+    val datadogIntegration = DatadogIntegration.create(
+        apiKey = "your-datadog-api-key",
+        applicationKey = "your-datadog-application-key",
+        tags = mapOf("environment" to "production")
+    )
+    monitor.addIntegration(datadogIntegration)
+    
+    // Configure Prometheus integration
+    val prometheusIntegration = PrometheusIntegration.create(
+        port = 9090,
+        endpoint = "/metrics"
+    )
+    monitor.addIntegration(prometheusIntegration)
+    
+    // Configure Grafana integration
+    val grafanaIntegration = GrafanaIntegration.create(
+        url = "http://localhost:3000",
+        apiKey = "your-grafana-api-key",
+        dashboardName = "Kastrax Agents"
+    )
+    monitor.addIntegration(grafanaIntegration)
+    
+    println("External monitoring integrations configured")
+}
+```
+
+## Best Practices ✅
+
+When using agent monitoring and diagnostics, follow these best practices:
+
+1. **Selective Monitoring**: Monitor only what's necessary to avoid performance overhead
+2. **Sampling**: Use sampling for high-traffic applications
+3. **Retention Policies**: Set appropriate data retention policies
+4. **Privacy**: Ensure monitoring respects privacy by not collecting sensitive information
+5. **Alerting Thresholds**: Set appropriate alerting thresholds to avoid alert fatigue
+6. **Regular Review**: Regularly review monitoring data to identify trends and issues
+7. **Documentation**: Document monitoring setup and alert responses
+8. **Testing**: Test monitoring and alerting in a staging environment
+
+## Conclusion ✅
+
+Agent monitoring and diagnostics provide powerful capabilities for understanding, optimizing, and troubleshooting AI agent systems in Kastrax. By collecting and analyzing metrics, you can ensure your agents perform reliably and efficiently.
+
+## Next Steps ✅
+
+- Learn about [Agent Versioning](./versioning-kotlin.mdx)
+- Explore [Performance Optimization](./optimization-kotlin.mdx)
+- Understand [Distributed Agents](../actor/actor-agent-integration-kotlin.mdx)

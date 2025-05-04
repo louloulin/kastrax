@@ -208,6 +208,83 @@ val result = network.collaborate(
 )
 ```
 
+## 网络监控与管理
+
+### 监控功能
+
+Kastrax Actor 模块提供了全面的网络监控功能，帮助您实时了解网络状态和性能。
+
+```kotlin
+// 创建网络监控器
+val monitor = NetworkMonitor(network)
+
+// 获取网络状态
+val status = monitor.getNetworkStatus()
+println("活跃节点数量: ${status.activeNodes}")
+println("消息处理速率: ${status.messagesPerSecond} 消息/秒")
+println("平均响应时间: ${status.averageResponseTime} 毫秒")
+
+// 设置监控回调
+monitor.setStatusCallback { status ->
+    if (status.averageResponseTime > 1000) {
+        println("警告: 响应时间过长!")
+    }
+}
+
+// 获取特定节点的状态
+val nodeStatus = monitor.getNodeStatus("agent1")
+println("节点状态: ${nodeStatus.status}")
+println("处理的消息数: ${nodeStatus.processedMessages}")
+println("失败的消息数: ${nodeStatus.failedMessages}")
+```
+
+### 故障处理
+
+Kastrax Actor 模块提供了多种故障处理机制，确保网络的可靠性和弹性。
+
+```kotlin
+// 设置故障处理策略
+network.setFailureStrategy(FailureStrategy.RESTART_NODE)
+
+// 添加故障处理回调
+network.addFailureHandler { nodeId, exception ->
+    println("节点 $nodeId 发生故障: ${exception.message}")
+    // 执行自定义恢复操作
+    network.restartNode(nodeId)
+}
+
+// 模拟节点故障
+network.simulateNodeFailure("agent1", FailureType.CRASH)
+
+// 检查节点健康状态
+val healthStatus = network.checkNodeHealth("agent1")
+if (healthStatus.isHealthy) {
+    println("节点健康")
+} else {
+    println("节点不健康: ${healthStatus.reason}")
+}
+```
+
+### 动态网络调整
+
+Kastrax Actor 模块支持动态调整网络结构，应对不断变化的需求。
+
+```kotlin
+// 动态添加节点
+val newAgent = MyAgent("new-agent")
+network.addAgent(newAgent)
+
+// 动态调整节点关系
+network.updateRelation("agent1", "new-agent", AgentRelation.COLLABORATOR)
+
+// 动态移除节点
+network.removeAgent("old-agent")
+
+// 动态更新协作协议
+val newProtocol = CustomProtocol()
+network.updateProtocol(newProtocol)
+```
+
 ## 最佳实践
 
 ### 网络设计
@@ -215,15 +292,27 @@ val result = network.collaborate(
 1. **合理划分 Agent 职责**：每个 Agent 应该有明确的职责和专长
 2. **适当设置 Agent 关系**：根据任务需求设置合适的 Agent 关系
 3. **避免过于复杂的网络**：网络结构应该简单明了，避免过于复杂
+4. **考虑扩展性**：设计网络时考虑未来的扩展需求
+5. **实现容错设计**：考虑节点故障的情况，实现容错设计
 
 ### 协议选择
 
 1. **顺序协议**：适用于步骤明确、依赖性强的任务
 2. **层次协议**：适用于可以分解为独立子任务的复杂任务
 3. **共识协议**：适用于需要多方观点和评估的决策任务
+4. **自定义协议**：对于特殊需求，可以实现自定义协议
 
 ### 性能优化
 
 1. **减少协作步骤**：尽量减少不必要的协作步骤
 2. **优化消息大小**：避免传递过大的消息
 3. **合理设置超时**：根据任务复杂度设置合适的超时时间
+4. **使用缓存**：对于重复的请求，使用缓存提高性能
+5. **并行处理**：尽可能并行处理独立的任务
+
+### 安全性考虑
+
+1. **身份验证**：实现 Agent 之间的身份验证机制
+2. **消息加密**：对敏感信息进行加密传输
+3. **访问控制**：实现基于角色的访问控制
+4. **安全审计**：记录和审计重要的网络操作

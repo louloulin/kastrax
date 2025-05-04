@@ -1,0 +1,431 @@
+---
+title: Agent Versioning and State Management | Kastrax Docs
+description: Detailed guide on managing agent versions and state in Kastrax, including version creation, activation, rollback, and state persistence.
+---
+
+# Agent Versioning and State Management ✅
+
+Kastrax provides robust capabilities for managing agent versions and state, allowing you to track changes, roll back to previous versions, and maintain agent state across sessions. This guide explains how to use these features effectively.
+
+## Agent Versioning ✅
+
+Agent versioning allows you to create, manage, and switch between different versions of an agent's instructions and configuration. This is useful for:
+
+- Tracking changes to agent behavior over time
+- A/B testing different agent configurations
+- Rolling back to previous versions if issues arise
+- Maintaining a history of agent development
+
+### Creating Agent Versions ✅
+
+You can create versions of an agent using the `createVersion` method:
+
+```kotlin
+import ai.kastrax.core.agent.agent
+import ai.kastrax.core.agent.version.AgentVersionManager
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    // Create an agent with version management
+    val myAgent = agent {
+        name("VersionedAgent")
+        description("An agent with version management")
+        
+        model = deepSeek {
+            apiKey("your-deepseek-api-key")
+            model(DeepSeekModel.DEEPSEEK_CHAT)
+            temperature(0.7)
+        }
+        
+        // Enable version management
+        versionManager = AgentVersionManager.create()
+    }
+    
+    // Create initial version
+    val initialVersion = myAgent.createVersion(
+        instructions = "You are a helpful assistant that provides concise answers.",
+        name = "v1.0",
+        description = "Initial version with basic functionality",
+        activateImmediately = true
+    )
+    
+    println("Created initial version: ${initialVersion?.id}")
+    
+    // Create an improved version
+    val improvedVersion = myAgent.createVersion(
+        instructions = """
+            You are a helpful assistant that provides concise, accurate answers.
+            When providing information, always cite your sources.
+            If you're unsure about something, acknowledge the uncertainty.
+        """.trimIndent(),
+        name = "v1.1",
+        description = "Improved version with source citation",
+        metadata = mapOf("author" to "AI Team", "approved" to "true"),
+        activateImmediately = false
+    )
+    
+    println("Created improved version: ${improvedVersion?.id}")
+}
+```
+
+### Managing Versions ✅
+
+You can list, retrieve, and manage agent versions:
+
+```kotlin
+// Get all versions
+val versions = myAgent.getVersions()
+println("Available versions:")
+versions?.forEach { version ->
+    println("- ${version.name}: ${version.description}")
+}
+
+// Get the active version
+val activeVersion = myAgent.getActiveVersion()
+println("Active version: ${activeVersion?.name}")
+
+// Activate a specific version
+val versionToActivate = versions?.find { it.name == "v1.1" }
+if (versionToActivate != null) {
+    val activated = myAgent.activateVersion(versionToActivate.id)
+    println("Activated version: ${activated?.name}")
+}
+```
+
+### Rolling Back ✅
+
+You can roll back to a previous version if needed:
+
+```kotlin
+// Roll back to a previous version
+val versionToRollback = versions?.find { it.name == "v1.0" }
+if (versionToRollback != null) {
+    val rolledBack = myAgent.rollbackToVersion(versionToRollback.id)
+    println("Rolled back to version: ${rolledBack?.name}")
+}
+```
+
+### Version Comparison ✅
+
+You can compare different versions to understand changes:
+
+```kotlin
+import ai.kastrax.core.agent.version.compareVersions
+
+// Compare two versions
+val v1 = versions?.find { it.name == "v1.0" }
+val v2 = versions?.find { it.name == "v1.1" }
+
+if (v1 != null && v2 != null) {
+    val comparison = compareVersions(v1, v2)
+    println("Changes from ${v1.name} to ${v2.name}:")
+    println("- Instructions: ${comparison.instructionsDiff}")
+    println("- Metadata changes: ${comparison.metadataChanges}")
+}
+```
+
+## Agent State Management ✅
+
+Agent state management allows you to maintain and control the state of an agent across interactions. This is useful for:
+
+- Maintaining context across sessions
+- Tracking agent progress on long-running tasks
+- Implementing stateful behaviors
+- Persisting important information
+
+### Agent State Basics ✅
+
+Agent state consists of:
+
+- **Status**: The current operational status of the agent
+- **Data**: Custom data associated with the agent
+- **Context**: Contextual information for the agent's operation
+- **Metadata**: Additional information about the state
+
+### Managing Agent State ✅
+
+You can get and update the agent's state:
+
+```kotlin
+import ai.kastrax.core.agent.agent
+import ai.kastrax.core.agent.state.AgentStatus
+import ai.kastrax.core.agent.state.StateManager
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.runBlocking
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+
+fun main() = runBlocking {
+    // Create an agent with state management
+    val myAgent = agent {
+        name("StatefulAgent")
+        description("An agent with state management")
+        
+        model = deepSeek {
+            apiKey("your-deepseek-api-key")
+            model(DeepSeekModel.DEEPSEEK_CHAT)
+            temperature(0.7)
+        }
+        
+        // Enable state management
+        stateManager = StateManager.create()
+    }
+    
+    // Get the current state
+    val currentState = myAgent.getState()
+    println("Current state: ${currentState?.status}")
+    
+    // Update the agent's status
+    val updatedState = myAgent.updateState(
+        AgentStatus.BUSY,
+        data = JsonObject(mapOf(
+            "currentTask" to JsonPrimitive("Researching quantum computing"),
+            "progress" to JsonPrimitive(25)
+        )),
+        context = JsonObject(mapOf(
+            "userQuery" to JsonPrimitive("Explain quantum computing")
+        )),
+        metadata = mapOf(
+            "priority" to "high",
+            "estimatedCompletionTime" to "5 minutes"
+        )
+    )
+    
+    println("Updated state: ${updatedState?.status}")
+    println("State data: ${updatedState?.data}")
+}
+```
+
+### Persistent State ✅
+
+You can configure the state manager to persist state across sessions:
+
+```kotlin
+import ai.kastrax.core.agent.agent
+import ai.kastrax.core.agent.state.StateManager
+import ai.kastrax.core.agent.state.storage.FileStateStorage
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    // Create a persistent state manager
+    val stateManager = StateManager.create(
+        storage = FileStateStorage("agent_states")
+    )
+    
+    // Create an agent with persistent state management
+    val myAgent = agent {
+        name("PersistentAgent")
+        description("An agent with persistent state")
+        
+        model = deepSeek {
+            apiKey("your-deepseek-api-key")
+            model(DeepSeekModel.DEEPSEEK_CHAT)
+            temperature(0.7)
+        }
+        
+        // Use the persistent state manager
+        stateManager = stateManager
+    }
+    
+    // Agent state will now be persisted across application restarts
+}
+```
+
+### State Transitions ✅
+
+You can define and enforce state transitions:
+
+```kotlin
+import ai.kastrax.core.agent.agent
+import ai.kastrax.core.agent.state.AgentStatus
+import ai.kastrax.core.agent.state.StateManager
+import ai.kastrax.core.agent.state.StateTransition
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    // Define state transitions
+    val transitions = listOf(
+        StateTransition(from = AgentStatus.IDLE, to = AgentStatus.BUSY),
+        StateTransition(from = AgentStatus.BUSY, to = AgentStatus.IDLE),
+        StateTransition(from = AgentStatus.BUSY, to = AgentStatus.ERROR),
+        StateTransition(from = AgentStatus.ERROR, to = AgentStatus.IDLE)
+    )
+    
+    // Create a state manager with defined transitions
+    val stateManager = StateManager.create(
+        allowedTransitions = transitions
+    )
+    
+    // Create an agent with the state manager
+    val myAgent = agent {
+        name("TransitionAgent")
+        description("An agent with state transitions")
+        
+        model = deepSeek {
+            apiKey("your-deepseek-api-key")
+            model(DeepSeekModel.DEEPSEEK_CHAT)
+            temperature(0.7)
+        }
+        
+        // Use the state manager with transitions
+        stateManager = stateManager
+    }
+    
+    // Valid transition
+    myAgent.updateState(AgentStatus.BUSY)
+    
+    // Invalid transition would throw an exception
+    try {
+        myAgent.updateState(AgentStatus.PAUSED)
+    } catch (e: IllegalStateException) {
+        println("Invalid state transition: ${e.message}")
+    }
+}
+```
+
+## Combining Versioning and State ✅
+
+You can combine versioning and state management for comprehensive agent management:
+
+```kotlin
+import ai.kastrax.core.agent.agent
+import ai.kastrax.core.agent.state.StateManager
+import ai.kastrax.core.agent.version.AgentVersionManager
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    // Create an agent with both version and state management
+    val myAgent = agent {
+        name("ManagedAgent")
+        description("An agent with version and state management")
+        
+        model = deepSeek {
+            apiKey("your-deepseek-api-key")
+            model(DeepSeekModel.DEEPSEEK_CHAT)
+            temperature(0.7)
+        }
+        
+        // Enable version management
+        versionManager = AgentVersionManager.create()
+        
+        // Enable state management
+        stateManager = StateManager.create()
+    }
+    
+    // Create a version
+    val version = myAgent.createVersion(
+        instructions = "You are a helpful assistant.",
+        name = "v1.0",
+        activateImmediately = true
+    )
+    
+    // Update state
+    myAgent.updateState(AgentStatus.IDLE)
+    
+    // Use the agent
+    val response = myAgent.generate("Hello, how can you help me?")
+    println(response.text)
+    
+    // Create a new version and activate it
+    val newVersion = myAgent.createVersion(
+        instructions = "You are a helpful assistant with expertise in programming.",
+        name = "v1.1",
+        activateImmediately = true
+    )
+    
+    // Use the updated agent
+    val newResponse = myAgent.generate("Can you help me with Python?")
+    println(newResponse.text)
+}
+```
+
+## Monitoring and Diagnostics ✅
+
+You can monitor agent versions and state for diagnostics:
+
+```kotlin
+import ai.kastrax.core.agent.agent
+import ai.kastrax.core.agent.monitoring.AgentMonitor
+import ai.kastrax.core.agent.state.StateManager
+import ai.kastrax.core.agent.version.AgentVersionManager
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    // Create a monitor
+    val monitor = AgentMonitor.create()
+    
+    // Create an agent with monitoring
+    val myAgent = agent {
+        name("MonitoredAgent")
+        description("An agent with monitoring")
+        
+        model = deepSeek {
+            apiKey("your-deepseek-api-key")
+            model(DeepSeekModel.DEEPSEEK_CHAT)
+            temperature(0.7)
+        }
+        
+        // Enable version management
+        versionManager = AgentVersionManager.create()
+        
+        // Enable state management
+        stateManager = StateManager.create()
+        
+        // Enable monitoring
+        monitor = monitor
+    }
+    
+    // Create versions and update state
+    myAgent.createVersion(
+        instructions = "You are a helpful assistant.",
+        name = "v1.0",
+        activateImmediately = true
+    )
+    
+    myAgent.updateState(AgentStatus.IDLE)
+    
+    // Get monitoring data
+    val versionHistory = monitor.getVersionHistory(myAgent.name)
+    println("Version history: $versionHistory")
+    
+    val stateHistory = monitor.getStateHistory(myAgent.name)
+    println("State history: $stateHistory")
+    
+    // Get performance metrics
+    val metrics = monitor.getPerformanceMetrics(myAgent.name)
+    println("Performance metrics: $metrics")
+}
+```
+
+## Best Practices ✅
+
+When using agent versioning and state management, follow these best practices:
+
+1. **Version Naming**: Use a consistent naming scheme for versions (e.g., semantic versioning)
+2. **Version Documentation**: Include detailed descriptions and metadata for each version
+3. **State Validation**: Validate state data to ensure consistency
+4. **Error Handling**: Implement proper error handling for state transitions and version activation
+5. **Monitoring**: Monitor version and state changes for debugging and analytics
+6. **Persistence**: Use persistent storage for production environments
+7. **Testing**: Test different versions and state transitions thoroughly
+
+## Conclusion ✅
+
+Agent versioning and state management provide powerful capabilities for building sophisticated, maintainable AI agent systems in Kastrax. By tracking versions and managing state, you can create agents that evolve over time while maintaining reliability and consistency.
+
+## Next Steps ✅
+
+- Learn about [Agent Architectures](./architectures-kotlin.mdx)
+- Explore [Memory Integration](../memory/overview-kotlin.mdx)
+- Understand [Agent Monitoring](./monitoring-kotlin.mdx)
