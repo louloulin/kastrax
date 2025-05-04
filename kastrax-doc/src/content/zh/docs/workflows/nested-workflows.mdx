@@ -1,0 +1,352 @@
+# 嵌套工作流 ✅
+
+Kastrax 允许您在其他工作流中使用工作流作为步骤，使您能够创建模块化和可重用的工作流组件。这个功能有助于将复杂的工作流组织成更小、更易于管理的部分，并促进代码重用。
+
+当您可以在父工作流中将嵌套工作流视为步骤时，也更容易直观地理解工作流的流程。
+
+## 基本用法 ✅
+
+您可以使用 `step()` 方法直接在另一个工作流中使用工作流作为步骤：
+
+```typescript
+// 创建嵌套工作流
+const nestedWorkflow = new Workflow({ name: "nested-workflow" })
+  .step(stepA)
+  .then(stepB)
+  .commit();
+
+// 在父工作流中使用嵌套工作流
+const parentWorkflow = new Workflow({ name: "parent-workflow" })
+  .step(nestedWorkflow, {
+    variables: {
+      city: {
+        step: "trigger",
+        path: "myTriggerInput",
+      },
+    },
+  })
+  .then(stepC)
+  .commit();
+```
+
+当工作流被用作步骤时：
+
+- 它会自动转换为步骤，使用工作流的名称作为步骤 ID
+- 工作流的结果在父工作流的上下文中可用
+- 嵌套工作流的步骤按其定义的顺序执行
+
+## 访问结果 ✅
+
+嵌套工作流的结果在父工作流的上下文中以嵌套工作流的名称提供。结果包括嵌套工作流中的所有步骤输出：
+
+```typescript
+const { results } = await parentWorkflow.start();
+// 访问嵌套工作流结果
+const nestedWorkflowResult = results["nested-workflow"];
+if (nestedWorkflowResult.status === "success") {
+  const nestedResults = nestedWorkflowResult.output.results;
+}
+```
+
+## 使用嵌套工作流的控制流 ✅
+
+嵌套工作流支持所有可用于常规步骤的控制流功能：
+
+### 并行执行
+
+多个嵌套工作流可以并行执行：
+
+```typescript
+parentWorkflow
+  .step(nestedWorkflowA)
+  .step(nestedWorkflowB)
+  .after([nestedWorkflowA, nestedWorkflowB])
+  .step(finalStep);
+```
+
+或者使用带有工作流数组的 `step()`：
+
+```typescript
+parentWorkflow.step([nestedWorkflowA, nestedWorkflowB]).then(finalStep);
+```
+
+在这种情况下，`then()` 将隐式等待所有工作流完成后再执行最终步骤。
+
+### If-Else 分支
+
+嵌套工作流可以在 if-else 分支中使用，新语法接受两个分支作为参数：
+
+```typescript
+// 为不同路径创建嵌套工作流
+const workflowA = new Workflow({ name: "workflow-a" })
+  .step(stepA1)
+  .then(stepA2)
+  .commit();
+
+const workflowB = new Workflow({ name: "workflow-b" })
+  .step(stepB1)
+  .then(stepB2)
+  .commit();
+
+// 使用带有嵌套工作流的新 if-else 语法
+parentWorkflow
+  .step(initialStep)
+  .if(
+    async ({ context }) => {
+      // 您的条件在这里
+      return someCondition;
+    },
+    workflowA, // if 分支
+    workflowB, // else 分支
+  )
+  .then(finalStep)
+  .commit();
+```
+
+使用嵌套工作流时，新语法更简洁、更清晰。当条件为：
+
+- `true`：执行第一个工作流（if 分支）
+- `false`：执行第二个工作流（else 分支）
+
+跳过的工作流在结果中的状态为 `skipped`：
+
+if-else 块后面的 `.then(finalStep)` 调用将 if 和 else 分支合并回单个执行路径。
+
+### 循环
+
+嵌套工作流可以像任何其他步骤一样使用 `.until()` 和 `.while()` 循环。一个有趣的新模式是将工作流直接作为循环回参数传递，以继续执行该嵌套工作流，直到其结果满足某个条件：
+
+```typescript
+parentWorkflow
+  .step(firstStep)
+  .while(
+    ({ context }) =>
+      context.getStepResult("nested-workflow").output.results.someField ===
+      "someValue",
+    nestedWorkflow,
+  )
+  .step(finalStep)
+  .commit();
+```
+
+## 监视嵌套工作流 ✅
+
+您可以使用父工作流上的 `watch` 方法监视嵌套工作流的状态变化。这对于监控复杂工作流的进度和状态转换很有用：
+
+```typescript
+const parentWorkflow = new Workflow({ name: "parent-workflow" })
+  .step([nestedWorkflowA, nestedWorkflowB])
+  .then(finalStep)
+  .commit();
+
+const run = parentWorkflow.createRun();
+const unwatch = parentWorkflow.watch((state) => {
+  console.log("当前状态:", state.value);
+  // 在 state.context 中访问嵌套工作流状态
+});
+
+await run.start();
+unwatch(); // 完成后停止监视
+```
+
+## 暂停和恢复 ✅
+
+嵌套工作流支持暂停和恢复，允许您在特定点暂停和继续工作流执行。您可以暂停整个嵌套工作流或其中的特定步骤：
+
+```typescript
+// 定义可能需要暂停的步骤
+const suspendableStep = new Step({
+  id: "other",
+  description: "可能需要暂停的步骤",
+  execute: async ({ context, suspend }) => {
+    if (!wasSuspended) {
+      wasSuspended = true;
+      await suspend();
+    }
+    return { other: 26 };
+  },
+});
+
+// 创建带有可暂停步骤的嵌套工作流
+const nestedWorkflow = new Workflow({ name: "nested-workflow-a" })
+  .step(startStep)
+  .then(suspendableStep)
+  .then(finalStep)
+  .commit();
+
+// 在父工作流中使用
+const parentWorkflow = new Workflow({ name: "parent-workflow" })
+  .step(beginStep)
+  .then(nestedWorkflow)
+  .then(lastStep)
+  .commit();
+
+// 启动工作流
+const run = parentWorkflow.createRun();
+const { runId, results } = await run.start({ triggerData: { startValue: 1 } });
+
+// 检查嵌套工作流中的特定步骤是否已暂停
+if (results["nested-workflow-a"].output.results.other.status === "suspended") {
+  // 使用点表示法恢复特定的暂停步骤
+  const resumedResults = await run.resume({
+    stepId: "nested-workflow-a.other",
+    context: { startValue: 1 },
+  });
+
+  // 恢复的结果将包含已完成的嵌套工作流
+  expect(resumedResults.results["nested-workflow-a"].output.results).toEqual({
+    start: { output: { newValue: 1 }, status: "success" },
+    other: { output: { other: 26 }, status: "success" },
+    final: { output: { finalValue: 27 }, status: "success" },
+  });
+}
+```
+
+恢复嵌套工作流时：
+
+- 调用 `resume()` 时使用嵌套工作流的名称作为 `stepId` 来恢复整个工作流
+- 使用点表示法（`nested-workflow.step-name`）恢复嵌套工作流中的特定步骤
+- 嵌套工作流将从暂停的步骤继续，使用提供的上下文
+- 您可以使用 `results["nested-workflow"].output.results` 检查嵌套工作流结果中特定步骤的状态
+
+## 结果模式和映射 ✅
+
+嵌套工作流可以定义其结果模式和映射，这有助于类型安全和数据转换。当您希望确保嵌套工作流的输出匹配特定结构，或者在父工作流中使用结果之前需要转换结果时，这特别有用。
+
+```typescript
+// 创建带有结果模式和映射的嵌套工作流
+const nestedWorkflow = new Workflow({
+  name: "nested-workflow",
+  result: {
+    schema: z.object({
+      total: z.number(),
+      items: z.array(
+        z.object({
+          id: z.string(),
+          value: z.number(),
+        }),
+      ),
+    }),
+    mapping: {
+      // 使用变量语法从步骤结果映射值
+      total: { step: "step-a", path: "count" },
+      items: { step: "step-b", path: "items" },
+    },
+  },
+})
+  .step(stepA)
+  .then(stepB)
+  .commit();
+
+// 在父工作流中使用类型安全的结果
+const parentWorkflow = new Workflow({ name: "parent-workflow" })
+  .step(nestedWorkflow)
+  .then(async ({ context }) => {
+    const result = context.getStepResult("nested-workflow");
+    // TypeScript 知道结果的结构
+    console.log(result.total); // number
+    console.log(result.items); // Array<{ id: string, value: number }>
+    return { success: true };
+  })
+  .commit();
+```
+
+## 最佳实践 ✅
+
+1. **模块化**：使用嵌套工作流封装相关步骤并创建可重用的工作流组件。
+2. **命名**：给嵌套工作流起描述性名称，因为它们将在父工作流中用作步骤 ID。
+3. **错误处理**：嵌套工作流将其错误传播到父工作流，因此要适当处理错误。
+4. **状态管理**：每个嵌套工作流维护自己的状态，但可以访问父工作流的上下文。
+5. **暂停**：在嵌套工作流中使用暂停时，考虑整个工作流的状态并适当处理恢复。
+
+## 示例 ✅
+
+这里是一个展示嵌套工作流各种功能的完整示例：
+
+```typescript
+const workflowA = new Workflow({
+  name: "workflow-a",
+  result: {
+    schema: z.object({
+      activities: z.string(),
+    }),
+    mapping: {
+      activities: {
+        step: planActivities,
+        path: "activities",
+      },
+    },
+  },
+})
+  .step(fetchWeather)
+  .then(planActivities)
+  .commit();
+
+const workflowB = new Workflow({
+  name: "workflow-b",
+  result: {
+    schema: z.object({
+      activities: z.string(),
+    }),
+    mapping: {
+      activities: {
+        step: planActivities,
+        path: "activities",
+      },
+    },
+  },
+})
+  .step(fetchWeather)
+  .then(planActivities)
+  .commit();
+
+const weatherWorkflow = new Workflow({
+  name: "weather-workflow",
+  triggerSchema: z.object({
+    cityA: z.string().describe("要获取天气的城市"),
+    cityB: z.string().describe("要获取天气的城市"),
+  }),
+  result: {
+    schema: z.object({
+      activitiesA: z.string(),
+      activitiesB: z.string(),
+    }),
+    mapping: {
+      activitiesA: {
+        step: workflowA,
+        path: "result.activities",
+      },
+      activitiesB: {
+        step: workflowB,
+        path: "result.activities",
+      },
+    },
+  },
+})
+  .step(workflowA, {
+    variables: {
+      city: {
+        step: "trigger",
+        path: "cityA",
+      },
+    },
+  })
+  .step(workflowB, {
+    variables: {
+      city: {
+        step: "trigger",
+        path: "cityB",
+      },
+    },
+  });
+
+weatherWorkflow.commit();
+```
+
+在这个示例中：
+
+1. 我们为所有工作流定义模式以确保类型安全
+2. 每个步骤都有适当的输入和输出模式
+3. 嵌套工作流有自己的触发器模式和结果映射
+4. 数据通过 `.step()` 调用中的变量语法传递
+5. 主工作流结合了两个嵌套工作流的数据

@@ -1,0 +1,313 @@
+---
+title: "使用工作流变量进行数据映射 | Kastrax 文档"
+description: "学习如何使用工作流变量在步骤之间映射数据，并在 Kastrax 工作流中创建动态数据流。"
+---
+
+# 使用工作流变量进行数据映射 ✅
+
+Kastrax 中的工作流变量提供了一种强大的机制，用于在步骤之间映射数据，使您能够创建动态数据流并将信息从一个步骤传递到另一个步骤。
+
+## 理解工作流变量 ✅
+
+在 Kastrax 工作流中，变量用于：
+
+- 将触发器输入映射到步骤输入
+- 将一个步骤的输出传递到另一个步骤的输入
+- 访问步骤输出中的嵌套属性
+- 创建更灵活和可重用的工作流步骤
+
+## 使用变量进行数据映射 ✅
+
+### 基本变量映射
+
+您可以使用向工作流添加步骤时的 `variables` 属性在步骤之间映射数据：
+
+```typescript showLineNumbers filename="src/kastrax/workflows/index.ts" copy
+const workflow = new Workflow({
+  name: 'data-mapping-workflow',
+  triggerSchema: z.object({
+    inputData: z.string(),
+  }),
+});
+
+workflow
+  .step(step1, {
+    variables: {
+      // 将触发器数据映射到步骤输入
+      inputData: { step: 'trigger', path: 'inputData' }
+    }
+  })
+  .then(step2, {
+    variables: {
+      // 将 step1 的输出映射到 step2 的输入
+      previousValue: { step: step1, path: 'outputField' }
+    }
+  })
+  .commit();
+
+// 向 Kastrax 注册工作流
+  export const kastrax = new Kastrax({
+    workflows: { workflow },
+  });
+```
+
+### 访问嵌套属性
+
+您可以使用 `path` 字段中的点表示法访问嵌套属性：
+
+```typescript showLineNumbers filename="src/kastrax/workflows/index.ts" copy
+workflow
+  .step(step1)
+  .then(step2, {
+    variables: {
+      // 访问 step1 输出中的嵌套属性
+      nestedValue: { step: step1, path: 'nested.deeply.value' }
+    }
+  })
+  .commit();
+```
+
+### 映射整个对象
+
+您可以使用 `.` 作为路径来映射整个对象：
+
+```typescript showLineNumbers filename="src/kastrax/workflows/index.ts" copy
+workflow
+  .step(step1, {
+    variables: {
+      // 映射整个触发器数据对象
+      triggerData: { step: 'trigger', path: '.' }
+    }
+  })
+  .commit();
+```
+
+### 循环中的变量
+
+变量也可以传递给 `while` 和 `until` 循环。这对于在迭代之间或从外部步骤传递数据很有用：
+
+```typescript showLineNumbers filename="src/kastrax/workflows/loop-variables.ts" copy
+// 递增计数器的步骤
+const incrementStep = new Step({
+  id: 'increment',
+  inputSchema: z.object({
+    // 上一次迭代的值
+    prevValue: z.number().optional(),
+  }),
+  outputSchema: z.object({
+    // 更新后的计数器值
+    updatedCounter: z.number(),
+  }),
+  execute: async ({ context }) => {
+    const { prevValue = 0 } = context.inputData;
+    return { updatedCounter: prevValue + 1 };
+  },
+});
+
+const workflow = new Workflow({
+  name: 'counter'
+});
+
+workflow
+  .step(incrementStep)
+  .while(
+    async ({ context }) => {
+      // 当计数器小于 10 时继续
+      const result = context.getStepResult(incrementStep);
+      return (result?.updatedCounter ?? 0) < 10;
+    },
+    incrementStep,
+    {
+      // 将前一个值传递给下一次迭代
+      prevValue: {
+        step: incrementStep,
+        path: 'updatedCounter'
+      }
+    }
+  );
+```
+
+## 变量解析 ✅
+
+当工作流执行时，Kastrax 通过以下方式在运行时解析变量：
+
+1. 识别 `step` 属性中指定的源步骤
+2. 检索该步骤的输出
+3. 使用 `path` 导航到指定的属性
+4. 将解析后的值作为 `inputData` 属性注入到目标步骤的上下文中
+
+## 示例 ✅
+
+### 从触发器数据映射
+
+此示例展示了如何将数据从工作流触发器映射到步骤：
+
+```typescript showLineNumbers filename="src/kastrax/workflows/trigger-mapping.ts" copy
+import { Step, Workflow, Kastrax } from "@kastrax/core";
+import { z } from "zod";
+
+// 定义需要用户输入的步骤
+const processUserInput = new Step({
+  id: "processUserInput",
+  execute: async ({ context }) => {
+    // 由于变量映射，inputData 将在上下文中可用
+    const { inputData } = context.inputData;
+
+    return {
+      processedData: `已处理: ${inputData}`
+    };
+  },
+});
+
+// 创建工作流
+const workflow = new Workflow({
+  name: "trigger-mapping",
+  triggerSchema: z.object({
+    inputData: z.string(),
+  }),
+});
+
+// 将触发器数据映射到步骤
+workflow
+  .step(processUserInput, {
+    variables: {
+      inputData: { step: 'trigger', path: 'inputData' },
+    }
+  })
+  .commit();
+
+  // 向 Kastrax 注册工作流
+  export const kastrax = new Kastrax({
+    workflows: { workflow },
+  });
+```
+
+### 在步骤之间映射
+
+此示例演示了如何在一个步骤和另一个步骤之间映射数据：
+
+```typescript showLineNumbers filename="src/kastrax/workflows/step-mapping.ts" copy
+import { Step, Workflow, Kastrax } from "@kastrax/core";
+import { z } from "zod";
+
+// 步骤 1：生成数据
+const generateData = new Step({
+  id: "generateData",
+  outputSchema: z.object({
+    nested: z.object({
+      value: z.string(),
+    }),
+  }),
+  execute: async () => {
+    return {
+      nested: {
+        value: "step1-data"
+      }
+    };
+  },
+});
+
+// 步骤 2：处理来自步骤 1 的数据
+const processData = new Step({
+  id: "processData",
+  inputSchema: z.object({
+    previousValue: z.string(),
+  }),
+  execute: async ({ context }) => {
+    // 由于变量映射，previousValue 将可用
+    const { previousValue } = context.inputData;
+
+    return {
+      result: `已处理: ${previousValue}`
+    };
+  },
+});
+
+// 创建工作流
+const workflow = new Workflow({
+  name: "step-mapping",
+});
+
+// 将数据从 step1 映射到 step2
+workflow
+  .step(generateData)
+  .then(processData, {
+    variables: {
+      // 映射 generateData 输出中的 nested.value 属性
+      previousValue: { step: generateData, path: 'nested.value' },
+    }
+  })
+  .commit();
+
+  // 向 Kastrax 注册工作流
+  export const kastrax = new Kastrax({
+    workflows: { workflow },
+  });
+```
+
+## 类型安全 ✅
+
+使用 TypeScript 时，Kastrax 为变量映射提供类型安全：
+
+```typescript showLineNumbers filename="src/kastrax/workflows/type-safe.ts" copy
+import { Step, Workflow, Kastrax } from "@kastrax/core";
+import { z } from "zod";
+
+// 定义模式以获得更好的类型安全
+const triggerSchema = z.object({
+  inputValue: z.string(),
+});
+
+type TriggerType = z.infer<typeof triggerSchema>;
+
+// 带有类型化上下文的步骤
+const step1 = new Step({
+  id: "step1",
+  outputSchema: z.object({
+    nested: z.object({
+      value: z.string(),
+    }),
+  }),
+  execute: async ({ context }) => {
+    // TypeScript 知道 triggerData 的形状
+    const triggerData = context.getStepResult<TriggerType>('trigger');
+
+    return {
+      nested: {
+        value: `processed-${triggerData?.inputValue}`
+      }
+    };
+  },
+});
+
+// 使用模式创建工作流
+const workflow = new Workflow({
+  name: "type-safe-workflow",
+  triggerSchema,
+});
+
+workflow.step(step1).commit();
+
+  // 向 Kastrax 注册工作流
+  export const kastrax = new Kastrax({
+    workflows: { workflow },
+  });
+```
+
+## 最佳实践 ✅
+
+1. **验证输入和输出**：使用 `inputSchema` 和 `outputSchema` 确保数据一致性。
+
+2. **保持映射简单**：尽可能避免过于复杂的嵌套路径。
+
+3. **考虑默认值**：处理映射数据可能未定义的情况。
+
+## 与直接上下文访问的比较 ✅
+
+虽然您可以通过 `context.steps` 直接访问先前的步骤结果，但使用变量映射提供了几个优势：
+
+| 特性 | 变量映射 | 直接上下文访问 |
+| ------- | --------------- | --------------------- |
+| 清晰度 | 显式数据依赖 | 隐式依赖 |
+| 可重用性 | 步骤可以使用不同的映射重用 | 步骤紧密耦合 |
+| 类型安全 | 更好的 TypeScript 集成 | 需要手动类型断言 |

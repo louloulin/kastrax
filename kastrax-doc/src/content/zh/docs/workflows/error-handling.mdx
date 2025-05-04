@@ -1,0 +1,183 @@
+---
+title: "工作流中的错误处理 | Kastrax 文档"
+description: "学习如何在 Kastrax 工作流中使用步骤重试、条件分支和监控来处理错误。"
+---
+
+# 工作流中的错误处理 ✅
+
+强大的错误处理对于生产工作流至关重要。Kastrax 提供了几种机制来优雅地处理错误，使您的工作流能够从故障中恢复或在必要时优雅地降级。
+
+## 概述 ✅
+
+Kastrax 工作流中的错误处理可以通过以下方式实现：
+
+1. **步骤重试** - 自动重试失败的步骤
+2. **条件分支** - 基于步骤成功或失败创建替代路径
+3. **错误监控** - 监视工作流中的错误并以编程方式处理它们
+4. **结果状态检查** - 在后续步骤中检查先前步骤的状态
+
+## 步骤重试 ✅
+
+Kastrax 为因暂时性错误而失败的步骤提供了内置的重试机制。这对于与可能经历临时不可用的外部服务或资源交互的步骤特别有用。
+
+### 基本重试配置
+
+您可以在工作流级别或针对单个步骤配置重试：
+
+```typescript
+// 工作流级别的重试配置
+const workflow = new Workflow({
+  name: 'my-workflow',
+  retryConfig: {
+    attempts: 3,    // 重试尝试次数
+    delay: 1000,    // 重试之间的延迟（毫秒）
+  },
+});
+
+// 步骤级别的重试配置（覆盖工作流级别）
+const apiStep = new Step({
+  id: 'callApi',
+  execute: async () => {
+    // 可能失败的 API 调用
+  },
+  retryConfig: {
+    attempts: 5,    // 此步骤将重试最多 5 次
+    delay: 2000,    // 重试之间有 2 秒延迟
+  },
+});
+```
+
+有关步骤重试的更多详细信息，请参见[步骤重试](../../reference/workflows/step-retries.mdx)参考。
+
+## 条件分支 ✅
+
+您可以使用条件逻辑基于先前步骤的成功或失败创建替代工作流路径：
+
+```typescript
+// 创建带有条件分支的工作流
+const workflow = new Workflow({
+  name: 'error-handling-workflow',
+});
+
+workflow
+  .step(fetchDataStep)
+  .then(processDataStep, {
+    // 仅在 fetchDataStep 成功时执行 processDataStep
+    when: ({ context }) => {
+      return context.steps.fetchDataStep?.status === 'success';
+    },
+  })
+  .then(fallbackStep, {
+    // 如果 fetchDataStep 失败则执行 fallbackStep
+    when: ({ context }) => {
+      return context.steps.fetchDataStep?.status === 'failed';
+    },
+  })
+  .commit();
+```
+
+## 错误监控 ✅
+
+您可以使用 `watch` 方法监控工作流中的错误：
+
+```typescript
+const { start, watch } = workflow.createRun();
+
+watch(async ({ results }) => {
+  // 检查任何失败的步骤
+  const failedSteps = Object.entries(results)
+    .filter(([_, step]) => step.status === "failed")
+    .map(([stepId]) => stepId);
+
+  if (failedSteps.length > 0) {
+    console.error(`工作流有失败的步骤: ${failedSteps.join(', ')}`);
+    // 采取补救措施，如警报或日志记录
+  }
+});
+
+await start();
+```
+
+## 在步骤中处理错误 ✅
+
+在步骤的执行函数中，您可以以编程方式处理错误：
+
+```typescript
+const robustStep = new Step({
+  id: 'robustStep',
+  execute: async ({ context }) => {
+    try {
+      // 尝试主要操作
+      const result = await someRiskyOperation();
+      return { success: true, data: result };
+    } catch (error) {
+      // 记录错误
+      console.error('操作失败:', error);
+
+      // 返回优雅的回退结果而不是抛出异常
+      return {
+        success: false,
+        error: error.message,
+        fallbackData: '默认值'
+      };
+    }
+  },
+});
+```
+
+## 检查先前步骤结果 ✅
+
+您可以基于先前步骤的结果做出决策：
+
+```typescript
+const finalStep = new Step({
+  id: 'finalStep',
+  execute: async ({ context }) => {
+    // 检查先前步骤的结果
+    const step1Success = context.steps.step1?.status === 'success';
+    const step2Success = context.steps.step2?.status === 'success';
+
+    if (step1Success && step2Success) {
+      // 所有步骤都成功
+      return { status: 'complete', result: '所有操作成功' };
+    } else if (step1Success) {
+      // 只有 step1 成功
+      return { status: 'partial', result: '部分完成' };
+    } else {
+      // 关键失败
+      return { status: 'failed', result: '关键步骤失败' };
+    }
+  },
+});
+```
+
+## 错误处理的最佳实践 ✅
+
+1. **对暂时性故障使用重试**：为可能遇到临时问题的步骤配置重试策略。
+
+2. **提供回退路径**：设计具有关键步骤失败时替代路径的工作流。
+
+3. **明确错误场景**：对不同类型的错误使用不同的处理策略。
+
+4. **全面记录错误**：记录错误时包含上下文信息以帮助调试。
+
+5. **在失败时返回有意义的数据**：当步骤失败时，返回关于失败的结构化数据，以帮助下游步骤做出决策。
+
+6. **考虑幂等性**：确保步骤可以安全地重试而不会导致重复的副作用。
+
+7. **监控工作流执行**：使用 `watch` 方法主动监控工作流执行并尽早检测错误。
+
+## 高级错误处理 ✅
+
+对于更复杂的错误处理场景，请考虑：
+
+- **实现断路器**：如果步骤反复失败，停止重试并使用回退策略
+- **添加超时处理**：为步骤设置时间限制，防止工作流无限期挂起
+- **创建专用错误恢复工作流**：对于关键工作流，创建可在主工作流失败时触发的单独恢复工作流
+
+## 相关内容 ✅
+
+- [步骤重试参考](../../reference/workflows/step-retries.mdx)
+- [Watch 方法参考](../../reference/workflows/watch.mdx)
+- [步骤条件](../../reference/workflows/step-condition.mdx)
+- [控制流](./control-flow.mdx)
