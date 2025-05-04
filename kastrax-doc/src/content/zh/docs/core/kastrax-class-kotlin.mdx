@@ -1,0 +1,271 @@
+---
+title: KastraX 核心类 | Kastrax 文档
+description: KastraX 类的文档，这是 Kastrax 框架中管理代理、工具和其他组件的核心入口点。
+---
+
+# KastraX 核心类 ✅
+
+`KastraX` 类是 Kastrax 框架的中央入口点，为管理代理、工具和其他组件提供了统一的接口。本指南解释了如何使用 KastraX 类构建 AI 代理应用程序。
+
+## 概述 ✅
+
+`KastraX` 类作为各种组件的容器和管理器：
+
+- **代理**：具有不同能力的 AI 代理
+- **工具**：代理可以用来与外部系统交互的函数
+- **记忆**：用于存储和检索对话历史的系统
+- **RAG**：检索增强生成组件
+
+## 基本用法 ✅
+
+以下是创建和使用 KastraX 类的简单示例：
+
+```kotlin
+import ai.kastrax.core.kastrax
+import ai.kastrax.core.agent.agent
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    // 创建 KastraX 实例
+    val kastraxInstance = kastrax {
+        // 添加代理
+        agent("assistant") {
+            name("助手")
+            description("一个有帮助的助手")
+            
+            model = deepSeek {
+                apiKey("your-deepseek-api-key")
+                model(DeepSeekModel.DEEPSEEK_CHAT)
+                temperature(0.7)
+            }
+        }
+    }
+    
+    // 获取代理
+    val assistant = kastraxInstance.getAgent("assistant")
+    
+    // 使用代理
+    val response = assistant.generate("你好，你能帮我什么忙？")
+    println(response.text)
+}
+```
+
+## 创建 KastraX 实例 ✅
+
+您可以使用 DSL 函数创建 KastraX 实例：
+
+```kotlin
+import ai.kastrax.core.kastrax
+import ai.kastrax.core.agent.agent
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    val kastraxInstance = kastrax {
+        // 配置代理
+        agent("assistant") {
+            name("助手")
+            description("一个有帮助的助手")
+            
+            model = deepSeek {
+                apiKey("your-deepseek-api-key")
+                model(DeepSeekModel.DEEPSEEK_CHAT)
+                temperature(0.7)
+            }
+        }
+        
+        agent("researcher") {
+            name("研究员")
+            description("一个研究专家")
+            
+            model = deepSeek {
+                apiKey("your-deepseek-api-key")
+                model(DeepSeekModel.DEEPSEEK_CHAT)
+                temperature(0.5)
+            }
+        }
+    }
+}
+```
+
+## 管理代理 ✅
+
+KastraX 类提供了管理代理的方法：
+
+```kotlin
+// 通过 ID 获取代理
+val assistant = kastraxInstance.getAgent("assistant")
+
+// 获取所有代理
+val allAgents = kastraxInstance.getAgents()
+
+// 检查代理是否存在
+if (kastraxInstance.hasAgent("assistant")) {
+    // 使用代理
+}
+```
+
+## 高级配置 ✅
+
+您可以使用其他组件配置 KastraX 实例：
+
+```kotlin
+import ai.kastrax.core.kastrax
+import ai.kastrax.core.agent.agent
+import ai.kastrax.core.tools.tool
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    // 创建共享工具
+    val calculatorTool = tool {
+        id = "calculator"
+        name = "计算器"
+        description = "执行基本算术运算"
+        
+        // 工具配置...
+    }
+    
+    // 创建带有共享组件的 KastraX 实例
+    val kastraxInstance = kastrax {
+        // 配置全局工具
+        globalTool(calculatorTool)
+        
+        // 配置代理
+        agent("assistant") {
+            name("助手")
+            description("一个有帮助的助手")
+            
+            model = deepSeek {
+                apiKey("your-deepseek-api-key")
+                model(DeepSeekModel.DEEPSEEK_CHAT)
+                temperature(0.7)
+            }
+            
+            // 使用全局工具
+            useGlobalTools(true)
+        }
+    }
+}
+```
+
+## 与其他系统集成 ✅
+
+KastraX 类可以与其他系统集成：
+
+### Actor 系统集成
+
+```kotlin
+import ai.kastrax.core.kastrax
+import ai.kastrax.core.agent.agent
+import ai.kastrax.actor.actorSystem
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    // 创建 actor 系统
+    val actorSystem = actorSystem("kastrax-system")
+    
+    // 创建带有 actor 系统的 KastraX 实例
+    val kastraxInstance = kastrax {
+        // 配置 actor 系统
+        actorSystem(actorSystem)
+        
+        // 配置代理
+        agent("assistant") {
+            name("助手")
+            description("一个有帮助的助手")
+            
+            model = deepSeek {
+                apiKey("your-deepseek-api-key")
+                model(DeepSeekModel.DEEPSEEK_CHAT)
+                temperature(0.7)
+            }
+        }
+    }
+    
+    // 创建基于 actor 的代理
+    val agentActor = kastraxInstance.createActorAgent("assistant")
+    
+    // 向代理 actor 发送消息
+    actorSystem.root.send(agentActor, "你好，你能帮我什么忙？")
+}
+```
+
+### RAG 系统集成
+
+```kotlin
+import ai.kastrax.core.kastrax
+import ai.kastrax.core.agent.agent
+import ai.kastrax.rag.RAG
+import ai.kastrax.rag.document.DocumentLoader
+import ai.kastrax.rag.embedding.FastEmbeddingService
+import ai.kastrax.rag.vectorstore.InMemoryVectorStore
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    // 创建 RAG 组件
+    val embeddingService = FastEmbeddingService.create()
+    val vectorStore = InMemoryVectorStore()
+    val rag = RAG(vectorStore, embeddingService)
+    
+    // 加载文档
+    val loader = DocumentLoader.fromFile("knowledge_base.pdf")
+    val documents = loader.load()
+    rag.addDocuments(documents)
+    
+    // 创建带有 RAG 的 KastraX 实例
+    val kastraxInstance = kastrax {
+        // 配置 RAG
+        ragSystem(rag)
+        
+        // 配置代理
+        agent("assistant") {
+            name("助手")
+            description("一个具有知识访问能力的助手")
+            
+            model = deepSeek {
+                apiKey("your-deepseek-api-key")
+                model(DeepSeekModel.DEEPSEEK_CHAT)
+                temperature(0.7)
+            }
+            
+            // 使用 RAG
+            useRag(true)
+        }
+    }
+    
+    // 使用带有 RAG 的代理
+    val assistant = kastraxInstance.getAgent("assistant")
+    val response = assistant.generate("知识库关于气候变化说了什么？")
+    println(response.text)
+}
+```
+
+## 最佳实践 ✅
+
+使用 KastraX 类时，请遵循以下最佳实践：
+
+1. **集中配置**：使用 KastraX 类作为应用程序的中央配置点
+2. **资源管理**：当不再需要资源时，正确关闭资源
+3. **错误处理**：为代理交互实现适当的错误处理
+4. **共享组件**：在适当的情况下，在代理之间使用共享组件（工具、记忆）
+5. **模块化设计**：以模块化方式设计应用程序，每个代理都有明确的职责
+
+## 结论 ✅
+
+KastraX 类为在应用程序中管理 AI 代理和相关组件提供了强大而灵活的方式。通过集中配置和管理，它简化了复杂 AI 代理系统的开发。
+
+## 下一步 ✅
+
+- 了解[代理创建](../agents/creating-agents-kotlin.mdx)
+- 探索[工具集成](../tools/overview-kotlin.mdx)
+- 理解[记忆系统](../memory/overview-kotlin.mdx)
+- 发现[RAG 集成](../rag/overview.mdx)

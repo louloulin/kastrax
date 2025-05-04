@@ -1,0 +1,605 @@
+---
+title: 代理监控和诊断 | Kastrax 文档
+description: Kastrax 中代理性能监控和诊断的详细指南，包括指标收集、性能分析和调试工具。
+---
+
+# 代理监控和诊断 ✅
+
+Kastrax 为 AI 代理提供了全面的监控和诊断功能，使您能够跟踪性能、识别问题并优化行为。本指南解释了如何有效地使用这些功能。
+
+## 监控概述 ✅
+
+Kastrax 中的代理监控使您能够：
+
+- 跟踪代理性能指标
+- 监控资源使用情况
+- 分析代理行为模式
+- 识别和诊断问题
+- 生成报告和可视化
+- 为异常设置警报
+
+## 基本监控设置 ✅
+
+以下是如何为 Kastrax 代理设置基本监控：
+
+```kotlin
+import ai.kastrax.core.agent.agent
+import ai.kastrax.core.agent.monitoring.AgentMonitor
+import ai.kastrax.core.agent.monitoring.MonitoringConfig
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    // 创建具有默认配置的监控器
+    val monitor = AgentMonitor.create(
+        MonitoringConfig(
+            enabled = true,
+            collectPerformanceMetrics = true,
+            collectUsageMetrics = true,
+            collectBehaviorMetrics = true,
+            samplingRate = 1.0 // 监控所有交互
+        )
+    )
+    
+    // 创建带有监控的代理
+    val myAgent = agent {
+        name("被监控的代理")
+        description("一个具有监控功能的代理")
+        
+        model = deepSeek {
+            apiKey("your-deepseek-api-key")
+            model(DeepSeekModel.DEEPSEEK_CHAT)
+            temperature(0.7)
+        }
+        
+        // 启用监控
+        monitor = monitor
+    }
+    
+    // 使用代理
+    repeat(5) { i ->
+        val response = myAgent.generate("告诉我关于 ${i + 1} 的一些有趣事情")
+        println("响应 ${i + 1}: ${response.text}")
+    }
+    
+    // 获取监控数据
+    val metrics = monitor.getMetrics(myAgent.name)
+    println("收集的指标: $metrics")
+}
+```
+
+## 性能指标 ✅
+
+Kastrax 为代理收集各种性能指标：
+
+### 响应时间指标
+
+```kotlin
+// 获取响应时间指标
+val responseTimeMetrics = monitor.getResponseTimeMetrics(myAgent.name)
+println("平均响应时间: ${responseTimeMetrics.average} 毫秒")
+println("中位数响应时间: ${responseTimeMetrics.median} 毫秒")
+println("95 百分位响应时间: ${responseTimeMetrics.percentile95} 毫秒")
+println("最大响应时间: ${responseTimeMetrics.max} 毫秒")
+```
+
+### 令牌使用指标
+
+```kotlin
+// 获取令牌使用指标
+val tokenUsageMetrics = monitor.getTokenUsageMetrics(myAgent.name)
+println("总输入令牌: ${tokenUsageMetrics.totalInputTokens}")
+println("总输出令牌: ${tokenUsageMetrics.totalOutputTokens}")
+println("每个请求的平均令牌数: ${tokenUsageMetrics.averageTokensPerRequest}")
+println("令牌使用趋势: ${tokenUsageMetrics.usageTrend}")
+```
+
+### 错误率指标
+
+```kotlin
+// 获取错误率指标
+val errorMetrics = monitor.getErrorMetrics(myAgent.name)
+println("错误率: ${errorMetrics.errorRate * 100}%")
+println("常见错误类型: ${errorMetrics.commonErrorTypes}")
+println("错误趋势: ${errorMetrics.errorTrend}")
+```
+
+## 资源使用监控 ✅
+
+您可以监控代理的资源使用情况：
+
+```kotlin
+// 获取资源使用指标
+val resourceMetrics = monitor.getResourceMetrics(myAgent.name)
+println("内存使用: ${resourceMetrics.memoryUsage} MB")
+println("CPU 使用: ${resourceMetrics.cpuUsage}%")
+println("网络使用: ${resourceMetrics.networkUsage} KB")
+```
+
+## 行为分析 ✅
+
+Kastrax 可以分析代理行为模式：
+
+```kotlin
+// 获取行为指标
+val behaviorMetrics = monitor.getBehaviorMetrics(myAgent.name)
+println("工具使用分布: ${behaviorMetrics.toolUsageDistribution}")
+println("响应长度分布: ${behaviorMetrics.responseLengthDistribution}")
+println("常见主题: ${behaviorMetrics.commonTopics}")
+println("情感分布: ${behaviorMetrics.sentimentDistribution}")
+```
+
+## 自定义指标 ✅
+
+您可以为代理定义和收集自定义指标：
+
+```kotlin
+import ai.kastrax.core.agent.agent
+import ai.kastrax.core.agent.monitoring.AgentMonitor
+import ai.kastrax.core.agent.monitoring.CustomMetric
+import ai.kastrax.core.agent.monitoring.MetricType
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    // 创建带有自定义指标的监控器
+    val monitor = AgentMonitor.create()
+    
+    // 定义自定义指标
+    monitor.defineCustomMetric(
+        CustomMetric(
+            name = "user_satisfaction",
+            description = "用户满意度评分",
+            type = MetricType.GAUGE,
+            unit = "score"
+        )
+    )
+    
+    monitor.defineCustomMetric(
+        CustomMetric(
+            name = "task_completion_rate",
+            description = "成功完成任务的比率",
+            type = MetricType.RATE,
+            unit = "percent"
+        )
+    )
+    
+    // 创建带有监控的代理
+    val myAgent = agent {
+        name("自定义指标代理")
+        description("一个带有自定义指标的代理")
+        
+        model = deepSeek {
+            apiKey("your-deepseek-api-key")
+            model(DeepSeekModel.DEEPSEEK_CHAT)
+            temperature(0.7)
+        }
+        
+        // 启用监控
+        monitor = monitor
+    }
+    
+    // 使用代理并记录自定义指标
+    val response = myAgent.generate("帮我解决这个数学问题: 2x + 5 = 15")
+    println("响应: ${response.text}")
+    
+    // 记录自定义指标
+    monitor.recordCustomMetric(
+        agentName = myAgent.name,
+        metricName = "user_satisfaction",
+        value = 4.5 // 1-5 的评分
+    )
+    
+    monitor.recordCustomMetric(
+        agentName = myAgent.name,
+        metricName = "task_completion_rate",
+        value = 1.0 // 100% 完成
+    )
+    
+    // 获取自定义指标
+    val customMetrics = monitor.getCustomMetrics(myAgent.name)
+    println("自定义指标: $customMetrics")
+}
+```
+
+## 实时监控 ✅
+
+您可以使用回调设置实时监控：
+
+```kotlin
+import ai.kastrax.core.agent.agent
+import ai.kastrax.core.agent.monitoring.AgentMonitor
+import ai.kastrax.core.agent.monitoring.MonitoringCallback
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    // 创建带有实时回调的监控器
+    val monitor = AgentMonitor.create()
+    
+    // 定义监控回调
+    monitor.addCallback(object : MonitoringCallback {
+        override fun onRequestStart(agentName: String, requestId: String) {
+            println("[$agentName] 请求开始: $requestId")
+        }
+        
+        override fun onRequestComplete(agentName: String, requestId: String, durationMs: Long) {
+            println("[$agentName] 请求完成: $requestId (${durationMs}毫秒)")
+        }
+        
+        override fun onError(agentName: String, requestId: String, error: Throwable) {
+            println("[$agentName] 请求 $requestId 中的错误: ${error.message}")
+        }
+        
+        override fun onMetricUpdate(agentName: String, metricName: String, value: Double) {
+            println("[$agentName] 指标更新: $metricName = $value")
+        }
+    })
+    
+    // 创建带有监控的代理
+    val myAgent = agent {
+        name("实时监控代理")
+        description("一个带有实时监控的代理")
+        
+        model = deepSeek {
+            apiKey("your-deepseek-api-key")
+            model(DeepSeekModel.DEEPSEEK_CHAT)
+            temperature(0.7)
+        }
+        
+        // 启用监控
+        monitor = monitor
+    }
+    
+    // 使用代理
+    val response = myAgent.generate("讲个笑话")
+    println("响应: ${response.text}")
+}
+```
+
+## 监控仪表板 ✅
+
+Kastrax 提供了一个监控仪表板，用于可视化代理指标：
+
+```kotlin
+import ai.kastrax.core.agent.monitoring.AgentMonitor
+import ai.kastrax.core.agent.monitoring.dashboard.MonitoringDashboard
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    // 获取监控器
+    val monitor = AgentMonitor.getInstance()
+    
+    // 创建监控仪表板
+    val dashboard = MonitoringDashboard.create(monitor)
+    
+    // 在特定端口上启动仪表板
+    dashboard.start(port = 8080)
+    
+    println("监控仪表板已在 http://localhost:8080 启动")
+    
+    // 保持应用程序运行
+    readLine()
+    
+    // 完成后停止仪表板
+    dashboard.stop()
+}
+```
+
+## 警报 ✅
+
+您可以为特定条件设置警报：
+
+```kotlin
+import ai.kastrax.core.agent.monitoring.AgentMonitor
+import ai.kastrax.core.agent.monitoring.alert.AlertCondition
+import ai.kastrax.core.agent.monitoring.alert.AlertSeverity
+import ai.kastrax.core.agent.monitoring.alert.AlertChannel
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    // 获取监控器
+    val monitor = AgentMonitor.getInstance()
+    
+    // 配置电子邮件警报通道
+    val emailChannel = AlertChannel.email(
+        recipients = listOf("admin@example.com"),
+        smtpConfig = mapOf(
+            "host" to "smtp.example.com",
+            "port" to "587",
+            "username" to "alerts@example.com",
+            "password" to "password"
+        )
+    )
+    
+    // 配置 Slack 警报通道
+    val slackChannel = AlertChannel.slack(
+        webhookUrl = "https://hooks.slack.com/services/T00000000/B00000000/XXXXXXXXXXXXXXXXXXXXXXXX",
+        channel = "#agent-alerts"
+    )
+    
+    // 添加警报条件
+    monitor.addAlertCondition(
+        AlertCondition(
+            name = "高错误率",
+            metricName = "error_rate",
+            threshold = 0.05, // 5% 错误率
+            comparison = AlertCondition.Comparison.GREATER_THAN,
+            duration = 300, // 5 分钟
+            severity = AlertSeverity.HIGH,
+            channels = listOf(emailChannel, slackChannel)
+        )
+    )
+    
+    monitor.addAlertCondition(
+        AlertCondition(
+            name = "响应时间慢",
+            metricName = "response_time_p95",
+            threshold = 5000.0, // 5 秒
+            comparison = AlertCondition.Comparison.GREATER_THAN,
+            duration = 600, // 10 分钟
+            severity = AlertSeverity.MEDIUM,
+            channels = listOf(slackChannel)
+        )
+    )
+    
+    println("警报条件已配置")
+}
+```
+
+## 诊断工具 ✅
+
+Kastrax 提供了诊断工具，用于排查代理问题：
+
+### 请求跟踪
+
+```kotlin
+import ai.kastrax.core.agent.agent
+import ai.kastrax.core.agent.monitoring.AgentMonitor
+import ai.kastrax.core.agent.monitoring.diagnostics.RequestTracer
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    // 创建带有请求跟踪的监控器
+    val monitor = AgentMonitor.create()
+    val tracer = RequestTracer.create(monitor)
+    
+    // 创建带有监控的代理
+    val myAgent = agent {
+        name("诊断代理")
+        description("一个具有诊断功能的代理")
+        
+        model = deepSeek {
+            apiKey("your-deepseek-api-key")
+            model(DeepSeekModel.DEEPSEEK_CHAT)
+            temperature(0.7)
+        }
+        
+        // 启用监控
+        monitor = monitor
+    }
+    
+    // 开始跟踪请求
+    val traceId = tracer.startTrace()
+    
+    // 使用带有跟踪 ID 的代理
+    val response = myAgent.generate(
+        "解释量子计算",
+        options = AgentGenerateOptions(
+            metadata = mapOf("traceId" to traceId)
+        )
+    )
+    
+    // 获取跟踪
+    val trace = tracer.getTrace(traceId)
+    
+    // 打印跟踪详情
+    println("跟踪 ID: $traceId")
+    println("请求持续时间: ${trace.duration} 毫秒")
+    println("步骤:")
+    trace.steps.forEachIndexed { index, step ->
+        println("  步骤 ${index + 1}: ${step.name} (${step.duration} 毫秒)")
+        println("    输入: ${step.input}")
+        println("    输出: ${step.output}")
+    }
+}
+```
+
+### 性能分析
+
+```kotlin
+import ai.kastrax.core.agent.agent
+import ai.kastrax.core.agent.monitoring.AgentMonitor
+import ai.kastrax.core.agent.monitoring.diagnostics.PerformanceProfiler
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    // 创建监控器
+    val monitor = AgentMonitor.create()
+    val profiler = PerformanceProfiler.create(monitor)
+    
+    // 创建带有监控的代理
+    val myAgent = agent {
+        name("性能分析代理")
+        description("一个带有性能分析的代理")
+        
+        model = deepSeek {
+            apiKey("your-deepseek-api-key")
+            model(DeepSeekModel.DEEPSEEK_CHAT)
+            temperature(0.7)
+        }
+        
+        // 启用监控
+        monitor = monitor
+    }
+    
+    // 开始分析
+    profiler.start(myAgent.name)
+    
+    // 使用代理
+    repeat(10) { i ->
+        val response = myAgent.generate("告诉我关于主题 ${i + 1}")
+        println("响应 ${i + 1}: ${response.text.take(50)}...")
+    }
+    
+    // 停止分析并获取结果
+    val profile = profiler.stop(myAgent.name)
+    
+    // 打印分析结果
+    println("性能分析:")
+    println("总持续时间: ${profile.totalDuration} 毫秒")
+    println("平均响应时间: ${profile.averageResponseTime} 毫秒")
+    println("令牌处理率: ${profile.tokenProcessingRate} 令牌/秒")
+    println("热点:")
+    profile.hotspots.forEach { (component, time) ->
+        println("  $component: ${time} 毫秒 (${(time / profile.totalDuration.toDouble() * 100).toInt()}%)")
+    }
+}
+```
+
+### 日志分析
+
+```kotlin
+import ai.kastrax.core.agent.monitoring.AgentMonitor
+import ai.kastrax.core.agent.monitoring.diagnostics.LogAnalyzer
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    // 创建监控器
+    val monitor = AgentMonitor.getInstance()
+    val logAnalyzer = LogAnalyzer.create(monitor)
+    
+    // 分析特定代理的日志
+    val analysis = logAnalyzer.analyzeAgentLogs("MyAgent", timeRange = TimeRange.last(hours = 24))
+    
+    // 打印分析结果
+    println("日志分析:")
+    println("总请求数: ${analysis.totalRequests}")
+    println("错误率: ${analysis.errorRate * 100}%")
+    println("常见错误模式:")
+    analysis.errorPatterns.forEach { (pattern, count) ->
+        println("  $pattern: $count 次出现")
+    }
+    println("性能异常:")
+    analysis.performanceAnomalies.forEach { anomaly ->
+        println("  ${anomaly.timestamp}: ${anomaly.description} (${anomaly.severity})")
+    }
+}
+```
+
+## 导出监控数据 ✅
+
+您可以导出监控数据以进行进一步分析：
+
+```kotlin
+import ai.kastrax.core.agent.monitoring.AgentMonitor
+import ai.kastrax.core.agent.monitoring.export.MetricsExporter
+import kotlinx.coroutines.runBlocking
+import java.io.File
+
+fun main() = runBlocking {
+    // 获取监控器
+    val monitor = AgentMonitor.getInstance()
+    
+    // 创建导出器
+    val csvExporter = MetricsExporter.csv()
+    val jsonExporter = MetricsExporter.json()
+    val prometheusExporter = MetricsExporter.prometheus()
+    
+    // 导出特定代理的指标
+    val agentName = "MyAgent"
+    val timeRange = TimeRange.last(days = 7)
+    
+    // 导出为 CSV
+    val csvData = csvExporter.exportMetrics(monitor, agentName, timeRange)
+    File("agent_metrics.csv").writeText(csvData)
+    
+    // 导出为 JSON
+    val jsonData = jsonExporter.exportMetrics(monitor, agentName, timeRange)
+    File("agent_metrics.json").writeText(jsonData)
+    
+    // 启动 Prometheus 导出器
+    prometheusExporter.start(port = 9090)
+    
+    println("指标已导出为 CSV 和 JSON 文件")
+    println("Prometheus 指标可在 http://localhost:9090/metrics 获取")
+    
+    // 保持应用程序运行
+    readLine()
+    
+    // 停止 Prometheus 导出器
+    prometheusExporter.stop()
+}
+```
+
+## 与外部监控系统集成 ✅
+
+Kastrax 可以与外部监控系统集成：
+
+```kotlin
+import ai.kastrax.core.agent.monitoring.AgentMonitor
+import ai.kastrax.core.agent.monitoring.integration.DatadogIntegration
+import ai.kastrax.core.agent.monitoring.integration.PrometheusIntegration
+import ai.kastrax.core.agent.monitoring.integration.GrafanaIntegration
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    // 获取监控器
+    val monitor = AgentMonitor.getInstance()
+    
+    // 配置 Datadog 集成
+    val datadogIntegration = DatadogIntegration.create(
+        apiKey = "your-datadog-api-key",
+        applicationKey = "your-datadog-application-key",
+        tags = mapOf("environment" to "production")
+    )
+    monitor.addIntegration(datadogIntegration)
+    
+    // 配置 Prometheus 集成
+    val prometheusIntegration = PrometheusIntegration.create(
+        port = 9090,
+        endpoint = "/metrics"
+    )
+    monitor.addIntegration(prometheusIntegration)
+    
+    // 配置 Grafana 集成
+    val grafanaIntegration = GrafanaIntegration.create(
+        url = "http://localhost:3000",
+        apiKey = "your-grafana-api-key",
+        dashboardName = "Kastrax 代理"
+    )
+    monitor.addIntegration(grafanaIntegration)
+    
+    println("外部监控集成已配置")
+}
+```
+
+## 最佳实践 ✅
+
+使用代理监控和诊断时，请遵循以下最佳实践：
+
+1. **选择性监控**：只监控必要的内容，以避免性能开销
+2. **采样**：对高流量应用使用采样
+3. **保留策略**：设置适当的数据保留策略
+4. **隐私**：确保监控尊重隐私，不收集敏感信息
+5. **警报阈值**：设置适当的警报阈值，以避免警报疲劳
+6. **定期审查**：定期审查监控数据，以识别趋势和问题
+7. **文档**：记录监控设置和警报响应
+8. **测试**：在测试环境中测试监控和警报
+
+## 结论 ✅
+
+代理监控和诊断为理解、优化和排查 Kastrax 中的 AI 代理系统提供了强大的功能。通过收集和分析指标，您可以确保代理可靠高效地运行。
+
+## 下一步 ✅
+
+- 了解[代理版本控制](./versioning-kotlin.mdx)
+- 探索[性能优化](./optimization-kotlin.mdx)
+- 理解[分布式代理](../actor/actor-agent-integration-kotlin.mdx)

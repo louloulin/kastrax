@@ -1,0 +1,320 @@
+---
+title: "创建和使用代理 | 代理文档 | Kastrax"
+description: Kastrax 中代理的概述，详细说明它们的能力以及它们如何与工具、记忆和外部系统交互。
+---
+
+# 创建和使用代理 ✅
+
+Kastrax 中的代理是能够自主决定执行任务的操作序列的智能系统。它们可以访问工具、记忆和外部系统，使它们能够执行复杂任务并与各种服务交互。代理可以调用自定义函数，通过集成利用第三方 API，并访问您构建的知识库。
+
+## 代理能力 ✅
+
+Kastrax 代理提供了几个关键能力：
+
+- **多种架构**：从自适应、目标导向、层次化、反思性和创造性代理架构中选择
+- **记忆管理**：在对话中存储和检索信息
+- **工具集成**：使用内置工具或创建用于特定任务的自定义工具
+- **LLM 集成**：与各种 LLM 提供商合作，包括 DeepSeek、OpenAI、Anthropic 和 Google Gemini
+- **RAG 支持**：整合来自文档和其他数据源的知识
+- **Actor 模型**：使用 actor 模型构建分布式代理系统
+
+## 创建代理 ✅
+
+要在 Kastrax 中创建基本代理，您可以使用 `agent` DSL 函数：
+
+```kotlin
+import ai.kastrax.core.agent.agent
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    val myAgent = agent {
+        name("我的第一个代理")
+        description("一个能够回答问题的有帮助的助手")
+        
+        // 配置 LLM
+        model = deepSeek {
+            apiKey("your-deepseek-api-key")
+            model(DeepSeekModel.DEEPSEEK_CHAT)
+            temperature(0.7)
+        }
+        
+        // 添加系统提示
+        systemPrompt("""
+            你是一个有帮助、友好的助手。你的目标是提供准确和有用的信息。
+            在你的回答中要简洁但全面。
+        """.trimIndent())
+    }
+    
+    // 使用代理
+    val response = myAgent.generate("什么是人工智能？")
+    println(response.text)
+}
+```
+
+## 添加记忆 ✅
+
+您可以为代理添加记忆，帮助它记住过去的交互：
+
+```kotlin
+import ai.kastrax.core.agent.agent
+import ai.kastrax.core.memory.memory
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    val myAgent = agent {
+        name("带记忆的代理")
+        description("一个记住过去交互的代理")
+        
+        // 配置 LLM
+        model = deepSeek {
+            apiKey("your-deepseek-api-key")
+            model(DeepSeekModel.DEEPSEEK_CHAT)
+            temperature(0.7)
+        }
+        
+        // 添加记忆
+        memory = memory {
+            workingMemory(true)
+            conversationHistory(10)
+            semanticMemory(true)
+        }
+    }
+    
+    // 使用代理
+    val response1 = myAgent.generate("我的名字是小明。")
+    println(response1.text)
+    
+    val response2 = myAgent.generate("我的名字是什么？")
+    println(response2.text)
+}
+```
+
+## 添加工具 ✅
+
+您可以为代理添加工具，使其能够执行特定操作：
+
+```kotlin
+import ai.kastrax.core.agent.agent
+import ai.kastrax.core.tools.tool
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.runBlocking
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
+
+fun main() = runBlocking {
+    val myAgent = agent {
+        name("带工具的代理")
+        description("一个可以使用工具的代理")
+        
+        // 配置 LLM
+        model = deepSeek {
+            apiKey("your-deepseek-api-key")
+            model(DeepSeekModel.DEEPSEEK_CHAT)
+            temperature(0.7)
+        }
+        
+        // 添加工具
+        tools {
+            tool("getCurrentTime") {
+                description("获取当前时间")
+                parameters {}
+                execute {
+                    val currentTime = LocalDateTime.now()
+                    val formatter = DateTimeFormatter.ofPattern("HH:mm:ss")
+                    "当前时间是 ${currentTime.format(formatter)}"
+                }
+            }
+            
+            tool("calculateSum") {
+                description("计算两个数字的和")
+                parameters {
+                    parameter("a", "第一个数字", Double::class)
+                    parameter("b", "第二个数字", Double::class)
+                }
+                execute { params ->
+                    val a = params["a"] as Double
+                    val b = params["b"] as Double
+                    "$a 加 $b 的和是 ${a + b}"
+                }
+            }
+        }
+    }
+    
+    // 使用代理
+    val response1 = myAgent.generate("现在几点了？")
+    println(response1.text)
+    
+    val response2 = myAgent.generate("计算 5.2 和 3.8 的和")
+    println(response2.text)
+}
+```
+
+## 将 RAG 与代理一起使用 ✅
+
+您可以将检索增强生成 (RAG) 整合到您的代理中：
+
+```kotlin
+import ai.kastrax.core.agent.agent
+import ai.kastrax.rag.document.DocumentLoader
+import ai.kastrax.rag.document.TextSplitter
+import ai.kastrax.rag.embedding.EmbeddingModel
+import ai.kastrax.rag.vectorstore.VectorStore
+import ai.kastrax.rag.retrieval.Retriever
+import ai.kastrax.rag.context.ContextBuilder
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    // 设置 RAG 组件
+    val loader = DocumentLoader.fromFile("knowledge_base.pdf")
+    val documents = loader.load()
+    
+    val splitter = TextSplitter.recursive(chunkSize = 1000, chunkOverlap = 200)
+    val chunks = splitter.split(documents)
+    
+    val embeddingModel = EmbeddingModel.create("all-MiniLM-L6-v2")
+    val vectorStore = VectorStore.create("chroma")
+    vectorStore.addDocuments(chunks, embeddingModel)
+    
+    val retriever = Retriever.fromVectorStore(
+        vectorStore = vectorStore,
+        embeddingModel = embeddingModel,
+        topK = 5
+    )
+    
+    val contextBuilder = ContextBuilder.create {
+        template("""
+            根据以下上下文回答问题：
+            
+            上下文：
+            {{context}}
+            
+            问题：{{query}}
+            
+            回答：
+        """.trimIndent())
+    }
+    
+    // 创建 RAG 代理
+    val ragAgent = agent {
+        name("RAG代理")
+        description("一个具有 RAG 能力的代理")
+        
+        // 配置 LLM
+        model = deepSeek {
+            apiKey("your-deepseek-api-key")
+            model(DeepSeekModel.DEEPSEEK_CHAT)
+            temperature(0.7)
+        }
+        
+        // 配置 RAG
+        rag {
+            retriever(retriever)
+            contextBuilder(contextBuilder)
+            maxTokens(3000)
+        }
+    }
+    
+    // 使用 RAG 代理
+    val response = ragAgent.generate("Kastrax 的主要特点是什么？")
+    println(response.text)
+}
+```
+
+## 代理架构 ✅
+
+Kastrax 提供了几种专门的代理架构，每种架构都为不同的用例设计：
+
+### 自适应代理 ✅
+
+自适应代理根据用户偏好和反馈调整其行为：
+
+```kotlin
+import ai.kastrax.core.agent.architecture.adaptiveAgent
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    val adaptiveAgent = adaptiveAgent {
+        name("自适应助手")
+        description("一个适应用户偏好的助手")
+        
+        // 配置 LLM
+        model = deepSeek {
+            apiKey("your-deepseek-api-key")
+            model(DeepSeekModel.DEEPSEEK_CHAT)
+            temperature(0.7)
+        }
+        
+        // 定义用户偏好
+        preferences {
+            // 偏好配置
+        }
+        
+        // 定义适应策略
+        adaptationStrategy {
+            // 适应逻辑
+        }
+    }
+    
+    // 使用自适应代理
+    val response = adaptiveAgent.generate("告诉我关于量子计算的信息")
+    println(response.text)
+}
+```
+
+### 目标导向代理 ✅
+
+目标导向代理通过规划和任务执行专注于实现特定目标：
+
+```kotlin
+import ai.kastrax.core.agent.architecture.goalOrientedAgent
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    val goalOrientedAgent = goalOrientedAgent {
+        name("项目经理")
+        description("一个帮助管理项目的目标导向代理")
+        
+        // 配置 LLM
+        model = deepSeek {
+            apiKey("your-deepseek-api-key")
+            model(DeepSeekModel.DEEPSEEK_CHAT)
+            temperature(0.7)
+        }
+        
+        // 定义目标和任务
+        goals {
+            // 目标配置
+        }
+        
+        tasks("goal-id") {
+            // 任务配置
+        }
+    }
+    
+    // 使用目标导向代理
+    val response = goalOrientedAgent.generate("项目的状态如何？")
+    println(response.text)
+}
+```
+
+有关代理架构的更详细信息，请参见[代理架构](./architectures-kotlin.mdx)指南。
+
+## 下一步 ✅
+
+现在您已经了解了在 Kastrax 中创建和使用代理的基础知识，您可以：
+
+1. 探索不同的[代理架构](./architectures-kotlin.mdx)
+2. 了解[记忆系统](../memory/overview.mdx)
+3. 创建[自定义工具](../tools/custom-tools.mdx)
+4. 构建[代理工作流](../workflows/overview-kotlin.mdx)
