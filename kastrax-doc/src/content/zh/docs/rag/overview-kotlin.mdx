@@ -1,0 +1,581 @@
+---
+title: Kotlin RAG 系统概述 | Kastrax 文档
+description: Kastrax 中 Kotlin 检索增强生成 (RAG) 系统的详细介绍，包括文档处理、嵌入、检索和集成。
+---
+
+# Kotlin RAG 系统概述 ✅
+
+Kastrax 的 Kotlin RAG 系统提供了一个全面的框架，用于构建结合大型语言模型和外部数据源的基于知识的应用程序。本指南详细介绍了如何在 Kotlin 中使用 RAG 系统。
+
+## RAG 系统架构 ✅
+
+Kastrax RAG 系统由几个核心组件组成：
+
+1. **文档处理**：加载、分块和转换文档
+2. **嵌入**：将文本转换为向量表示
+3. **向量存储**：高效存储和检索向量
+4. **检索**：基于查询查找相关信息
+5. **重排序**：通过额外的排序提高检索质量
+6. **上下文构建**：使用检索到的信息构建有效的提示
+
+## 基本用法 ✅
+
+以下是在 Kastrax 中创建和使用 RAG 系统的基本示例：
+
+```kotlin
+import ai.kastrax.rag.RAG
+import ai.kastrax.rag.document.Document
+import ai.kastrax.rag.embedding.FastEmbeddingService
+import ai.kastrax.rag.vectorstore.InMemoryVectorStore
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    // 创建向量存储和嵌入服务
+    val vectorStore = InMemoryVectorStore()
+    val embeddingService = FastEmbeddingService.create()
+    
+    // 创建 RAG 系统
+    val rag = RAG(vectorStore, embeddingService)
+    
+    // 添加文档
+    val documents = listOf(
+        Document("这是第一个文档的内容", mapOf("source" to "doc1.txt")),
+        Document("这是第二个文档的内容", mapOf("source" to "doc2.txt"))
+    )
+    rag.addDocuments(documents)
+    
+    // 搜索相关文档
+    val results = rag.search("查询内容", limit = 3)
+    
+    // 处理结果
+    results.forEach { result ->
+        println("文档: ${result.document.content}")
+        println("相似度: ${result.score}")
+        println("元数据: ${result.document.metadata}")
+        println()
+    }
+}
+```
+
+## 文档加载 ✅
+
+Kastrax 提供了多种文档加载器，用于从不同来源加载文档：
+
+```kotlin
+import ai.kastrax.rag.document.*
+import java.io.File
+
+// 从文本文件加载
+val textLoader = TextFileDocumentLoader("path/to/document.txt")
+val textDocuments = textLoader.load()
+
+// 从 HTML 文件加载
+val htmlLoader = HtmlFileDocumentLoader("path/to/document.html")
+val htmlDocuments = htmlLoader.load()
+
+// 从网页加载
+val webLoader = WebPageDocumentLoader("https://example.com")
+val webDocuments = webLoader.load()
+
+// 从目录加载
+val directoryLoader = DirectoryDocumentLoader(
+    directory = File("path/to/documents"),
+    recursive = true,
+    fileExtensions = listOf("txt", "md", "html")
+)
+val directoryDocuments = directoryLoader.load()
+```
+
+## 文档分块 ✅
+
+文档通常需要分割成更小的块以便有效处理。Kastrax 提供了多种分块策略：
+
+```kotlin
+import ai.kastrax.rag.document.*
+
+// 字符分块器
+val charSplitter = CharacterTextSplitter(
+    chunkSize = 1000,
+    chunkOverlap = 200
+)
+
+// 递归字符分块器
+val recursiveSplitter = RecursiveCharacterTextSplitter(
+    chunkSize = 1000,
+    chunkOverlap = 200,
+    separators = listOf("\n\n", "\n", ". ", "! ", "? ", ", ", " ", "")
+)
+
+// 段落分块器
+val paragraphSplitter = ParagraphTextSplitter(
+    maxParagraphLength = 1000,
+    separators = listOf("\n\n", "\n", ". ")
+)
+
+// 语义分块器
+val semanticSplitter = SemanticDocumentSplitter(
+    embeddingService = embeddingService,
+    chunkSize = 1000,
+    chunkOverlap = 200,
+    similarityThreshold = 0.7
+)
+
+// 分割文档
+val chunks = recursiveSplitter.split(document)
+```
+
+## 嵌入服务 ✅
+
+Kastrax 支持多种嵌入服务，用于将文本转换为向量表示：
+
+```kotlin
+import ai.kastrax.rag.embedding.*
+
+// FastEmbed 嵌入服务（本地）
+val fastEmbedService = FastEmbeddingService.create(
+    modelName = "all-MiniLM-L6-v2"
+)
+
+// OpenAI 嵌入服务
+val openAIService = OpenAIEmbeddingService(
+    apiKey = "your-openai-api-key",
+    model = "text-embedding-3-small"
+)
+
+// HuggingFace 嵌入服务
+val huggingFaceService = HuggingFaceEmbeddingService(
+    apiKey = "your-huggingface-api-key",
+    model = "sentence-transformers/all-mpnet-base-v2"
+)
+
+// 随机嵌入服务（用于测试）
+val randomService = RandomEmbeddingService(
+    dimensions = 1536,
+    seed = 42
+)
+```
+
+## 向量存储 ✅
+
+Kastrax 提供了多种向量存储选项，用于存储和检索嵌入向量：
+
+```kotlin
+import ai.kastrax.rag.vectorstore.*
+
+// 内存向量存储
+val inMemoryStore = InMemoryVectorStore()
+
+// Chroma 向量存储
+val chromaStore = ChromaVectorStore(
+    collectionName = "my_collection",
+    url = "http://localhost:8000"
+)
+
+// Pinecone 向量存储
+val pineconeStore = PineconeVectorStore(
+    apiKey = "your-pinecone-api-key",
+    environment = "us-west1-gcp",
+    index = "my-index"
+)
+
+// Qdrant 向量存储
+val qdrantStore = QdrantVectorStore(
+    url = "http://localhost:6333",
+    collectionName = "my_collection"
+)
+```
+
+## 检索和重排序 ✅
+
+Kastrax 提供了多种检索和重排序策略，用于提高检索质量：
+
+```kotlin
+import ai.kastrax.rag.retrieval.*
+import ai.kastrax.rag.reranker.*
+
+// 基本检索
+val results = rag.search(
+    query = "查询内容",
+    limit = 5,
+    minScore = 0.5
+)
+
+// 使用重排序器
+val reranker = CrossEncoderReranker(
+    model = "cross-encoder/ms-marco-MiniLM-L-6-v2"
+)
+
+val rag = RAG(
+    vectorStore = vectorStore,
+    embeddingService = embeddingService,
+    reranker = reranker
+)
+
+// 混合检索
+val hybridRetriever = HybridRetriever(
+    vectorRetriever = VectorRetriever(vectorStore, embeddingService),
+    keywordRetriever = KeywordRetriever(documents),
+    vectorWeight = 0.7,
+    keywordWeight = 0.3
+)
+
+val results = hybridRetriever.retrieve(
+    query = "查询内容",
+    limit = 5
+)
+```
+
+## 与代理集成 ✅
+
+Kastrax RAG 系统可以与代理无缝集成：
+
+```kotlin
+import ai.kastrax.core.agent.agent
+import ai.kastrax.core.kastrax
+import ai.kastrax.rag.RAG
+import ai.kastrax.rag.document.DocumentLoader
+import ai.kastrax.rag.embedding.FastEmbeddingService
+import ai.kastrax.rag.vectorstore.InMemoryVectorStore
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    // 创建 RAG 组件
+    val embeddingService = FastEmbeddingService.create()
+    val vectorStore = InMemoryVectorStore()
+    val rag = RAG(vectorStore, embeddingService)
+    
+    // 加载文档
+    val loader = DocumentLoader.fromFile("knowledge_base.pdf")
+    val documents = loader.load()
+    rag.addDocuments(documents)
+    
+    // 创建带有 RAG 的 KastraX 实例
+    val kastraxInstance = kastrax {
+        // 配置 RAG
+        ragSystem(rag)
+        
+        // 配置代理
+        agent("assistant") {
+            name("助手")
+            description("一个具有知识访问能力的助手")
+            
+            model = deepSeek {
+                apiKey("your-deepseek-api-key")
+                model(DeepSeekModel.DEEPSEEK_CHAT)
+                temperature(0.7)
+            }
+            
+            // 使用 RAG
+            useRag(true)
+        }
+    }
+    
+    // 使用带有 RAG 的代理
+    val assistant = kastraxInstance.getAgent("assistant")
+    val response = assistant.generate("知识库关于气候变化说了什么？")
+    println(response.text)
+}
+```
+
+## 工作流集成 ✅
+
+Kastrax RAG 系统也可以与工作流集成：
+
+```kotlin
+import ai.kastrax.core.agent.agent
+import ai.kastrax.core.workflow.workflow
+import ai.kastrax.rag.RAG
+import ai.kastrax.rag.document.DirectoryDocumentLoader
+import ai.kastrax.rag.document.RecursiveCharacterTextSplitter
+import ai.kastrax.rag.embedding.FastEmbeddingService
+import ai.kastrax.rag.vectorstore.InMemoryVectorStore
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.runBlocking
+import java.io.File
+
+fun main() = runBlocking {
+    // 创建 RAG 系统
+    val embeddingService = FastEmbeddingService.create()
+    val vectorStore = InMemoryVectorStore()
+    val rag = RAG(vectorStore, embeddingService)
+    
+    // 加载文档
+    val loader = DirectoryDocumentLoader(
+        directory = File("knowledge_base"),
+        recursive = true
+    )
+    val splitter = RecursiveCharacterTextSplitter()
+    rag.loadDocuments(loader, splitter)
+    
+    // 创建代理
+    val researchAgent = agent {
+        name("研究助手")
+        instructions("你是一个研究助手，负责查找和总结信息。")
+        model = deepSeek {
+            apiKey("your-deepseek-api-key")
+            model(DeepSeekModel.DEEPSEEK_CHAT)
+        }
+    }
+    
+    // 创建工作流
+    val researchWorkflow = workflow {
+        // 步骤 1：查询 RAG 系统
+        step("search") {
+            input("query")
+            execute { input ->
+                val query = input.getString("query")
+                val results = rag.search(query, limit = 5)
+                val context = results.joinToString("\n\n") { 
+                    "来源: ${it.document.metadata["source"]}\n${it.document.content}" 
+                }
+                mapOf("context" to context)
+            }
+        }
+        
+        // 步骤 2：使用代理总结结果
+        step("summarize") {
+            input("query", "context")
+            agent(researchAgent)
+            prompt("""
+                请根据以下信息回答问题。
+                
+                问题: {{query}}
+                
+                信息:
+                {{context}}
+                
+                请提供详细、准确的回答，并引用信息来源。
+            """)
+            output("summary")
+        }
+        
+        // 工作流输出
+        output {
+            "summary" from "summarize.summary"
+        }
+    }
+    
+    // 执行工作流
+    val result = researchWorkflow.execute(mapOf(
+        "query" to "气候变化对农业有什么影响？"
+    ))
+    
+    println("研究结果:")
+    println(result.getString("summary"))
+}
+```
+
+## 高级功能 ✅
+
+### 语义分块
+
+语义分块器根据语义相似性将文本分割成有意义的块：
+
+```kotlin
+import ai.kastrax.rag.document.SemanticDocumentSplitter
+import ai.kastrax.rag.embedding.FastEmbeddingService
+
+// 创建嵌入服务
+val embeddingService = FastEmbeddingService.create()
+
+// 创建语义分块器
+val semanticSplitter = SemanticDocumentSplitter(
+    embeddingService = embeddingService,
+    chunkSize = 1000,
+    chunkOverlap = 200,
+    similarityThreshold = 0.7
+)
+
+// 分割文档
+val chunks = semanticSplitter.split(document)
+```
+
+### 混合检索
+
+混合检索结合了向量检索和关键词检索的优点：
+
+```kotlin
+import ai.kastrax.rag.retrieval.HybridRetriever
+import ai.kastrax.rag.retrieval.KeywordRetriever
+import ai.kastrax.rag.retrieval.VectorRetriever
+
+// 创建向量检索器
+val vectorRetriever = VectorRetriever(
+    vectorStore = vectorStore,
+    embeddingService = embeddingService,
+    topK = 10
+)
+
+// 创建关键词检索器
+val keywordRetriever = KeywordRetriever(
+    documents = documents,
+    topK = 10
+)
+
+// 创建混合检索器
+val hybridRetriever = HybridRetriever(
+    vectorRetriever = vectorRetriever,
+    keywordRetriever = keywordRetriever,
+    vectorWeight = 0.7,
+    keywordWeight = 0.3
+)
+
+// 检索文档
+val results = hybridRetriever.retrieve(
+    query = "气候变化对农业的影响",
+    limit = 5
+)
+```
+
+### 上下文压缩
+
+上下文压缩可以减少发送到 LLM 的文本量，同时保留关键信息：
+
+```kotlin
+import ai.kastrax.rag.contextbuilder.ContextCompressor
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+
+// 创建上下文压缩器
+val contextCompressor = ContextCompressor(
+    model = deepSeek {
+        apiKey("your-deepseek-api-key")
+        model(DeepSeekModel.DEEPSEEK_CHAT)
+    },
+    maxTokens = 2000
+)
+
+// 压缩上下文
+val compressedContext = contextCompressor.compress(
+    query = "气候变化对农业有什么影响？",
+    documents = retrievedDocuments
+)
+```
+
+## 完整示例 ✅
+
+以下是一个完整的示例，展示了如何使用 Kastrax RAG 系统创建一个知识库问答应用：
+
+```kotlin
+import ai.kastrax.core.agent.agent
+import ai.kastrax.rag.RAG
+import ai.kastrax.rag.document.DirectoryDocumentLoader
+import ai.kastrax.rag.document.RecursiveCharacterTextSplitter
+import ai.kastrax.rag.embedding.FastEmbeddingService
+import ai.kastrax.rag.vectorstore.InMemoryVectorStore
+import ai.kastrax.rag.reranker.CrossEncoderReranker
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.runBlocking
+import java.io.File
+
+fun main() = runBlocking {
+    println("初始化 RAG 系统...")
+    
+    // 创建嵌入服务和向量存储
+    val embeddingService = FastEmbeddingService.create()
+    val vectorStore = InMemoryVectorStore()
+    
+    // 创建重排序器
+    val reranker = CrossEncoderReranker(
+        model = "cross-encoder/ms-marco-MiniLM-L-6-v2"
+    )
+    
+    // 创建 RAG 系统
+    val rag = RAG(
+        vectorStore = vectorStore,
+        embeddingService = embeddingService,
+        reranker = reranker
+    )
+    
+    // 加载文档
+    println("加载文档...")
+    val loader = DirectoryDocumentLoader(
+        directory = File("knowledge_base"),
+        recursive = true,
+        fileExtensions = listOf("txt", "md", "pdf")
+    )
+    
+    val splitter = RecursiveCharacterTextSplitter(
+        chunkSize = 1000,
+        chunkOverlap = 200
+    )
+    
+    val documentCount = rag.loadDocuments(loader, splitter)
+    println("已加载 $documentCount 个文档块")
+    
+    // 创建代理
+    val qaAgent = agent {
+        name("知识库助手")
+        instructions("""
+            你是一个知识库助手，负责回答用户关于知识库内容的问题。
+            使用提供的上下文信息回答问题，不要编造信息。
+            如果上下文中没有足够的信息，请坦诚地说明你不知道。
+            引用信息来源，使用上下文中提供的元数据。
+        """)
+        
+        model = deepSeek {
+            apiKey("your-deepseek-api-key")
+            model(DeepSeekModel.DEEPSEEK_CHAT)
+            temperature(0.3)
+        }
+    }
+    
+    // 交互式问答循环
+    println("\n知识库助手已准备就绪。输入 'exit' 退出。")
+    
+    while (true) {
+        print("\n问题: ")
+        val query = readLine() ?: ""
+        
+        if (query.lowercase() == "exit") {
+            break
+        }
+        
+        // 检索相关文档
+        val results = rag.search(query, limit = 5, minScore = 0.5)
+        
+        if (results.isEmpty()) {
+            println("没有找到相关信息。")
+            continue
+        }
+        
+        // 构建上下文
+        val context = results.joinToString("\n\n") { result ->
+            val source = result.document.metadata["source"] ?: "未知来源"
+            "来源: $source\n${result.document.content}"
+        }
+        
+        // 构建提示
+        val prompt = """
+            请根据以下信息回答问题。
+            
+            问题: $query
+            
+            信息:
+            $context
+            
+            请提供详细、准确的回答，并引用信息来源。
+        """.trimIndent()
+        
+        // 生成回答
+        val response = qaAgent.generate(prompt)
+        
+        println("\n回答:")
+        println(response.text)
+    }
+    
+    // 关闭资源
+    embeddingService.close()
+    println("\n已退出知识库助手。")
+}
+```
+
+## 总结 ✅
+
+Kastrax 的 Kotlin RAG 系统提供了一个强大而灵活的框架，用于构建基于知识的 AI 应用程序。通过结合文档处理、嵌入、向量存储和检索功能，您可以创建能够访问和利用外部知识的智能代理。
+
+无论您是构建问答系统、研究助手还是知识管理工具，Kastrax RAG 系统都能提供所需的工具和组件，帮助您创建更智能、更有用的 AI 应用程序。

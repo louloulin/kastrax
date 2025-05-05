@@ -1,0 +1,719 @@
+---
+title: 高级检索技术 | RAG 系统 | Kastrax 文档
+description: Kastrax RAG 系统中的高级检索技术，包括查询转换、混合检索、语义检索和重排序策略。
+---
+
+# 高级检索技术 ✅
+
+Kastrax RAG 系统提供了多种高级检索技术，可以显著提高检索质量和相关性。本指南详细介绍了这些技术及其实现方法。
+
+## 查询转换和增强 ✅
+
+查询转换是提高检索质量的强大技术，它通过转换原始查询来生成更有效的搜索查询。
+
+### 查询转换器类型
+
+```kotlin
+import ai.kastrax.rag.retrieval.query.*
+import ai.kastrax.rag.RAG
+import ai.kastrax.rag.RagProcessOptions
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    // 创建 RAG 系统
+    val rag = RAG(vectorStore, embeddingService)
+    
+    // 使用查询规范化
+    val resultsWithNormalization = rag.search(
+        "Kastrax中的RAG系统是什么？",
+        options = RagProcessOptions(
+            useQueryEnhancement = true,
+            queryEnhancementOptions = QueryEnhancedRetrieverConfig(
+                queryTransformer = NormalizationQueryTransformer(),
+                useMultiQuery = false
+            )
+        )
+    )
+    
+    // 使用同义词扩展
+    val resultsWithSynonyms = rag.search(
+        "Kastrax中的RAG系统是什么？",
+        options = RagProcessOptions(
+            useQueryEnhancement = true,
+            queryEnhancementOptions = QueryEnhancedRetrieverConfig(
+                queryTransformer = SynonymQueryTransformer(
+                    synonymMap = mapOf(
+                        "RAG" to listOf("检索增强生成", "Retrieval-Augmented Generation"),
+                        "系统" to listOf("框架", "架构", "模块")
+                    )
+                ),
+                useMultiQuery = true
+            )
+        )
+    )
+    
+    // 使用 LLM 查询转换
+    val resultsWithLLM = rag.search(
+        "如何在我的应用中使用 Kastrax？",
+        options = RagProcessOptions(
+            useQueryEnhancement = true,
+            queryEnhancementOptions = QueryEnhancedRetrieverConfig(
+                queryTransformer = LLMQueryTransformer(
+                    llm = deepSeekLlm,
+                    prompt = """
+                        你是一个查询重写专家。你的任务是将用户的原始查询重写为多个可能更有效的查询变体。
+                        这些变体应该捕捉原始查询的不同方面，使用不同的术语，或者分解复杂的查询。
+                        
+                        原始查询: {{query}}
+                        
+                        生成 3 个不同的查询变体，每行一个：
+                    """.trimIndent(),
+                    numVariants = 3
+                ),
+                useMultiQuery = true
+            )
+        )
+    )
+    
+    // 使用组合查询转换器
+    val resultsWithComposite = rag.search(
+        "Kastrax中的RAG系统是什么？",
+        options = RagProcessOptions(
+            useQueryEnhancement = true,
+            queryEnhancementOptions = QueryEnhancedRetrieverConfig(
+                queryTransformer = CompositeQueryTransformer(
+                    transformers = listOf(
+                        NormalizationQueryTransformer(),
+                        SynonymQueryTransformer(),
+                        LLMQueryTransformer(llm = deepSeekLlm)
+                    )
+                ),
+                useMultiQuery = true,
+                mergeStrategy = MergeStrategy.DIVERSITY
+            )
+        )
+    )
+}
+```
+
+### 多查询检索
+
+多查询检索使用多个查询变体进行检索，然后合并结果：
+
+```kotlin
+// 配置多查询检索
+val options = RagProcessOptions(
+    useQueryEnhancement = true,
+    queryEnhancementOptions = QueryEnhancedRetrieverConfig(
+        useMultiQuery = true,
+        numQueries = 3,
+        mergeStrategy = MergeStrategy.DIVERSITY
+    )
+)
+
+// 使用多查询检索
+val results = rag.search("Kastrax中的RAG系统是什么？", options = options)
+```
+
+### 结果合并策略
+
+Kastrax 支持多种结果合并策略：
+
+```kotlin
+// 交错合并（从每个查询结果中依次选择一个文档）
+val interleavedResults = rag.search(
+    "Kastrax中的RAG系统是什么？",
+    options = RagProcessOptions(
+        useQueryEnhancement = true,
+        queryEnhancementOptions = QueryEnhancedRetrieverConfig(
+            useMultiQuery = true,
+            mergeStrategy = MergeStrategy.INTERLEAVE
+        )
+    )
+)
+
+// 按分数合并（选择分数最高的文档）
+val scoredResults = rag.search(
+    "Kastrax中的RAG系统是什么？",
+    options = RagProcessOptions(
+        useQueryEnhancement = true,
+        queryEnhancementOptions = QueryEnhancedRetrieverConfig(
+            useMultiQuery = true,
+            mergeStrategy = MergeStrategy.BY_SCORE
+        )
+    )
+)
+
+// 多样性合并（首先从每个查询中选择最佳结果，然后按分数填充）
+val diversityResults = rag.search(
+    "Kastrax中的RAG系统是什么？",
+    options = RagProcessOptions(
+        useQueryEnhancement = true,
+        queryEnhancementOptions = QueryEnhancedRetrieverConfig(
+            useMultiQuery = true,
+            mergeStrategy = MergeStrategy.DIVERSITY
+        )
+    )
+)
+```
+
+## 混合检索 ✅
+
+混合检索结合了多种检索方法的优势：
+
+```kotlin
+import ai.kastrax.rag.retrieval.*
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    // 创建向量检索器
+    val vectorRetriever = VectorRetriever(
+        vectorStore = vectorStore,
+        embeddingService = embeddingService,
+        topK = 10
+    )
+    
+    // 创建关键词检索器
+    val keywordRetriever = KeywordRetriever(
+        documents = documents,
+        topK = 10
+    )
+    
+    // 创建混合检索器
+    val hybridRetriever = HybridRetriever(
+        retrievers = listOf(
+            RetrievalComponent(vectorRetriever, weight = 0.7),
+            RetrievalComponent(keywordRetriever, weight = 0.3)
+        ),
+        mergeStrategy = MergeStrategy.BY_SCORE
+    )
+    
+    // 使用混合检索器
+    val results = hybridRetriever.retrieve(
+        query = "Kastrax中的RAG系统是什么？",
+        limit = 5
+    )
+}
+```
+
+### 自定义混合检索
+
+您可以创建自定义混合检索策略：
+
+```kotlin
+// 创建自定义混合检索器
+val customHybridRetriever = HybridRetriever(
+    retrievers = listOf(
+        RetrievalComponent(vectorRetriever, weight = 0.6),
+        RetrievalComponent(keywordRetriever, weight = 0.2),
+        RetrievalComponent(metadataRetriever, weight = 0.2)
+    ),
+    mergeStrategy = { results ->
+        // 自定义合并逻辑
+        // 例如，确保结果包含至少一个来自每个检索器的文档
+        val merged = mutableListOf<SearchResult>()
+        
+        // 从每个检索器中获取至少一个结果
+        results.forEach { componentResults ->
+            if (componentResults.isNotEmpty()) {
+                merged.add(componentResults.first())
+            }
+        }
+        
+        // 按分数填充剩余位置
+        val remaining = results.flatten()
+            .filter { it !in merged }
+            .sortedByDescending { it.score }
+        
+        merged.addAll(remaining.take(5 - merged.size))
+        merged
+    }
+)
+```
+
+## 语义检索 ✅
+
+语义检索使用嵌入模型捕获查询和文档之间的语义关系：
+
+```kotlin
+import ai.kastrax.rag.retrieval.*
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    // 创建语义检索器
+    val semanticRetriever = SemanticRetriever(
+        vectorStore = vectorStore,
+        embeddingService = embeddingService,
+        config = SemanticRetrieverConfig(
+            topK = 10,
+            similarityThreshold = 0.7,
+            similarityMetric = SimilarityMetric.COSINE
+        )
+    )
+    
+    // 使用语义检索器
+    val results = semanticRetriever.retrieve(
+        query = "Kastrax中的RAG系统是什么？",
+        limit = 5
+    )
+}
+```
+
+### 语义检索配置选项
+
+语义检索支持多种配置选项：
+
+```kotlin
+// 配置语义检索
+val semanticConfig = SemanticRetrieverConfig(
+    // 基本选项
+    topK = 10,
+    similarityThreshold = 0.7,
+    
+    // 相似度度量
+    similarityMetric = SimilarityMetric.COSINE, // 或 DOT_PRODUCT, EUCLIDEAN
+    
+    // 高级选项
+    useQueryExpansion = true,
+    queryExpansionFactor = 1.2,
+    
+    // 缓存选项
+    useCache = true,
+    cacheSize = 100
+)
+
+// 使用配置创建检索器
+val semanticRetriever = SemanticRetriever(
+    vectorStore = vectorStore,
+    embeddingService = embeddingService,
+    config = semanticConfig
+)
+```
+
+## 重排序策略 ✅
+
+重排序是提高检索质量的关键技术：
+
+```kotlin
+import ai.kastrax.rag.reranking.*
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    // 创建交叉编码器重排序器
+    val crossEncoderReranker = CrossEncoderReranker(
+        model = "cross-encoder/ms-marco-MiniLM-L-6-v2",
+        topK = 5
+    )
+    
+    // 创建关键词匹配重排序器
+    val keywordReranker = KeywordMatchReranker(
+        keywordWeight = 0.7,
+        originalScoreWeight = 0.3
+    )
+    
+    // 创建 LLM 重排序器
+    val llmReranker = LLMReranker(
+        llm = deepSeekLlm,
+        prompt = """
+            你是一个文档排序专家。你的任务是根据与查询的相关性对文档进行排序。
+            
+            查询: {{query}}
+            
+            文档:
+            {{#each documents}}
+            文档 {{@index}}:
+            {{content}}
+            
+            {{/each}}
+            
+            对这些文档进行排序，返回最相关的文档的索引，用逗号分隔（例如：2,0,1,3）：
+        """.trimIndent(),
+        topK = 3
+    )
+    
+    // 创建多样性重排序器
+    val diversityReranker = DiversityReranker(
+        diversityWeight = 0.5,
+        originalScoreWeight = 0.5,
+        similarityThreshold = 0.8
+    )
+    
+    // 创建组合重排序器
+    val combinedReranker = CompositeReranker(
+        rerankers = listOf(
+            keywordReranker,
+            diversityReranker
+        ),
+        topK = 5
+    )
+    
+    // 使用重排序器增强检索器
+    val enhancedRetriever = RerankedRetriever(
+        baseRetriever = vectorRetriever,
+        reranker = combinedReranker
+    )
+    
+    // 使用增强检索器
+    val results = enhancedRetriever.retrieve(
+        query = "Kastrax中的RAG系统是什么？",
+        limit = 5
+    )
+}
+```
+
+### 自定义重排序器
+
+您可以创建自定义重排序器：
+
+```kotlin
+// 创建自定义重排序器
+class CustomReranker : Reranker {
+    override suspend fun rerank(
+        query: String,
+        results: List<SearchResult>,
+        limit: Int
+    ): List<SearchResult> {
+        // 自定义重排序逻辑
+        // 例如，根据文档长度和相关性的组合分数重排序
+        return results
+            .map { result ->
+                // 计算文档长度分数（较短的文档得分更高）
+                val lengthScore = 1.0 / (1.0 + result.content.length / 1000.0)
+                
+                // 组合分数
+                val combinedScore = result.score * 0.7 + lengthScore * 0.3
+                
+                // 创建新的搜索结果
+                SearchResult(
+                    content = result.content,
+                    metadata = result.metadata,
+                    score = combinedScore
+                )
+            }
+            .sortedByDescending { it.score }
+            .take(limit)
+    }
+}
+
+// 使用自定义重排序器
+val customReranker = CustomReranker()
+val enhancedRetriever = RerankedRetriever(
+    baseRetriever = vectorRetriever,
+    reranker = customReranker
+)
+```
+
+## 上下文感知检索 ✅
+
+上下文感知检索考虑查询的上下文，如对话历史：
+
+```kotlin
+import ai.kastrax.rag.retrieval.*
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    // 创建上下文感知检索器
+    val contextAwareRetriever = ContextAwareRetriever(
+        baseRetriever = vectorRetriever,
+        contextWindow = 3, // 考虑最近的 3 个交互
+        contextWeight = 0.3 // 上下文的权重
+    )
+    
+    // 使用上下文感知检索器
+    val conversationContext = listOf(
+        "用户: Kastrax 是什么？",
+        "助手: Kastrax 是一个强大的 AI 代理框架，使用 Kotlin 构建。",
+        "用户: 它有哪些主要功能？"
+    )
+    
+    val results = contextAwareRetriever.retrieve(
+        query = "它有 RAG 系统吗？",
+        limit = 5,
+        context = conversationContext
+    )
+}
+```
+
+## 查询分解 ✅
+
+查询分解将复杂查询分解为多个简单查询：
+
+```kotlin
+import ai.kastrax.rag.retrieval.query.*
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    // 创建查询分解转换器
+    val decompositionTransformer = DecompositionQueryTransformer(
+        llm = deepSeekLlm,
+        prompt = """
+            你是一个查询分解专家。你的任务是将复杂查询分解为多个简单查询。
+            
+            复杂查询: {{query}}
+            
+            将此查询分解为 2-3 个简单查询，每行一个：
+        """.trimIndent()
+    )
+    
+    // 使用查询分解
+    val decomposedQueries = decompositionTransformer.transform(
+        "Kastrax 的 RAG 系统如何工作，它与其他框架相比有什么优势？"
+    )
+    
+    // 可能的输出:
+    // ["Kastrax 的 RAG 系统如何工作？", 
+    //  "Kastrax 的 RAG 系统与其他框架相比有什么优势？"]
+    
+    // 使用分解的查询进行检索
+    val allResults = mutableListOf<SearchResult>()
+    
+    for (subQuery in decomposedQueries) {
+        val results = vectorRetriever.retrieve(subQuery, limit = 3)
+        allResults.addAll(results)
+    }
+    
+    // 合并和去重结果
+    val uniqueResults = allResults
+        .distinctBy { it.content }
+        .sortedByDescending { it.score }
+        .take(5)
+}
+```
+
+## 元数据过滤和增强 ✅
+
+元数据过滤和增强可以提高检索的精确性：
+
+```kotlin
+import ai.kastrax.rag.retrieval.*
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    // 创建带元数据过滤的检索器
+    val metadataFilteredRetriever = MetadataFilteredRetriever(
+        baseRetriever = vectorRetriever,
+        filters = mapOf(
+            "category" to "RAG",
+            "language" to "Kotlin"
+        )
+    )
+    
+    // 使用元数据过滤检索
+    val filteredResults = metadataFilteredRetriever.retrieve(
+        query = "Kastrax中的RAG系统是什么？",
+        limit = 5
+    )
+    
+    // 创建元数据增强检索器
+    val metadataEnhancedRetriever = MetadataEnhancedRetriever(
+        baseRetriever = vectorRetriever,
+        metadataWeights = mapOf(
+            "category" to 0.3,
+            "author" to 0.2,
+            "date" to 0.1
+        )
+    )
+    
+    // 使用元数据增强检索
+    val enhancedResults = metadataEnhancedRetriever.retrieve(
+        query = "Kastrax中的RAG系统是什么？",
+        limit = 5,
+        metadataValues = mapOf(
+            "category" to "RAG",
+            "author" to "Kastrax Team"
+        )
+    )
+}
+```
+
+## 完整高级检索示例 ✅
+
+以下是一个结合多种高级检索技术的完整示例：
+
+```kotlin
+import ai.kastrax.rag.*
+import ai.kastrax.rag.retrieval.*
+import ai.kastrax.rag.reranking.*
+import ai.kastrax.rag.retrieval.query.*
+import ai.kastrax.core.agent.agent
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.runBlocking
+
+fun createAdvancedRetrievalSystem() = runBlocking {
+    // 1. 设置基础组件
+    val vectorStore = VectorStore.chroma("kastrax_docs")
+    val embeddingService = EmbeddingModel.create("all-MiniLM-L6-v2")
+    
+    // 2. 创建查询转换器
+    val queryTransformer = CompositeQueryTransformer(
+        transformers = listOf(
+            NormalizationQueryTransformer(),
+            LLMQueryTransformer(
+                llm = deepSeekLlm,
+                numVariants = 3
+            )
+        )
+    )
+    
+    // 3. 创建基础检索器
+    val vectorRetriever = VectorRetriever(
+        vectorStore = vectorStore,
+        embeddingService = embeddingService,
+        topK = 10
+    )
+    
+    val keywordRetriever = KeywordRetriever(
+        documents = vectorStore.getAllDocuments(),
+        topK = 10
+    )
+    
+    // 4. 创建混合检索器
+    val hybridRetriever = HybridRetriever(
+        retrievers = listOf(
+            RetrievalComponent(vectorRetriever, weight = 0.7),
+            RetrievalComponent(keywordRetriever, weight = 0.3)
+        ),
+        mergeStrategy = MergeStrategy.BY_SCORE
+    )
+    
+    // 5. 创建查询增强检索器
+    val queryEnhancedRetriever = QueryEnhancedRetriever(
+        baseRetriever = hybridRetriever,
+        queryTransformer = queryTransformer,
+        config = QueryEnhancedRetrieverConfig(
+            useMultiQuery = true,
+            mergeStrategy = MergeStrategy.DIVERSITY
+        )
+    )
+    
+    // 6. 创建重排序器
+    val crossEncoderReranker = CrossEncoderReranker(
+        model = "cross-encoder/ms-marco-MiniLM-L-6-v2",
+        topK = 5
+    )
+    
+    val diversityReranker = DiversityReranker(
+        diversityWeight = 0.3,
+        originalScoreWeight = 0.7,
+        similarityThreshold = 0.8
+    )
+    
+    val combinedReranker = CompositeReranker(
+        rerankers = listOf(
+            crossEncoderReranker,
+            diversityReranker
+        ),
+        topK = 5
+    )
+    
+    // 7. 创建最终增强检索器
+    val enhancedRetriever = RerankedRetriever(
+        baseRetriever = queryEnhancedRetriever,
+        reranker = combinedReranker
+    )
+    
+    // 8. 创建上下文构建器
+    val contextBuilder = ContextBuilder.create {
+        template("""
+            你是 Kastrax（一个强大的 AI 代理框架）的有帮助的助手。
+            根据以下来自 Kastrax 文档的上下文回答问题。
+            
+            上下文：
+            {{#each documents}}
+            文档 {{@index}}（来源：{{metadata.source}}）：
+            {{pageContent}}
+            
+            {{/each}}
+            
+            问题：{{query}}
+            
+            仅使用上下文中提供的信息回答问题。
+            如果你没有足够的信息，请说"我没有足够的信息。"
+            提供信息时，始终引用源文档。
+        """.trimIndent())
+        
+        compression {
+            enabled(true)
+            method(CompressionMethod.MAP_REDUCE)
+            maxTokens(3000)
+        }
+    }
+    
+    // 9. 创建 RAG 代理
+    val ragAgent = agent {
+        name("高级RAG助手")
+        description("一个使用高级检索技术的RAG助手")
+        
+        // 配置 LLM
+        model = deepSeek {
+            apiKey("your-deepseek-api-key")
+            model(DeepSeekModel.DEEPSEEK_CHAT)
+            temperature(0.3)
+        }
+        
+        // 配置 RAG
+        rag {
+            retriever(enhancedRetriever)
+            contextBuilder(contextBuilder)
+            maxTokens(3000)
+        }
+    }
+    
+    // 10. 使用 RAG 代理
+    val query = "Kastrax 的 RAG 系统如何处理复杂查询？"
+    val response = ragAgent.generate(query)
+    println(response.text)
+}
+```
+
+## 性能考虑 ✅
+
+在使用高级检索技术时，需要考虑以下性能因素：
+
+### 查询转换和多查询
+
+- **限制查询变体数量**：过多的查询变体会增加计算开销
+- **缓存转换结果**：对于常见查询，缓存转换结果可以提高性能
+- **异步处理**：并行执行多个查询可以减少总体延迟
+
+### 混合检索
+
+- **调整检索器权重**：根据应用需求调整不同检索器的权重
+- **限制初始结果数量**：每个检索器返回适量的结果，避免过度检索
+- **优化合并策略**：选择合适的合并策略，平衡质量和性能
+
+### 重排序
+
+- **分阶段重排序**：先使用轻量级重排序器，再使用更复杂的重排序器
+- **限制重排序文档数量**：只对最相关的文档进行重排序
+- **选择合适的模型**：对于交叉编码器，选择速度和质量平衡的模型
+
+## 最佳实践 ✅
+
+### 查询转换
+
+- **组合多种转换器**：使用 `CompositeQueryTransformer` 结合多种转换技术
+- **定制 LLM 提示**：为您的领域定制 LLM 查询转换提示
+- **监控转换质量**：定期评估查询转换的效果，调整配置
+
+### 混合检索
+
+- **根据数据特性选择检索器**：不同类型的数据可能需要不同的检索策略
+- **动态调整权重**：根据查询类型动态调整检索器权重
+- **考虑元数据**：利用文档元数据提高检索精确性
+
+### 重排序
+
+- **结合多种重排序策略**：使用 `CompositeReranker` 结合多种重排序技术
+- **考虑多样性**：使用 `DiversityReranker` 确保结果多样性
+- **自定义评分函数**：为特定应用创建自定义重排序逻辑
+
+## 下一步 ✅
+
+现在您已经了解了高级检索技术，您可以：
+
+1. 学习如何[评估 RAG 系统](./evaluation.mdx)
+2. 探索[上下文构建和压缩](./context-building.mdx)
+3. 实现[多模态 RAG](./multimodal-rag.mdx)
+4. 设置[RAG 监控和日志](./monitoring.mdx)

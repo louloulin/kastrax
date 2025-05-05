@@ -1,0 +1,395 @@
+---
+title: Kotlin 工具系统概述 | Kastrax 文档
+description: Kastrax Kotlin 工具系统的详细介绍，包括工具定义、注册、调用和自定义工具的创建方法。
+---
+
+# Kotlin 工具系统概述 ✅
+
+Kastrax 的 Kotlin 工具系统允许代理与外部系统交互、访问数据和执行操作。本指南详细介绍了如何在 Kotlin 中创建和使用工具。
+
+## Kotlin 工具类型 ✅
+
+Kastrax 提供了两种主要的工具创建方式：
+
+1. **传统工具 (Tool)**: 使用 `tool` DSL 函数创建，适用于简单的工具定义
+2. **类型安全工具 (ZodTool)**: 使用 `zodTool` DSL 函数创建，提供类型安全的参数验证
+
+## 传统工具创建 ✅
+
+### 基本工具结构
+
+使用 `tool` DSL 函数创建简单工具：
+
+```kotlin
+import ai.kastrax.core.tools.tool
+import kotlinx.coroutines.runBlocking
+
+// 创建简单工具
+val getCurrentTimeTool = tool("getCurrentTime") {
+    description("获取当前时间")
+    
+    // 空参数列表
+    parameters {}
+    
+    // 执行逻辑
+    execute {
+        val currentTime = java.time.LocalDateTime.now()
+        val formatter = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+        val formattedTime = currentTime.format(formatter)
+        "当前时间是 $formattedTime"
+    }
+}
+
+// 带参数的工具
+val calculateSumTool = tool("calculateSum") {
+    description("计算两个数字的和")
+    
+    // 定义参数
+    parameters {
+        parameter("a", "第一个数字", Double::class)
+        parameter("b", "第二个数字", Double::class)
+    }
+    
+    // 执行逻辑
+    execute { params ->
+        val a = params["a"] as Double
+        val b = params["b"] as Double
+        val sum = a + b
+        "$a 加 $b 的和是 $sum"
+    }
+}
+
+// 测试工具
+fun main() = runBlocking {
+    println(getCurrentTimeTool.execute(mapOf()))
+    println(calculateSumTool.execute(mapOf(
+        "a" to 5.2,
+        "b" to 3.8
+    )))
+}
+```
+
+### 工具参数定义
+
+工具参数可以有多种类型和配置：
+
+```kotlin
+parameters {
+    // 必填参数
+    parameter("name", "用户名", String::class)
+    
+    // 可选参数带默认值
+    parameter("age", "用户年龄", Int::class, optional = true, defaultValue = 18)
+    
+    // 枚举参数
+    parameter("role", "用户角色", String::class) {
+        enum("admin", "user", "guest")
+    }
+    
+    // 带验证的参数
+    parameter("email", "电子邮件", String::class) {
+        validate { email ->
+            if (!email.contains("@")) {
+                throw IllegalArgumentException("无效的电子邮件地址")
+            }
+        }
+    }
+}
+```
+
+### 工具分类
+
+您可以将工具组织成类别：
+
+```kotlin
+tools {
+    // 数学工具
+    category("数学") {
+        tool("add") {
+            description("加两个数")
+            parameters {
+                parameter("a", "第一个数", Double::class)
+                parameter("b", "第二个数", Double::class)
+            }
+            execute { params ->
+                val a = params["a"] as Double
+                val b = params["b"] as Double
+                "结果: ${a + b}"
+            }
+        }
+
+        tool("subtract") {
+            description("减两个数")
+            parameters {
+                parameter("a", "第一个数", Double::class)
+                parameter("b", "第二个数", Double::class)
+            }
+            execute { params ->
+                val a = params["a"] as Double
+                val b = params["b"] as Double
+                "结果: ${a - b}"
+            }
+        }
+    }
+
+    // 实用工具
+    category("实用工具") {
+        tool("getCurrentTime") {
+            description("获取当前时间")
+            parameters {}
+            execute {
+                "当前时间: ${java.time.LocalDateTime.now()}"
+            }
+        }
+    }
+}
+```
+
+## 类型安全工具 (ZodTool) ✅
+
+Kastrax 提供了 `zodTool` DSL 函数，用于创建类型安全的工具：
+
+```kotlin
+import ai.kastrax.core.tools.zodTool
+import ai.kastrax.zod.stringInput
+import ai.kastrax.zod.stringOutput
+import kotlinx.coroutines.runBlocking
+
+// 创建一个简单的字符串反转工具
+val reverseStringTool = zodTool<String, String> {
+    id = "reverse_string"
+    name = "字符串反转"
+    description = "反转输入的字符串"
+    
+    // 使用辅助函数定义输入和输出模式
+    inputSchema = stringInput("要反转的字符串")
+    outputSchema = stringOutput("反转后的字符串")
+    
+    // 实现执行逻辑
+    execute = { input ->
+        input.reversed()
+    }
+}
+
+// 测试工具
+fun main() = runBlocking {
+    val input = "你好，世界！"
+    val output = reverseStringTool.execute(input)
+    println("原始: $input")
+    println("反转: $output")
+}
+```
+
+### 使用数据类
+
+ZodTool 可以与 Kotlin 数据类无缝集成：
+
+```kotlin
+import ai.kastrax.core.tools.zodTool
+import ai.kastrax.zod.*
+import kotlinx.coroutines.runBlocking
+import kotlinx.serialization.Serializable
+
+// 输入数据类
+@Serializable
+data class CalculatorInput(
+    val operation: String,
+    val a: Double,
+    val b: Double
+)
+
+// 输出数据类
+@Serializable
+data class CalculatorOutput(
+    val result: Double
+)
+
+// 创建计算器工具
+val calculatorTool = zodTool<CalculatorInput, CalculatorOutput> {
+    id = "calculator"
+    name = "计算器"
+    description = "执行基本的数学运算"
+    
+    // 使用数据类作为输入和输出
+    inputSchema = any() as Schema<CalculatorInput, CalculatorInput>
+    outputSchema = any() as Schema<CalculatorOutput, CalculatorOutput>
+    
+    execute = { input ->
+        val result = when (input.operation) {
+            "add" -> input.a + input.b
+            "subtract" -> input.a - input.b
+            "multiply" -> input.a * input.b
+            "divide" -> input.a / input.b
+            else -> throw IllegalArgumentException("未知操作: ${input.operation}")
+        }
+        
+        CalculatorOutput(result)
+    }
+}
+
+// 测试工具
+fun main() = runBlocking {
+    val input = CalculatorInput(
+        operation = "multiply",
+        a = 4.0,
+        b = 7.0
+    )
+    
+    val output = calculatorTool.execute(input)
+    println("操作: ${input.operation}")
+    println("输入: ${input.a} 和 ${input.b}")
+    println("结果: ${output.result}")
+}
+```
+
+## 在代理中使用工具 ✅
+
+将工具添加到代理中：
+
+```kotlin
+import ai.kastrax.core.agent.agent
+import ai.kastrax.core.tools.tool
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+
+// 创建代理
+val myAgent = agent {
+    name = "助手"
+    instructions = "你是一个有用的助手。"
+    model = deepSeek(
+        model = DeepSeekModel.DEEPSEEK_CHAT,
+        apiKey = "your-api-key"
+    )
+    
+    // 添加工具
+    tools {
+        // 添加单个工具
+        tool("getCurrentTime") {
+            description("获取当前时间")
+            parameters {}
+            execute {
+                val currentTime = java.time.LocalDateTime.now()
+                val formatter = java.time.format.DateTimeFormatter.ofPattern("HH:mm:ss")
+                val formattedTime = currentTime.format(formatter)
+                "当前时间是 $formattedTime"
+            }
+        }
+        
+        // 添加预定义工具
+        tool(calculatorTool)
+        
+        // 添加工具类别
+        category("文件操作") {
+            tool("readFile") {
+                description("读取文件内容")
+                parameters {
+                    parameter("path", "文件路径", String::class)
+                }
+                execute { params ->
+                    // 实现...
+                    "文件内容..."
+                }
+            }
+        }
+    }
+}
+
+// 使用代理
+val response = myAgent.generate("现在几点了？")
+println(response.text)
+```
+
+## 工具工厂 ✅
+
+Kastrax 提供了 `ToolFactory` 类，用于创建常用工具：
+
+```kotlin
+import ai.kastrax.core.agent.agent
+import ai.kastrax.core.tools.ToolFactory
+import ai.kastrax.core.tools.web.WebSearchTool
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+
+// 创建代理
+val myAgent = agent {
+    // ...
+    
+    // 添加工具
+    tools {
+        // 添加计算器工具
+        add(ToolFactory.createCalculatorTool())
+        
+        // 添加网络搜索工具
+        add(ToolFactory.createWebSearchTool(
+            apiKey = "your-search-api-key",
+            searchEngine = WebSearchTool.SearchEngine.GOOGLE,
+            maxResults = 5
+        ))
+        
+        // 添加文件系统工具
+        add(ToolFactory.createFileSystemTool(
+            rootPath = "./data",
+            allowAbsolutePaths = false
+        ))
+        
+        // 添加日期时间工具
+        add(ToolFactory.createDateTimeTool())
+        
+        // 添加 HTTP 请求工具
+        add(ToolFactory.createHttpRequestTool())
+    }
+}
+```
+
+## 工具注册 ✅
+
+您可以从外部源注册工具：
+
+```kotlin
+// 在单独的文件中定义工具
+object MathTools {
+    val addTool = tool("add") {
+        description("加两个数")
+        parameters {
+            parameter("a", "第一个数", Double::class)
+            parameter("b", "第二个数", Double::class)
+        }
+        execute { params ->
+            val a = params["a"] as Double
+            val b = params["b"] as Double
+            "结果: ${a + b}"
+        }
+    }
+
+    val subtractTool = tool("subtract") {
+        description("减两个数")
+        parameters {
+            parameter("a", "第一个数", Double::class)
+            parameter("b", "第二个数", Double::class)
+        }
+        execute { params ->
+            val a = params["a"] as Double
+            val b = params["b"] as Double
+            "结果: ${a - b}"
+        }
+    }
+}
+
+// 向代理注册工具
+agent {
+    // ...
+    tools {
+        // 添加外部工具
+        tool(MathTools.addTool)
+        tool(MathTools.subtractTool)
+    }
+}
+```
+
+## 下一步 ✅
+
+现在您已经了解了工具系统，您可以：
+
+1. 学习[自定义工具开发](./custom-tools.mdx)
+2. 探索[Zod 工具系统](./zod-tools.mdx)
+3. 实现[工具链](./tool-chains.mdx)

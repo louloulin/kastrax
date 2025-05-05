@@ -1,0 +1,764 @@
+---
+title: RAG 评估 | RAG 系统 | Kastrax 文档
+description: 如何评估和优化 Kastrax RAG 系统的性能，包括检索评估、生成评估和端到端评估。
+---
+
+# RAG 评估 ✅
+
+评估 RAG 系统的性能对于确保其有效性和持续改进至关重要。本指南详细介绍了 Kastrax 中的 RAG 评估方法和工具。
+
+## 评估框架 ✅
+
+Kastrax 提供了一个全面的 RAG 评估框架，可以评估 RAG 系统的各个组件：
+
+```kotlin
+import ai.kastrax.rag.evaluation.*
+import ai.kastrax.rag.RAG
+import kotlinx.coroutines.runBlocking
+
+fun evaluateRagSystem() = runBlocking {
+    // 创建 RAG 系统
+    val rag = RAG(vectorStore, embeddingService)
+    
+    // 创建评估器
+    val evaluator = RagEvaluator(
+        rag = rag,
+        evaluationDataset = testDataset,
+        metrics = listOf(
+            RetrievalPrecision(),
+            RetrievalRecall(),
+            AnswerRelevance(),
+            FactualConsistency()
+        )
+    )
+    
+    // 运行评估
+    val results = evaluator.evaluate()
+    
+    // 打印结果
+    println("评估结果:")
+    results.forEach { (metric, score) ->
+        println("$metric: $score")
+    }
+    
+    // 生成详细报告
+    val report = evaluator.generateReport()
+    println(report)
+}
+```
+
+## 评估数据集 ✅
+
+创建高质量的评估数据集是有效评估的关键：
+
+```kotlin
+import ai.kastrax.rag.evaluation.EvaluationDataset
+import ai.kastrax.rag.evaluation.EvaluationExample
+
+// 创建评估数据集
+val testDataset = EvaluationDataset(
+    examples = listOf(
+        EvaluationExample(
+            query = "Kastrax 的 RAG 系统有哪些主要组件？",
+            expectedAnswer = "Kastrax 的 RAG 系统包括文档处理、嵌入、向量存储、检索、重排序、上下文构建和生成组件。",
+            relevantDocuments = listOf(
+                "doc1.txt", "doc2.txt"
+            ),
+            metadata = mapOf(
+                "difficulty" to "easy",
+                "category" to "architecture"
+            )
+        ),
+        EvaluationExample(
+            query = "如何在 Kastrax 中实现自定义检索器？",
+            expectedAnswer = "在 Kastrax 中实现自定义检索器需要实现 Retriever 接口，定义 retrieve 方法...",
+            relevantDocuments = listOf(
+                "doc3.txt", "doc4.txt"
+            ),
+            metadata = mapOf(
+                "difficulty" to "medium",
+                "category" to "implementation"
+            )
+        )
+        // 更多示例...
+    )
+)
+
+// 从文件加载评估数据集
+val loadedDataset = EvaluationDataset.fromJson("evaluation_data.json")
+
+// 从查询日志生成评估数据集
+val generatedDataset = EvaluationDataset.fromQueryLogs(
+    queryLogs = queryLogs,
+    sampleSize = 100,
+    llm = deepSeekLlm
+)
+```
+
+## 检索评估 ✅
+
+评估检索组件的性能：
+
+```kotlin
+import ai.kastrax.rag.evaluation.retrieval.*
+import kotlinx.coroutines.runBlocking
+
+fun evaluateRetrieval() = runBlocking {
+    // 创建检索评估器
+    val retrievalEvaluator = RetrievalEvaluator(
+        retriever = retriever,
+        evaluationDataset = testDataset,
+        metrics = listOf(
+            Precision(),
+            Recall(),
+            F1Score(),
+            MeanReciprocalRank(),
+            NormalizedDiscountedCumulativeGain()
+        )
+    )
+    
+    // 运行评估
+    val results = retrievalEvaluator.evaluate()
+    
+    // 打印结果
+    println("检索评估结果:")
+    results.forEach { (metric, score) ->
+        println("$metric: $score")
+    }
+    
+    // 分析失败案例
+    val failureCases = retrievalEvaluator.analyzeFailures()
+    println("失败案例分析:")
+    failureCases.forEach { case ->
+        println("查询: ${case.query}")
+        println("预期文档: ${case.expectedDocuments}")
+        println("检索到的文档: ${case.retrievedDocuments}")
+        println("问题: ${case.issues.joinToString(", ")}")
+        println()
+    }
+}
+```
+
+### 检索评估指标
+
+Kastrax 支持多种检索评估指标：
+
+```kotlin
+// 精确率（Precision）
+val precision = Precision(k = 5) // 前 5 个结果的精确率
+
+// 召回率（Recall）
+val recall = Recall(k = 10) // 前 10 个结果的召回率
+
+// F1 分数
+val f1 = F1Score(k = 5) // 前 5 个结果的 F1 分数
+
+// 平均倒数排名（MRR）
+val mrr = MeanReciprocalRank()
+
+// 归一化折扣累积增益（NDCG）
+val ndcg = NormalizedDiscountedCumulativeGain(k = 10)
+
+// 平均精度（MAP）
+val map = MeanAveragePrecision()
+
+// 检索时间
+val retrievalTime = RetrievalTime()
+```
+
+## 生成评估 ✅
+
+评估生成组件的性能：
+
+```kotlin
+import ai.kastrax.rag.evaluation.generation.*
+import kotlinx.coroutines.runBlocking
+
+fun evaluateGeneration() = runBlocking {
+    // 创建生成评估器
+    val generationEvaluator = GenerationEvaluator(
+        rag = rag,
+        evaluationDataset = testDataset,
+        metrics = listOf(
+            AnswerRelevance(),
+            FactualConsistency(),
+            Faithfulness(),
+            ContextUtilization(),
+            HallucinationRate()
+        )
+    )
+    
+    // 运行评估
+    val results = generationEvaluator.evaluate()
+    
+    // 打印结果
+    println("生成评估结果:")
+    results.forEach { (metric, score) ->
+        println("$metric: $score")
+    }
+    
+    // 分析失败案例
+    val failureCases = generationEvaluator.analyzeFailures()
+    println("失败案例分析:")
+    failureCases.forEach { case ->
+        println("查询: ${case.query}")
+        println("生成的答案: ${case.generatedAnswer}")
+        println("预期答案: ${case.expectedAnswer}")
+        println("问题: ${case.issues.joinToString(", ")}")
+        println()
+    }
+}
+```
+
+### 生成评估指标
+
+Kastrax 支持多种生成评估指标：
+
+```kotlin
+// 答案相关性
+val relevance = AnswerRelevance(
+    evaluator = llmEvaluator,
+    prompt = "评估生成的答案与查询的相关性..."
+)
+
+// 事实一致性
+val factuality = FactualConsistency(
+    evaluator = llmEvaluator,
+    prompt = "评估生成的答案与提供的上下文的事实一致性..."
+)
+
+// 忠实度
+val faithfulness = Faithfulness(
+    evaluator = llmEvaluator,
+    prompt = "评估生成的答案是否忠实于提供的上下文..."
+)
+
+// 上下文利用率
+val contextUtilization = ContextUtilization()
+
+// 幻觉率
+val hallucination = HallucinationRate(
+    evaluator = llmEvaluator,
+    prompt = "识别生成的答案中的幻觉..."
+)
+
+// ROUGE 分数
+val rouge = RougeScore()
+
+// BLEU 分数
+val bleu = BleuScore()
+```
+
+## 端到端评估 ✅
+
+评估整个 RAG 系统的端到端性能：
+
+```kotlin
+import ai.kastrax.rag.evaluation.*
+import kotlinx.coroutines.runBlocking
+
+fun evaluateEndToEnd() = runBlocking {
+    // 创建端到端评估器
+    val e2eEvaluator = EndToEndEvaluator(
+        rag = rag,
+        evaluationDataset = testDataset,
+        metrics = listOf(
+            QueryResponseLatency(),
+            UserSatisfaction(),
+            TaskCompletionRate()
+        )
+    )
+    
+    // 运行评估
+    val results = e2eEvaluator.evaluate()
+    
+    // 打印结果
+    println("端到端评估结果:")
+    results.forEach { (metric, score) ->
+        println("$metric: $score")
+    }
+    
+    // 生成详细报告
+    val report = e2eEvaluator.generateReport()
+    println(report)
+}
+```
+
+### 端到端评估指标
+
+Kastrax 支持多种端到端评估指标：
+
+```kotlin
+// 查询响应延迟
+val latency = QueryResponseLatency()
+
+// 用户满意度
+val satisfaction = UserSatisfaction(
+    evaluator = llmEvaluator,
+    prompt = "评估生成的答案对用户的有用性和满意度..."
+)
+
+// 任务完成率
+val taskCompletion = TaskCompletionRate(
+    evaluator = llmEvaluator,
+    prompt = "评估生成的答案是否成功完成了用户的任务..."
+)
+
+// 综合质量分数
+val qualityScore = QualityScore(
+    components = mapOf(
+        "relevance" to 0.3,
+        "factuality" to 0.3,
+        "completeness" to 0.2,
+        "coherence" to 0.2
+    ),
+    evaluator = llmEvaluator
+)
+```
+
+## 人类评估 ✅
+
+结合人类评估可以提供更全面的评估：
+
+```kotlin
+import ai.kastrax.rag.evaluation.human.*
+import kotlinx.coroutines.runBlocking
+
+fun humanEvaluation() = runBlocking {
+    // 创建人类评估任务
+    val humanEvaluationTask = HumanEvaluationTask(
+        examples = testDataset.examples.take(10),
+        questions = listOf(
+            EvaluationQuestion("答案与查询的相关性如何？", ScaleType.ONE_TO_FIVE),
+            EvaluationQuestion("答案的事实准确性如何？", ScaleType.ONE_TO_FIVE),
+            EvaluationQuestion("答案的完整性如何？", ScaleType.ONE_TO_FIVE),
+            EvaluationQuestion("您对答案的总体满意度如何？", ScaleType.ONE_TO_FIVE)
+        ),
+        instructions = "请评估 RAG 系统生成的答案质量..."
+    )
+    
+    // 导出评估任务
+    humanEvaluationTask.exportToJson("human_evaluation_task.json")
+    
+    // 导入评估结果
+    val humanResults = HumanEvaluationResults.fromJson("human_evaluation_results.json")
+    
+    // 分析结果
+    val analysis = humanResults.analyze()
+    println("人类评估结果分析:")
+    analysis.forEach { (question, stats) ->
+        println("问题: $question")
+        println("平均分: ${stats.mean}")
+        println("中位数: ${stats.median}")
+        println("标准差: ${stats.stdDev}")
+        println()
+    }
+}
+```
+
+## 自动评估与 LLM 评估 ✅
+
+使用 LLM 进行自动评估：
+
+```kotlin
+import ai.kastrax.rag.evaluation.llm.*
+import kotlinx.coroutines.runBlocking
+
+fun llmEvaluation() = runBlocking {
+    // 创建 LLM 评估器
+    val llmEvaluator = LLMEvaluator(
+        llm = deepSeekLlm,
+        defaultPromptTemplate = """
+            你是一个 RAG 系统评估专家。你的任务是评估生成的答案质量。
+            
+            查询: {{query}}
+            
+            检索到的上下文:
+            {{context}}
+            
+            生成的答案: {{answer}}
+            
+            预期答案: {{expected_answer}}
+            
+            请根据以下标准评估生成的答案:
+            1. 相关性: 答案与查询的相关程度
+            2. 事实准确性: 答案与上下文和事实的一致程度
+            3. 完整性: 答案是否完整回答了查询
+            4. 连贯性: 答案的逻辑流程和可读性
+            
+            对于每个标准，给出 1-5 的评分，其中 1 表示非常差，5 表示非常好。
+            然后给出总体评分（1-5）和详细解释。
+            
+            输出格式:
+            相关性: [评分]
+            事实准确性: [评分]
+            完整性: [评分]
+            连贯性: [评分]
+            总体评分: [评分]
+            解释: [详细解释]
+        """.trimIndent()
+    )
+    
+    // 评估单个示例
+    val evaluation = llmEvaluator.evaluate(
+        query = "Kastrax 的 RAG 系统有哪些主要组件？",
+        context = "Kastrax RAG 系统由文档处理、嵌入、向量存储、检索、重排序、上下文构建和生成组件组成。",
+        answer = "Kastrax 的 RAG 系统包括文档处理、嵌入、向量存储、检索和生成组件。",
+        expectedAnswer = "Kastrax 的 RAG 系统包括文档处理、嵌入、向量存储、检索、重排序、上下文构建和生成组件。"
+    )
+    
+    println("LLM 评估结果:")
+    println(evaluation.scores)
+    println("解释: ${evaluation.explanation}")
+    
+    // 批量评估
+    val batchEvaluations = llmEvaluator.evaluateBatch(
+        examples = testDataset.examples,
+        generatedAnswers = generatedAnswers
+    )
+    
+    // 分析批量评估结果
+    val aggregatedResults = batchEvaluations.aggregate()
+    println("批量评估结果:")
+    aggregatedResults.forEach { (metric, stats) ->
+        println("$metric: 平均分 = ${stats.mean}, 中位数 = ${stats.median}")
+    }
+}
+```
+
+## 对比评估 ✅
+
+比较不同 RAG 配置的性能：
+
+```kotlin
+import ai.kastrax.rag.evaluation.comparative.*
+import kotlinx.coroutines.runBlocking
+
+fun comparativeEvaluation() = runBlocking {
+    // 创建不同的 RAG 配置
+    val ragConfig1 = RAG(vectorStore1, embeddingService1)
+    val ragConfig2 = RAG(vectorStore2, embeddingService2)
+    
+    // 创建对比评估器
+    val comparativeEvaluator = ComparativeEvaluator(
+        systems = mapOf(
+            "基础配置" to ragConfig1,
+            "高级配置" to ragConfig2
+        ),
+        evaluationDataset = testDataset,
+        metrics = listOf(
+            RetrievalPrecision(),
+            AnswerRelevance(),
+            FactualConsistency(),
+            QueryResponseLatency()
+        )
+    )
+    
+    // 运行对比评估
+    val results = comparativeEvaluator.evaluate()
+    
+    // 打印结果
+    println("对比评估结果:")
+    results.forEach { (system, metricScores) ->
+        println("系统: $system")
+        metricScores.forEach { (metric, score) ->
+            println("  $metric: $score")
+        }
+        println()
+    }
+    
+    // 生成对比报告
+    val report = comparativeEvaluator.generateReport()
+    println(report)
+    
+    // 执行统计显著性测试
+    val significanceTests = comparativeEvaluator.testSignificance()
+    println("统计显著性测试结果:")
+    significanceTests.forEach { (metric, pValue) ->
+        val significant = pValue < 0.05
+        println("$metric: p值 = $pValue, 显著 = $significant")
+    }
+}
+```
+
+## 持续评估 ✅
+
+设置持续评估流程：
+
+```kotlin
+import ai.kastrax.rag.evaluation.*
+import kotlinx.coroutines.runBlocking
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
+
+fun continuousEvaluation() = runBlocking {
+    // 创建评估管理器
+    val evaluationManager = EvaluationManager(
+        rag = rag,
+        baselineDataset = baselineDataset,
+        metrics = listOf(
+            RetrievalPrecision(),
+            AnswerRelevance(),
+            FactualConsistency()
+        ),
+        evaluationFrequency = EvaluationFrequency.DAILY
+    )
+    
+    // 运行评估
+    val currentResults = evaluationManager.runEvaluation()
+    
+    // 比较与基线的差异
+    val comparison = evaluationManager.compareWithBaseline(currentResults)
+    
+    // 检查是否有退化
+    val regressions = comparison.findRegressions(threshold = 0.05)
+    if (regressions.isNotEmpty()) {
+        println("检测到性能退化:")
+        regressions.forEach { (metric, delta) ->
+            println("$metric: 下降了 ${delta * 100}%")
+        }
+        
+        // 发送警报
+        evaluationManager.sendAlert(
+            regressions = regressions,
+            message = "RAG 系统性能退化警报"
+        )
+    }
+    
+    // 保存评估结果
+    val timestamp = LocalDateTime.now().format(DateTimeFormatter.ISO_DATE_TIME)
+    evaluationManager.saveResults(
+        results = currentResults,
+        path = "evaluations/results_$timestamp.json"
+    )
+    
+    // 更新仪表板
+    evaluationManager.updateDashboard(currentResults)
+}
+```
+
+## 评估驱动的优化 ✅
+
+使用评估结果优化 RAG 系统：
+
+```kotlin
+import ai.kastrax.rag.evaluation.*
+import ai.kastrax.rag.optimization.*
+import kotlinx.coroutines.runBlocking
+
+fun evaluationDrivenOptimization() = runBlocking {
+    // 创建 RAG 优化器
+    val optimizer = RagOptimizer(
+        rag = rag,
+        evaluationDataset = testDataset,
+        metrics = listOf(
+            RetrievalPrecision(),
+            AnswerRelevance(),
+            FactualConsistency()
+        )
+    )
+    
+    // 运行基线评估
+    val baselineResults = optimizer.evaluateBaseline()
+    println("基线评估结果:")
+    baselineResults.forEach { (metric, score) ->
+        println("$metric: $score")
+    }
+    
+    // 优化检索参数
+    val retrievalOptimizationResults = optimizer.optimizeRetrieval(
+        parameterSpace = mapOf(
+            "topK" to listOf(3, 5, 10, 15),
+            "similarityThreshold" to listOf(0.5, 0.6, 0.7, 0.8)
+        ),
+        optimizationMetric = "RetrievalPrecision",
+        maxTrials = 10
+    )
+    
+    println("检索优化结果:")
+    println("最佳参数: ${retrievalOptimizationResults.bestParameters}")
+    println("最佳分数: ${retrievalOptimizationResults.bestScore}")
+    
+    // 优化上下文构建
+    val contextOptimizationResults = optimizer.optimizeContextBuilding(
+        parameterSpace = mapOf(
+            "maxTokens" to listOf(1000, 2000, 3000, 4000),
+            "compressionMethod" to listOf("none", "map_reduce", "refine")
+        ),
+        optimizationMetric = "AnswerRelevance",
+        maxTrials = 10
+    )
+    
+    println("上下文构建优化结果:")
+    println("最佳参数: ${contextOptimizationResults.bestParameters}")
+    println("最佳分数: ${contextOptimizationResults.bestScore}")
+    
+    // 应用优化后的配置
+    val optimizedRag = optimizer.applyOptimizedConfiguration(
+        retrievalParams = retrievalOptimizationResults.bestParameters,
+        contextParams = contextOptimizationResults.bestParameters
+    )
+    
+    // 评估优化后的系统
+    val optimizedResults = optimizer.evaluate(optimizedRag)
+    println("优化后的评估结果:")
+    optimizedResults.forEach { (metric, score) ->
+        println("$metric: $score")
+    }
+}
+```
+
+## 完整评估示例 ✅
+
+以下是一个全面的 RAG 评估示例：
+
+```kotlin
+import ai.kastrax.rag.*
+import ai.kastrax.rag.evaluation.*
+import ai.kastrax.rag.evaluation.retrieval.*
+import ai.kastrax.rag.evaluation.generation.*
+import ai.kastrax.rag.evaluation.llm.*
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.runBlocking
+
+fun comprehensiveRagEvaluation() = runBlocking {
+    // 1. 准备评估数据集
+    val testDataset = EvaluationDataset.fromJson("evaluation_data.json")
+    
+    // 2. 创建 RAG 系统
+    val rag = RAG(vectorStore, embeddingService)
+    
+    // 3. 创建 LLM 评估器
+    val llmEvaluator = LLMEvaluator(
+        llm = deepSeek {
+            apiKey("your-deepseek-api-key")
+            model(DeepSeekModel.DEEPSEEK_CHAT)
+            temperature(0.2) // 低温度以获得一致的评估
+        }
+    )
+    
+    // 4. 创建检索评估器
+    val retrievalEvaluator = RetrievalEvaluator(
+        retriever = rag.retriever,
+        evaluationDataset = testDataset,
+        metrics = listOf(
+            Precision(k = 5),
+            Recall(k = 10),
+            F1Score(k = 5),
+            MeanReciprocalRank(),
+            NormalizedDiscountedCumulativeGain(k = 10)
+        )
+    )
+    
+    // 5. 创建生成评估器
+    val generationEvaluator = GenerationEvaluator(
+        rag = rag,
+        evaluationDataset = testDataset,
+        metrics = listOf(
+            AnswerRelevance(evaluator = llmEvaluator),
+            FactualConsistency(evaluator = llmEvaluator),
+            Faithfulness(evaluator = llmEvaluator),
+            ContextUtilization(),
+            HallucinationRate(evaluator = llmEvaluator)
+        )
+    )
+    
+    // 6. 创建端到端评估器
+    val e2eEvaluator = EndToEndEvaluator(
+        rag = rag,
+        evaluationDataset = testDataset,
+        metrics = listOf(
+            QueryResponseLatency(),
+            UserSatisfaction(evaluator = llmEvaluator),
+            TaskCompletionRate(evaluator = llmEvaluator)
+        )
+    )
+    
+    // 7. 运行检索评估
+    println("正在评估检索性能...")
+    val retrievalResults = retrievalEvaluator.evaluate()
+    println("检索评估结果:")
+    retrievalResults.forEach { (metric, score) ->
+        println("$metric: $score")
+    }
+    
+    // 8. 运行生成评估
+    println("\n正在评估生成性能...")
+    val generationResults = generationEvaluator.evaluate()
+    println("生成评估结果:")
+    generationResults.forEach { (metric, score) ->
+        println("$metric: $score")
+    }
+    
+    // 9. 运行端到端评估
+    println("\n正在评估端到端性能...")
+    val e2eResults = e2eEvaluator.evaluate()
+    println("端到端评估结果:")
+    e2eResults.forEach { (metric, score) ->
+        println("$metric: $score")
+    }
+    
+    // 10. 分析失败案例
+    println("\n分析检索失败案例...")
+    val retrievalFailures = retrievalEvaluator.analyzeFailures()
+    retrievalFailures.take(3).forEach { case ->
+        println("查询: ${case.query}")
+        println("问题: ${case.issues.joinToString(", ")}")
+        println()
+    }
+    
+    println("分析生成失败案例...")
+    val generationFailures = generationEvaluator.analyzeFailures()
+    generationFailures.take(3).forEach { case ->
+        println("查询: ${case.query}")
+        println("问题: ${case.issues.joinToString(", ")}")
+        println()
+    }
+    
+    // 11. 生成综合报告
+    val report = EvaluationReport.create(
+        retrievalResults = retrievalResults,
+        generationResults = generationResults,
+        e2eResults = e2eResults,
+        retrievalFailures = retrievalFailures,
+        generationFailures = generationFailures
+    )
+    
+    // 12. 保存报告
+    report.saveToFile("rag_evaluation_report.md")
+    println("\n评估报告已保存到 rag_evaluation_report.md")
+}
+```
+
+## 最佳实践 ✅
+
+### 评估数据集
+
+- **多样性**：确保评估数据集涵盖各种查询类型和难度级别
+- **真实性**：使用真实用户查询或模拟真实用户行为的查询
+- **规模**：使用足够大的数据集以获得统计显著性
+- **平衡**：确保数据集在不同主题和查询类型之间平衡
+
+### 评估指标
+
+- **多维度**：使用多种指标评估不同方面的性能
+- **任务相关**：选择与您的特定应用相关的指标
+- **定量和定性**：结合定量指标和定性分析
+- **人类评估**：在可能的情况下，补充自动评估与人类评估
+
+### 评估流程
+
+- **持续评估**：定期评估系统性能，而不仅仅是在部署前
+- **A/B 测试**：比较不同配置的性能
+- **监控退化**：设置警报以检测性能退化
+- **闭环优化**：使用评估结果指导系统改进
+
+## 下一步 ✅
+
+现在您已经了解了如何评估 RAG 系统，您可以：
+
+1. 设置[持续评估流程](./continuous-evaluation.mdx)
+2. 学习[RAG 系统优化](./optimization.mdx)
+3. 探索[多模态 RAG 评估](./multimodal-evaluation.mdx)
+4. 实现[自定义评估指标](./custom-metrics.mdx)

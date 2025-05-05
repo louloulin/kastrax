@@ -1,0 +1,139 @@
+---
+title: "介绍 | Kastrax 文档"
+description: "Kastrax 是一个 Kotlin 代理框架。它通过代理、actor、记忆、工具和 RAG 等强大的原语，帮助您快速构建 AI 应用程序和功能。"
+---
+
+# 关于 Kastrax ✅
+
+Kastrax 是一个开源的 Kotlin 代理框架。
+
+它旨在提供构建 AI 应用程序和功能所需的原语。
+
+您可以使用 Kastrax 构建具有记忆能力并可执行函数的 [AI 代理](/docs/agents/overview.mdx) ✅，使用 actor 模型创建[分布式代理系统](/docs/actor/overview.mdx) ✅，并使用 RAG 实现[基于知识的应用程序](/docs/rag/overview.mdx) ✅。
+
+主要特点包括：
+
+- **多种代理架构**：从自适应、目标导向、层次化、反思性和创造性代理架构中选择
+- **Actor 模型集成**：使用 actor 模型构建分布式、并发和弹性代理系统
+- **高级记忆系统**：管理工作记忆、对话历史和语义回忆
+- **灵活的工具系统**：创建和使用工具扩展代理能力
+- **RAG 系统**：为基于知识的应用实现检索增强生成
+- **工作流引擎**：创建复杂的多步骤代理工作流
+- **多种 LLM 集成**：支持 DeepSeek、OpenAI、Anthropic 等
+
+## 快速开始 ✅
+
+### 安装 ✅
+
+使用 Gradle 安装 Kastrax：
+
+```kotlin
+dependencies {
+    implementation("ai.kastrax:kastrax-core:0.1.0")
+    implementation("ai.kastrax:kastrax-integrations-deepseek:0.1.0") // 可选
+}
+```
+
+### 基本用法 ✅
+
+```kotlin
+import ai.kastrax.core.agent.agent
+import ai.kastrax.core.tools.tool
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.runBlocking
+
+// 创建代理
+val myAgent = agent {
+    name = "助手"
+    instructions = "你是一个有帮助的助手。"
+    model = deepSeek(
+        model = DeepSeekModel.DEEPSEEK_CHAT,
+        apiKey = "your-deepseek-api-key"
+    )
+    
+    // 添加工具
+    tools {
+        tool {
+            id = "calculator"
+            name = "计算器"
+            description = "执行数学计算"
+            // 定义输入/输出模式和执行逻辑
+            // ...
+        }
+    }
+}
+
+// 使用代理
+fun main() = runBlocking {
+    val response = myAgent.generate("你好，请介绍一下自己")
+    println(response.text)
+}
+```
+
+## 核心功能 ✅
+
+### 代理系统 ✅
+
+Kastrax 提供了多种代理架构，包括：
+
+- **自适应代理**：根据用户偏好和反馈调整行为
+- **目标导向代理**：专注于通过任务规划实现特定目标
+- **层次化代理**：将复杂任务组织成可管理的子任务
+- **反思型代理**：通过反思自我监控和提高性能
+- **创造性代理**：具有增强能力，生成创造性内容
+
+[了解更多关于代理系统的信息 →](/docs/agents/overview.mdx)
+
+### Actor 模型 ✅
+
+Kastrax 与 kactor 库集成，提供：
+
+- **分布式处理**：跨多台机器扩展
+- **基于消息传递的并发**：弹性、非阻塞通信
+- **监督层次结构**：容错和恢复
+- **位置透明性**：无缝的本地和远程 actor 通信
+
+[了解更多关于 Actor 模型的信息 →](/docs/actor/overview.mdx)
+
+### 记忆系统 ✅
+
+Kastrax 的记忆系统提供：
+
+- **工作记忆**：系统指令和用户信息
+- **对话历史**：最近消息跟踪
+- **语义回忆**：检索相关的过去信息
+- **记忆处理器**：上下文管理和优化
+
+[了解更多关于记忆系统的信息 →](/docs/memory/overview.mdx)
+
+### 工具系统 ✅
+
+Kastrax 包含一个灵活的工具系统：
+
+- **内置工具**：文件操作、Web 请求、数据处理等
+- **自定义工具创建**：轻松扩展自己的工具
+- **工具验证**：使用 Zod 进行参数验证
+- **工具链**：组合工具进行复杂操作
+
+[了解更多关于工具系统的信息 →](/docs/tools/overview.mdx)
+
+### RAG 系统 ✅
+
+Kastrax 的 RAG 系统提供：
+
+- **文档处理**：加载、分块和转换文档
+- **嵌入**：将文本转换为向量表示
+- **向量存储**：高效存储和检索向量
+- **检索**：基于查询查找相关信息
+- **重排序**：通过额外的排序提高检索质量
+
+[了解更多关于 RAG 系统的信息 →](/docs/rag/overview.mdx)
+
+## 下一步 ✅
+
+- [安装 Kastrax](/docs/getting-started/installation-kotlin.mdx)
+- [创建您的第一个代理](/docs/getting-started/first-agent-kotlin.mdx)
+- [探索代理架构](/docs/agents/architectures-kotlin.mdx)
+- [了解工具系统](/docs/tools/overview-kotlin.mdx)
+- [使用 RAG 系统](/docs/rag/overview.mdx)

@@ -1,0 +1,702 @@
+---
+title: 第一个 Kotlin 代理 | Kastrax 文档
+description: 如何使用 Kastrax 创建和使用您的第一个 Kotlin AI 代理。
+---
+
+# 创建您的第一个 Kotlin 代理 ✅
+
+本指南将帮助您使用 Kastrax 创建和使用您的第一个 Kotlin AI 代理。我们将从一个简单的对话代理开始，然后逐步添加更多功能。
+
+## 前提条件 ✅
+
+在开始之前，请确保您已经：
+
+1. 安装了 JDK 11+ 和 Kotlin 1.8+
+2. 设置了 Gradle 或 Maven 项目
+3. 添加了 Kastrax 依赖（参见[安装指南](./installation-kotlin.mdx)）
+4. 获取了 DeepSeek 或其他支持的 LLM 提供商的 API 密钥
+
+## 创建基本代理 ✅
+
+让我们从创建一个简单的对话代理开始：
+
+```kotlin
+import ai.kastrax.core.agent.agent
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    // 创建代理
+    val myAgent = agent {
+        name = "助手"
+        instructions = "你是一个有帮助的助手，能够回答用户的问题并提供信息。"
+        model = deepSeek {
+            apiKey("your-deepseek-api-key") // 替换为您的 API 密钥
+            model(DeepSeekModel.DEEPSEEK_CHAT)
+            temperature(0.7)
+        }
+    }
+    
+    // 使用代理
+    println("欢迎使用 Kastrax 助手！输入 'exit' 退出。")
+    
+    while (true) {
+        print("\n用户: ")
+        val input = readLine() ?: ""
+        
+        if (input.lowercase() == "exit") {
+            println("再见！")
+            break
+        }
+        
+        // 生成响应
+        val response = myAgent.generate(input)
+        println("\n助手: ${response.text}")
+    }
+}
+```
+
+这个简单的代理可以回答问题并与用户进行对话。让我们分解一下代码：
+
+1. **创建代理**：使用 `agent` DSL 函数创建代理，设置名称、指令和模型
+2. **配置模型**：使用 `deepSeek` DSL 函数配置 DeepSeek LLM，设置 API 密钥、模型和参数
+3. **使用代理**：使用 `generate` 方法生成响应
+
+## 添加记忆功能 ✅
+
+现在，让我们为代理添加记忆功能，使其能够记住对话历史：
+
+```kotlin
+import ai.kastrax.core.agent.agent
+import ai.kastrax.core.memory.conversationMemory
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    // 创建代理
+    val myAgent = agent {
+        name = "助手"
+        instructions = "你是一个有帮助的助手，能够回答用户的问题并提供信息。"
+        model = deepSeek {
+            apiKey("your-deepseek-api-key")
+            model(DeepSeekModel.DEEPSEEK_CHAT)
+            temperature(0.7)
+        }
+        
+        // 添加记忆
+        memory = conversationMemory {
+            maxMessages = 10 // 保存最近 10 条消息
+        }
+    }
+    
+    // 使用代理
+    println("欢迎使用 Kastrax 助手！输入 'exit' 退出。")
+    
+    while (true) {
+        print("\n用户: ")
+        val input = readLine() ?: ""
+        
+        if (input.lowercase() == "exit") {
+            println("再见！")
+            break
+        }
+        
+        // 生成响应
+        val response = myAgent.generate(input)
+        println("\n助手: ${response.text}")
+    }
+}
+```
+
+通过添加 `memory` 配置，代理现在可以记住对话历史，使对话更加连贯。
+
+## 添加工具功能 ✅
+
+接下来，让我们为代理添加工具功能，使其能够执行操作：
+
+```kotlin
+import ai.kastrax.core.agent.agent
+import ai.kastrax.core.memory.conversationMemory
+import ai.kastrax.core.tools.tool
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.runBlocking
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
+import kotlin.math.sqrt
+
+fun main() = runBlocking {
+    // 创建代理
+    val myAgent = agent {
+        name = "助手"
+        instructions = """
+            你是一个有帮助的助手，能够回答用户的问题并提供信息。
+            你可以使用工具来执行操作，如获取当前时间和执行数学计算。
+            请根据用户的需求选择合适的工具。
+        """.trimIndent()
+        
+        model = deepSeek {
+            apiKey("your-deepseek-api-key")
+            model(DeepSeekModel.DEEPSEEK_CHAT)
+            temperature(0.7)
+        }
+        
+        // 添加记忆
+        memory = conversationMemory {
+            maxMessages = 10
+        }
+        
+        // 添加工具
+        tools {
+            // 获取当前时间的工具
+            tool("getCurrentTime") {
+                description("获取当前时间")
+                parameters {}
+                execute {
+                    val now = LocalDateTime.now()
+                    val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+                    "当前时间是 ${now.format(formatter)}"
+                }
+            }
+            
+            // 计算器工具
+            tool("calculator") {
+                description("执行数学计算")
+                parameters {
+                    parameter("expression", "数学表达式", String::class)
+                }
+                execute { params ->
+                    val expression = params["expression"] as String
+                    try {
+                        val result = evaluateExpression(expression)
+                        "计算结果: $result"
+                    } catch (e: Exception) {
+                        "计算错误: ${e.message}"
+                    }
+                }
+            }
+        }
+    }
+    
+    // 使用代理
+    println("欢迎使用 Kastrax 助手！输入 'exit' 退出。")
+    
+    while (true) {
+        print("\n用户: ")
+        val input = readLine() ?: ""
+        
+        if (input.lowercase() == "exit") {
+            println("再见！")
+            break
+        }
+        
+        // 生成响应
+        val response = myAgent.generate(input)
+        println("\n助手: ${response.text}")
+    }
+}
+
+// 简单的表达式计算函数
+fun evaluateExpression(expression: String): Double {
+    // 这里使用简化的实现，实际应用中可能需要更复杂的表达式解析
+    val sanitized = expression.replace(" ", "")
+    
+    // 处理加法
+    if ("+" in sanitized) {
+        val parts = sanitized.split("+")
+        return parts.sumOf { evaluateExpression(it) }
+    }
+    
+    // 处理减法
+    if ("-" in sanitized && !sanitized.startsWith("-")) {
+        val parts = sanitized.split("-")
+        var result = evaluateExpression(parts[0])
+        for (i in 1 until parts.size) {
+            result -= evaluateExpression(parts[i])
+        }
+        return result
+    }
+    
+    // 处理乘法
+    if ("*" in sanitized) {
+        val parts = sanitized.split("*")
+        return parts.fold(1.0) { acc, part -> acc * evaluateExpression(part) }
+    }
+    
+    // 处理除法
+    if ("/" in sanitized) {
+        val parts = sanitized.split("/")
+        var result = evaluateExpression(parts[0])
+        for (i in 1 until parts.size) {
+            result /= evaluateExpression(parts[i])
+        }
+        return result
+    }
+    
+    // 处理平方根
+    if (sanitized.startsWith("sqrt(") && sanitized.endsWith(")")) {
+        val inner = sanitized.substring(5, sanitized.length - 1)
+        return sqrt(evaluateExpression(inner))
+    }
+    
+    // 处理数字
+    return sanitized.toDoubleOrNull() ?: throw IllegalArgumentException("无效的表达式: $expression")
+}
+```
+
+通过添加工具，代理现在可以执行操作，如获取当前时间和执行数学计算。
+
+## 添加流式响应 ✅
+
+为了提供更好的用户体验，我们可以使用流式响应，让代理的回答逐步显示：
+
+```kotlin
+import ai.kastrax.core.agent.agent
+import ai.kastrax.core.memory.conversationMemory
+import ai.kastrax.core.tools.tool
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.runBlocking
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
+
+fun main() = runBlocking {
+    // 创建代理
+    val myAgent = agent {
+        name = "助手"
+        instructions = """
+            你是一个有帮助的助手，能够回答用户的问题并提供信息。
+            你可以使用工具来执行操作，如获取当前时间和执行数学计算。
+            请根据用户的需求选择合适的工具。
+        """.trimIndent()
+        
+        model = deepSeek {
+            apiKey("your-deepseek-api-key")
+            model(DeepSeekModel.DEEPSEEK_CHAT)
+            temperature(0.7)
+        }
+        
+        // 添加记忆
+        memory = conversationMemory {
+            maxMessages = 10
+        }
+        
+        // 添加工具
+        tools {
+            // 获取当前时间的工具
+            tool("getCurrentTime") {
+                description("获取当前时间")
+                parameters {}
+                execute {
+                    val now = LocalDateTime.now()
+                    val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+                    "当前时间是 ${now.format(formatter)}"
+                }
+            }
+            
+            // 计算器工具
+            tool("calculator") {
+                description("执行数学计算")
+                parameters {
+                    parameter("expression", "数学表达式", String::class)
+                }
+                execute { params ->
+                    val expression = params["expression"] as String
+                    try {
+                        val result = evaluateExpression(expression)
+                        "计算结果: $result"
+                    } catch (e: Exception) {
+                        "计算错误: ${e.message}"
+                    }
+                }
+            }
+        }
+    }
+    
+    // 使用代理
+    println("欢迎使用 Kastrax 助手！输入 'exit' 退出。")
+    
+    while (true) {
+        print("\n用户: ")
+        val input = readLine() ?: ""
+        
+        if (input.lowercase() == "exit") {
+            println("再见！")
+            break
+        }
+        
+        // 使用流式响应
+        print("\n助手: ")
+        myAgent.generateStream(input).collect { chunk ->
+            print(chunk.text)
+        }
+        println()
+    }
+}
+```
+
+通过使用 `generateStream` 方法和 Kotlin 的 Flow API，代理的响应会逐步显示，提供更好的用户体验。
+
+## 使用 Actor 模型 ✅
+
+最后，让我们使用 Actor 模型创建一个分布式代理系统：
+
+```kotlin
+import actor.proto.ActorSystem
+import ai.kastrax.actor.actorAgent
+import ai.kastrax.actor.sendMessage
+import ai.kastrax.actor.askMessage
+import ai.kastrax.core.agent.agent
+import ai.kastrax.core.memory.conversationMemory
+import ai.kastrax.core.tools.tool
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.runBlocking
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
+
+fun main() = runBlocking {
+    // 创建 Actor 系统
+    val system = ActorSystem("kastrax-system")
+    
+    // 创建代理
+    val agentPid = system.actorAgent {
+        // 配置代理
+        agent {
+            name = "助手"
+            instructions = """
+                你是一个有帮助的助手，能够回答用户的问题并提供信息。
+                你可以使用工具来执行操作，如获取当前时间和执行数学计算。
+                请根据用户的需求选择合适的工具。
+            """.trimIndent()
+            
+            model = deepSeek {
+                apiKey("your-deepseek-api-key")
+                model(DeepSeekModel.DEEPSEEK_CHAT)
+                temperature(0.7)
+            }
+            
+            // 添加记忆
+            memory = conversationMemory {
+                maxMessages = 10
+            }
+            
+            // 添加工具
+            tools {
+                // 获取当前时间的工具
+                tool("getCurrentTime") {
+                    description("获取当前时间")
+                    parameters {}
+                    execute {
+                        val now = LocalDateTime.now()
+                        val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+                        "当前时间是 ${now.format(formatter)}"
+                    }
+                }
+                
+                // 计算器工具
+                tool("calculator") {
+                    description("执行数学计算")
+                    parameters {
+                        parameter("expression", "数学表达式", String::class)
+                    }
+                    execute { params ->
+                        val expression = params["expression"] as String
+                        try {
+                            val result = evaluateExpression(expression)
+                            "计算结果: $result"
+                        } catch (e: Exception) {
+                            "计算错误: ${e.message}"
+                        }
+                    }
+                }
+            }
+        }
+        
+        // 配置 Actor
+        actor {
+            // 设置邮箱类型
+            unboundedMailbox()
+        }
+    }
+    
+    // 使用代理
+    println("欢迎使用 Kastrax 助手！输入 'exit' 退出。")
+    
+    while (true) {
+        print("\n用户: ")
+        val input = readLine() ?: ""
+        
+        if (input.lowercase() == "exit") {
+            println("再见！")
+            break
+        }
+        
+        // 发送消息并获取响应
+        val response = system.askMessage(agentPid, input)
+        println("\n助手: $response")
+    }
+    
+    // 关闭系统
+    system.shutdown()
+}
+```
+
+通过使用 Actor 模型，我们创建了一个分布式代理系统，可以更好地处理并发和扩展。
+
+## 完整示例 ✅
+
+以下是一个完整的示例，结合了所有上述功能：
+
+```kotlin
+import actor.proto.ActorSystem
+import ai.kastrax.actor.actorAgent
+import ai.kastrax.actor.network.agentNetwork
+import ai.kastrax.actor.sendMessage
+import ai.kastrax.actor.askMessage
+import ai.kastrax.core.agent.agent
+import ai.kastrax.core.memory.conversationMemory
+import ai.kastrax.core.tools.tool
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.runBlocking
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
+import kotlin.math.sqrt
+
+fun main() = runBlocking {
+    // 创建 Actor 系统
+    val system = ActorSystem("kastrax-system")
+    
+    // 创建研究员代理
+    val researcherPid = system.actorAgent {
+        agent {
+            name = "研究员"
+            instructions = "你是一个研究员，负责收集和分析信息。"
+            model = deepSeek {
+                apiKey("your-deepseek-api-key")
+                model(DeepSeekModel.DEEPSEEK_CHAT)
+                temperature(0.7)
+            }
+            memory = conversationMemory {
+                maxMessages = 5
+            }
+            tools {
+                tool("searchWeb") {
+                    description("搜索网络信息")
+                    parameters {
+                        parameter("query", "搜索查询", String::class)
+                    }
+                    execute { params ->
+                        val query = params["query"] as String
+                        "搜索结果: 关于 '$query' 的信息..."
+                    }
+                }
+            }
+        }
+    }
+    
+    // 创建作家代理
+    val writerPid = system.actorAgent {
+        agent {
+            name = "作家"
+            instructions = "你是一个作家，负责创作高质量的内容。"
+            model = deepSeek {
+                apiKey("your-deepseek-api-key")
+                model(DeepSeekModel.DEEPSEEK_CHAT)
+                temperature(0.8)
+            }
+            memory = conversationMemory {
+                maxMessages = 5
+            }
+        }
+    }
+    
+    // 创建助手代理
+    val assistantPid = system.actorAgent {
+        agent {
+            name = "助手"
+            instructions = """
+                你是一个有帮助的助手，能够回答用户的问题并提供信息。
+                你可以使用工具来执行操作，如获取当前时间和执行数学计算。
+                你也可以与研究员和作家协作，完成复杂任务。
+            """.trimIndent()
+            
+            model = deepSeek {
+                apiKey("your-deepseek-api-key")
+                model(DeepSeekModel.DEEPSEEK_CHAT)
+                temperature(0.7)
+            }
+            
+            memory = conversationMemory {
+                maxMessages = 10
+            }
+            
+            tools {
+                tool("getCurrentTime") {
+                    description("获取当前时间")
+                    parameters {}
+                    execute {
+                        val now = LocalDateTime.now()
+                        val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+                        "当前时间是 ${now.format(formatter)}"
+                    }
+                }
+                
+                tool("calculator") {
+                    description("执行数学计算")
+                    parameters {
+                        parameter("expression", "数学表达式", String::class)
+                    }
+                    execute { params ->
+                        val expression = params["expression"] as String
+                        try {
+                            val result = evaluateExpression(expression)
+                            "计算结果: $result"
+                        } catch (e: Exception) {
+                            "计算错误: ${e.message}"
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    // 创建代理网络
+    val network = system.agentNetwork {
+        coordinator {
+            agent {
+                name = "协调者"
+                instructions = "你是团队的协调者，负责分配任务和整合结果。"
+                model = deepSeek {
+                    apiKey("your-deepseek-api-key")
+                    model(DeepSeekModel.DEEPSEEK_CHAT)
+                    temperature(0.7)
+                }
+            }
+        }
+        
+        agent("researcher", researcherPid)
+        agent("writer", writerPid)
+        agent("assistant", assistantPid)
+        
+        topology {
+            connect("coordinator", "researcher")
+            connect("coordinator", "writer")
+            connect("coordinator", "assistant")
+            connect("researcher", "writer")
+        }
+    }
+    
+    // 使用代理
+    println("欢迎使用 Kastrax 助手！输入 'exit' 退出。")
+    println("您可以直接与助手交谈，或者输入以下命令：")
+    println("- 'research:查询内容' 向研究员提问")
+    println("- 'write:主题' 让作家创作内容")
+    println("- 'team:任务' 让团队协作完成任务")
+    
+    while (true) {
+        print("\n用户: ")
+        val input = readLine() ?: ""
+        
+        if (input.lowercase() == "exit") {
+            println("再见！")
+            break
+        }
+        
+        val response = when {
+            input.startsWith("research:") -> {
+                val query = input.substringAfter("research:")
+                println("\n正在向研究员提问...")
+                system.askMessage(researcherPid, query)
+            }
+            input.startsWith("write:") -> {
+                val topic = input.substringAfter("write:")
+                println("\n正在让作家创作...")
+                system.askMessage(writerPid, "请创作关于 '$topic' 的内容")
+            }
+            input.startsWith("team:") -> {
+                val task = input.substringAfter("team:")
+                println("\n正在让团队协作...")
+                network.sendToCoordinator("请组织团队完成以下任务: $task")
+                "任务已分配给团队，请稍候..."
+            }
+            else -> {
+                system.askMessage(assistantPid, input)
+            }
+        }
+        
+        println("\n回应: $response")
+    }
+    
+    // 关闭系统
+    system.shutdown()
+}
+
+// 简单的表达式计算函数
+fun evaluateExpression(expression: String): Double {
+    // 这里使用简化的实现，实际应用中可能需要更复杂的表达式解析
+    val sanitized = expression.replace(" ", "")
+    
+    // 处理加法
+    if ("+" in sanitized) {
+        val parts = sanitized.split("+")
+        return parts.sumOf { evaluateExpression(it) }
+    }
+    
+    // 处理减法
+    if ("-" in sanitized && !sanitized.startsWith("-")) {
+        val parts = sanitized.split("-")
+        var result = evaluateExpression(parts[0])
+        for (i in 1 until parts.size) {
+            result -= evaluateExpression(parts[i])
+        }
+        return result
+    }
+    
+    // 处理乘法
+    if ("*" in sanitized) {
+        val parts = sanitized.split("*")
+        return parts.fold(1.0) { acc, part -> acc * evaluateExpression(part) }
+    }
+    
+    // 处理除法
+    if ("/" in sanitized) {
+        val parts = sanitized.split("/")
+        var result = evaluateExpression(parts[0])
+        for (i in 1 until parts.size) {
+            result /= evaluateExpression(parts[i])
+        }
+        return result
+    }
+    
+    // 处理平方根
+    if (sanitized.startsWith("sqrt(") && sanitized.endsWith(")")) {
+        val inner = sanitized.substring(5, sanitized.length - 1)
+        return sqrt(evaluateExpression(inner))
+    }
+    
+    // 处理数字
+    return sanitized.toDoubleOrNull() ?: throw IllegalArgumentException("无效的表达式: $expression")
+}
+```
+
+这个完整示例展示了如何创建一个功能丰富的代理系统，包括多个代理、工具、记忆和 Actor 模型集成。
+
+## 总结 ✅
+
+在本指南中，我们学习了如何使用 Kastrax 创建和使用 Kotlin AI 代理。我们从一个简单的对话代理开始，逐步添加了记忆、工具、流式响应和 Actor 模型集成等功能。
+
+通过这些功能，您可以创建功能丰富的 AI 应用程序，满足各种业务需求。
+
+## 下一步 ✅
+
+现在您已经创建了第一个 Kotlin 代理，可以继续学习如何：
+
+1. [探索代理架构](../agents/architectures-kotlin.mdx)
+2. [使用工具系统](../tools/overview-kotlin.mdx)
+3. [实现 RAG 系统](../rag/overview-kotlin.mdx)
+4. [创建工作流](../workflows/overview-kotlin.mdx)

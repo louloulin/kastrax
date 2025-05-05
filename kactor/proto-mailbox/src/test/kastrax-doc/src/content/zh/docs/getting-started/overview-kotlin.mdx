@@ -1,0 +1,267 @@
+---
+title: Kotlin 概述 | Kastrax 文档
+description: Kastrax Kotlin 框架的概述，包括主要功能、架构和使用场景。
+---
+
+# Kotlin 概述 ✅
+
+Kastrax 是一个强大的 Kotlin AI 代理框架，专为构建复杂的 AI 应用程序而设计。本指南将帮助您了解 Kastrax 的核心概念、架构和主要功能。
+
+## 什么是 Kastrax? ✅
+
+Kastrax 是一个开源的 Kotlin 框架，提供了构建 AI 代理和应用程序所需的原语和工具。它结合了 Actor 模型和 AI 代理能力，使开发者能够创建分布式、可扩展和智能的应用程序。
+
+Kastrax 的主要目标是：
+
+1. **简化 AI 应用开发**：提供直观的 DSL 和 API，使 AI 应用开发更加简单
+2. **提供强大的原语**：包括代理、Actor、记忆、工具和 RAG 等核心组件
+3. **支持分布式架构**：通过 Actor 模型实现分布式和并发处理
+4. **确保类型安全**：利用 Kotlin 的类型系统提供编译时安全保证
+5. **提供灵活的集成**：支持多种 LLM 提供商和外部服务
+
+## 核心概念 ✅
+
+### 代理 (Agents)
+
+代理是 Kastrax 的核心概念，代表能够执行任务、使用工具和与用户交互的 AI 实体。Kastrax 支持多种代理架构，包括：
+
+- **自适应代理**：根据用户偏好和反馈调整行为
+- **目标导向代理**：专注于通过任务规划实现特定目标
+- **层次化代理**：将复杂任务组织成可管理的子任务
+- **反思型代理**：通过反思自我监控和提高性能
+- **创造性代理**：具有增强能力，生成创造性内容
+
+### Actor 模型
+
+Kastrax 集成了 Actor 模型，提供了一种构建分布式、并发和弹性系统的方式：
+
+- **基于消息传递的并发**：Actor 通过异步消息进行通信
+- **位置透明性**：无缝支持本地和远程 Actor
+- **监督层次结构**：提供容错和恢复机制
+- **分布式处理**：支持跨多台机器扩展
+
+### 记忆系统
+
+Kastrax 的记忆系统使代理能够存储和检索信息：
+
+- **工作记忆**：存储系统指令和用户信息
+- **对话历史**：跟踪最近的消息
+- **语义回忆**：检索相关的过去信息
+- **记忆处理器**：管理和优化上下文
+
+### 工具系统
+
+工具系统允许代理与外部系统交互和执行操作：
+
+- **内置工具**：文件操作、Web 请求、数据处理等
+- **自定义工具**：创建自定义工具扩展代理能力
+- **工具验证**：使用类型安全的参数验证
+- **工具链**：组合工具执行复杂操作
+
+### RAG 系统
+
+检索增强生成 (RAG) 系统使代理能够访问和利用外部知识：
+
+- **文档处理**：加载、分块和转换文档
+- **嵌入**：将文本转换为向量表示
+- **向量存储**：高效存储和检索向量
+- **检索**：基于查询查找相关信息
+- **重排序**：通过额外的排序提高检索质量
+
+### 工作流系统
+
+工作流系统允许创建和执行多步骤的 AI 流程：
+
+- **步骤定义**：创建和配置工作流步骤
+- **变量处理**：在步骤之间传递数据
+- **控制流**：条件执行、循环和并行处理
+- **错误处理**：处理和恢复错误
+- **工作流组合**：组合工作流创建复杂流程
+
+## 架构概述 ✅
+
+Kastrax 的架构由以下主要层次组成：
+
+1. **核心层**：提供基础抽象和接口
+   - 代理接口和实现
+   - Actor 系统集成
+   - 记忆系统
+   - 工具系统
+   - 工作流引擎
+
+2. **集成层**：连接外部服务和提供商
+   - LLM 提供商集成 (DeepSeek, OpenAI, Anthropic 等)
+   - 向量数据库集成
+   - 外部服务集成
+
+3. **扩展层**：提供额外功能和工具
+   - 内置工具集
+   - RAG 系统
+   - 评估框架
+   - 可观测性工具
+
+4. **应用层**：用于构建应用程序的高级组件
+   - 应用模板
+   - 预构建代理
+   - 示例应用
+
+## 使用场景 ✅
+
+Kastrax 适用于多种 AI 应用场景，包括：
+
+### 智能助手
+
+创建能够理解用户需求、执行任务和提供信息的智能助手：
+
+```kotlin
+val assistant = agent {
+    name = "个人助手"
+    instructions = "你是一个有帮助的个人助手，能够回答问题和执行任务。"
+    model = deepSeek {
+        apiKey("your-deepseek-api-key")
+        model(DeepSeekModel.DEEPSEEK_CHAT)
+    }
+    
+    tools {
+        tool(webSearchTool)
+        tool(calculatorTool)
+        tool(weatherTool)
+    }
+}
+```
+
+### 知识库应用
+
+构建能够访问和利用特定领域知识的应用：
+
+```kotlin
+// 创建 RAG 系统
+val rag = RAG(vectorStore, embeddingService)
+rag.addDocuments(documentLoader.load())
+
+// 创建知识库代理
+val knowledgeAgent = agent {
+    name = "知识库助手"
+    instructions = "你是一个知识库助手，负责回答关于公司产品的问题。"
+    model = deepSeek {
+        apiKey("your-deepseek-api-key")
+        model(DeepSeekModel.DEEPSEEK_CHAT)
+    }
+    
+    // 使用 RAG
+    useRag(rag)
+}
+```
+
+### 多代理系统
+
+创建由多个协作代理组成的复杂系统：
+
+```kotlin
+// 创建 Actor 系统
+val system = ActorSystem("multi-agent-system")
+
+// 创建多个代理 Actor
+val researcherPid = system.actorAgent {
+    agent {
+        name = "研究员"
+        instructions = "你是一个研究员，负责收集和分析信息。"
+        // ...
+    }
+}
+
+val writerPid = system.actorAgent {
+    agent {
+        name = "作家"
+        instructions = "你是一个作家，负责创作高质量的内容。"
+        // ...
+    }
+}
+
+val reviewerPid = system.actorAgent {
+    agent {
+        name = "审稿人"
+        instructions = "你是一个审稿人，负责审查和改进内容。"
+        // ...
+    }
+}
+
+// 创建代理网络
+val network = system.agentNetwork {
+    coordinator {
+        agent {
+            name = "协调者"
+            instructions = "你是团队的协调者，负责分配任务和整合结果。"
+            // ...
+        }
+    }
+    
+    agent("researcher", researcherPid)
+    agent("writer", writerPid)
+    agent("reviewer", reviewerPid)
+    
+    topology {
+        connect("coordinator", "researcher")
+        connect("coordinator", "writer")
+        connect("coordinator", "reviewer")
+        connect("researcher", "writer")
+        connect("writer", "reviewer")
+    }
+}
+```
+
+### 工作流应用
+
+创建执行复杂业务流程的应用：
+
+```kotlin
+// 创建工作流
+val contentWorkflow = workflow("content-workflow", "内容创建工作流") {
+    step(researchAgent) {
+        id = "research"
+        variables = mapOf(
+            "topic" to variable("$.input.topic")
+        )
+    }
+    
+    step(writingAgent) {
+        id = "writing"
+        after("research")
+        variables = mapOf(
+            "research" to variable("$.steps.research.output.text")
+        )
+    }
+    
+    step(editingAgent) {
+        id = "editing"
+        after("writing")
+        variables = mapOf(
+            "draft" to variable("$.steps.writing.output.text")
+        )
+    }
+    
+    output {
+        "finalContent" from "$.steps.editing.output.text"
+    }
+}
+```
+
+## 与其他框架的比较 ✅
+
+Kastrax 与其他 AI 框架相比具有以下优势：
+
+1. **Kotlin 原生**：充分利用 Kotlin 的语言特性和 JVM 生态系统
+2. **Actor 模型集成**：提供强大的分布式和并发处理能力
+3. **类型安全**：通过 Kotlin 的类型系统提供编译时安全保证
+4. **DSL 驱动**：提供直观的 DSL 用于创建代理、工作流和工具
+5. **多 LLM 支持**：支持多种 LLM 提供商，包括 DeepSeek、OpenAI 和 Anthropic
+
+## 下一步 ✅
+
+现在您已经了解了 Kastrax 的基本概念，可以继续学习如何：
+
+1. [安装 Kastrax](./installation-kotlin.mdx)
+2. [创建您的第一个代理](./first-agent-kotlin.mdx)
+3. [探索代理架构](../agents/architectures-kotlin.mdx)
+4. [使用工具系统](../tools/overview-kotlin.mdx)
+5. [实现 RAG 系统](../rag/overview-kotlin.mdx)

@@ -1,0 +1,339 @@
+---
+title: Kotlin 安装 | Kastrax 文档
+description: 如何在 Kotlin 项目中安装和配置 Kastrax 框架。
+---
+
+# Kotlin 安装 ✅
+
+本指南将帮助您在 Kotlin 项目中安装和配置 Kastrax 框架。
+
+## 系统要求 ✅
+
+在开始之前，请确保您的系统满足以下要求：
+
+- **JDK 11+**：Kastrax 需要 Java 11 或更高版本
+- **Kotlin 1.8+**：推荐使用 Kotlin 1.8 或更高版本
+- **Gradle 7.0+** 或 **Maven 3.6+**：用于依赖管理
+
+## 使用 Gradle 安装 ✅
+
+### 步骤 1：配置 Gradle 项目
+
+如果您还没有 Gradle 项目，可以使用以下命令创建一个：
+
+```bash
+mkdir my-kastrax-project
+cd my-kastrax-project
+gradle init --type kotlin-application
+```
+
+### 步骤 2：添加 Kastrax 依赖
+
+在您的 `build.gradle.kts` 文件中添加 Kastrax 依赖：
+
+```kotlin
+plugins {
+    kotlin("jvm") version "1.8.21"
+    kotlin("plugin.serialization") version "1.8.21"
+    application
+}
+
+repositories {
+    mavenCentral()
+    // Kastrax 仓库
+    maven {
+        url = uri("https://maven.pkg.github.com/kastrax/kastrax")
+        credentials {
+            username = project.findProperty("gpr.user") as String? ?: System.getenv("GITHUB_USERNAME")
+            password = project.findProperty("gpr.key") as String? ?: System.getenv("GITHUB_TOKEN")
+        }
+    }
+}
+
+dependencies {
+    // Kastrax 核心
+    implementation("ai.kastrax:kastrax-core:0.1.0")
+    
+    // LLM 集成（根据需要选择）
+    implementation("ai.kastrax:kastrax-integrations-deepseek:0.1.0")
+    // implementation("ai.kastrax:kastrax-integrations-openai:0.1.0")
+    // implementation("ai.kastrax:kastrax-integrations-anthropic:0.1.0")
+    
+    // 可选模块（根据需要选择）
+    implementation("ai.kastrax:kastrax-rag:0.1.0")
+    implementation("ai.kastrax:kastrax-actor:0.1.0")
+    
+    // 测试依赖
+    testImplementation(kotlin("test"))
+}
+```
+
+### 步骤 3：配置 GitHub 包访问
+
+由于 Kastrax 包托管在 GitHub Packages，您需要配置访问凭证。在项目根目录创建或编辑 `gradle.properties` 文件：
+
+```properties
+gpr.user=your-github-username
+gpr.key=your-github-token
+```
+
+或者，您可以设置环境变量：
+
+```bash
+export GITHUB_USERNAME=your-github-username
+export GITHUB_TOKEN=your-github-token
+```
+
+> 注意：您需要创建一个具有 `read:packages` 权限的 GitHub 个人访问令牌。
+
+## 使用 Maven 安装 ✅
+
+### 步骤 1：配置 Maven 项目
+
+如果您还没有 Maven 项目，可以使用以下命令创建一个：
+
+```bash
+mvn archetype:generate -DgroupId=com.example -DartifactId=my-kastrax-project -DarchetypeArtifactId=maven-archetype-quickstart -DinteractiveMode=false
+```
+
+### 步骤 2：添加 Kastrax 依赖
+
+在您的 `pom.xml` 文件中添加 Kastrax 依赖：
+
+```xml
+<project>
+    <!-- ... -->
+    
+    <properties>
+        <kotlin.version>1.8.21</kotlin.version>
+        <kastrax.version>0.1.0</kastrax.version>
+    </properties>
+    
+    <repositories>
+        <repository>
+            <id>github</id>
+            <name>GitHub Kastrax Apache Maven Packages</name>
+            <url>https://maven.pkg.github.com/kastrax/kastrax</url>
+        </repository>
+    </repositories>
+    
+    <dependencies>
+        <!-- Kotlin 依赖 -->
+        <dependency>
+            <groupId>org.jetbrains.kotlin</groupId>
+            <artifactId>kotlin-stdlib</artifactId>
+            <version>${kotlin.version}</version>
+        </dependency>
+        
+        <!-- Kastrax 核心 -->
+        <dependency>
+            <groupId>ai.kastrax</groupId>
+            <artifactId>kastrax-core</artifactId>
+            <version>${kastrax.version}</version>
+        </dependency>
+        
+        <!-- LLM 集成（根据需要选择） -->
+        <dependency>
+            <groupId>ai.kastrax</groupId>
+            <artifactId>kastrax-integrations-deepseek</artifactId>
+            <version>${kastrax.version}</version>
+        </dependency>
+        
+        <!-- 可选模块（根据需要选择） -->
+        <dependency>
+            <groupId>ai.kastrax</groupId>
+            <artifactId>kastrax-rag</artifactId>
+            <version>${kastrax.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>ai.kastrax</groupId>
+            <artifactId>kastrax-actor</artifactId>
+            <version>${kastrax.version}</version>
+        </dependency>
+    </dependencies>
+    
+    <!-- ... -->
+</project>
+```
+
+### 步骤 3：配置 GitHub 包访问
+
+在 Maven 的 `settings.xml` 文件中添加认证信息（通常位于 `~/.m2/settings.xml`）：
+
+```xml
+<settings>
+    <servers>
+        <server>
+            <id>github</id>
+            <username>your-github-username</username>
+            <password>your-github-token</password>
+        </server>
+    </servers>
+</settings>
+```
+
+## 验证安装 ✅
+
+创建一个简单的 Kotlin 文件来验证 Kastrax 安装是否成功：
+
+```kotlin
+import ai.kastrax.core.agent.agent
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    // 创建一个简单的代理
+    val myAgent = agent {
+        name = "测试代理"
+        instructions = "你是一个测试代理，用于验证 Kastrax 安装。"
+        model = deepSeek {
+            apiKey("your-deepseek-api-key")
+            model(DeepSeekModel.DEEPSEEK_CHAT)
+        }
+    }
+    
+    // 生成响应
+    val response = myAgent.generate("你好，Kastrax！")
+    println(response.text)
+}
+```
+
+## 模块说明 ✅
+
+Kastrax 框架由多个模块组成，您可以根据需要选择安装：
+
+### 核心模块
+
+- **kastrax-core**：核心功能，包括代理、工具和工作流系统
+- **kastrax-actor**：Actor 模型集成，用于构建分布式代理系统
+- **kastrax-rag**：检索增强生成系统，用于知识库应用
+
+### LLM 集成模块
+
+- **kastrax-integrations-deepseek**：DeepSeek LLM 集成
+- **kastrax-integrations-openai**：OpenAI LLM 集成
+- **kastrax-integrations-anthropic**：Anthropic LLM 集成
+- **kastrax-integrations-huggingface**：HuggingFace LLM 集成
+
+### 工具和扩展模块
+
+- **kastrax-tools-web**：Web 相关工具，如搜索和抓取
+- **kastrax-tools-file**：文件操作工具
+- **kastrax-tools-database**：数据库操作工具
+- **kastrax-evals**：评估框架，用于测试代理性能
+
+## 配置 ✅
+
+### 配置 LLM 提供商
+
+Kastrax 支持多种 LLM 提供商，您需要配置相应的 API 密钥：
+
+#### DeepSeek 配置
+
+```kotlin
+val model = deepSeek {
+    apiKey("your-deepseek-api-key")
+    model(DeepSeekModel.DEEPSEEK_CHAT)
+    temperature(0.7)
+    maxTokens(2000)
+    topP(0.95)
+}
+```
+
+#### OpenAI 配置
+
+```kotlin
+val model = openAI {
+    apiKey("your-openai-api-key")
+    model("gpt-4")
+    temperature(0.7)
+    maxTokens(2000)
+    topP(0.95)
+}
+```
+
+#### Anthropic 配置
+
+```kotlin
+val model = anthropic {
+    apiKey("your-anthropic-api-key")
+    model("claude-3-opus")
+    temperature(0.7)
+    maxTokens(2000)
+}
+```
+
+### 配置日志
+
+Kastrax 使用 SLF4J 进行日志记录。您可以配置任何兼容的日志实现，如 Logback：
+
+添加 Logback 依赖：
+
+```kotlin
+implementation("ch.qos.logback:logback-classic:1.4.7")
+```
+
+创建 `src/main/resources/logback.xml` 文件：
+
+```xml
+<configuration>
+    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+    
+    <!-- 设置 Kastrax 日志级别 -->
+    <logger name="ai.kastrax" level="INFO"/>
+    
+    <root level="INFO">
+        <appender-ref ref="STDOUT"/>
+    </root>
+</configuration>
+```
+
+## 故障排除 ✅
+
+### 常见问题
+
+#### 依赖解析失败
+
+如果遇到依赖解析失败的问题，请检查：
+
+1. GitHub 认证配置是否正确
+2. 个人访问令牌是否具有 `read:packages` 权限
+3. 网络连接是否正常
+
+#### 类找不到错误
+
+如果遇到 `ClassNotFoundException` 或 `NoClassDefFoundError`，请检查：
+
+1. 是否添加了所有必要的依赖
+2. 依赖版本是否兼容
+3. 构建配置是否正确
+
+#### 协程相关错误
+
+如果遇到协程相关的错误，请确保添加了 kotlinx-coroutines 依赖：
+
+```kotlin
+implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.1")
+```
+
+### 获取帮助
+
+如果您遇到其他问题，可以：
+
+1. 查看 [Kastrax GitHub 仓库](https://github.com/kastrax/kastrax)
+2. 提交 Issue 报告问题
+3. 加入 Kastrax 社区获取支持
+
+## 下一步 ✅
+
+现在您已经成功安装了 Kastrax，可以继续学习如何：
+
+1. [创建您的第一个代理](./first-agent-kotlin.mdx)
+2. [探索代理架构](../agents/architectures-kotlin.mdx)
+3. [使用工具系统](../tools/overview-kotlin.mdx)
+4. [实现 RAG 系统](../rag/overview-kotlin.mdx)

@@ -1,0 +1,550 @@
+---
+title: Kotlin Actor 模型概述 | Kastrax 文档
+description: Kastrax 中 Kotlin Actor 模型的详细介绍，包括 Actor 系统、Actor 创建、消息传递和分布式功能。
+---
+
+# Kotlin Actor 模型概述 ✅
+
+Kastrax 的 Actor 模型提供了一种强大的方式来构建分布式、并发和弹性的 AI 代理系统。本指南详细介绍了如何在 Kotlin 中使用 Actor 模型来创建和管理 AI 代理。
+
+## Actor 模型架构 ✅
+
+Kastrax 的 Actor 模型基于 kactor 库，提供了以下核心组件：
+
+1. **ActorSystem**：Actor 系统的主要入口点，负责 Actor 的创建和管理
+2. **KastraxActor**：将 Kastrax Agent 包装为 Actor 的核心类
+3. **消息传递机制**：Actor 之间通信的基础设施
+4. **监督策略**：处理 Actor 故障的机制
+5. **远程 Actor**：支持跨网络的 Actor 通信
+6. **集群功能**：支持创建和管理 Actor 集群
+
+## 基本用法 ✅
+
+以下是在 Kastrax 中创建和使用 Actor 的基本示例：
+
+```kotlin
+import actor.proto.ActorSystem
+import actor.proto.Props
+import actor.proto.fromProducer
+import ai.kastrax.actor.KastraxActor
+import ai.kastrax.actor.AgentRequest
+import ai.kastrax.core.agent.agent
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    // 创建 Actor 系统
+    val system = ActorSystem("kastrax-system")
+    
+    // 创建 Kastrax 代理
+    val myAgent = agent {
+        name = "助手"
+        instructions = "你是一个有帮助的助手。"
+        model = deepSeek {
+            apiKey("your-deepseek-api-key")
+            model(DeepSeekModel.DEEPSEEK_CHAT)
+            temperature(0.7)
+        }
+    }
+    
+    // 创建 KastraxActor
+    val props = Props.create { KastraxActor(myAgent) }
+    val agentPid = system.root.spawn(props)
+    
+    // 发送消息
+    system.root.send(agentPid, AgentRequest("你好，你能帮我什么忙？"))
+    
+    // 请求-响应模式
+    val response = system.root.requestAwait<AgentResponse>(
+        agentPid, 
+        AgentRequest("巴黎的人口是多少？")
+    )
+    println("回答: ${response.text}")
+    
+    // 关闭系统
+    system.shutdown()
+}
+```
+
+## DSL 功能 ✅
+
+Kastrax 提供了三种 DSL，使得创建和管理 Actor 化的 Agent 变得更加简单和直观：
+
+### Actor 化 Agent DSL
+
+使用 `actorAgent` DSL 创建 Actor 化的 Agent：
+
+```kotlin
+import ai.kastrax.actor.actorAgent
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.runBlocking
+import java.time.Duration
+
+fun main() = runBlocking {
+    // 创建 Actor 系统
+    val system = ActorSystem("kastrax-system")
+    
+    // 使用 DSL 创建 Actor 化的 Agent
+    val agentPid = system.actorAgent {
+        // 配置 Agent 部分
+        agent {
+            name = "助手"
+            instructions = "你是一个有帮助的助手。"
+            model = deepSeek {
+                apiKey("your-deepseek-api-key")
+                model(DeepSeekModel.DEEPSEEK_CHAT)
+                temperature(0.7)
+            }
+        }
+        
+        // 配置 Actor 部分
+        actor {
+            // 设置监督策略
+            oneForOneStrategy {
+                maxRetries = 3
+                withinTimeRange = Duration.ofMinutes(1)
+            }
+            
+            // 设置邮箱类型
+            unboundedMailbox()
+        }
+    }
+    
+    // 使用 Actor
+    system.root.send(agentPid, AgentRequest("你好，你能帮我什么忙？"))
+    
+    // 关闭系统
+    system.shutdown()
+}
+```
+
+### 消息传递 DSL
+
+使用消息传递 DSL 简化 Actor 之间的通信：
+
+```kotlin
+import ai.kastrax.actor.sendMessage
+import ai.kastrax.actor.askMessage
+import ai.kastrax.actor.streamMessage
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    // 创建 Actor 系统
+    val system = ActorSystem("kastrax-system")
+    
+    // 创建 Actor 化的 Agent
+    val agentPid = system.actorAgent { /* 配置 */ }
+    
+    // 发送消息
+    system.sendMessage(agentPid, "你好，我是用户")
+    
+    // 请求-响应模式
+    val response = system.askMessage(agentPid, "巴黎的人口是多少？")
+    println("回答: $response")
+    
+    // 流式请求
+    system.streamMessage(agentPid, "讲个故事") { chunk ->
+        print(chunk)
+    }
+    
+    // 关闭系统
+    system.shutdown()
+}
+```
+
+### Agent 网络 DSL
+
+使用 Agent 网络 DSL 创建和管理 Agent 网络：
+
+```kotlin
+import ai.kastrax.actor.network.agentNetwork
+import ai.kastrax.core.agent.agent
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    // 创建 Actor 系统
+    val system = ActorSystem("kastrax-system")
+    
+    // 创建 Agent 网络
+    val network = system.agentNetwork {
+        // 添加协调者
+        coordinator {
+            agent {
+                name = "coordinator"
+                instructions = "你是团队的协调者，负责分配任务和整合结果。"
+                model = deepSeek {
+                    apiKey("your-deepseek-api-key")
+                    model(DeepSeekModel.DEEPSEEK_CHAT)
+                }
+            }
+        }
+        
+        // 添加研究员
+        agent("researcher") {
+            agent {
+                name = "researcher"
+                instructions = "你是一个研究员，负责收集和分析信息。"
+                model = deepSeek {
+                    apiKey("your-deepseek-api-key")
+                    model(DeepSeekModel.DEEPSEEK_CHAT)
+                }
+            }
+        }
+        
+        // 添加作家
+        agent("writer") {
+            agent {
+                name = "writer"
+                instructions = "你是一个作家，负责创作高质量的内容。"
+                model = deepSeek {
+                    apiKey("your-deepseek-api-key")
+                    model(DeepSeekModel.DEEPSEEK_CHAT)
+                }
+            }
+        }
+        
+        // 设置网络拓扑
+        topology {
+            connect("coordinator", "researcher")
+            connect("coordinator", "writer")
+            connect("researcher", "writer")
+        }
+    }
+    
+    // 发送消息给协调者
+    network.sendToCoordinator("我需要一份关于气候变化的研究报告")
+    
+    // 发送消息给特定 Agent
+    network.send("coordinator", "researcher", "收集气候变化的最新数据")
+    
+    // 请求-响应模式
+    val response = network.ask("coordinator", "writer", "写一篇关于气候变化的文章")
+    println("作家的回应: ${response.text}")
+    
+    // 广播消息
+    network.broadcast("coordinator", "项目截止日期是下周五")
+    
+    // 关闭网络
+    network.shutdown()
+}
+```
+
+## 分布式功能 ✅
+
+Kastrax 的 Actor 模型支持分布式部署和通信：
+
+### 远程 Actor
+
+配置远程 Actor 系统：
+
+```kotlin
+import ai.kastrax.actor.remote.configureRemoteActorSystem
+import ai.kastrax.actor.remote.RemoteActorConfig
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    // 配置远程 Actor 系统
+    val system = configureRemoteActorSystem(
+        "kastrax-remote-system",
+        RemoteActorConfig(
+            host = "localhost",
+            port = 8090
+        )
+    )
+    
+    // 创建 Actor 化的 Agent
+    val agentPid = system.actorAgent { /* 配置 */ }
+    
+    // 使用远程 Actor
+    system.sendMessage(agentPid, "你好，你能帮我什么忙？")
+    
+    // 关闭系统
+    system.shutdown()
+}
+```
+
+### 集群功能
+
+配置 Actor 集群：
+
+```kotlin
+import ai.kastrax.actor.cluster.configureCluster
+import ai.kastrax.actor.cluster.ClusterConfig
+import ai.kastrax.actor.cluster.joinCluster
+import ai.kastrax.actor.cluster.leaveCluster
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    // 配置集群 Actor 系统
+    val system = configureCluster(
+        "kastrax-cluster-system",
+        ClusterConfig(
+            clusterName = "kastrax-cluster",
+            seeds = listOf("localhost:8090", "localhost:8091")
+        )
+    )
+    
+    // 加入集群
+    system.joinCluster()
+    
+    // 创建 Actor 化的 Agent
+    val agentPid = system.actorAgent { /* 配置 */ }
+    
+    // 使用集群 Actor
+    system.sendMessage(agentPid, "你好，你能帮我什么忙？")
+    
+    // 离开集群
+    system.leaveCluster()
+    
+    // 关闭系统
+    system.shutdown()
+}
+```
+
+## 高级功能 ✅
+
+### 监督策略
+
+设置监督策略处理 Actor 故障：
+
+```kotlin
+import ai.kastrax.actor.actorAgent
+import java.time.Duration
+
+// 创建带有监督策略的 Actor 化 Agent
+val agentPid = system.actorAgent {
+    // 配置 Agent 部分
+    agent { /* 配置 */ }
+    
+    // 配置 Actor 部分
+    actor {
+        // 一对一策略：当子 Actor 失败时，只重启失败的 Actor
+        oneForOneStrategy {
+            maxRetries = 3
+            withinTimeRange = Duration.ofMinutes(1)
+            
+            // 设置异常处理
+            handle<IllegalArgumentException> { Resume }
+            handle<NullPointerException> { Restart }
+            handle<Exception> { Stop }
+        }
+        
+        // 一对全策略：当子 Actor 失败时，重启所有子 Actor
+        allForOneStrategy {
+            maxRetries = 3
+            withinTimeRange = Duration.ofMinutes(1)
+        }
+    }
+}
+```
+
+### 多模态消息
+
+支持多模态消息传递：
+
+```kotlin
+import ai.kastrax.actor.sendTextMessage
+import ai.kastrax.actor.sendImageMessage
+import ai.kastrax.actor.multimodalMessage
+import kotlinx.coroutines.runBlocking
+import java.io.File
+
+fun main() = runBlocking {
+    // 创建 Actor 系统
+    val system = ActorSystem("kastrax-system")
+    
+    // 创建 Actor 化的 Agent
+    val agentPid = system.actorAgent { /* 配置 */ }
+    
+    // 发送文本消息
+    system.sendTextMessage(agentPid, "你好，我是用户")
+    
+    // 发送图像消息
+    val imageFile = File("example.jpg")
+    val image = MultimodalProcessor.createImageFromFile(imageFile.absolutePath)
+    system.sendImageMessage(agentPid, image)
+    
+    // 使用 DSL 创建和发送多模态消息
+    system.multimodalMessage(agentPid) {
+        text("这是一张图片，请描述它")
+        image(imageFile.absolutePath)
+    }
+    
+    // 关闭系统
+    system.shutdown()
+}
+```
+
+### 协作协议
+
+实现 Agent 之间的协作协议：
+
+```kotlin
+import ai.kastrax.actor.network.agentNetwork
+import ai.kastrax.actor.network.protocol.ChainOfThoughtProtocol
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    // 创建 Actor 系统
+    val system = ActorSystem("kastrax-system")
+    
+    // 创建 Agent 网络
+    val network = system.agentNetwork {
+        // 添加 Agent
+        coordinator { /* 配置 */ }
+        agent("researcher") { /* 配置 */ }
+        agent("writer") { /* 配置 */ }
+        agent("reviewer") { /* 配置 */ }
+        
+        // 设置网络拓扑
+        topology {
+            connect("coordinator", "researcher")
+            connect("coordinator", "writer")
+            connect("coordinator", "reviewer")
+            connect("researcher", "writer")
+            connect("writer", "reviewer")
+        }
+    }
+    
+    // 创建思维链协议
+    val protocol = ChainOfThoughtProtocol(
+        steps = listOf("researcher", "writer", "reviewer"),
+        maxIterations = 3
+    )
+    
+    // 执行协作任务
+    val result = network.collaborate(
+        protocol = protocol,
+        initiatorId = "coordinator",
+        task = "创建一份关于气候变化的综合报告"
+    )
+    
+    println("协作结果: ${result.output}")
+    println("参与者: ${result.participants}")
+    println("迭代次数: ${result.iterations}")
+    
+    // 关闭网络
+    network.shutdown()
+}
+```
+
+## 与 Kastrax 集成 ✅
+
+将 Actor 模型与 Kastrax 核心功能集成：
+
+```kotlin
+import ai.kastrax.core.kastrax
+import ai.kastrax.actor.actorSystem
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    // 创建 actor 系统
+    val actorSystem = actorSystem("kastrax-system")
+    
+    // 创建带有 actor 系统的 KastraX 实例
+    val kastraxInstance = kastrax {
+        // 配置 actor 系统
+        actorSystem(actorSystem)
+        
+        // 配置代理
+        agent("assistant") {
+            name = "助手"
+            instructions = "你是一个有帮助的助手。"
+            
+            model = deepSeek {
+                apiKey("your-deepseek-api-key")
+                model(DeepSeekModel.DEEPSEEK_CHAT)
+                temperature(0.7)
+            }
+        }
+    }
+    
+    // 创建基于 actor 的代理
+    val agentActor = kastraxInstance.createActorAgent("assistant")
+    
+    // 向代理 actor 发送消息
+    actorSystem.root.send(agentActor, AgentRequest("你好，你能帮我什么忙？"))
+    
+    // 关闭系统
+    actorSystem.shutdown()
+}
+```
+
+## 性能优化 ✅
+
+优化 Actor 系统的性能：
+
+1. **邮箱配置**：根据消息处理需求选择合适的邮箱类型
+2. **分发器配置**：调整分发器线程池大小以优化并发性能
+3. **批处理**：使用批处理减少消息传递开销
+4. **本地化**：尽可能在同一节点上放置频繁通信的 Actor
+5. **监控**：使用内置的监控工具跟踪 Actor 系统性能
+
+```kotlin
+import ai.kastrax.actor.actorAgent
+
+// 配置 Actor 系统
+val system = ActorSystem("optimized-system")
+
+// 使用优化的邮箱和分发器
+val agentPid = system.actorAgent {
+    agent { /* 配置 */ }
+    
+    actor {
+        // 使用有界邮箱限制消息队列大小
+        boundedMailbox(capacity = 1000)
+        
+        // 配置分发器
+        dispatcher {
+            throughput = 10
+            threadPoolSize = 4
+        }
+    }
+}
+```
+
+## 故障处理 ✅
+
+处理 Actor 系统中的故障：
+
+1. **监督策略**：使用监督策略处理子 Actor 故障
+2. **死信处理**：配置死信处理器处理未送达的消息
+3. **超时处理**：设置请求超时并处理超时异常
+4. **断路器模式**：实现断路器模式防止级联故障
+5. **恢复策略**：实现自定义恢复策略
+
+```kotlin
+import ai.kastrax.actor.actorAgent
+import java.time.Duration
+
+// 创建带有故障处理的 Actor 化 Agent
+val agentPid = system.actorAgent {
+    agent { /* 配置 */ }
+    
+    actor {
+        // 设置监督策略
+        oneForOneStrategy {
+            maxRetries = 3
+            withinTimeRange = Duration.ofMinutes(1)
+        }
+        
+        // 配置死信处理
+        deadLetterHandler { message, sender, recipient ->
+            println("死信: $message 从 $sender 到 $recipient")
+        }
+        
+        // 设置请求超时
+        requestTimeout = Duration.ofSeconds(30)
+    }
+}
+```
+
+## 总结 ✅
+
+Kastrax 的 Kotlin Actor 模型提供了一个强大而灵活的框架，用于构建分布式、并发和弹性的 AI 代理系统。通过结合 Actor 模型和 AI 代理，您可以创建能够高效协作和通信的智能系统。
+
+无论您是构建单个代理应用程序还是复杂的多代理系统，Kastrax 的 Actor 模型都能提供所需的工具和组件，帮助您创建更强大、更可扩展的 AI 应用程序。

@@ -1,0 +1,657 @@
+---
+title: Kotlin 代理架构 | Kastrax 文档
+description: Kastrax 中 Kotlin 代理架构的详细介绍，包括自适应、目标导向、层次化、反思型和创造性代理。
+---
+
+# Kotlin 代理架构 ✅
+
+Kastrax 提供了多种代理架构，用于构建不同类型的 AI 应用程序。本指南详细介绍了 Kastrax 中可用的 Kotlin 代理架构，以及如何选择和使用它们。
+
+## 代理架构概述 ✅
+
+Kastrax 支持以下代理架构：
+
+1. **自适应代理**：根据用户偏好和反馈调整行为
+2. **目标导向代理**：专注于通过任务规划实现特定目标
+3. **层次化代理**：将复杂任务组织成可管理的子任务
+4. **反思型代理**：通过反思自我监控和提高性能
+5. **创造性代理**：具有增强能力，生成创造性内容
+
+每种架构都有其特定的用例和优势，让我们详细了解每种架构。
+
+## 自适应代理 ✅
+
+自适应代理能够根据用户偏好和反馈调整其行为，提供个性化的体验。
+
+### 特点
+
+- **用户偏好学习**：记录和学习用户偏好
+- **行为调整**：根据反馈调整响应风格和内容
+- **上下文感知**：考虑对话历史和用户特征
+- **持续改进**：随着交互的增加不断优化
+
+### 实现
+
+```kotlin
+import ai.kastrax.core.agent.agent
+import ai.kastrax.core.agent.adaptive.adaptiveAgent
+import ai.kastrax.core.memory.conversationMemory
+import ai.kastrax.core.memory.userPreferenceMemory
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    // 创建自适应代理
+    val myAgent = adaptiveAgent {
+        name = "自适应助手"
+        instructions = """
+            你是一个自适应助手，能够根据用户偏好和反馈调整你的行为。
+            请注意用户的偏好并相应地调整你的响应风格和内容。
+        """.trimIndent()
+        
+        model = deepSeek {
+            apiKey("your-deepseek-api-key")
+            model(DeepSeekModel.DEEPSEEK_CHAT)
+            temperature(0.7)
+        }
+        
+        // 配置记忆
+        memory {
+            conversation = conversationMemory {
+                maxMessages = 10
+            }
+            userPreference = userPreferenceMemory {
+                maxPreferences = 20
+            }
+        }
+        
+        // 配置适应策略
+        adaptationStrategy {
+            // 学习率：控制代理适应新信息的速度
+            learningRate = 0.3
+            
+            // 适应维度：代理可以适应的方面
+            dimensions {
+                dimension("verbosity", "响应详细程度", 0.0, 1.0)
+                dimension("formality", "语言正式程度", 0.0, 1.0)
+                dimension("creativity", "创造性程度", 0.0, 1.0)
+                dimension("technicality", "技术性程度", 0.0, 1.0)
+            }
+            
+            // 反馈处理：如何处理用户反馈
+            feedbackProcessor { feedback, currentValues ->
+                when (feedback.type) {
+                    "too_verbose" -> currentValues.copy(verbosity = currentValues.verbosity - 0.1)
+                    "too_brief" -> currentValues.copy(verbosity = currentValues.verbosity + 0.1)
+                    "too_formal" -> currentValues.copy(formality = currentValues.formality - 0.1)
+                    "too_casual" -> currentValues.copy(formality = currentValues.formality + 0.1)
+                    else -> currentValues
+                }
+            }
+        }
+    }
+    
+    // 使用代理
+    val response1 = myAgent.generate("你好，请介绍一下自己")
+    println("初始响应: ${response1.text}")
+    
+    // 提供反馈
+    myAgent.processFeedback("too_verbose")
+    
+    // 再次使用代理
+    val response2 = myAgent.generate("你好，请再次介绍一下自己")
+    println("适应后响应: ${response2.text}")
+}
+```
+
+### 使用场景
+
+- 个人助手应用
+- 客户服务机器人
+- 教育辅助工具
+- 内容推荐系统
+
+## 目标导向代理 ✅
+
+目标导向代理专注于通过任务规划实现特定目标，适用于需要完成复杂任务的场景。
+
+### 特点
+
+- **目标分解**：将复杂目标分解为可管理的子目标
+- **任务规划**：创建实现目标的步骤计划
+- **进度跟踪**：监控任务完成进度
+- **适应性规划**：根据新信息调整计划
+
+### 实现
+
+```kotlin
+import ai.kastrax.core.agent.agent
+import ai.kastrax.core.agent.goaloriented.goalOrientedAgent
+import ai.kastrax.core.memory.conversationMemory
+import ai.kastrax.core.tools.tool
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    // 创建目标导向代理
+    val myAgent = goalOrientedAgent {
+        name = "目标助手"
+        instructions = """
+            你是一个目标导向助手，专注于帮助用户实现特定目标。
+            请分析用户的目标，创建实现目标的计划，并逐步执行计划。
+        """.trimIndent()
+        
+        model = deepSeek {
+            apiKey("your-deepseek-api-key")
+            model(DeepSeekModel.DEEPSEEK_CHAT)
+            temperature(0.7)
+        }
+        
+        // 配置记忆
+        memory {
+            conversation = conversationMemory {
+                maxMessages = 10
+            }
+        }
+        
+        // 配置工具
+        tools {
+            tool("searchWeb") {
+                description("搜索网络信息")
+                parameters {
+                    parameter("query", "搜索查询", String::class)
+                }
+                execute { params ->
+                    val query = params["query"] as String
+                    "搜索结果: 关于 '$query' 的信息..."
+                }
+            }
+            
+            tool("createTask") {
+                description("创建任务")
+                parameters {
+                    parameter("title", "任务标题", String::class)
+                    parameter("description", "任务描述", String::class)
+                }
+                execute { params ->
+                    val title = params["title"] as String
+                    val description = params["description"] as String
+                    "已创建任务: $title - $description"
+                }
+            }
+        }
+        
+        // 配置目标处理
+        goalProcessor {
+            // 目标分解：将复杂目标分解为子目标
+            decomposer { goal ->
+                when {
+                    goal.contains("研究") -> listOf(
+                        "收集相关信息",
+                        "分析信息",
+                        "总结发现"
+                    )
+                    goal.contains("写作") -> listOf(
+                        "确定主题",
+                        "创建大纲",
+                        "撰写内容",
+                        "编辑和修订"
+                    )
+                    else -> listOf(goal)
+                }
+            }
+            
+            // 计划生成：为每个子目标创建步骤
+            planner { subgoals ->
+                subgoals.flatMap { subgoal ->
+                    when (subgoal) {
+                        "收集相关信息" -> listOf(
+                            "使用 searchWeb 工具搜索信息",
+                            "整理搜索结果"
+                        )
+                        "创建大纲" -> listOf(
+                            "确定主要部分",
+                            "为每个部分添加要点"
+                        )
+                        else -> listOf(subgoal)
+                    }
+                }
+            }
+            
+            // 执行器：执行计划中的步骤
+            executor { step, context ->
+                // 实际执行步骤的逻辑
+                "执行步骤: $step"
+            }
+        }
+    }
+    
+    // 使用代理
+    val response = myAgent.generate("我需要研究人工智能的最新发展并写一篇文章")
+    println(response.text)
+}
+```
+
+### 使用场景
+
+- 项目管理助手
+- 研究助手
+- 旅行规划工具
+- 任务自动化系统
+
+## 层次化代理 ✅
+
+层次化代理将复杂任务组织成可管理的子任务，通过分层结构处理复杂问题。
+
+### 特点
+
+- **任务分层**：将任务组织成层次结构
+- **责任分配**：为每个层次分配特定责任
+- **信息流控制**：管理层次之间的信息流
+- **并行处理**：支持子任务的并行执行
+
+### 实现
+
+```kotlin
+import ai.kastrax.core.agent.agent
+import ai.kastrax.core.agent.hierarchical.hierarchicalAgent
+import ai.kastrax.core.memory.conversationMemory
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    // 创建层次化代理
+    val myAgent = hierarchicalAgent {
+        name = "层次化助手"
+        instructions = """
+            你是一个层次化助手，能够将复杂任务分解为可管理的子任务。
+            请分析用户的请求，创建任务层次结构，并协调子任务的执行。
+        """.trimIndent()
+        
+        model = deepSeek {
+            apiKey("your-deepseek-api-key")
+            model(DeepSeekModel.DEEPSEEK_CHAT)
+            temperature(0.7)
+        }
+        
+        // 配置记忆
+        memory {
+            conversation = conversationMemory {
+                maxMessages = 10
+            }
+        }
+        
+        // 配置层次结构
+        hierarchy {
+            // 顶层：任务管理
+            level("manager") {
+                instructions = "你是任务管理者，负责分析用户请求，创建任务层次结构，并协调子任务的执行。"
+                model = deepSeek {
+                    apiKey("your-deepseek-api-key")
+                    model(DeepSeekModel.DEEPSEEK_CHAT)
+                    temperature(0.5)
+                }
+            }
+            
+            // 中层：专家
+            level("expert") {
+                instructions = "你是领域专家，负责执行特定领域的任务并提供专业知识。"
+                model = deepSeek {
+                    apiKey("your-deepseek-api-key")
+                    model(DeepSeekModel.DEEPSEEK_CHAT)
+                    temperature(0.7)
+                }
+                
+                // 创建多个专家
+                instance("researcher") {
+                    specialization = "研究和信息收集"
+                }
+                
+                instance("writer") {
+                    specialization = "内容创作和编辑"
+                }
+                
+                instance("analyst") {
+                    specialization = "数据分析和解释"
+                }
+            }
+            
+            // 底层：执行者
+            level("executor") {
+                instructions = "你是任务执行者，负责执行具体的操作和任务。"
+                model = deepSeek {
+                    apiKey("your-deepseek-api-key")
+                    model(DeepSeekModel.DEEPSEEK_CHAT)
+                    temperature(0.7)
+                }
+            }
+            
+            // 定义层次间通信
+            communication {
+                connect("manager", "expert")
+                connect("expert", "executor")
+            }
+        }
+    }
+    
+    // 使用代理
+    val response = myAgent.generate("我需要创建一个关于气候变化的综合报告，包括最新研究、数据分析和政策建议")
+    println(response.text)
+}
+```
+
+### 使用场景
+
+- 复杂问题解决
+- 多领域研究项目
+- 内容创作和编辑
+- 企业决策支持系统
+
+## 反思型代理 ✅
+
+反思型代理通过反思自我监控和提高性能，能够评估自己的输出并进行改进。
+
+### 特点
+
+- **自我评估**：评估自己的输出质量
+- **错误识别**：识别和纠正错误
+- **性能改进**：基于反思改进未来表现
+- **元认知**：对自己的思维过程进行思考
+
+### 实现
+
+```kotlin
+import ai.kastrax.core.agent.agent
+import ai.kastrax.core.agent.reflective.reflectiveAgent
+import ai.kastrax.core.memory.conversationMemory
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    // 创建反思型代理
+    val myAgent = reflectiveAgent {
+        name = "反思助手"
+        instructions = """
+            你是一个反思型助手，能够评估自己的输出并进行改进。
+            请在回答用户问题时，先生成初步回答，然后反思回答的质量，最后提供改进的回答。
+        """.trimIndent()
+        
+        model = deepSeek {
+            apiKey("your-deepseek-api-key")
+            model(DeepSeekModel.DEEPSEEK_CHAT)
+            temperature(0.7)
+        }
+        
+        // 配置记忆
+        memory {
+            conversation = conversationMemory {
+                maxMessages = 10
+            }
+        }
+        
+        // 配置反思过程
+        reflectionProcess {
+            // 初始响应生成
+            initialResponseGenerator { query ->
+                "初步回答: $query 的回答..."
+            }
+            
+            // 反思生成器
+            reflectionGenerator { initialResponse ->
+                """
+                反思:
+                1. 回答是否全面？ 可以添加更多细节。
+                2. 回答是否准确？ 需要核实一些事实。
+                3. 回答是否清晰？ 结构可以改进。
+                4. 回答是否有用？ 可以添加具体示例。
+                """.trimIndent()
+            }
+            
+            // 改进响应生成器
+            improvedResponseGenerator { initialResponse, reflection ->
+                "改进后的回答: 基于反思改进的回答..."
+            }
+            
+            // 反思评估器
+            reflectionEvaluator { initialResponse, reflection, improvedResponse ->
+                val score = 0.8 // 0.0 到 1.0 之间的分数
+                ReflectionEvaluation(
+                    score = score,
+                    feedback = "改进显著，但仍有提升空间"
+                )
+            }
+        }
+    }
+    
+    // 使用代理
+    val response = myAgent.generate("什么是人工智能？")
+    println(response.text)
+}
+```
+
+### 使用场景
+
+- 教育和辅导系统
+- 内容质量改进
+- 决策支持系统
+- 自我改进型助手
+
+## 创造性代理 ✅
+
+创造性代理具有增强能力，能够生成创造性内容，适用于需要创新和创意的场景。
+
+### 特点
+
+- **创意生成**：产生新颖的想法和概念
+- **跨领域联想**：连接不同领域的概念
+- **约束满足**：在特定约束下生成创造性内容
+- **风格适应**：适应不同的创作风格和偏好
+
+### 实现
+
+```kotlin
+import ai.kastrax.core.agent.agent
+import ai.kastrax.core.agent.creative.creativeAgent
+import ai.kastrax.core.memory.conversationMemory
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    // 创建创造性代理
+    val myAgent = creativeAgent {
+        name = "创意助手"
+        instructions = """
+            你是一个创意助手，能够生成创造性内容和想法。
+            请在回答用户请求时，提供新颖、独特且有用的创意。
+        """.trimIndent()
+        
+        model = deepSeek {
+            apiKey("your-deepseek-api-key")
+            model(DeepSeekModel.DEEPSEEK_CHAT)
+            temperature(0.9) // 较高的温度以增加创造性
+        }
+        
+        // 配置记忆
+        memory {
+            conversation = conversationMemory {
+                maxMessages = 10
+            }
+        }
+        
+        // 配置创造性过程
+        creativeProcess {
+            // 创意生成策略
+            ideaGenerationStrategy {
+                // 发散思维：生成多个不同的想法
+                divergentThinking { prompt ->
+                    listOf(
+                        "想法 1: 基于 $prompt 的创意...",
+                        "想法 2: 另一个关于 $prompt 的创意...",
+                        "想法 3: 完全不同的 $prompt 创意..."
+                    )
+                }
+                
+                // 收敛思维：评估和选择最佳想法
+                convergentThinking { ideas ->
+                    ideas.maxByOrNull { idea ->
+                        // 评估想法的新颖性、实用性和可行性
+                        val novelty = 0.8
+                        val usefulness = 0.7
+                        val feasibility = 0.9
+                        novelty * 0.4 + usefulness * 0.4 + feasibility * 0.2
+                    } ?: ideas.first()
+                }
+            }
+            
+            // 创意增强器
+            creativityEnhancers {
+                // 随机刺激：引入随机元素激发创造力
+                randomStimulus { idea ->
+                    val stimuli = listOf(
+                        "自然界的模式",
+                        "历史上的发明",
+                        "科幻小说中的概念",
+                        "不同文化的传统"
+                    )
+                    val stimulus = stimuli.random()
+                    "$idea\n考虑 $stimulus 的启发..."
+                }
+                
+                // 类比思维：使用类比增强创造力
+                analogicalThinking { idea ->
+                    "$idea\n这类似于..."
+                }
+                
+                // 约束转换：将约束转变为创造性机会
+                constraintTransformation { idea, constraints ->
+                    "$idea\n考虑这些约束如何成为机会: $constraints"
+                }
+            }
+        }
+    }
+    
+    // 使用代理
+    val response = myAgent.generate("请为一个环保主题的社交媒体活动提供创意")
+    println(response.text)
+}
+```
+
+### 使用场景
+
+- 创意写作和故事生成
+- 产品设计和创新
+- 营销和广告创意
+- 艺术和音乐创作
+
+## 选择合适的代理架构 ✅
+
+选择合适的代理架构取决于您的应用需求和用例：
+
+| 架构 | 适用场景 | 关键优势 |
+|------|---------|---------|
+| 自适应代理 | 个人助手、客户服务 | 个性化体验、用户满意度 |
+| 目标导向代理 | 项目管理、任务自动化 | 结构化问题解决、任务完成 |
+| 层次化代理 | 复杂问题解决、多领域任务 | 任务分解、专业化处理 |
+| 反思型代理 | 教育、内容质量改进 | 自我改进、输出质量 |
+| 创造性代理 | 创意写作、设计、营销 | 新颖性、创新性 |
+
+## 组合代理架构 ✅
+
+在实际应用中，您可以组合多种代理架构，创建具有多种能力的混合代理：
+
+```kotlin
+import ai.kastrax.core.agent.agent
+import ai.kastrax.core.agent.hybrid.hybridAgent
+import ai.kastrax.core.memory.conversationMemory
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    // 创建混合代理
+    val myAgent = hybridAgent {
+        name = "混合助手"
+        instructions = """
+            你是一个混合助手，结合了多种代理架构的能力。
+            你可以适应用户偏好，专注于目标实现，反思自己的输出，并生成创造性内容。
+        """.trimIndent()
+        
+        model = deepSeek {
+            apiKey("your-deepseek-api-key")
+            model(DeepSeekModel.DEEPSEEK_CHAT)
+            temperature(0.7)
+        }
+        
+        // 配置记忆
+        memory {
+            conversation = conversationMemory {
+                maxMessages = 10
+            }
+        }
+        
+        // 添加自适应能力
+        adaptive {
+            // 自适应配置...
+        }
+        
+        // 添加目标导向能力
+        goalOriented {
+            // 目标导向配置...
+        }
+        
+        // 添加反思能力
+        reflective {
+            // 反思配置...
+        }
+        
+        // 添加创造性能力
+        creative {
+            // 创造性配置...
+        }
+        
+        // 配置能力选择策略
+        capabilitySelector { query ->
+            when {
+                query.contains("偏好") || query.contains("喜好") -> "adaptive"
+                query.contains("目标") || query.contains("任务") -> "goalOriented"
+                query.contains("评估") || query.contains("改进") -> "reflective"
+                query.contains("创意") || query.contains("创新") -> "creative"
+                else -> "adaptive" // 默认能力
+            }
+        }
+    }
+    
+    // 使用代理
+    val response1 = myAgent.generate("我喜欢简洁的回答")
+    println("自适应响应: ${response1.text}")
+    
+    val response2 = myAgent.generate("我的目标是学习人工智能")
+    println("目标导向响应: ${response2.text}")
+    
+    val response3 = myAgent.generate("评估我的学习计划")
+    println("反思响应: ${response3.text}")
+    
+    val response4 = myAgent.generate("为我的项目提供创意")
+    println("创造性响应: ${response4.text}")
+}
+```
+
+## 总结 ✅
+
+Kastrax 提供了多种代理架构，使您能够构建适合不同用例的 AI 应用程序。通过了解每种架构的特点和优势，您可以选择最适合您需求的架构，或者组合多种架构创建功能更强大的混合代理。
+
+无论您是构建个人助手、项目管理工具、创意生成系统还是教育应用，Kastrax 的代理架构都能提供所需的功能和灵活性。
+
+## 下一步 ✅
+
+现在您已经了解了 Kastrax 的代理架构，可以继续学习如何：
+
+1. [添加工具到代理](./adding-tools.mdx)
+2. [监控代理性能](./monitoring-kotlin.mdx)
+3. [实现代理版本控制](./versioning-kotlin.mdx)
+4. [使用 Actor 模型集成代理](../actor/actor-agent-integration-kotlin.mdx)
