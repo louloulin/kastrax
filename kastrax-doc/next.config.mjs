@@ -9,8 +9,8 @@ const withNextra = nextra({
   mdxOptions: {
     rehypePrettyCodeOptions: {
       theme: {
-        displayName: "Mastra",
-        name: "mastra",
+        displayName: "Kastrax",
+        name: "kastrax",
         semanticHighlighting: true,
         semanticTokenColors: {
           customLiteral: "#fff",

@@ -1,6 +1,6 @@
 ---
-title: Storage in Mastra | Mastra Docs
-description: Overview of Mastra's storage system and data persistence capabilities.
+title: Storage in Kastrax | Kastrax Docs
+description: Overview of Kastrax's storage system and data persistence capabilities.
 ---
 
 import { Tabs } from "nextra/components";
@@ -9,13 +9,13 @@ import { PropertiesTable } from "@/components/properties-table";
 import { SchemaTable } from "@/components/schema-table";
 import { StorageOverviewImage } from "@/components/storage-overview-image";
 
-# MastraStorage
+# KastraxStorage
 
-`MastraStorage` provides a unified interface for managing:
+`KastraxStorage` provides a unified interface for managing:
 
 - **Suspended Workflows**: the serialized state of suspended workflows (so they can be resumed later)
 - **Memory**: threads and messages per `resourceId` in your application
-- **Traces**: OpenTelemetry traces from all components of Mastra
+- **Traces**: OpenTelemetry traces from all components of Kastrax
 - **Eval Datasets**: scores and scoring reasons from eval runs
 
 <br />
@@ -24,21 +24,21 @@ import { StorageOverviewImage } from "@/components/storage-overview-image";
 
 <StorageOverviewImage />
 
-Mastra provides different storage providers, but you can treat them as interchangeable. Eg, you could use libsql in development but postgres in production, and your code will work the same both ways.
+Kastrax provides different storage providers, but you can treat them as interchangeable. Eg, you could use libsql in development but postgres in production, and your code will work the same both ways.
 
 ## Configuration
 
-Mastra can be configured with a default storage option:
+Kastrax can be configured with a default storage option:
 
-```typescript copy
-import { Mastra } from "@mastra/core/mastra";
-import { LibSQLStore } from "@mastra/libsql";
+```kotlin
+import ai.kastrax.core.kastrax
+import ai.kastrax.storage.libsql.LibSQLStore
 
-const mastra = new Mastra({
-  storage: new LibSQLStore({
-    url: "file:./mastra.db",
-  }),
-});
+val kastraxInstance = kastrax {
+  storage = LibSQLStore(
+    url = "file:./kastrax.db"
+  )
+}
 ```
 
 ## Data Schema
@@ -369,7 +369,7 @@ Captures OpenTelemetry traces for monitoring and debugging.
 
 ## Storage Providers
 
-Mastra supports the following providers:
+Kastrax supports the following providers:
 
 - For local development, check out [LibSQL Storage](../../reference/storage/libsql.mdx)
 - For production, check out [PostgreSQL Storage](../../reference/storage/postgresql.mdx)

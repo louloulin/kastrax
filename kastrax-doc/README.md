@@ -1,13 +1,13 @@
 # **Contributing to the Docs**
 
-Contributions to Mastra are welcome and highly appreciated.
+Contributions to Kastrax are welcome and highly appreciated.
 If you'd like to contribute, see our list of open issues. We also welcome you to open a PR or a new issue with your question.
 
 The first step is to clone the Repo
 
 ```bash
-git clone git@github.com:mastra-ai/mastra.git
-cd docs
+git clone git@github.com:kastrax-ai/kastrax.git
+cd kastrax-doc
 ```
 
 ## Environmental Variables
@@ -56,7 +56,7 @@ npm run dev
 
 ## Making Changes
 
-The Mastra docs use [MDX](https://mdxjs.com/).
+The Kastrax docs use [MDX](https://mdxjs.com/).
 
 Adding new conent requires:
 
@@ -68,8 +68,8 @@ Frontmatter looks like this. title and description are mandatory.
 
 ```bash
 ---
-title: "Introduction | Mastra Docs"
-description: "Mastra is a TypeScript agent framework. It helps you build AI applications and features quickly. It gives you the set of primitives you need: workflows, agents, RAG, integrations, syncs and evals."
+title: "Introduction | Kastrax Docs"
+description: "Kastrax is a Kotlin agent framework. It helps you build AI applications and features quickly. It gives you the set of primitives you need: workflows, agents, RAG, integrations, memory and tools."
 ---
 ````
 
@@ -85,7 +85,7 @@ export default meta;
 
 ### Components and elements
 
-Mastra is built on [Nextra](https://nextra.site/docs) and therefore we use custom components that `Nextra` provides which includes `callouts`, `Tabs` e.t.c
+Kastrax is built on [Nextra](https://nextra.site/docs) and therefore we use custom components that `Nextra` provides which includes `callouts`, `Tabs` e.t.c
 
 You can find the full list [here](https://nextra.site/docs/built-ins)
 
