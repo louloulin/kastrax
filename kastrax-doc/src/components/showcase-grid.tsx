@@ -103,7 +103,7 @@ export const ShowcaseGrid = () => {
       description:
         "AI-powered assistant that creates podcasts from the sources you upload",
       image: notebookImg,
-      link: "https://notebooklm-mastra.vercel.app/",
+      link: "https://notebooklm-kastrax.vercel.app/",
     },
     {
       title: "Repo Base",
