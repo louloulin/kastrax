@@ -1,4 +1,4 @@
-export default {
+const meta = {
   chunk: ".chunk()",
   embeddings: ".embed()",
   "extract-params": "ExtractParams",
@@ -16,3 +16,5 @@ export default {
   turbopuffer: "TurboPuffer",
   upstash: "UpstashVector",
 };
+
+export default meta;

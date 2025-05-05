@@ -121,7 +121,7 @@ export default withGT(
   withNextra({
     assetPrefix: process.env.NODE_ENV === "production" ? "/docs" : "",
     i18n: {
-      locales: ["en", "ja"],
+      locales: ["en", "zh"],
       defaultLocale: "en",
     },
     async rewrites() {
