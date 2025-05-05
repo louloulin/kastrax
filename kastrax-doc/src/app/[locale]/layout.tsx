@@ -15,7 +15,7 @@ import { GTProvider } from "gt-next";
 
 const fetchStars = async () => {
   try {
-    const res = await fetch("https://api.github.com/repos/mastra-ai/mastra", {
+    const res = await fetch("https://api.github.com/repos/louloulin/kastrax", {
       next: { revalidate: 3600 }, // Revalidate every hour
     });
     const data = await res.json();
@@ -28,9 +28,9 @@ const fetchStars = async () => {
 };
 
 export const metadata: Metadata = {
-  title: "Docs - The Typescript AI framework - Mastra",
+  title: "Docs - The Kotlin AI Agent framework - Kastrax",
   description:
-    "Prototype and productionize AI features with a modern JS/TS stack",
+    "Build powerful AI agents with Kotlin using the Kastrax framework",
 };
 
 export default async function RootLayout({

@@ -26,7 +26,7 @@ function pathToUrl(filePath: string): string {
     .replaceAll("\\", "/") // windows support
     .replace(/^src\/content\//, "")
     .replace(/\/index\.mdx$|\.mdx$/, "");
-  return `https://mastra.ai/${cleanPath}`;
+  return `https://kastrax.ai/${cleanPath}`;
 }
 
 async function concatenateMDXDocs(sourceDir: string) {
@@ -109,12 +109,12 @@ async function concatenateMDXDocs(sourceDir: string) {
   }
 
   try {
-    // Process both English and Japanese directories
+    // Process both English and Chinese directories
     const enDir = path.join(sourceDir, "src/content/en");
-    const jaDir = path.join(sourceDir, "src/content/ja");
+    const zhDir = path.join(sourceDir, "src/content/zh");
 
     await processDirectory(enDir, "en");
-    await processDirectory(jaDir, "ja");
+    await processDirectory(zhDir, "zh");
 
     if (mdxFiles.length === 0) {
       console.warn("No MDX files found in the specified directories");
@@ -194,16 +194,16 @@ async function concatenateMDXDocs(sourceDir: string) {
     );
 
     const indexContent = [
-      "# Mastra\n",
-      "> Mastra is an open-source TypeScript agent framework designed to provide the essential primitives for building AI applications. " +
+      "# Kastrax\n",
+      "> Kastrax is an open-source Kotlin agent framework designed to provide the essential primitives for building AI applications. " +
         "It enables developers to create AI agents with memory and tool-calling capabilities, implement deterministic LLM workflows, and leverage RAG for knowledge integration. " +
-        "With features like model routing, workflow graphs, and automated evals, Mastra provides a complete toolkit for developing, testing, and deploying AI applications.\n\n" +
-        "This documentation covers everything from getting started to advanced features, APIs, and best practices for working with Mastra's agent-based architecture.\n\n" +
+        "With features like actor model integration, workflow graphs, and automated evals, Kastrax provides a complete toolkit for developing, testing, and deploying AI applications.\n\n" +
+        "This documentation covers everything from getting started to advanced features, APIs, and best practices for working with Kastrax's agent-based architecture.\n\n" +
         "The documentation is organized into key sections:\n" +
         "- **docs**: Core documentation covering concepts, features, and implementation details\n" +
-        "- **examples**: Practical examples and use cases demonstrating Mastra's capabilities\n" +
-        "- **showcase**: A showcase of applications built using Mastra\n\n" +
-        "Each section contains detailed markdown files that provide comprehensive information about Mastra's features and how to use them effectively.\n",
+        "- **examples**: Practical examples and use cases demonstrating Kastrax's capabilities\n" +
+        "- **showcase**: A showcase of applications built using Kastrax\n\n" +
+        "Each section contains detailed markdown files that provide comprehensive information about Kastrax's features and how to use them effectively.\n",
     ];
 
     for (const [group, files] of Object.entries(groupedFiles)) {

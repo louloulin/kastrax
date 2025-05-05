@@ -48,7 +48,7 @@ export const NextraLayout = ({
           </div>
         ),
       }}
-      docsRepositoryBase="https://github.com/mastra-ai/mastra/blob/main/docs"
+      docsRepositoryBase="https://github.com/louloulin/kastrax/blob/main/kastrax-doc"
       footer={footer}
       sidebar={{
         autoCollapse: true,
@@ -56,7 +56,7 @@ export const NextraLayout = ({
       }}
       i18n={[
         { locale: "en", name: "English" },
-        { locale: "ja", name: "日本語" },
+        { locale: "zh", name: "中文" },
       ]}
       feedback={{
         content: (

@@ -124,6 +124,15 @@ export default withGT(
       locales: ["en", "zh"],
       defaultLocale: "en",
     },
+    async redirects() {
+      return [
+        {
+          source: "/",
+          destination: "/en/docs",
+          permanent: false,
+        },
+      ];
+    },
     async rewrites() {
       return {
         beforeFiles: [
