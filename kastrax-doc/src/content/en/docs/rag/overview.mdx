@@ -5,7 +5,7 @@ description: Overview of Retrieval-Augmented Generation (RAG) in Kastrax, detail
 
 # RAG System Overview ✅
 
-The Kastrax Retrieval-Augmented Generation (RAG) system provides a comprehensive framework for building knowledge-based applications that combine the power of large language models with external data sources. This guide explains the RAG system architecture and how to use it effectively.
+The Kastrax Retrieval-Augmented Generation (RAG) system provides a comprehensive framework for building knowledge-based applications that combine the power of large language models with external data sources. Built with Kotlin's type safety and concurrency features, the Kastrax RAG system offers high performance, scalability, and integration with various vector databases and embedding models.
 
 ## What is RAG? ✅
 
@@ -15,18 +15,24 @@ Retrieval-Augmented Generation (RAG) is a technique that enhances language model
 - Ground responses in factual, verifiable sources
 - Reduce hallucinations and improve accuracy
 - Customize responses based on domain-specific knowledge
+- Enable agents to work with proprietary or sensitive information
+- Support complex reasoning with large knowledge bases
+- Improve performance on specialized domains
 
 ## RAG System Architecture ✅
 
-The Kastrax RAG system consists of several components:
+The Kastrax RAG system consists of several key components:
 
-1. **Document Processing**: Loading, chunking, and transforming documents
-2. **Embedding**: Converting text into vector representations
-3. **Vector Storage**: Storing and retrieving vectors efficiently
-4. **Retrieval**: Finding relevant information based on queries
-5. **Reranking**: Improving retrieval quality through additional ranking
+1. **Document Processing**: Loading, chunking, and transforming documents with customizable strategies
+2. **Embedding**: Converting text into vector representations using various embedding models
+3. **Vector Storage**: Storing and retrieving vectors efficiently with multiple database options
+4. **Retrieval**: Finding relevant information based on queries with semantic and hybrid search
+5. **Reranking**: Improving retrieval quality through additional ranking models
 6. **Context Building**: Constructing effective prompts with retrieved information
 7. **Generation**: Producing responses using the enhanced context
+8. **Metadata Filtering**: Filtering results based on document metadata
+9. **Graph RAG**: Leveraging graph relationships for improved retrieval
+10. **Evaluation**: Measuring and optimizing RAG system performance
 
 ## Basic RAG Pipeline ✅
 
@@ -48,54 +54,54 @@ fun createRagPipeline() = runBlocking {
     // 1. Load documents
     val loader = DocumentLoader.fromFile("knowledge_base.pdf")
     val documents = loader.load()
-    
+
     // 2. Split documents into chunks
     val splitter = TextSplitter.recursive(
         chunkSize = 1000,
         chunkOverlap = 200
     )
     val chunks = splitter.split(documents)
-    
+
     // 3. Create embeddings
     val embeddingModel = EmbeddingModel.create("all-MiniLM-L6-v2")
-    
+
     // 4. Store in vector database
     val vectorStore = VectorStore.create("chroma")
     vectorStore.addDocuments(chunks, embeddingModel)
-    
+
     // 5. Create retriever
     val retriever = Retriever.fromVectorStore(
         vectorStore = vectorStore,
         embeddingModel = embeddingModel,
         topK = 5
     )
-    
+
     // 6. Create context builder
     val contextBuilder = ContextBuilder.create {
         template("""
             Answer the question based on the following context:
-            
+
             Context:
             {{context}}
-            
+
             Question: {{query}}
-            
+
             Answer:
         """.trimIndent())
     }
-    
+
     // 7. Create RAG agent
     val ragAgent = agent {
         name("RAGAgent")
         description("An agent with RAG capabilities")
-        
+
         // Configure the LLM
         model = deepSeek {
             apiKey("your-deepseek-api-key")
             model(DeepSeekModel.DEEPSEEK_CHAT)
             temperature(0.7)
         }
-        
+
         // Configure RAG
         rag {
             retriever(retriever)
@@ -103,7 +109,7 @@ fun createRagPipeline() = runBlocking {
             maxTokens(3000)
         }
     }
-    
+
     // Use the RAG agent
     val query = "What are the key features of Kastrax?"
     val response = ragAgent.generate(query)
@@ -301,92 +307,92 @@ fun createAdvancedRagSystem() = runBlocking {
     // 1. Load and process documents
     val loader = DocumentLoader.fromDirectory("knowledge_base/")
     val documents = loader.load()
-    
+
     val splitter = TextSplitter.recursive(
         chunkSize = 1000,
         chunkOverlap = 200
     )
     val chunks = splitter.split(documents)
-    
+
     // 2. Set up embedding and vector store
     val embeddingModel = EmbeddingModel.create("all-MiniLM-L6-v2")
     val vectorStore = VectorStore.chroma("kastrax_docs")
-    
+
     // 3. Add documents to vector store
     vectorStore.addDocuments(
         documents = chunks,
         embeddingModel = embeddingModel
     )
-    
+
     // 4. Create a hybrid retriever
     val vectorRetriever = Retriever.fromVectorStore(
         vectorStore = vectorStore,
         embeddingModel = embeddingModel,
         topK = 10
     )
-    
+
     val keywordRetriever = Retriever.keyword(
         documents = chunks,
         topK = 10
     )
-    
+
     val hybridRetriever = Retriever.hybrid(
         vectorRetriever = vectorRetriever,
         keywordRetriever = keywordRetriever,
         vectorWeight = 0.7,
         keywordWeight = 0.3
     )
-    
+
     // 5. Add reranking
     val reranker = Reranker.crossEncoder(
         model = "cross-encoder/ms-marco-MiniLM-L-6-v2",
         topK = 5
     )
-    
+
     val enhancedRetriever = Retriever.withReranker(
         baseRetriever = hybridRetriever,
         reranker = reranker
     )
-    
+
     // 6. Create context builder with compression
     val contextBuilder = ContextBuilder.create {
         template("""
             You are a helpful assistant for Kastrax, a powerful AI Agent framework.
             Answer the question based on the following context from the Kastrax documentation.
-            
+
             Context:
             {{#each documents}}
             Document {{@index}} (Source: {{metadata.source}}):
             {{pageContent}}
-            
+
             {{/each}}
-            
+
             Question: {{query}}
-            
+
             Answer the question using only the information provided in the context.
             If you don't have enough information, say "I don't have enough information."
             Always cite the source documents when providing information.
         """.trimIndent())
-        
+
         compression {
             enabled(true)
             method(CompressionMethod.MAP_REDUCE)
             maxTokens(3000)
         }
     }
-    
+
     // 7. Create RAG agent
     val ragAgent = agent {
         name("KastraxDocumentationAssistant")
         description("An assistant that helps with Kastrax documentation")
-        
+
         // Configure the LLM
         model = deepSeek {
             apiKey("your-deepseek-api-key")
             model(DeepSeekModel.DEEPSEEK_CHAT)
             temperature(0.3) // Lower temperature for more factual responses
         }
-        
+
         // Configure RAG
         rag {
             retriever(enhancedRetriever)
@@ -394,7 +400,7 @@ fun createAdvancedRagSystem() = runBlocking {
             maxTokens(3000)
         }
     }
-    
+
     // 8. Use the RAG agent
     val query = "How do I implement a custom tool in Kastrax?"
     val response = ragAgent.generate(query)

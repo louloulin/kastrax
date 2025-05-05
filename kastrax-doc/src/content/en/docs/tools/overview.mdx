@@ -1,15 +1,30 @@
+---
+title: "Tools System Overview | Kastrax Docs"
+description: "The Kastrax tools system allows agents to interact with external systems, access data, and perform actions with type-safe interfaces."
+---
+
 # Tools System Overview ✅
 
 The Kastrax tools system allows agents to interact with external systems, access data, and perform actions. This guide explains the tools system architecture and how to use it effectively.
 
 ## Tools System Architecture ✅
 
-The Kastrax tools system consists of several components:
+The Kastrax tools system consists of several key components:
 
-1. **Tool Definition**: How tools are defined and registered
-2. **Tool Execution**: How tools are executed by agents
-3. **Tool Parameters**: How tool parameters are defined and validated
-4. **Tool Results**: How tool results are processed and returned
+1. **Tool Interface**: The `Tool` interface defines the contract for all tools in Kastrax
+2. **Tool Factory**: The `ToolFactory` interface provides a way to create tools dynamically
+3. **Tool Execution**: The execution mechanism that allows agents to invoke tools
+4. **Tool Parameters**: Type-safe parameter definitions with validation
+5. **Tool Results**: Structured results with error handling
+6. **Zod Tools**: Tools with schema validation using the Zod library
+
+Kastrax provides several built-in tool types:
+
+- **File Operation Tools**: For reading, writing, and manipulating files
+- **DateTime Tools**: For working with dates and times
+- **Web Search Tools**: For searching the web and retrieving information
+- **Calculator Tools**: For performing mathematical calculations
+- **Custom Tools**: Create your own tools for specific use cases
 
 ## Basic Tool Creation ✅
 

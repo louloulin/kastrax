@@ -1,0 +1,340 @@
+---
+title: "LLM Integration | Kastrax Docs"
+description: "Learn how to integrate various Large Language Models (LLMs) with Kastrax, including DeepSeek, OpenAI, Anthropic, and Google Gemini."
+---
+
+# LLM Integration ✅
+
+Kastrax provides a unified interface for integrating with various Large Language Models (LLMs), allowing you to easily switch between different providers or use multiple providers simultaneously. This guide explains how to integrate and use different LLM providers with Kastrax.
+
+## Supported LLM Providers ✅
+
+Kastrax currently supports the following LLM providers:
+
+- **DeepSeek**: Advanced language models with strong reasoning capabilities
+- **OpenAI**: GPT-4 and other models with broad capabilities
+- **Anthropic**: Claude models with strong instruction following
+- **Google Gemini**: Google's multimodal models
+
+## LLM Provider Architecture ✅
+
+The Kastrax LLM integration is built around the following key components:
+
+1. **LlmProvider Interface**: The core interface that all LLM providers implement
+2. **LlmMessage**: Standardized message format for communication with LLMs
+3. **LlmOptions**: Configuration options for LLM requests
+4. **LlmResponse**: Standardized response format from LLMs
+5. **LlmToolCall**: Representation of tool calls made by LLMs
+6. **LlmUsage**: Tracking of token usage and other metrics
+
+## Integrating with DeepSeek ✅
+
+DeepSeek is a powerful LLM provider that offers strong reasoning capabilities. Here's how to integrate with DeepSeek in Kastrax:
+
+```kotlin
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import ai.kastrax.core.agent.agent
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    // Create a DeepSeek LLM provider
+    val llm = deepSeek {
+        apiKey = "your-deepseek-api-key"
+        model = DeepSeekModel.DEEPSEEK_CHAT
+        temperature = 0.7
+        maxTokens = 1000
+    }
+    
+    // Create an agent using the DeepSeek provider
+    val agent = agent {
+        name = "DeepSeekAgent"
+        instructions = "You are a helpful assistant."
+        model = llm
+    }
+    
+    // Generate a response
+    val response = agent.generate("Tell me about Kotlin.")
+    println(response.text)
+}
+```
+
+## Integrating with OpenAI ✅
+
+OpenAI provides popular models like GPT-4. Here's how to integrate with OpenAI in Kastrax:
+
+```kotlin
+import ai.kastrax.integrations.openai.openAi
+import ai.kastrax.integrations.openai.OpenAiModel
+import ai.kastrax.core.agent.agent
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    // Create an OpenAI LLM provider
+    val llm = openAi {
+        apiKey = "your-openai-api-key"
+        model = OpenAiModel.GPT_4_TURBO
+        temperature = 0.7
+        maxTokens = 1000
+    }
+    
+    // Create an agent using the OpenAI provider
+    val agent = agent {
+        name = "OpenAIAgent"
+        instructions = "You are a helpful assistant."
+        model = llm
+    }
+    
+    // Generate a response
+    val response = agent.generate("Tell me about Kotlin.")
+    println(response.text)
+}
+```
+
+## Integrating with Anthropic ✅
+
+Anthropic's Claude models are known for their strong instruction following. Here's how to integrate with Anthropic in Kastrax:
+
+```kotlin
+import ai.kastrax.integrations.anthropic.anthropic
+import ai.kastrax.integrations.anthropic.AnthropicModel
+import ai.kastrax.core.agent.agent
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    // Create an Anthropic LLM provider
+    val llm = anthropic {
+        apiKey = "your-anthropic-api-key"
+        model = AnthropicModel.CLAUDE_3_OPUS
+        temperature = 0.7
+        maxTokens = 1000
+    }
+    
+    // Create an agent using the Anthropic provider
+    val agent = agent {
+        name = "ClaudeAgent"
+        instructions = "You are a helpful assistant."
+        model = llm
+    }
+    
+    // Generate a response
+    val response = agent.generate("Tell me about Kotlin.")
+    println(response.text)
+}
+```
+
+## Integrating with Google Gemini ✅
+
+Google's Gemini models offer multimodal capabilities. Here's how to integrate with Gemini in Kastrax:
+
+```kotlin
+import ai.kastrax.integrations.gemini.gemini
+import ai.kastrax.integrations.gemini.GeminiModel
+import ai.kastrax.core.agent.agent
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    // Create a Gemini LLM provider
+    val llm = gemini {
+        apiKey = "your-gemini-api-key"
+        model = GeminiModel.GEMINI_PRO
+        temperature = 0.7
+        maxTokens = 1000
+    }
+    
+    // Create an agent using the Gemini provider
+    val agent = agent {
+        name = "GeminiAgent"
+        instructions = "You are a helpful assistant."
+        model = llm
+    }
+    
+    // Generate a response
+    val response = agent.generate("Tell me about Kotlin.")
+    println(response.text)
+}
+```
+
+## Using Multiple LLM Providers ✅
+
+Kastrax allows you to use multiple LLM providers simultaneously, enabling you to leverage the strengths of different models for different tasks:
+
+```kotlin
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import ai.kastrax.integrations.openai.openAi
+import ai.kastrax.integrations.openai.OpenAiModel
+import ai.kastrax.core.agent.agent
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    // Create multiple LLM providers
+    val deepSeekLlm = deepSeek {
+        apiKey = "your-deepseek-api-key"
+        model = DeepSeekModel.DEEPSEEK_CHAT
+    }
+    
+    val openAiLlm = openAi {
+        apiKey = "your-openai-api-key"
+        model = OpenAiModel.GPT_4_TURBO
+    }
+    
+    // Create agents using different providers
+    val reasoningAgent = agent {
+        name = "ReasoningAgent"
+        instructions = "You are a reasoning assistant."
+        model = deepSeekLlm
+    }
+    
+    val creativeAgent = agent {
+        name = "CreativeAgent"
+        instructions = "You are a creative assistant."
+        model = openAiLlm
+    }
+    
+    // Use different agents for different tasks
+    val reasoningResponse = reasoningAgent.generate("Solve this logic puzzle: If all A are B, and some B are C, what can we conclude about A and C?")
+    println("Reasoning response: ${reasoningResponse.text}")
+    
+    val creativeResponse = creativeAgent.generate("Write a short poem about Kotlin programming language.")
+    println("Creative response: ${creativeResponse.text}")
+}
+```
+
+## Advanced LLM Configuration ✅
+
+Kastrax provides advanced configuration options for LLM providers:
+
+```kotlin
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import ai.kastrax.core.llm.LlmOptions
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    val llm = deepSeek {
+        apiKey = "your-deepseek-api-key"
+        model = DeepSeekModel.DEEPSEEK_CHAT
+        
+        // Basic parameters
+        temperature = 0.7
+        maxTokens = 1000
+        topP = 0.95
+        
+        // Advanced parameters
+        frequencyPenalty = 0.5
+        presencePenalty = 0.5
+        stopSequences = listOf("STOP", "END")
+        logitBias = mapOf("token1" to 1.0f, "token2" to -1.0f)
+        seed = 12345L
+        
+        // Timeout and retry settings
+        timeoutMs = 30000L
+        retryCount = 3
+        retryDelayMs = 1000L
+        
+        // Logging and debugging
+        logRequests = true
+        logResponses = true
+    }
+    
+    // Use the configured LLM
+    val messages = listOf(
+        ai.kastrax.core.llm.LlmMessage(
+            role = ai.kastrax.core.llm.LlmMessageRole.USER,
+            content = "Tell me about Kotlin."
+        )
+    )
+    
+    val response = llm.generate(messages, LlmOptions())
+    println(response.content)
+}
+```
+
+## Streaming Responses ✅
+
+Kastrax supports streaming responses from LLMs, which is useful for real-time applications:
+
+```kotlin
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import ai.kastrax.core.agent.agent
+import ai.kastrax.core.agent.AgentStreamOptions
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    // Create a DeepSeek LLM provider
+    val llm = deepSeek {
+        apiKey = "your-deepseek-api-key"
+        model = DeepSeekModel.DEEPSEEK_CHAT
+    }
+    
+    // Create an agent
+    val agent = agent {
+        name = "StreamingAgent"
+        instructions = "You are a helpful assistant."
+        model = llm
+    }
+    
+    // Stream a response
+    val response = agent.stream("Tell me about Kotlin.", AgentStreamOptions(
+        onFinish = { fullText -> 
+            println("\nFull response: $fullText")
+        }
+    ))
+    
+    // Collect and print streaming chunks
+    response.textStream?.collect { chunk ->
+        print(chunk)
+    }
+}
+```
+
+## Error Handling ✅
+
+Proper error handling is important when working with LLMs:
+
+```kotlin
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import ai.kastrax.core.agent.agent
+import kotlinx.coroutines.runBlocking
+import kotlin.system.exitProcess
+
+fun main() = runBlocking {
+    try {
+        // Create a DeepSeek LLM provider
+        val llm = deepSeek {
+            apiKey = System.getenv("DEEPSEEK_API_KEY") ?: throw IllegalStateException("DEEPSEEK_API_KEY environment variable not set")
+            model = DeepSeekModel.DEEPSEEK_CHAT
+        }
+        
+        // Create an agent
+        val agent = agent {
+            name = "ErrorHandlingAgent"
+            instructions = "You are a helpful assistant."
+            model = llm
+        }
+        
+        // Generate a response
+        val response = agent.generate("Tell me about Kotlin.")
+        println(response.text)
+        
+    } catch (e: IllegalStateException) {
+        println("Configuration error: ${e.message}")
+        exitProcess(1)
+    } catch (e: ai.kastrax.core.llm.LlmException) {
+        println("LLM error: ${e.message}")
+        exitProcess(2)
+    } catch (e: Exception) {
+        println("Unexpected error: ${e.message}")
+        e.printStackTrace()
+        exitProcess(3)
+    }
+}
+```
+
+## Conclusion ✅
+
+Kastrax's LLM integration system provides a flexible and powerful way to work with various LLM providers. By using the unified interface, you can easily switch between providers or use multiple providers simultaneously, leveraging the strengths of different models for different tasks.

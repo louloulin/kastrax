@@ -5,27 +5,32 @@ description: "Overview of the Agent-to-Agent (A2A) protocol in Kastrax, detailin
 
 # A2A Protocol Overview ✅
 
-The Kastrax Agent-to-Agent (A2A) protocol provides a standardized way for AI agents to communicate, discover each other's capabilities, and collaborate on complex tasks. This guide explains the A2A protocol architecture and how to use it effectively.
+The Kastrax Agent-to-Agent (A2A) protocol provides a standardized way for AI agents to communicate, discover each other's capabilities, and collaborate on complex tasks. Built on top of the actor model, the A2A protocol enables the creation of sophisticated multi-agent systems that can work together to solve complex problems.
 
 ## What is the A2A Protocol? ✅
 
 The Agent-to-Agent (A2A) protocol is a communication standard that enables AI agents to:
 
-- Discover other agents and their capabilities
-- Exchange structured messages
-- Invoke capabilities provided by other agents
-- Collaborate on complex tasks
-- Maintain security and access control
+- Discover other agents and their capabilities dynamically
+- Exchange structured messages with well-defined semantics
+- Invoke capabilities provided by other agents in a type-safe manner
+- Collaborate on complex tasks through delegation and coordination
+- Maintain security and access control with authentication and authorization
+- Scale across distributed environments with location transparency
+- Handle failures gracefully with supervision and recovery mechanisms
 
 ## A2A Protocol Architecture ✅
 
 The Kastrax A2A protocol consists of several key components:
 
-1. **Agent Card**: A structured description of an agent's capabilities
-2. **Capabilities**: Functions that agents can expose to other agents
-3. **Messages**: Structured communication between agents
-4. **Discovery Service**: A registry for finding agents and their capabilities
-5. **Security Layer**: Authentication and authorization mechanisms
+1. **Agent Card**: A structured description of an agent's identity, capabilities, and metadata
+2. **Capabilities Registry**: A catalog of functions that agents can expose to other agents
+3. **Message Protocol**: Standardized format for structured communication between agents
+4. **Discovery Service**: A registry for finding agents and their capabilities dynamically
+5. **Security Layer**: Authentication, authorization, and encryption mechanisms
+6. **Actor Integration**: Seamless integration with the actor model for distributed communication
+7. **Supervision Hierarchy**: Parent-child relationships for monitoring and recovery
+8. **Capability Negotiation**: Dynamic negotiation of capabilities between agents
 
 ## Basic A2A Implementation ✅
 
@@ -45,32 +50,32 @@ fun main() = runBlocking {
     val baseAgent = agent {
         name("DataAnalysisAgent")
         description("An agent that can analyze data")
-        
+
         model = deepSeek {
             apiKey("your-deepseek-api-key")
             model(DeepSeekModel.DEEPSEEK_CHAT)
             temperature(0.7)
         }
     }
-    
+
     // Create an A2A instance
     val a2aInstance = a2a {
         // Register the base agent
         agent(baseAgent)
-        
+
         // Create an A2A agent
         a2aAgent {
             id = "data-analysis-agent"
             name = "Data Analysis Agent"
             description = "Provides data analysis and visualization capabilities"
             baseAgent = baseAgent
-            
+
             // Define a capability
             capability {
                 id = "analyze_data"
                 name = "Analyze Data"
                 description = "Analyzes a dataset and returns statistical results"
-                
+
                 // Define parameters
                 parameter {
                     name = "dataset_url"
@@ -78,40 +83,40 @@ fun main() = runBlocking {
                     description = "URL of the dataset to analyze"
                     required = true
                 }
-                
+
                 parameter {
                     name = "analysis_type"
                     type = "string"
                     description = "Type of analysis to perform"
                     required = true
                 }
-                
+
                 returnType = "json"
             }
-            
+
             // Configure authentication
             authentication {
                 type = AuthType.API_KEY
             }
         }
-        
+
         // Configure the server
         server {
             port = 8080
             enableCors = true
         }
-        
+
         // Add discovery service
         discovery("http://localhost:8080")
     }
-    
+
     // Start the A2A server
     a2aInstance.start()
-    
+
     println("A2A server started on port 8080")
     println("Press Enter to exit...")
     readLine()
-    
+
     // Stop the A2A server
     a2aInstance.stop()
 }
@@ -195,12 +200,12 @@ fun main() = runBlocking {
             apiKey = "your-api-key"
         )
     )
-    
+
     // Get the agent card
     val agentCard = client.getAgentCard()
     println("Agent: ${agentCard.name}")
     println("Capabilities: ${agentCard.capabilities.map { it.name }}")
-    
+
     // Invoke a capability
     val response = client.invoke(
         "analyze_data",
@@ -209,9 +214,9 @@ fun main() = runBlocking {
             "analysis_type" to "statistical"
         )
     )
-    
+
     println("Response: $response")
-    
+
     // Close the client
     client.close()
 }
@@ -234,17 +239,17 @@ fun main() = runBlocking {
             enableCors = true
         )
     )
-    
+
     // Register an agent
     server.registerAgent(a2aAgent)
-    
+
     // Start the server
     server.start()
-    
+
     println("A2A server started on port 8080")
     println("Press Enter to exit...")
     readLine()
-    
+
     // Stop the server
     server.stop()
 }
@@ -267,13 +272,13 @@ fun main() = runBlocking {
             discoveryInterval = 60000 // 1 minute
         )
     )
-    
+
     // Add a server
     discoveryService.addServer("http://localhost:8080")
-    
+
     // Find agents by capability
     val agents = discoveryService.findAgentsByCapability("analyze_data")
-    
+
     for (agent in agents) {
         println("Found agent: ${agent.name}")
     }
@@ -303,7 +308,7 @@ fun main() = runBlocking {
             description = "Provides data analysis capabilities"
             // Configuration...
         }
-        
+
         // Register visualization agent
         a2aAgent {
             id = "visualization-agent"
@@ -311,7 +316,7 @@ fun main() = runBlocking {
             description = "Provides data visualization capabilities"
             // Configuration...
         }
-        
+
         // Register coordinator agent
         a2aAgent {
             id = "coordinator-agent"
@@ -319,17 +324,17 @@ fun main() = runBlocking {
             description = "Coordinates analysis and visualization tasks"
             // Configuration...
         }
-        
+
         // Configure server
         server {
             port = 8080
             enableCors = true
         }
     }
-    
+
     // Start the A2A server
     a2aInstance.start()
-    
+
     // Create a task
     val task = a2aInstance.createTask(
         Message(
@@ -341,16 +346,16 @@ fun main() = runBlocking {
             )
         )
     )
-    
+
     // Monitor task progress
     task.onUpdate { status ->
         println("Task status: ${status.state}")
     }
-    
+
     // Wait for task completion
     val result = task.await()
     println("Task result: $result")
-    
+
     // Stop the A2A server
     a2aInstance.stop()
 }

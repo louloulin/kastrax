@@ -5,7 +5,7 @@ description: Overview of the Actor model in Kastrax, detailing how it provides a
 
 # Actor Model Overview ✅
 
-The Kastrax framework integrates the Actor model from the kactor library to provide a powerful foundation for building distributed, concurrent, and resilient AI agent systems. This guide explains the Actor model and how it's used in Kastrax.
+The Kastrax framework integrates the Actor model from the kactor library to provide a powerful foundation for building distributed, concurrent, and resilient AI agent systems. This integration combines the strengths of the actor model with advanced AI capabilities, creating a robust platform for developing complex agent networks.
 
 ## What is the Actor Model? ✅
 
@@ -22,10 +22,13 @@ Actors are isolated from each other and communicate only through messages, which
 
 In Kastrax, the Actor model is used to:
 
-1. **Distribute Agents**: Run agents across multiple machines
-2. **Manage Concurrency**: Handle multiple agent interactions simultaneously
-3. **Ensure Resilience**: Recover from failures gracefully
-4. **Scale Systems**: Easily scale agent systems up or down
+1. **Distribute Agents**: Run agents across multiple machines or processes
+2. **Manage Concurrency**: Handle multiple agent interactions simultaneously without race conditions
+3. **Ensure Resilience**: Recover from failures gracefully with supervision hierarchies
+4. **Scale Systems**: Easily scale agent systems up or down based on demand
+5. **Implement A2A Protocol**: Enable standardized communication between agents
+6. **Support Multi-Agent Systems**: Build complex networks of specialized agents that collaborate
+7. **Provide Location Transparency**: Access remote agents as if they were local
 
 ## Basic Actor Concepts ✅
 
@@ -74,7 +77,7 @@ data class Greeting(val who: String)
 class GreetingActor : Actor {
     override suspend fun receive(context: Context) {
         val message = context.message
-        
+
         when (message) {
             is Greeting -> {
                 println("Hello, ${message.who}!")
@@ -89,16 +92,16 @@ class GreetingActor : Actor {
 fun main() = runBlocking {
     // Create an actor system
     val system = actor.proto.ActorSystem.create()
-    
+
     // Create an actor
     val greeter = system.spawn(Props.create(GreetingActor::class.java), "greeter")
-    
+
     // Send a message to the actor
     greeter.tell(Greeting("World"))
-    
+
     // Wait a bit for the message to be processed
     kotlinx.coroutines.delay(100)
-    
+
     // Shutdown the system
     system.shutdown()
 }
@@ -127,7 +130,7 @@ data class GenerateResponse(val text: String)
 class AgentActor(private val agent: Agent) : Actor {
     override suspend fun receive(context: Context) {
         val message = context.message
-        
+
         when (message) {
             is GenerateRequest -> {
                 val response = agent.generate(message.prompt)
@@ -138,7 +141,7 @@ class AgentActor(private val agent: Agent) : Actor {
             }
         }
     }
-    
+
     companion object {
         fun props(agent: Agent): Props {
             return Props.create { AgentActor(agent) }
@@ -151,27 +154,27 @@ fun main() = runBlocking {
     val myAgent = agent {
         name("MyAgent")
         description("A simple agent")
-        
+
         model = deepSeek {
             apiKey("your-deepseek-api-key")
             model(DeepSeekModel.DEEPSEEK_CHAT)
             temperature(0.7)
         }
     }
-    
+
     // Create an actor system
     val system = actor.proto.ActorSystem.create()
-    
+
     // Create an actor that wraps the agent
     val agentActor = system.spawn(AgentActor.props(myAgent), "agent-actor")
-    
+
     // Create a future for the response
     val future = agentActor.ask(GenerateRequest("Tell me a joke"), 5000)
-    
+
     // Wait for the response
     val response = future.await() as GenerateResponse
     println("Agent response: ${response.text}")
-    
+
     // Shutdown the system
     system.shutdown()
 }
@@ -197,7 +200,7 @@ data class Pong(val message: String)
 class PongActor : Actor {
     override suspend fun receive(context: Context) {
         val message = context.message
-        
+
         when (message) {
             is Ping -> {
                 println("Received ping: ${message.message}")
@@ -217,19 +220,19 @@ fun startServer() = runBlocking {
         hostname = "localhost"
         port = 8090
     }
-    
+
     // Create a remote actor system
     val system = RemoteActorSystem.create("server-system", config)
-    
+
     // Create an actor
     val pongActor = system.spawn(Props.create(PongActor::class.java), "pong-actor")
-    
+
     // Register the actor so it can be accessed remotely
     system.registerActor("pong", pongActor)
-    
+
     println("Server started, press enter to exit...")
     readLine()
-    
+
     // Shutdown the system
     system.shutdown()
 }
@@ -241,20 +244,20 @@ fun startClient() = runBlocking {
         hostname = "localhost"
         port = 0 // Use any available port
     }
-    
+
     // Create a remote actor system
     val system = RemoteActorSystem.create("client-system", config)
-    
+
     // Get a reference to the remote actor
     val remotePongActor = system.getActorRef("pong@localhost:8090")
-    
+
     // Send a message to the remote actor
     val future = remotePongActor.ask(Ping("Hello from client"), 5000)
-    
+
     // Wait for the response
     val response = future.await() as Pong
     println("Received response: ${response.message}")
-    
+
     // Shutdown the system
     system.shutdown()
 }
@@ -281,13 +284,13 @@ data class Result(val output: Int)
 class WorkerActor : Actor {
     override suspend fun receive(context: Context) {
         val message = context.message
-        
+
         when (message) {
             is Work -> {
                 if (message.input == 0) {
                     throw ArithmeticException("Division by zero")
                 }
-                
+
                 val result = 100 / message.input
                 context.sender.tell(Result(result))
             }
@@ -301,10 +304,10 @@ class WorkerActor : Actor {
 // Define a supervisor actor
 class SupervisorActor : Actor {
     private var workerRef: actor.proto.PID? = null
-    
+
     override suspend fun receive(context: Context) {
         val message = context.message
-        
+
         when (message) {
             is actor.proto.Started -> {
                 // Create a worker when the supervisor starts
@@ -322,7 +325,7 @@ class SupervisorActor : Actor {
             }
         }
     }
-    
+
     override fun supervisorStrategy(): SupervisorStrategy {
         return SupervisorStrategy.restartStrategy { _, _ ->
             // Restart the worker on any exception
@@ -334,20 +337,20 @@ class SupervisorActor : Actor {
 fun main() = runBlocking {
     // Create an actor system
     val system = actor.proto.ActorSystem.create()
-    
+
     // Create a supervisor actor
     val supervisor = system.spawn(Props.create(SupervisorActor::class.java), "supervisor")
-    
+
     // Send work to the supervisor
     supervisor.tell(Work(4)) // Should work fine
     kotlinx.coroutines.delay(100)
-    
+
     supervisor.tell(Work(0)) // Will cause an exception
     kotlinx.coroutines.delay(100)
-    
+
     supervisor.tell(Work(5)) // Should work again after restart
     kotlinx.coroutines.delay(100)
-    
+
     // Shutdown the system
     system.shutdown()
 }

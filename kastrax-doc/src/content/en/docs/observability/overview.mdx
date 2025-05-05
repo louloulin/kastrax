@@ -1,0 +1,382 @@
+---
+title: "Observability Overview | Kastrax Docs"
+description: "Learn about Kastrax's observability features for monitoring, analyzing, and optimizing AI agent performance."
+---
+
+# Observability Overview ✅
+
+Kastrax provides comprehensive observability features that allow you to monitor, analyze, and optimize the performance of your AI agents. This guide explains the observability architecture and how to use it effectively.
+
+## What is Observability? ✅
+
+Observability in the context of AI agents refers to the ability to understand the internal state, behavior, and performance of agents by examining their outputs, metrics, and logs. Good observability helps you:
+
+- Monitor agent performance and health
+- Debug issues and understand agent behavior
+- Optimize agent configurations and prompts
+- Ensure compliance with policies and guidelines
+- Track resource usage and costs
+- Analyze patterns and trends in agent behavior
+
+## Observability Architecture ✅
+
+The Kastrax observability system consists of several key components:
+
+1. **Metrics Collection**: Gathering quantitative data about agent performance
+2. **Logging**: Recording detailed information about agent operations
+3. **Tracing**: Tracking the flow of requests through the system
+4. **Visualization**: Displaying metrics and logs in an intuitive interface
+5. **Alerting**: Notifying users of important events or anomalies
+6. **Analysis Tools**: Analyzing agent behavior and performance
+
+## Metrics Collection ✅
+
+Kastrax collects various metrics to help you understand agent performance:
+
+```kotlin
+import ai.kastrax.core.agent.agent
+import ai.kastrax.core.observability.metrics
+import ai.kastrax.integrations.deepseek.deepSeek
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    // Create an agent with metrics collection
+    val agent = agent {
+        name = "ObservableAgent"
+        instructions = "You are a helpful assistant."
+        model = deepSeek {
+            apiKey = "your-deepseek-api-key"
+        }
+        
+        // Enable metrics collection
+        observability {
+            metrics {
+                collectResponseTimes = true
+                collectTokenUsage = true
+                collectPromptSizes = true
+                collectErrorRates = true
+                collectMemoryUsage = true
+            }
+        }
+    }
+    
+    // Generate a response
+    val response = agent.generate("Tell me about Kotlin.")
+    
+    // Access metrics
+    val metrics = agent.metrics
+    println("Response time: ${metrics.lastResponseTimeMs}ms")
+    println("Token usage: ${metrics.lastTokenUsage}")
+    println("Prompt size: ${metrics.lastPromptSize}")
+    println("Error rate: ${metrics.errorRate}")
+    println("Memory usage: ${metrics.memoryUsage}")
+}
+```
+
+## Logging ✅
+
+Kastrax provides detailed logging to help you understand agent behavior:
+
+```kotlin
+import ai.kastrax.core.agent.agent
+import ai.kastrax.core.observability.logging
+import ai.kastrax.integrations.deepseek.deepSeek
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    // Create an agent with logging
+    val agent = agent {
+        name = "LoggingAgent"
+        instructions = "You are a helpful assistant."
+        model = deepSeek {
+            apiKey = "your-deepseek-api-key"
+        }
+        
+        // Configure logging
+        observability {
+            logging {
+                level = ai.kastrax.core.observability.LogLevel.DEBUG
+                logPrompts = true
+                logResponses = true
+                logToolCalls = true
+                logMemoryOperations = true
+                logErrors = true
+                
+                // Custom logger
+                logger = object : ai.kastrax.core.observability.Logger {
+                    override fun log(level: ai.kastrax.core.observability.LogLevel, message: String) {
+                        println("[$level] $message")
+                    }
+                }
+            }
+        }
+    }
+    
+    // Generate a response
+    val response = agent.generate("Tell me about Kotlin.")
+}
+```
+
+## Tracing ✅
+
+Tracing helps you understand the flow of requests through your agent system:
+
+```kotlin
+import ai.kastrax.core.agent.agent
+import ai.kastrax.core.observability.tracing
+import ai.kastrax.integrations.deepseek.deepSeek
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    // Create an agent with tracing
+    val agent = agent {
+        name = "TracingAgent"
+        instructions = "You are a helpful assistant."
+        model = deepSeek {
+            apiKey = "your-deepseek-api-key"
+        }
+        
+        // Configure tracing
+        observability {
+            tracing {
+                enabled = true
+                sampleRate = 1.0 // Trace all requests
+                exporterType = ai.kastrax.core.observability.TracingExporterType.JAEGER
+                exporterEndpoint = "http://localhost:14268/api/traces"
+            }
+        }
+    }
+    
+    // Generate a response with a trace context
+    val traceContext = ai.kastrax.core.observability.TraceContext("user-request-1")
+    val response = agent.generate("Tell me about Kotlin.", traceContext)
+}
+```
+
+## Visualization ✅
+
+Kastrax provides visualization tools to help you understand agent performance:
+
+```kotlin
+import ai.kastrax.core.agent.agent
+import ai.kastrax.core.observability.dashboard
+import ai.kastrax.integrations.deepseek.deepSeek
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    // Create an agent
+    val agent = agent {
+        name = "VisualizationAgent"
+        instructions = "You are a helpful assistant."
+        model = deepSeek {
+            apiKey = "your-deepseek-api-key"
+        }
+        
+        // Configure observability
+        observability {
+            metrics { /* ... */ }
+            logging { /* ... */ }
+            tracing { /* ... */ }
+            
+            // Configure dashboard
+            dashboard {
+                enabled = true
+                port = 8080
+                refreshIntervalMs = 5000
+                accessToken = "your-dashboard-access-token"
+            }
+        }
+    }
+    
+    // Start the dashboard
+    agent.observability.dashboard.start()
+    
+    // Generate some responses
+    repeat(10) { i ->
+        agent.generate("Question $i: Tell me about Kotlin.")
+    }
+    
+    println("Dashboard available at http://localhost:8080")
+}
+```
+
+## Alerting ✅
+
+Kastrax can alert you when important events or anomalies occur:
+
+```kotlin
+import ai.kastrax.core.agent.agent
+import ai.kastrax.core.observability.alerting
+import ai.kastrax.integrations.deepseek.deepSeek
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    // Create an agent with alerting
+    val agent = agent {
+        name = "AlertingAgent"
+        instructions = "You are a helpful assistant."
+        model = deepSeek {
+            apiKey = "your-deepseek-api-key"
+        }
+        
+        // Configure alerting
+        observability {
+            alerting {
+                // Alert when response time exceeds threshold
+                alert("high-latency") {
+                    condition = { metrics -> metrics.lastResponseTimeMs > 5000 }
+                    severity = ai.kastrax.core.observability.AlertSeverity.WARNING
+                    message = "High latency detected"
+                    actions = listOf(
+                        ai.kastrax.core.observability.AlertAction.LOG,
+                        ai.kastrax.core.observability.AlertAction.EMAIL
+                    )
+                    recipients = listOf("admin@example.com")
+                }
+                
+                // Alert when error rate exceeds threshold
+                alert("high-error-rate") {
+                    condition = { metrics -> metrics.errorRate > 0.1 }
+                    severity = ai.kastrax.core.observability.AlertSeverity.CRITICAL
+                    message = "High error rate detected"
+                    actions = listOf(
+                        ai.kastrax.core.observability.AlertAction.LOG,
+                        ai.kastrax.core.observability.AlertAction.EMAIL,
+                        ai.kastrax.core.observability.AlertAction.SMS
+                    )
+                    recipients = listOf("admin@example.com", "+1234567890")
+                }
+            }
+        }
+    }
+    
+    // Generate a response
+    val response = agent.generate("Tell me about Kotlin.")
+}
+```
+
+## Analysis Tools ✅
+
+Kastrax provides tools for analyzing agent behavior and performance:
+
+```kotlin
+import ai.kastrax.core.agent.agent
+import ai.kastrax.core.observability.analysis
+import ai.kastrax.integrations.deepseek.deepSeek
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    // Create an agent
+    val agent = agent {
+        name = "AnalysisAgent"
+        instructions = "You are a helpful assistant."
+        model = deepSeek {
+            apiKey = "your-deepseek-api-key"
+        }
+        
+        // Configure analysis tools
+        observability {
+            analysis {
+                enabled = true
+                storageLocation = "/path/to/analysis/data"
+                retentionDays = 30
+            }
+        }
+    }
+    
+    // Generate some responses
+    repeat(100) { i ->
+        agent.generate("Question $i: Tell me about Kotlin.")
+    }
+    
+    // Analyze agent behavior
+    val analyzer = agent.observability.analyzer
+    
+    // Analyze response times
+    val responseTimeAnalysis = analyzer.analyzeResponseTimes()
+    println("Average response time: ${responseTimeAnalysis.average}ms")
+    println("95th percentile response time: ${responseTimeAnalysis.percentile95}ms")
+    println("Response time trend: ${responseTimeAnalysis.trend}")
+    
+    // Analyze token usage
+    val tokenUsageAnalysis = analyzer.analyzeTokenUsage()
+    println("Average token usage: ${tokenUsageAnalysis.average}")
+    println("Token usage by model: ${tokenUsageAnalysis.byModel}")
+    println("Token usage trend: ${tokenUsageAnalysis.trend}")
+    
+    // Analyze error patterns
+    val errorAnalysis = analyzer.analyzeErrors()
+    println("Common error types: ${errorAnalysis.commonTypes}")
+    println("Error correlations: ${errorAnalysis.correlations}")
+    
+    // Generate recommendations
+    val recommendations = analyzer.generateRecommendations()
+    println("Recommendations:")
+    recommendations.forEach { println("- ${it.description} (impact: ${it.impact})") }
+}
+```
+
+## Integration with External Systems ✅
+
+Kastrax can integrate with external observability systems:
+
+```kotlin
+import ai.kastrax.core.agent.agent
+import ai.kastrax.core.observability.integration
+import ai.kastrax.integrations.deepseek.deepSeek
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    // Create an agent with external integrations
+    val agent = agent {
+        name = "IntegratedAgent"
+        instructions = "You are a helpful assistant."
+        model = deepSeek {
+            apiKey = "your-deepseek-api-key"
+        }
+        
+        // Configure external integrations
+        observability {
+            integration {
+                // Prometheus integration
+                prometheus {
+                    enabled = true
+                    endpoint = "/metrics"
+                    port = 9090
+                }
+                
+                // Grafana integration
+                grafana {
+                    enabled = true
+                    url = "http://localhost:3000"
+                    apiKey = "your-grafana-api-key"
+                    dashboardId = "agent-dashboard"
+                }
+                
+                // ELK integration
+                elasticsearch {
+                    enabled = true
+                    url = "http://localhost:9200"
+                    username = "elastic"
+                    password = "password"
+                    indexPrefix = "kastrax-logs"
+                }
+                
+                // OpenTelemetry integration
+                openTelemetry {
+                    enabled = true
+                    endpoint = "http://localhost:4317"
+                    serviceName = "kastrax-agent"
+                }
+            }
+        }
+    }
+    
+    // Generate a response
+    val response = agent.generate("Tell me about Kotlin.")
+}
+```
+
+## Conclusion ✅
+
+Kastrax's observability features provide a comprehensive solution for monitoring, analyzing, and optimizing AI agent performance. By leveraging these features, you can gain valuable insights into your agents' behavior, identify issues early, and continuously improve their performance.

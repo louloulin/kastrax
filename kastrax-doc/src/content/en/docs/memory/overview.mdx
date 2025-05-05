@@ -1,15 +1,22 @@
+---
+title: "Memory System Overview | Kastrax Docs"
+description: "The Kastrax memory system provides agents with the ability to remember past interactions, store important information, and retrieve relevant context."
+---
+
 # Memory System Overview ✅
 
 The Kastrax memory system provides agents with the ability to remember past interactions, store important information, and retrieve relevant context. This guide explains the memory system architecture and how to use it effectively.
 
 ## Memory System Architecture ✅
 
-The Kastrax memory system consists of several components:
+The Kastrax memory system consists of several key components:
 
-1. **Memory Types**: Different types of memory for different purposes
-2. **Memory Manager**: Coordinates memory operations
-3. **Memory Processors**: Process and optimize memory content
-4. **Memory Storage**: Backends for storing memory data
+1. **Memory API**: The core interfaces that define how memory is managed
+2. **Memory Implementation**: The concrete implementations of memory storage
+3. **Message Management**: How messages are stored, retrieved, and processed
+4. **Thread Management**: How conversations are organized into threads
+5. **Memory Retrieval**: Different strategies for retrieving relevant memories
+6. **Memory Storage Backends**: Different storage options for persisting memory
 
 ## Memory Types ✅
 
@@ -73,27 +80,27 @@ import kotlinx.coroutines.runBlocking
 fun createAgentWithMemory() = agent {
     name("MemoryAgent")
     description("An agent with memory capabilities")
-    
+
     // Configure the LLM
     model = deepSeek {
         apiKey("your-deepseek-api-key")
         model(DeepSeekModel.DEEPSEEK_CHAT)
         temperature(0.7)
     }
-    
+
     // Configure memory
     memory = memory {
         // Enable working memory
         workingMemory(true)
         workingMemoryContent("The user prefers technical explanations.")
-        
+
         // Configure conversation history
         conversationHistory(15) // Remember last 15 messages
-        
+
         // Enable semantic memory
         semanticMemory(true)
         semanticMemoryModel("all-MiniLM-L6-v2")
-        
+
         // Configure memory processors
         summarizer(true) // Summarize long conversations
         contextOptimizer(true) // Optimize context for token efficiency
@@ -102,13 +109,13 @@ fun createAgentWithMemory() = agent {
 
 fun main() = runBlocking {
     val agent = createAgentWithMemory()
-    
+
     // Test the agent
     println(agent.generate("Tell me about quantum computing").text)
-    
+
     // Add a memory
     agent.memory.add("User is a physicist with expertise in quantum mechanics", MemoryPriority.HIGH)
-    
+
     // Generate again with the new memory
     println(agent.generate("Tell me more about quantum entanglement").text)
 }
@@ -294,13 +301,13 @@ memory = memory {
     conversationHistory(20)
     semanticMemory(true)
     episodicMemory(true)
-    
+
     // Storage configuration
     storage(SQLiteStorage("agent_memory.db"))
-    
+
     // Embedding model for semantic search
     semanticMemoryModel("all-MiniLM-L6-v2")
-    
+
     // Memory processors
     summarizer(true)
     summarizerThreshold(15)
@@ -308,11 +315,11 @@ memory = memory {
     contextTokenLimit(3000)
     importanceEvaluator(true)
     importanceThreshold(0.5)
-    
+
     // Advanced features
     reflection(true)
     reflectionFrequency(20)
-    
+
     // Memory retention policy
     retentionPolicy {
         defaultRetention(Duration.ofDays(30))
