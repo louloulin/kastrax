@@ -1,0 +1,258 @@
+---
+title: 代理系统概述 | Kastrax 文档
+description: Kastrax 代理系统的详细介绍，包括代理的基本概念、核心组件和工作原理。
+---
+
+# 代理系统概述
+
+Kastrax 代理系统是一个强大的框架，用于构建智能 AI 代理，这些代理能够理解用户意图、执行任务、使用工具并保持上下文记忆。本文档提供了 Kastrax 代理系统的全面概述。
+
+## 什么是 AI 代理？
+
+AI 代理是一种能够感知环境、做出决策并采取行动以实现特定目标的软件实体。在 Kastrax 中，代理是由大型语言模型 (LLM) 驱动的，并通过以下能力得到增强：
+
+- **记忆系统**：存储和检索过去的交互和信息
+- **工具使用**：调用外部工具和 API 执行操作
+- **规划能力**：分解复杂任务并制定执行计划
+- **自我反思**：评估自己的表现并进行调整
+- **上下文管理**：有效管理和利用上下文信息
+
+## 代理系统核心组件
+
+Kastrax 代理系统由以下核心组件组成：
+
+### 1. 代理核心
+
+代理核心是整个系统的中心，负责协调各个组件的工作。它包括：
+
+- **代理配置**：定义代理的基本属性和行为
+- **指令管理**：处理系统指令和用户指令
+- **状态管理**：维护代理的内部状态
+- **生命周期管理**：控制代理的初始化、运行和终止
+
+### 2. 模型接口
+
+模型接口负责与底层语言模型通信，包括：
+
+- **模型适配器**：支持不同的 LLM 提供商（DeepSeek、OpenAI、Anthropic 等）
+- **提示构建**：根据代理状态和上下文构建有效的提示
+- **响应处理**：解析和处理模型返回的响应
+- **流式处理**：支持流式输出和增量处理
+
+### 3. 记忆系统
+
+记忆系统使代理能够存储和检索信息，包括：
+
+- **工作记忆**：存储当前会话的上下文和信息
+- **对话历史**：记录用户和代理之间的交互
+- **语义记忆**：存储和检索长期知识
+- **记忆处理器**：优化记忆的存储和检索
+
+### 4. 工具系统
+
+工具系统允许代理与外部世界交互，包括：
+
+- **工具注册**：注册和管理可用工具
+- **工具调用**：执行工具调用并处理结果
+- **参数验证**：验证工具参数的正确性
+- **错误处理**：处理工具执行过程中的错误
+
+### 5. 代理架构
+
+代理架构定义了代理的思考和行动模式，包括：
+
+- **自适应代理**：根据用户偏好和反馈调整行为
+- **目标导向代理**：专注于实现特定目标
+- **层次化代理**：将复杂任务分解为子任务
+- **反思型代理**：通过自我反思提高性能
+- **创造性代理**：生成创新的解决方案
+
+## 代理生命周期
+
+Kastrax 代理的生命周期包括以下阶段：
+
+1. **初始化**：加载配置、初始化组件和设置初始状态
+2. **接收输入**：接收用户输入或系统事件
+3. **上下文构建**：构建包含记忆、指令和当前输入的上下文
+4. **思考**：使用 LLM 分析上下文并决定下一步行动
+5. **工具调用**：如果需要，调用相关工具执行操作
+6. **响应生成**：生成对用户的响应
+7. **记忆更新**：更新记忆系统
+8. **状态更新**：更新代理内部状态
+
+## 基本使用示例
+
+以下是创建和使用 Kastrax 代理的基本示例：
+
+```kotlin
+import ai.kastrax.core.agent.agent
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    // 创建一个简单的代理
+    val myAgent = agent {
+        // 基本配置
+        name = "助手"
+        instructions = "你是一个有用的助手，能够回答问题并提供帮助。"
+        
+        // 设置语言模型
+        model = deepSeek(
+            model = DeepSeekModel.DEEPSEEK_CHAT,
+            apiKey = "your-api-key"
+        )
+        
+        // 配置记忆系统
+        memory {
+            workingMemory {
+                maxTokens = 4000
+            }
+            conversationMemory {
+                maxMessages = 10
+            }
+        }
+        
+        // 添加工具
+        tools {
+            tool("getCurrentTime") {
+                description("获取当前时间")
+                parameters {}
+                execute {
+                    val formatter = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+                    val currentTime = java.time.LocalDateTime.now().format(formatter)
+                    "当前时间是 $currentTime"
+                }
+            }
+        }
+    }
+    
+    // 使用代理
+    val response = myAgent.generate("你好，请告诉我现在几点了？")
+    println(response.text)
+}
+```
+
+## 高级功能
+
+### 多轮对话
+
+Kastrax 代理支持自然的多轮对话：
+
+```kotlin
+// 继续上面的示例
+val conversation = myAgent.startConversation()
+
+// 第一轮对话
+val response1 = conversation.generate("你好，我叫张三。")
+println("代理: ${response1.text}")
+
+// 第二轮对话
+val response2 = conversation.generate("你能记住我的名字吗？")
+println("代理: ${response2.text}") // 代理应该能够记住用户名字
+
+// 第三轮对话
+val response3 = conversation.generate("我喜欢什么颜色？")
+println("代理: ${response3.text}") // 代理应该表示不知道，因为用户没有提供这个信息
+```
+
+### 工具使用
+
+代理可以使用工具执行各种操作：
+
+```kotlin
+val calculatorAgent = agent {
+    name = "计算助手"
+    instructions = "你是一个计算助手，能够执行数学计算。"
+    
+    model = deepSeek(
+        model = DeepSeekModel.DEEPSEEK_CHAT,
+        apiKey = "your-api-key"
+    )
+    
+    tools {
+        tool("calculate") {
+            description("执行数学计算")
+            parameters {
+                parameter("expression", "数学表达式", String::class)
+            }
+            execute { params ->
+                val expression = params["expression"] as String
+                val result = evalExpression(expression) // 假设这是一个计算表达式的函数
+                "计算结果: $result"
+            }
+        }
+    }
+}
+
+val response = calculatorAgent.generate("计算 (15 * 4) / 3 + 10 的结果")
+println(response.text) // 应该包含计算结果
+```
+
+### 代理协作
+
+Kastrax 支持多个代理之间的协作：
+
+```kotlin
+// 创建研究代理
+val researchAgent = agent {
+    name = "研究员"
+    instructions = "你是一个研究助手，负责查找和总结信息。"
+    // 配置...
+}
+
+// 创建写作代理
+val writingAgent = agent {
+    name = "作家"
+    instructions = "你是一个写作助手，负责创作高质量的内容。"
+    // 配置...
+}
+
+// 协作流程
+val topic = "人工智能的未来发展趋势"
+
+// 1. 研究代理查找信息
+val researchResult = researchAgent.generate("请查找关于'$topic'的最新信息和趋势")
+
+// 2. 将研究结果传递给写作代理
+val article = writingAgent.generate("""
+    请根据以下研究信息，撰写一篇关于'$topic'的文章：
+    
+    ${researchResult.text}
+""")
+
+println(article.text)
+```
+
+## 最佳实践
+
+### 代理设计
+
+1. **明确指令**：提供清晰、具体的指令，定义代理的角色和行为
+2. **适当的上下文**：提供足够的上下文信息，但避免不必要的信息
+3. **渐进式增强**：从简单代理开始，逐步添加功能和复杂性
+4. **错误处理**：设计代理以优雅地处理错误和意外情况
+
+### 性能优化
+
+1. **上下文管理**：有效管理上下文大小，避免超出模型限制
+2. **批量处理**：适当时使用批量处理减少 API 调用
+3. **缓存策略**：缓存常用信息和响应
+4. **异步处理**：使用协程和异步处理提高响应速度
+
+### 安全考虑
+
+1. **输入验证**：验证所有用户输入
+2. **权限控制**：限制代理的权限和访问范围
+3. **敏感信息处理**：安全处理敏感信息和凭据
+4. **监控和审计**：监控代理活动并保留审计日志
+
+## 下一步
+
+现在您已经了解了 Kastrax 代理系统的基础知识，您可以：
+
+1. 探索不同的[代理架构](./architectures-kotlin.mdx)
+2. 学习如何[添加工具](./adding-tools.mdx)到代理
+3. 了解代理[监控](./monitoring-kotlin.mdx)和[版本控制](./versioning-kotlin.mdx)
+4. 深入了解[记忆系统](/docs/memory/overview.mdx)
+5. 学习如何使用[工具系统](/docs/tools/overview-kotlin.mdx)

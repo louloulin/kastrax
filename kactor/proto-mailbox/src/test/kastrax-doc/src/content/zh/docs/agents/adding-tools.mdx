@@ -1,0 +1,859 @@
+---
+title: 添加工具 | Kastrax 文档
+description: 如何向 Kastrax 代理添加工具，包括内置工具、自定义工具和工具链的集成方法。
+---
+
+# 向代理添加工具
+
+工具使 Kastrax 代理能够执行各种操作，从简单的计算到复杂的 API 调用。本文档介绍如何向代理添加工具，使其能够与外部系统交互并执行实际任务。
+
+## 工具概述
+
+在 Kastrax 中，工具是代理可以调用的函数，使其能够：
+
+- 执行计算和数据处理
+- 与外部系统交互
+- 访问和修改文件
+- 搜索网络信息
+- 执行特定领域的操作
+
+工具扩展了代理的能力，使其不仅限于生成文本，还能执行实际操作。
+
+## 基本工具添加
+
+### 在代理创建时添加工具
+
+最简单的添加工具方式是在创建代理时使用 `tools` 块：
+
+```kotlin
+import ai.kastrax.core.agent.agent
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    // 创建代理并添加工具
+    val myAgent = agent {
+        name = "助手"
+        instructions = "你是一个有用的助手，能够回答问题并提供帮助。"
+        
+        model = deepSeek(
+            model = DeepSeekModel.DEEPSEEK_CHAT,
+            apiKey = "your-api-key"
+        )
+        
+        // 添加工具
+        tools {
+            // 添加获取当前时间的工具
+            tool("getCurrentTime") {
+                description("获取当前时间")
+                parameters {}
+                execute {
+                    val formatter = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+                    val currentTime = java.time.LocalDateTime.now().format(formatter)
+                    "当前时间是 $currentTime"
+                }
+            }
+            
+            // 添加计算器工具
+            tool("calculate") {
+                description("执行基本数学计算")
+                parameters {
+                    parameter("expression", "数学表达式", String::class)
+                }
+                execute { params ->
+                    val expression = params["expression"] as String
+                    try {
+                        // 简单实现，实际应用中应使用更安全的表达式计算方法
+                        val result = eval(expression)
+                        "计算结果: $result"
+                    } catch (e: Exception) {
+                        "计算错误: ${e.message}"
+                    }
+                }
+            }
+        }
+    }
+    
+    // 使用代理
+    val response = myAgent.generate("现在几点了？")
+    println(response.text)
+}
+
+// 简单的表达式计算函数（示例用途）
+fun eval(expression: String): Double {
+    // 实际应用中应使用更安全的表达式计算库
+    return javax.script.ScriptEngineManager().getEngineByName("JavaScript").eval(expression) as Double
+}
+```
+
+### 向现有代理添加工具
+
+您也可以向已创建的代理添加工具：
+
+```kotlin
+// 创建代理
+val myAgent = agent {
+    name = "助手"
+    instructions = "你是一个有用的助手。"
+    model = deepSeek(/* 配置 */)
+}
+
+// 向现有代理添加工具
+myAgent.addTool("weatherInfo") {
+    description("获取天气信息")
+    parameters {
+        parameter("city", "城市名称", String::class)
+    }
+    execute { params ->
+        val city = params["city"] as String
+        // 实际应用中应调用天气 API
+        "城市 $city 的天气：晴，温度 25°C，湿度 45%"
+    }
+}
+
+// 使用添加的工具
+val response = myAgent.generate("北京今天天气怎么样？")
+println(response.text)
+```
+
+## 添加内置工具
+
+Kastrax 提供了许多内置工具，可以直接添加到代理中：
+
+```kotlin
+import ai.kastrax.core.agent.agent
+import ai.kastrax.core.tools.ToolFactory
+import ai.kastrax.core.tools.web.WebSearchTool
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    // 创建代理
+    val myAgent = agent {
+        name = "研究助手"
+        instructions = "你是一个研究助手，能够搜索信息并提供帮助。"
+        
+        model = deepSeek(
+            model = DeepSeekModel.DEEPSEEK_CHAT,
+            apiKey = "your-api-key"
+        )
+        
+        // 添加内置工具
+        tools {
+            // 添加网络搜索工具
+            add(ToolFactory.createWebSearchTool(
+                apiKey = "your-search-api-key",
+                searchEngine = WebSearchTool.SearchEngine.GOOGLE,
+                maxResults = 5
+            ))
+            
+            // 添加计算器工具
+            add(ToolFactory.createCalculatorTool())
+            
+            // 添加日期时间工具
+            add(ToolFactory.createDateTimeTool())
+            
+            // 添加文件系统工具
+            add(ToolFactory.createFileSystemTool(
+                rootPath = "./data",
+                allowAbsolutePaths = false
+            ))
+            
+            // 添加 HTTP 请求工具
+            add(ToolFactory.createHttpRequestTool())
+        }
+    }
+    
+    // 使用代理
+    val response = myAgent.generate("请搜索关于量子计算的最新进展")
+    println(response.text)
+}
+```
+
+## 添加自定义工具
+
+### 预定义自定义工具
+
+您可以创建预定义的自定义工具，然后添加到代理中：
+
+```kotlin
+import ai.kastrax.core.agent.agent
+import ai.kastrax.core.tools.tool
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.runBlocking
+import java.io.File
+
+// 定义自定义工具
+val readFileTool = tool("readFile") {
+    description("读取文件内容")
+    parameters {
+        parameter("path", "文件路径", String::class)
+    }
+    execute { params ->
+        val path = params["path"] as String
+        try {
+            val content = File(path).readText()
+            "文件内容:\n$content"
+        } catch (e: Exception) {
+            "读取文件错误: ${e.message}"
+        }
+    }
+}
+
+val writeFileTool = tool("writeFile") {
+    description("写入文件内容")
+    parameters {
+        parameter("path", "文件路径", String::class)
+        parameter("content", "文件内容", String::class)
+        parameter("append", "是否追加内容", Boolean::class, optional = true, defaultValue = false)
+    }
+    execute { params ->
+        val path = params["path"] as String
+        val content = params["content"] as String
+        val append = params["append"] as? Boolean ?: false
+        
+        try {
+            val file = File(path)
+            if (append) {
+                file.appendText(content)
+            } else {
+                file.writeText(content)
+            }
+            "文件写入成功"
+        } catch (e: Exception) {
+            "写入文件错误: ${e.message}"
+        }
+    }
+}
+
+fun main() = runBlocking {
+    // 创建代理并添加预定义工具
+    val myAgent = agent {
+        name = "文件助手"
+        instructions = "你是一个文件助手，能够读取和写入文件。"
+        
+        model = deepSeek(
+            model = DeepSeekModel.DEEPSEEK_CHAT,
+            apiKey = "your-api-key"
+        )
+        
+        // 添加预定义工具
+        tools {
+            tool(readFileTool)
+            tool(writeFileTool)
+        }
+    }
+    
+    // 使用代理
+    val response = myAgent.generate("请读取 example.txt 文件的内容")
+    println(response.text)
+}
+```
+
+### 工具类
+
+对于相关工具的集合，您可以创建工具类：
+
+```kotlin
+import ai.kastrax.core.agent.agent
+import ai.kastrax.core.tools.tool
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.runBlocking
+import java.io.File
+
+// 创建文件工具类
+class FileTools {
+    // 读取文件工具
+    val readFile = tool("readFile") {
+        description("读取文件内容")
+        parameters {
+            parameter("path", "文件路径", String::class)
+        }
+        execute { params ->
+            val path = params["path"] as String
+            try {
+                File(path).readText()
+            } catch (e: Exception) {
+                "错误: ${e.message}"
+            }
+        }
+    }
+    
+    // 写入文件工具
+    val writeFile = tool("writeFile") {
+        description("写入文件内容")
+        parameters {
+            parameter("path", "文件路径", String::class)
+            parameter("content", "文件内容", String::class)
+            parameter("append", "是否追加内容", Boolean::class, optional = true, defaultValue = false)
+        }
+        execute { params ->
+            val path = params["path"] as String
+            val content = params["content"] as String
+            val append = params["append"] as Boolean
+            
+            try {
+                val file = File(path)
+                
+                if (append) {
+                    file.appendText(content)
+                } else {
+                    file.writeText(content)
+                }
+                
+                "成功写入文件: $path"
+            } catch (e: Exception) {
+                "错误: ${e.message}"
+            }
+        }
+    }
+    
+    // 列出目录工具
+    val listDirectory = tool("listDirectory") {
+        description("列出目录内容")
+        parameters {
+            parameter("path", "目录路径", String::class)
+        }
+        execute { params ->
+            val path = params["path"] as String
+            try {
+                val dir = File(path)
+                
+                if (!dir.exists() || !dir.isDirectory) {
+                    return@execute "错误: 无效的目录路径"
+                }
+                
+                val files = dir.listFiles() ?: return@execute "目录为空"
+                
+                val fileList = files.joinToString("\n") { file ->
+                    val type = if (file.isDirectory) "目录" else "文件"
+                    "${file.name} ($type)"
+                }
+                
+                "目录内容:\n$fileList"
+            } catch (e: Exception) {
+                "错误: ${e.message}"
+            }
+        }
+    }
+}
+
+fun main() = runBlocking {
+    // 创建文件工具实例
+    val fileTools = FileTools()
+    
+    // 创建代理并添加工具类中的工具
+    val myAgent = agent {
+        name = "文件助手"
+        instructions = "你是一个文件助手，能够读取、写入文件和列出目录内容。"
+        
+        model = deepSeek(
+            model = DeepSeekModel.DEEPSEEK_CHAT,
+            apiKey = "your-api-key"
+        )
+        
+        // 添加工具类中的工具
+        tools {
+            tool(fileTools.readFile)
+            tool(fileTools.writeFile)
+            tool(fileTools.listDirectory)
+        }
+    }
+    
+    // 使用代理
+    val response = myAgent.generate("请列出当前目录的内容")
+    println(response.text)
+}
+```
+
+## 添加工具链
+
+您可以将工具链添加到代理中，使其能够执行复杂的多步骤操作：
+
+```kotlin
+import ai.kastrax.core.agent.agent
+import ai.kastrax.core.tools.tool
+import ai.kastrax.core.tools.chain.toolChain
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    // 定义工具
+    val extractNumbersTool = tool("extractNumbers") {
+        description("从文本中提取数字")
+        parameters {
+            parameter("text", "输入文本", String::class)
+        }
+        execute { params ->
+            val text = params["text"] as String
+            val numbers = Regex("\\d+").findAll(text)
+                .map { it.value.toInt() }
+                .toList()
+            numbers
+        }
+    }
+
+    val calculateSumTool = tool("calculateSum") {
+        description("计算数字列表的总和")
+        parameters {
+            parameter("numbers", "数字列表", List::class)
+        }
+        execute { params ->
+            val numbers = params["numbers"] as List<Int>
+            val sum = numbers.sum()
+            sum
+        }
+    }
+
+    val formatResultTool = tool("formatResult") {
+        description("格式化结果")
+        parameters {
+            parameter("sum", "总和", Int::class)
+        }
+        execute { params ->
+            val sum = params["sum"] as Int
+            "总和是: $sum"
+        }
+    }
+
+    // 创建工具链
+    val sumNumbersChain = toolChain("sumNumbers") {
+        description("从文本中提取数字并计算总和")
+        
+        steps {
+            step("extract") {
+                tool = extractNumbersTool
+                inputs {
+                    map("text" to input("text"))
+                }
+            }
+            
+            step("sum") {
+                tool = calculateSumTool
+                inputs {
+                    map("numbers" to output("extract"))
+                }
+            }
+            
+            step("format") {
+                tool = formatResultTool
+                inputs {
+                    map("sum" to output("sum"))
+                }
+            }
+        }
+        
+        output = output("format")
+    }
+
+    // 创建代理并添加工具链
+    val myAgent = agent {
+        name = "数字助手"
+        instructions = "你是一个数字助手，能够从文本中提取数字并计算总和。"
+        
+        model = deepSeek(
+            model = DeepSeekModel.DEEPSEEK_CHAT,
+            apiKey = "your-api-key"
+        )
+        
+        // 添加工具链作为工具
+        tools {
+            toolChain(sumNumbersChain)
+        }
+    }
+    
+    // 使用代理
+    val response = myAgent.generate("请计算以下文本中所有数字的总和：我有 10 个苹果，15 个橙子和 20 个香蕉。")
+    println(response.text)
+}
+```
+
+## 工具分类
+
+为了更好地组织工具，您可以将工具分类：
+
+```kotlin
+import ai.kastrax.core.agent.agent
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    // 创建代理并添加分类工具
+    val myAgent = agent {
+        name = "多功能助手"
+        instructions = "你是一个多功能助手，能够执行各种任务。"
+        
+        model = deepSeek(
+            model = DeepSeekModel.DEEPSEEK_CHAT,
+            apiKey = "your-api-key"
+        )
+        
+        // 添加分类工具
+        tools {
+            // 数学工具类别
+            category("数学") {
+                tool("add") {
+                    description("加两个数")
+                    parameters {
+                        parameter("a", "第一个数", Double::class)
+                        parameter("b", "第二个数", Double::class)
+                    }
+                    execute { params ->
+                        val a = params["a"] as Double
+                        val b = params["b"] as Double
+                        "结果: ${a + b}"
+                    }
+                }
+                
+                tool("subtract") {
+                    description("减两个数")
+                    parameters {
+                        parameter("a", "第一个数", Double::class)
+                        parameter("b", "第二个数", Double::class)
+                    }
+                    execute { params ->
+                        val a = params["a"] as Double
+                        val b = params["b"] as Double
+                        "结果: ${a - b}"
+                    }
+                }
+                
+                tool("multiply") {
+                    description("乘两个数")
+                    parameters {
+                        parameter("a", "第一个数", Double::class)
+                        parameter("b", "第二个数", Double::class)
+                    }
+                    execute { params ->
+                        val a = params["a"] as Double
+                        val b = params["b"] as Double
+                        "结果: ${a * b}"
+                    }
+                }
+            }
+            
+            // 文本工具类别
+            category("文本") {
+                tool("uppercase") {
+                    description("转换为大写")
+                    parameters {
+                        parameter("text", "输入文本", String::class)
+                    }
+                    execute { params ->
+                        val text = params["text"] as String
+                        text.uppercase()
+                    }
+                }
+                
+                tool("lowercase") {
+                    description("转换为小写")
+                    parameters {
+                        parameter("text", "输入文本", String::class)
+                    }
+                    execute { params ->
+                        val text = params["text"] as String
+                        text.lowercase()
+                    }
+                }
+                
+                tool("reverse") {
+                    description("反转文本")
+                    parameters {
+                        parameter("text", "输入文本", String::class)
+                    }
+                    execute { params ->
+                        val text = params["text"] as String
+                        text.reversed()
+                    }
+                }
+            }
+            
+            // 日期时间工具类别
+            category("日期时间") {
+                tool("getCurrentTime") {
+                    description("获取当前时间")
+                    parameters {}
+                    execute {
+                        val formatter = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+                        val currentTime = java.time.LocalDateTime.now().format(formatter)
+                        "当前时间是 $currentTime"
+                    }
+                }
+                
+                tool("formatDate") {
+                    description("格式化日期")
+                    parameters {
+                        parameter("date", "日期 (yyyy-MM-dd)", String::class)
+                        parameter("format", "格式", String::class)
+                    }
+                    execute { params ->
+                        val date = params["date"] as String
+                        val format = params["format"] as String
+                        
+                        try {
+                            val parsedDate = java.time.LocalDate.parse(date)
+                            val formatter = java.time.format.DateTimeFormatter.ofPattern(format)
+                            parsedDate.format(formatter)
+                        } catch (e: Exception) {
+                            "格式化错误: ${e.message}"
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    // 使用代理
+    val response = myAgent.generate("请计算 15 乘以 7 的结果")
+    println(response.text)
+}
+```
+
+## 动态工具注册
+
+在某些情况下，您可能需要根据运行时条件动态注册工具：
+
+```kotlin
+import ai.kastrax.core.agent.agent
+import ai.kastrax.core.tools.tool
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    // 创建代理
+    val myAgent = agent {
+        name = "动态助手"
+        instructions = "你是一个动态助手，能够根据需要获取不同的功能。"
+        
+        model = deepSeek(
+            model = DeepSeekModel.DEEPSEEK_CHAT,
+            apiKey = "your-api-key"
+        )
+        
+        // 初始工具
+        tools {
+            tool("help") {
+                description("获取帮助信息")
+                parameters {}
+                execute {
+                    """
+                    可用命令:
+                    1. 添加计算器 - 添加基本计算功能
+                    2. 添加文本工具 - 添加文本处理功能
+                    3. 添加时间工具 - 添加时间相关功能
+                    """
+                }
+            }
+        }
+    }
+    
+    // 定义可动态添加的工具
+    val calculatorTool = tool("calculate") {
+        description("执行基本数学计算")
+        parameters {
+            parameter("expression", "数学表达式", String::class)
+        }
+        execute { params ->
+            val expression = params["expression"] as String
+            try {
+                val result = eval(expression)
+                "计算结果: $result"
+            } catch (e: Exception) {
+                "计算错误: ${e.message}"
+            }
+        }
+    }
+    
+    val textProcessingTool = tool("processText") {
+        description("处理文本")
+        parameters {
+            parameter("text", "输入文本", String::class)
+            parameter("operation", "操作", String::class) {
+                enum("uppercase", "lowercase", "reverse")
+            }
+        }
+        execute { params ->
+            val text = params["text"] as String
+            val operation = params["operation"] as String
+            
+            when (operation) {
+                "uppercase" -> text.uppercase()
+                "lowercase" -> text.lowercase()
+                "reverse" -> text.reversed()
+                else -> "未知操作"
+            }
+        }
+    }
+    
+    val timeToolTool = tool("getTime") {
+        description("获取时间信息")
+        parameters {
+            parameter("format", "时间格式", String::class, optional = true, defaultValue = "yyyy-MM-dd HH:mm:ss")
+        }
+        execute { params ->
+            val format = params["format"] as String
+            val formatter = java.time.format.DateTimeFormatter.ofPattern(format)
+            val currentTime = java.time.LocalDateTime.now().format(formatter)
+            "当前时间是 $currentTime"
+        }
+    }
+    
+    // 处理用户请求并动态添加工具
+    val conversation = myAgent.startConversation()
+    
+    // 第一轮对话
+    val response1 = conversation.generate("你能做什么？")
+    println("代理: ${response1.text}")
+    
+    // 用户请求添加计算器
+    val response2 = conversation.generate("添加计算器")
+    println("代理: ${response2.text}")
+    
+    // 动态添加计算器工具
+    myAgent.addTool(calculatorTool)
+    
+    // 使用新添加的工具
+    val response3 = conversation.generate("计算 15 * 7 + 3")
+    println("代理: ${response3.text}")
+    
+    // 用户请求添加文本工具
+    val response4 = conversation.generate("添加文本工具")
+    println("代理: ${response4.text}")
+    
+    // 动态添加文本处理工具
+    myAgent.addTool(textProcessingTool)
+    
+    // 使用新添加的工具
+    val response5 = conversation.generate("将 'hello world' 转换为大写")
+    println("代理: ${response5.text}")
+}
+
+// 简单的表达式计算函数（示例用途）
+fun eval(expression: String): Double {
+    // 实际应用中应使用更安全的表达式计算库
+    return javax.script.ScriptEngineManager().getEngineByName("JavaScript").eval(expression) as Double
+}
+```
+
+## 工具权限控制
+
+在某些情况下，您可能需要控制工具的访问权限：
+
+```kotlin
+import ai.kastrax.core.agent.agent
+import ai.kastrax.core.tools.tool
+import ai.kastrax.core.tools.ToolPermission
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.runBlocking
+import java.io.File
+
+fun main() = runBlocking {
+    // 创建带权限控制的文件工具
+    val secureFileTool = tool("readFile") {
+        description("读取文件内容")
+        parameters {
+            parameter("path", "文件路径", String::class)
+        }
+        
+        // 设置工具权限
+        permissions {
+            permission(ToolPermission.FILE_READ, "允许读取文件")
+            permission(ToolPermission.NETWORK_ACCESS, false, "禁止网络访问")
+        }
+        
+        execute { params ->
+            val path = params["path"] as String
+            
+            // 验证路径安全性
+            if (!isPathSafe(path)) {
+                return@execute "安全错误: 不允许访问该路径"
+            }
+            
+            try {
+                val content = File(path).readText()
+                "文件内容:\n$content"
+            } catch (e: Exception) {
+                "读取文件错误: ${e.message}"
+            }
+        }
+    }
+    
+    // 创建代理并添加安全工具
+    val myAgent = agent {
+        name = "安全文件助手"
+        instructions = "你是一个安全文件助手，能够在权限范围内读取文件。"
+        
+        model = deepSeek(
+            model = DeepSeekModel.DEEPSEEK_CHAT,
+            apiKey = "your-api-key"
+        )
+        
+        // 添加安全工具
+        tools {
+            tool(secureFileTool)
+        }
+    }
+    
+    // 使用代理
+    val response = myAgent.generate("请读取 example.txt 文件的内容")
+    println(response.text)
+}
+
+// 验证路径安全性的函数
+fun isPathSafe(path: String): Boolean {
+    val file = File(path)
+    val absolutePath = file.absolutePath
+    
+    // 检查是否在允许的目录中
+    val allowedDirectories = listOf(
+        "/path/to/allowed/directory",
+        "./data"
+    )
+    
+    return allowedDirectories.any { allowed ->
+        val allowedDir = File(allowed).absolutePath
+        absolutePath.startsWith(allowedDir)
+    }
+}
+```
+
+## 最佳实践
+
+### 工具设计
+
+1. **单一职责**：每个工具应专注于一个特定功能
+2. **清晰的描述**：提供详细的工具描述和参数说明
+3. **参数验证**：验证所有输入参数
+4. **错误处理**：优雅处理所有可能的错误情况
+5. **安全考虑**：限制工具的权限和访问范围
+
+### 工具组织
+
+1. **分类**：使用类别组织相关工具
+2. **命名约定**：使用一致的命名约定
+3. **模块化**：将复杂功能分解为多个工具
+4. **可重用性**：设计可在多个代理中重用的工具
+
+### 性能考虑
+
+1. **异步操作**：对于耗时操作，使用协程和 `Dispatchers.IO`
+2. **资源管理**：正确关闭资源，如文件和网络连接
+3. **缓存结果**：对于频繁调用的工具，考虑缓存结果
+4. **超时机制**：为长时间运行的工具添加超时机制
+
+## 下一步
+
+现在您已经了解了如何向代理添加工具，您可以：
+
+1. 探索[工具系统](/docs/tools/overview-kotlin.mdx)的更多细节
+2. 学习如何创建[自定义工具](/docs/tools/custom-tools.mdx)
+3. 了解[工具链](/docs/tools/tool-chains.mdx)的高级用法
+4. 探索代理[监控](./monitoring-kotlin.mdx)和[版本控制](./versioning-kotlin.mdx)

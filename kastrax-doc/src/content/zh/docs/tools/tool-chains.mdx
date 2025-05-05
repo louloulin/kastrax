@@ -1,815 +1,776 @@
 ---
 title: 工具链 | Kastrax 文档
-description: 如何在 Kastrax 中创建和使用工具链，将多个工具组合成复杂的工作流程。
+description: 如何在 Kastrax 中创建和使用工具链，将多个工具组合成复杂的处理流程。
 ---
 
-# 工具链 ✅
+# 工具链
 
-工具链允许您将多个工具组合成复杂的工作流程，使代理能够执行多步骤任务。本指南介绍如何在 Kastrax 中创建和使用工具链。
+工具链是将多个工具组合成一个复杂处理流程的方式。Kastrax 提供了强大的工具链功能，允许您创建数据处理管道、多步骤操作和复杂的业务逻辑。
 
-## 工具链概述 ✅
+## 工具链概述
 
-工具链是一系列按特定顺序执行的工具，其中一个工具的输出可以作为另一个工具的输入。工具链可以：
+工具链的核心思想是将一个工具的输出作为另一个工具的输入，从而创建一个处理流程：
 
-- 将复杂任务分解为更小、更可管理的步骤
-- 重用现有工具创建新功能
-- 实现更复杂的业务逻辑
-- 提高代码可维护性和可测试性
+```
+工具 A → 工具 B → 工具 C → 结果
+```
 
-## 基本工具链 ✅
+Kastrax 提供了多种创建工具链的方式：
+
+1. **顺序执行**：按顺序执行多个工具
+2. **条件执行**：基于条件选择执行路径
+3. **并行执行**：同时执行多个工具
+4. **错误处理**：处理工具执行过程中的错误
+
+## 基本工具链
 
 ### 顺序工具链
 
-最简单的工具链是按顺序执行多个工具：
+最简单的工具链是顺序执行多个工具：
 
 ```kotlin
 import ai.kastrax.core.tools.tool
-import ai.kastrax.core.tools.toolchain
+import ai.kastrax.core.tools.chain.toolChain
 import kotlinx.coroutines.runBlocking
 
-// 定义基础工具
-val fetchDataTool = tool("fetchData") {
-    description("从 API 获取数据")
+// 定义工具
+val extractNumbersTool = tool("extractNumbers") {
+    description("从文本中提取数字")
     parameters {
-        parameter("url", "API URL", String::class)
+        parameter("text", "输入文本", String::class)
     }
     execute { params ->
-        val url = params["url"] as String
-        // 模拟 API 调用
-        """{"data": [1, 2, 3, 4, 5]}"""
+        val text = params["text"] as String
+        val numbers = Regex("\\d+").findAll(text)
+            .map { it.value.toInt() }
+            .toList()
+        numbers
     }
 }
 
-val processDataTool = tool("processData") {
-    description("处理 JSON 数据")
+val calculateSumTool = tool("calculateSum") {
+    description("计算数字列表的总和")
     parameters {
-        parameter("jsonData", "要处理的 JSON 数据", String::class)
+        parameter("numbers", "数字列表", List::class)
     }
     execute { params ->
-        val jsonData = params["jsonData"] as String
-        // 简单处理：提取数字并计算总和
-        val numbers = Regex("\\d+").findAll(jsonData)
-            .map { it.value.toInt() }
-            .toList()
+        val numbers = params["numbers"] as List<Int>
         val sum = numbers.sum()
-        "处理结果: 找到 ${numbers.size} 个数字，总和为 $sum"
+        sum
+    }
+}
+
+val formatResultTool = tool("formatResult") {
+    description("格式化结果")
+    parameters {
+        parameter("sum", "总和", Int::class)
+    }
+    execute { params ->
+        val sum = params["sum"] as Int
+        "总和是: $sum"
     }
 }
 
 // 创建工具链
-val dataProcessingChain = toolchain("processApiData") {
-    description("获取并处理 API 数据")
+val sumNumbersChain = toolChain("sumNumbers") {
+    description("从文本中提取数字并计算总和")
     
     // 定义工具链步骤
     steps {
-        // 第一步：获取数据
-        step("fetch") {
-            tool = fetchDataTool
-            parameters {
-                parameter("url", "https://api.example.com/data")
+        // 第一步：提取数字
+        step("extract") {
+            tool = extractNumbersTool
+            inputs {
+                map("text" to input("text"))
             }
         }
         
-        // 第二步：处理数据，使用第一步的输出
-        step("process") {
-            tool = processDataTool
-            parameters {
-                // 使用前一步的输出作为输入
-                parameter("jsonData", stepOutput("fetch"))
+        // 第二步：计算总和
+        step("sum") {
+            tool = calculateSumTool
+            inputs {
+                map("numbers" to output("extract"))
             }
+        }
+        
+        // 第三步：格式化结果
+        step("format") {
+            tool = formatResultTool
+            inputs {
+                map("sum" to output("sum"))
+            }
+        }
+    }
+    
+    // 定义工具链输出
+    output = output("format")
+}
+
+// 测试工具链
+fun main() = runBlocking {
+    val result = sumNumbersChain.execute(mapOf(
+        "text" to "这个文本包含数字 10、20 和 30"
+    ))
+    
+    println(result) // 输出: 总和是: 60
+}
+```
+
+## 条件工具链
+
+使用条件逻辑创建分支工具链：
+
+```kotlin
+import ai.kastrax.core.tools.tool
+import ai.kastrax.core.tools.chain.toolChain
+import kotlinx.coroutines.runBlocking
+
+// 定义工具
+val checkAgeTool = tool("checkAge") {
+    description("检查年龄")
+    parameters {
+        parameter("age", "年龄", Int::class)
+    }
+    execute { params ->
+        val age = params["age"] as Int
+        when {
+            age < 18 -> "minor"
+            age < 65 -> "adult"
+            else -> "senior"
         }
     }
 }
 
-// 使用工具链
-fun main() = runBlocking {
-    val result = dataProcessingChain.execute(mapOf())
-    println(result)
-}
-```
-
-### 条件工具链
-
-工具链可以包含条件逻辑：
-
-```kotlin
-import ai.kastrax.core.tools.tool
-import ai.kastrax.core.tools.toolchain
-import kotlinx.coroutines.runBlocking
-
-// 定义基础工具
-val checkWeatherTool = tool("checkWeather") {
-    description("检查城市的天气")
-    parameters {
-        parameter("city", "城市名称", String::class)
-    }
-    execute { params ->
-        val city = params["city"] as String
-        // 模拟天气检查
-        if (city == "北京") "晴朗" else "多云"
-    }
-}
-
-val outdoorActivityTool = tool("suggestOutdoorActivity") {
-    description("推荐户外活动")
+val minorMessageTool = tool("minorMessage") {
+    description("生成未成年人消息")
     parameters {}
     execute {
-        "推荐活动: 远足、骑自行车、野餐"
+        "您需要监护人陪同。"
     }
 }
 
-val indoorActivityTool = tool("suggestIndoorActivity") {
-    description("推荐室内活动")
+val adultMessageTool = tool("adultMessage") {
+    description("生成成年人消息")
     parameters {}
     execute {
-        "推荐活动: 看电影、参观博物馆、购物"
+        "欢迎使用我们的服务。"
+    }
+}
+
+val seniorMessageTool = tool("seniorMessage") {
+    description("生成老年人消息")
+    parameters {}
+    execute {
+        "我们为老年人提供特别服务。"
     }
 }
 
 // 创建条件工具链
-val activitySuggestionChain = toolchain("suggestActivity") {
-    description("根据天气推荐活动")
-    
-    parameters {
-        parameter("city", "城市名称", String::class)
-    }
+val ageCheckChain = toolChain("ageCheck") {
+    description("根据年龄生成不同消息")
     
     steps {
-        // 第一步：检查天气
-        step("weather") {
-            tool = checkWeatherTool
-            parameters {
-                parameter("city", inputParameter("city"))
+        // 第一步：检查年龄
+        step("check") {
+            tool = checkAgeTool
+            inputs {
+                map("age" to input("age"))
             }
         }
         
-        // 条件步骤：根据天气选择不同的工具
-        conditionalStep("suggestion") {
-            condition = { stepOutputs ->
-                val weather = stepOutputs["weather"] as String
-                weather.contains("晴朗")
+        // 条件步骤
+        conditionalStep("message") {
+            condition = output("check")
+            
+            // 未成年人分支
+            case("minor") {
+                tool = minorMessageTool
+                inputs {}
             }
             
-            // 如果天气晴朗，推荐户外活动
-            onTrue {
-                tool = outdoorActivityTool
-                parameters {}
+            // 成年人分支
+            case("adult") {
+                tool = adultMessageTool
+                inputs {}
             }
             
-            // 否则，推荐室内活动
-            onFalse {
-                tool = indoorActivityTool
-                parameters {}
+            // 老年人分支
+            case("senior") {
+                tool = seniorMessageTool
+                inputs {}
+            }
+            
+            // 默认分支
+            default {
+                tool = tool("defaultMessage") {
+                    description("默认消息")
+                    parameters {}
+                    execute {
+                        "无法确定您的年龄类别。"
+                    }
+                }
+                inputs {}
             }
         }
     }
+    
+    output = output("message")
 }
 
-// 使用条件工具链
+// 测试条件工具链
 fun main() = runBlocking {
-    // 对北京（晴朗）的建议
-    val beijingResult = activitySuggestionChain.execute(mapOf(
-        "city" to "北京"
-    ))
-    println("北京: $beijingResult") // 应该推荐户外活动
+    // 测试不同年龄
+    val ages = listOf(15, 30, 70)
     
-    // 对上海（多云）的建议
-    val shanghaiResult = activitySuggestionChain.execute(mapOf(
-        "city" to "上海"
-    ))
-    println("上海: $shanghaiResult") // 应该推荐室内活动
+    for (age in ages) {
+        val result = ageCheckChain.execute(mapOf("age" to age))
+        println("年龄 $age: $result")
+    }
 }
 ```
 
-## 高级工具链 ✅
+## 并行工具链
 
-### 并行执行
-
-工具链可以并行执行多个步骤：
+同时执行多个工具并合并结果：
 
 ```kotlin
 import ai.kastrax.core.tools.tool
-import ai.kastrax.core.tools.toolchain
+import ai.kastrax.core.tools.chain.toolChain
 import kotlinx.coroutines.runBlocking
+import kotlinx.serialization.Serializable
 
-// 定义基础工具
-val fetchWeatherTool = tool("fetchWeather") {
+@Serializable
+data class WeatherInfo(val temperature: Double, val condition: String)
+
+@Serializable
+data class TrafficInfo(val congestion: String, val incidents: Int)
+
+@Serializable
+data class CombinedInfo(val weather: WeatherInfo, val traffic: TrafficInfo)
+
+// 定义工具
+val getWeatherTool = tool("getWeather") {
     description("获取天气信息")
     parameters {
-        parameter("city", "城市名称", String::class)
+        parameter("city", "城市", String::class)
     }
     execute { params ->
         val city = params["city"] as String
-        // 模拟 API 调用
-        "城市: $city, 温度: 25°C, 天气: 晴朗"
+        // 模拟天气 API 调用
+        WeatherInfo(
+            temperature = 25.0,
+            condition = "晴"
+        )
     }
 }
 
-val fetchNewsHeadlinesTool = tool("fetchNewsHeadlines") {
-    description("获取新闻头条")
-    parameters {
-        parameter("category", "新闻类别", String::class)
-    }
-    execute { params ->
-        val category = params["category"] as String
-        // 模拟 API 调用
-        "头条新闻 ($category): 1. 重大科技突破 2. 经济增长强劲 3. 新政策出台"
-    }
-}
-
-val fetchTrafficInfoTool = tool("fetchTrafficInfo") {
+val getTrafficTool = tool("getTraffic") {
     description("获取交通信息")
     parameters {
-        parameter("city", "城市名称", String::class)
+        parameter("city", "城市", String::class)
     }
     execute { params ->
         val city = params["city"] as String
-        // 模拟 API 调用
-        "$city 交通状况: 主要道路畅通，局部拥堵"
+        // 模拟交通 API 调用
+        TrafficInfo(
+            congestion = "中度",
+            incidents = 2
+        )
     }
 }
 
-val summarizeInfoTool = tool("summarizeInfo") {
-    description("汇总信息")
+val combineInfoTool = tool("combineInfo") {
+    description("合并天气和交通信息")
     parameters {
-        parameter("weather", "天气信息", String::class)
-        parameter("news", "新闻信息", String::class)
-        parameter("traffic", "交通信息", String::class)
+        parameter("weather", "天气信息", WeatherInfo::class)
+        parameter("traffic", "交通信息", TrafficInfo::class)
     }
     execute { params ->
-        val weather = params["weather"] as String
-        val news = params["news"] as String
-        val traffic = params["traffic"] as String
+        val weather = params["weather"] as WeatherInfo
+        val traffic = params["traffic"] as TrafficInfo
         
-        """
-        每日简报:
-        
-        天气: $weather
-        
-        新闻: $news
-        
-        交通: $traffic
-        """.trimIndent()
+        CombinedInfo(weather, traffic)
     }
 }
 
 // 创建并行工具链
-val dailyBriefingChain = toolchain("getDailyBriefing") {
-    description("获取每日简报")
-    
-    parameters {
-        parameter("city", "城市名称", String::class)
-        parameter("newsCategory", "新闻类别", String::class, optional = true, defaultValue = "综合")
-    }
+val cityInfoChain = toolChain("cityInfo") {
+    description("获取城市的天气和交通信息")
     
     steps {
-        // 并行执行多个步骤
-        parallelSteps("fetchInfo") {
-            // 获取天气
+        // 并行步骤：同时获取天气和交通信息
+        parallelSteps("info") {
+            // 天气步骤
             step("weather") {
-                tool = fetchWeatherTool
-                parameters {
-                    parameter("city", inputParameter("city"))
+                tool = getWeatherTool
+                inputs {
+                    map("city" to input("city"))
                 }
             }
             
-            // 获取新闻
-            step("news") {
-                tool = fetchNewsHeadlinesTool
-                parameters {
-                    parameter("category", inputParameter("newsCategory"))
-                }
-            }
-            
-            // 获取交通
+            // 交通步骤
             step("traffic") {
-                tool = fetchTrafficInfoTool
-                parameters {
-                    parameter("city", inputParameter("city"))
+                tool = getTrafficTool
+                inputs {
+                    map("city" to input("city"))
                 }
             }
         }
         
-        // 汇总信息
-        step("summarize") {
-            tool = summarizeInfoTool
-            parameters {
-                parameter("weather", stepOutput("fetchInfo.weather"))
-                parameter("news", stepOutput("fetchInfo.news"))
-                parameter("traffic", stepOutput("fetchInfo.traffic"))
+        // 合并结果
+        step("combine") {
+            tool = combineInfoTool
+            inputs {
+                map("weather" to output("info.weather"))
+                map("traffic" to output("info.traffic"))
             }
         }
     }
+    
+    output = output("combine")
 }
 
-// 使用并行工具链
+// 测试并行工具链
 fun main() = runBlocking {
-    val result = dailyBriefingChain.execute(mapOf(
-        "city" to "北京",
-        "newsCategory" to "科技"
-    ))
-    println(result)
+    val result = cityInfoChain.execute(mapOf(
+        "city" to "北京"
+    )) as CombinedInfo
+    
+    println("城市信息:")
+    println("- 天气: ${result.weather.temperature}°C, ${result.weather.condition}")
+    println("- 交通: ${result.traffic.congestion}拥堵, ${result.traffic.incidents}起事故")
 }
 ```
 
-### 循环工具链
+## 错误处理工具链
 
-工具链可以包含循环逻辑：
-
-```kotlin
-import ai.kastrax.core.tools.tool
-import ai.kastrax.core.tools.toolchain
-import kotlinx.coroutines.runBlocking
-
-// 定义基础工具
-val generateNumberTool = tool("generateNumber") {
-    description("生成随机数")
-    parameters {
-        parameter("min", "最小值", Int::class)
-        parameter("max", "最大值", Int::class)
-    }
-    execute { params ->
-        val min = params["min"] as Int
-        val max = params["max"] as Int
-        val random = (min..max).random()
-        "$random"
-    }
-}
-
-val checkNumberTool = tool("checkNumber") {
-    description("检查数字是否达到目标")
-    parameters {
-        parameter("number", "要检查的数字", Int::class)
-        parameter("target", "目标数字", Int::class)
-    }
-    execute { params ->
-        val number = params["number"] as Int
-        val target = params["target"] as Int
-        
-        if (number >= target) {
-            "true"
-        } else {
-            "false"
-        }
-    }
-}
-
-// 创建循环工具链
-val findTargetNumberChain = toolchain("findTargetNumber") {
-    description("生成随机数直到达到目标值")
-    
-    parameters {
-        parameter("min", "最小值", Int::class, optional = true, defaultValue = 1)
-        parameter("max", "最大值", Int::class, optional = true, defaultValue = 100)
-        parameter("target", "目标值", Int::class, optional = true, defaultValue = 90)
-    }
-    
-    steps {
-        // 初始化计数器
-        variable("attempts", "0")
-        variable("number", "0")
-        variable("reached", "false")
-        
-        // 循环直到找到目标数字
-        loopStep("findNumber") {
-            // 循环条件
-            condition = { variables ->
-                val reached = variables["reached"] == "true"
-                val attempts = variables["attempts"]?.toInt() ?: 0
-                !reached && attempts < 10 // 最多尝试 10 次
-            }
-            
-            // 循环体
-            steps {
-                // 增加尝试次数
-                updateVariable("attempts") { variables ->
-                    val attempts = variables["attempts"]?.toInt() ?: 0
-                    (attempts + 1).toString()
-                }
-                
-                // 生成随机数
-                step("generate") {
-                    tool = generateNumberTool
-                    parameters {
-                        parameter("min", inputParameter("min"))
-                        parameter("max", inputParameter("max"))
-                    }
-                }
-                
-                // 更新当前数字
-                updateVariable("number") { _ ->
-                    stepOutput("generate")
-                }
-                
-                // 检查是否达到目标
-                step("check") {
-                    tool = checkNumberTool
-                    parameters {
-                        parameter("number", stepOutput("generate").toInt())
-                        parameter("target", inputParameter("target"))
-                    }
-                }
-                
-                // 更新是否达到目标
-                updateVariable("reached") { _ ->
-                    stepOutput("check")
-                }
-            }
-        }
-        
-        // 返回结果
-        returnStep {
-            """
-            尝试次数: ${variable("attempts")}
-            找到的数字: ${variable("number")}
-            是否达到目标: ${variable("reached")}
-            """.trimIndent()
-        }
-    }
-}
-
-// 使用循环工具链
-fun main() = runBlocking {
-    val result = findTargetNumberChain.execute(mapOf(
-        "min" to 1,
-        "max" to 100,
-        "target" to 90
-    ))
-    println(result)
-}
-```
-
-## 工具链组合 ✅
-
-工具链可以组合使用，一个工具链可以调用另一个工具链：
+处理工具执行过程中的错误：
 
 ```kotlin
 import ai.kastrax.core.tools.tool
-import ai.kastrax.core.tools.toolchain
+import ai.kastrax.core.tools.chain.toolChain
 import kotlinx.coroutines.runBlocking
+import java.io.File
 
-// 定义基础工具链
-val fetchUserDataChain = toolchain("fetchUserData") {
-    description("获取用户数据")
-    
+// 定义工具
+val readFileTool = tool("readFile") {
+    description("读取文件内容")
     parameters {
-        parameter("userId", "用户 ID", String::class)
-    }
-    
-    steps {
-        // 模拟获取用户数据
-        returnStep {
-            """
-            {
-                "id": "${inputParameter("userId")}",
-                "name": "张三",
-                "email": "zhangsan@example.com",
-                "preferences": {
-                    "theme": "dark",
-                    "notifications": true
-                }
-            }
-            """.trimIndent()
-        }
-    }
-}
-
-val analyzeUserPreferencesChain = toolchain("analyzeUserPreferences") {
-    description("分析用户偏好")
-    
-    parameters {
-        parameter("userData", "用户数据 JSON", String::class)
-    }
-    
-    steps {
-        // 模拟分析用户偏好
-        returnStep {
-            val userData = inputParameter("userData")
-            val theme = if (userData.contains("\"theme\": \"dark\"")) "深色" else "浅色"
-            val notifications = if (userData.contains("\"notifications\": true")) "开启" else "关闭"
-            
-            "用户偏好: 主题 = $theme, 通知 = $notifications"
-        }
-    }
-}
-
-// 组合工具链
-val userAnalysisChain = toolchain("analyzeUser") {
-    description("获取并分析用户数据")
-    
-    parameters {
-        parameter("userId", "用户 ID", String::class)
-    }
-    
-    steps {
-        // 第一步：获取用户数据
-        step("fetchData") {
-            tool = fetchUserDataChain
-            parameters {
-                parameter("userId", inputParameter("userId"))
-            }
-        }
-        
-        // 第二步：分析用户偏好
-        step("analyzePreferences") {
-            tool = analyzeUserPreferencesChain
-            parameters {
-                parameter("userData", stepOutput("fetchData"))
-            }
-        }
-    }
-}
-
-// 使用组合工具链
-fun main() = runBlocking {
-    val result = userAnalysisChain.execute(mapOf(
-        "userId" to "user123"
-    ))
-    println(result)
-}
-```
-
-## 工具链错误处理 ✅
-
-工具链可以包含错误处理逻辑：
-
-```kotlin
-import ai.kastrax.core.tools.tool
-import ai.kastrax.core.tools.toolchain
-import kotlinx.coroutines.runBlocking
-
-// 定义可能失败的工具
-val divideNumbersTool = tool("divideNumbers") {
-    description("除两个数")
-    parameters {
-        parameter("a", "被除数", Double::class)
-        parameter("b", "除数", Double::class)
+        parameter("path", "文件路径", String::class)
     }
     execute { params ->
-        val a = params["a"] as Double
-        val b = params["b"] as Double
-        
-        if (b == 0.0) {
-            throw ArithmeticException("除数不能为零")
+        val path = params["path"] as String
+        try {
+            File(path).readText()
+        } catch (e: Exception) {
+            throw RuntimeException("读取文件失败: ${e.message}")
         }
-        
-        "${a / b}"
+    }
+}
+
+val processTextTool = tool("processText") {
+    description("处理文本内容")
+    parameters {
+        parameter("text", "文本内容", String::class)
+    }
+    execute { params ->
+        val text = params["text"] as String
+        text.uppercase()
+    }
+}
+
+val errorHandlerTool = tool("errorHandler") {
+    description("处理错误")
+    parameters {
+        parameter("error", "错误信息", String::class)
+    }
+    execute { params ->
+        val error = params["error"] as String
+        "发生错误: $error"
     }
 }
 
 // 创建带错误处理的工具链
-val divisionChain = toolchain("safeDivision") {
-    description("安全地除两个数")
-    
-    parameters {
-        parameter("a", "被除数", Double::class)
-        parameter("b", "除数", Double::class)
-    }
+val fileProcessChain = toolChain("fileProcess") {
+    description("读取并处理文件内容")
     
     steps {
-        // 尝试执行除法
-        tryStep("division") {
-            // 要尝试的步骤
-            step {
-                tool = divideNumbersTool
-                parameters {
-                    parameter("a", inputParameter("a"))
-                    parameter("b", inputParameter("b"))
+        // 尝试读取文件
+        tryStep("read") {
+            tool = readFileTool
+            inputs {
+                map("path" to input("path"))
+            }
+            
+            // 成功处理
+            onSuccess {
+                step("process") {
+                    tool = processTextTool
+                    inputs {
+                        map("text" to output("read"))
+                    }
                 }
             }
             
-            // 捕获特定异常
-            catch<ArithmeticException> { exception ->
-                "错误: ${exception.message}"
+            // 错误处理
+            onError { error ->
+                step("handleError") {
+                    tool = errorHandlerTool
+                    inputs {
+                        map("error" to error.message)
+                    }
+                }
             }
-            
-            // 捕获所有其他异常
-            catchAll { exception ->
-                "未知错误: ${exception.message}"
-            }
+        }
+    }
+    
+    // 根据执行路径选择输出
+    output = conditional {
+        if (hasOutput("process")) {
+            output("process")
+        } else {
+            output("handleError")
         }
     }
 }
 
-// 使用带错误处理的工具链
+// 测试错误处理工具链
 fun main() = runBlocking {
-    // 正常情况
-    val normalResult = divisionChain.execute(mapOf(
-        "a" to 10.0,
-        "b" to 2.0
+    // 测试存在的文件
+    val validResult = fileProcessChain.execute(mapOf(
+        "path" to "example.txt"
     ))
-    println("正常结果: $normalResult") // 应该是 5.0
+    println("有效文件: $validResult")
     
-    // 错误情况
-    val errorResult = divisionChain.execute(mapOf(
-        "a" to 10.0,
-        "b" to 0.0
+    // 测试不存在的文件
+    val invalidResult = fileProcessChain.execute(mapOf(
+        "path" to "nonexistent.txt"
     ))
-    println("错误结果: $errorResult") // 应该是错误消息
+    println("无效文件: $invalidResult")
 }
 ```
 
-## 工具链测试 ✅
+## 工具链最佳实践
 
-为工具链编写测试：
+### 设计原则
+
+1. **单一职责**：每个工具和工具链应专注于一个特定功能
+2. **模块化**：将复杂工具链分解为可重用的子链
+3. **可测试性**：设计便于测试的工具链，每个步骤都可以独立测试
+4. **错误处理**：在每个关键点添加错误处理逻辑
+5. **文档化**：为工具链提供清晰的文档，包括输入、输出和步骤说明
+
+### 性能优化
+
+1. **并行执行**：使用 `parallelSteps` 并行执行独立步骤
+2. **缓存结果**：缓存频繁使用的中间结果
+3. **延迟加载**：仅在需要时执行步骤
+4. **资源管理**：确保正确释放资源，如文件句柄和网络连接
+
+### 调试技巧
+
+1. **日志记录**：在关键步骤添加日志记录
+2. **步骤监控**：使用 `onStepStart` 和 `onStepComplete` 监控步骤执行
+3. **可视化**：使用工具链可视化工具查看执行流程
+4. **断点**：在开发环境中设置断点调试复杂工具链
+
+## 实际应用示例
+
+### 数据处理管道
 
 ```kotlin
 import ai.kastrax.core.tools.tool
-import ai.kastrax.core.tools.toolchain
+import ai.kastrax.core.tools.chain.toolChain
 import kotlinx.coroutines.runBlocking
-import kotlin.test.Test
-import kotlin.test.assertEquals
-import kotlin.test.assertTrue
+import kotlinx.serialization.Serializable
+import java.io.File
 
-class ToolChainTest {
-    // 测试工具
-    private val addTool = tool("add") {
-        description("加两个数")
-        parameters {
-            parameter("a", "第一个数", Double::class)
-            parameter("b", "第二个数", Double::class)
-        }
-        execute { params ->
-            val a = params["a"] as Double
-            val b = params["b"] as Double
-            "${a + b}"
-        }
-    }
+@Serializable
+data class DataRecord(
+    val id: String,
+    val value: Double,
+    val category: String
+)
+
+// 创建数据处理管道
+val dataProcessingChain = toolChain("dataProcessing") {
+    description("数据加载、清洗、转换和分析管道")
     
-    private val multiplyTool = tool("multiply") {
-        description("乘两个数")
-        parameters {
-            parameter("a", "第一个数", Double::class)
-            parameter("b", "第二个数", Double::class)
-        }
-        execute { params ->
-            val a = params["a"] as Double
-            val b = params["b"] as Double
-            "${a * b}"
-        }
-    }
-    
-    // 测试工具链
-    private val mathChain = toolchain("mathOperations") {
-        description("执行数学运算")
-        
-        parameters {
-            parameter("x", "第一个数", Double::class)
-            parameter("y", "第二个数", Double::class)
-            parameter("z", "第三个数", Double::class)
-        }
-        
-        steps {
-            // 第一步：x + y
-            step("addition") {
-                tool = addTool
+    steps {
+        // 加载数据
+        step("load") {
+            tool = tool("loadData") {
+                description("从CSV文件加载数据")
                 parameters {
-                    parameter("a", inputParameter("x"))
-                    parameter("b", inputParameter("y"))
+                    parameter("filePath", "文件路径", String::class)
+                }
+                execute { params ->
+                    val filePath = params["filePath"] as String
+                    val lines = File(filePath).readLines().drop(1) // 跳过标题行
+                    
+                    lines.map { line ->
+                        val parts = line.split(",")
+                        DataRecord(
+                            id = parts[0],
+                            value = parts[1].toDoubleOrNull() ?: 0.0,
+                            category = parts[2]
+                        )
+                    }
+                }
+            }
+            inputs {
+                map("filePath" to input("filePath"))
+            }
+        }
+        
+        // 清洗数据
+        step("clean") {
+            tool = tool("cleanData") {
+                description("清洗数据记录")
+                parameters {
+                    parameter("records", "数据记录", List::class)
+                }
+                execute { params ->
+                    val records = params["records"] as List<DataRecord>
+                    
+                    // 过滤无效记录
+                    records.filter { record ->
+                        record.id.isNotEmpty() && record.value > 0
+                    }
+                }
+            }
+            inputs {
+                map("records" to output("load"))
+            }
+        }
+        
+        // 按类别分组
+        step("group") {
+            tool = tool("groupByCategory") {
+                description("按类别分组数据")
+                parameters {
+                    parameter("records", "数据记录", List::class)
+                }
+                execute { params ->
+                    val records = params["records"] as List<DataRecord>
+                    records.groupBy { it.category }
+                }
+            }
+            inputs {
+                map("records" to output("clean"))
+            }
+        }
+        
+        // 计算每个类别的统计信息
+        step("analyze") {
+            tool = tool("calculateStats") {
+                description("计算每个类别的统计信息")
+                parameters {
+                    parameter("groupedRecords", "分组数据", Map::class)
+                }
+                execute { params ->
+                    val groupedRecords = params["groupedRecords"] as Map<String, List<DataRecord>>
+                    
+                    groupedRecords.mapValues { (_, records) ->
+                        val values = records.map { it.value }
+                        mapOf(
+                            "count" to records.size,
+                            "sum" to values.sum(),
+                            "average" to values.average(),
+                            "min" to (values.minOrNull() ?: 0.0),
+                            "max" to (values.maxOrNull() ?: 0.0)
+                        )
+                    }
+                }
+            }
+            inputs {
+                map("groupedRecords" to output("group"))
+            }
+        }
+        
+        // 格式化结果
+        step("format") {
+            tool = tool("formatResults") {
+                description("格式化分析结果")
+                parameters {
+                    parameter("stats", "统计信息", Map::class)
+                }
+                execute { params ->
+                    val stats = params["stats"] as Map<String, Map<String, Any>>
+                    
+                    buildString {
+                        append("数据分析结果:\n\n")
+                        
+                        stats.forEach { (category, categoryStats) ->
+                            append("类别: $category\n")
+                            append("- 记录数: ${categoryStats["count"]}\n")
+                            append("- 总和: ${categoryStats["sum"]}\n")
+                            append("- 平均值: ${categoryStats["average"]}\n")
+                            append("- 最小值: ${categoryStats["min"]}\n")
+                            append("- 最大值: ${categoryStats["max"]}\n\n")
+                        }
+                    }
+                }
+            }
+            inputs {
+                map("stats" to output("analyze"))
+            }
+        }
+    }
+    
+    output = output("format")
+}
+```
+
+### 多步骤表单处理
+
+```kotlin
+import ai.kastrax.core.tools.tool
+import ai.kastrax.core.tools.chain.toolChain
+import kotlinx.coroutines.runBlocking
+import kotlinx.serialization.Serializable
+
+@Serializable
+data class UserForm(
+    val name: String,
+    val email: String,
+    val age: Int,
+    val interests: List<String>
+)
+
+// 创建表单处理工具链
+val formProcessingChain = toolChain("formProcessing") {
+    description("多步骤表单验证和处理")
+    
+    steps {
+        // 验证表单
+        step("validate") {
+            tool = tool("validateForm") {
+                description("验证表单数据")
+                parameters {
+                    parameter("form", "表单数据", UserForm::class)
+                }
+                execute { params ->
+                    val form = params["form"] as UserForm
+                    val errors = mutableListOf<String>()
+                    
+                    // 验证名称
+                    if (form.name.isBlank()) {
+                        errors.add("名称不能为空")
+                    }
+                    
+                    // 验证邮箱
+                    if (!form.email.contains("@") || !form.email.contains(".")) {
+                        errors.add("邮箱格式无效")
+                    }
+                    
+                    // 验证年龄
+                    if (form.age < 18 || form.age > 120) {
+                        errors.add("年龄必须在 18 到 120 之间")
+                    }
+                    
+                    // 验证兴趣
+                    if (form.interests.isEmpty()) {
+                        errors.add("至少需要一个兴趣爱好")
+                    }
+                    
+                    mapOf(
+                        "isValid" to errors.isEmpty(),
+                        "errors" to errors,
+                        "form" to form
+                    )
+                }
+            }
+            inputs {
+                map("form" to input("form"))
+            }
+        }
+        
+        // 条件处理
+        conditionalStep("process") {
+            condition = { output ->
+                (output["validate"] as Map<*, *>)["isValid"] as Boolean
+            }
+            
+            // 表单有效
+            case(true) {
+                step("processForm") {
+                    tool = tool("processValidForm") {
+                        description("处理有效表单")
+                        parameters {
+                            parameter("validationResult", "验证结果", Map::class)
+                        }
+                        execute { params ->
+                            val validationResult = params["validationResult"] as Map<*, *>
+                            val form = validationResult["form"] as UserForm
+                            
+                            // 处理表单逻辑
+                            val userId = "USER_${System.currentTimeMillis()}"
+                            
+                            mapOf(
+                                "success" to true,
+                                "userId" to userId,
+                                "message" to "表单处理成功",
+                                "userData" to mapOf(
+                                    "id" to userId,
+                                    "name" to form.name,
+                                    "email" to form.email,
+                                    "age" to form.age,
+                                    "interests" to form.interests,
+                                    "registrationDate" to System.currentTimeMillis()
+                                )
+                            )
+                        }
+                    }
+                    inputs {
+                        map("validationResult" to output("validate"))
+                    }
                 }
             }
             
-            // 第二步：(x + y) * z
-            step("multiplication") {
-                tool = multiplyTool
-                parameters {
-                    parameter("a", stepOutput("addition").toDouble())
-                    parameter("b", inputParameter("z"))
+            // 表单无效
+            case(false) {
+                step("handleErrors") {
+                    tool = tool("handleFormErrors") {
+                        description("处理表单错误")
+                        parameters {
+                            parameter("validationResult", "验证结果", Map::class)
+                        }
+                        execute { params ->
+                            val validationResult = params["validationResult"] as Map<*, *>
+                            val errors = validationResult["errors"] as List<*>
+                            
+                            mapOf(
+                                "success" to false,
+                                "message" to "表单验证失败",
+                                "errors" to errors
+                            )
+                        }
+                    }
+                    inputs {
+                        map("validationResult" to output("validate"))
+                    }
                 }
             }
         }
     }
     
-    @Test
-    fun `test math chain operations`() = runBlocking {
-        // 执行工具链
-        val result = mathChain.execute(mapOf(
-            "x" to 2.0,
-            "y" to 3.0,
-            "z" to 4.0
-        ))
-        
-        // 验证结果：(2 + 3) * 4 = 20
-        assertEquals("20.0", result)
-    }
-    
-    @Test
-    fun `test chain with different inputs`() = runBlocking {
-        // 测试不同的输入值
-        val testCases = listOf(
-            Triple(0.0, 0.0, 0.0), // (0 + 0) * 0 = 0
-            Triple(1.0, 2.0, 3.0), // (1 + 2) * 3 = 9
-            Triple(-1.0, 5.0, 2.0) // (-1 + 5) * 2 = 8
-        )
-        
-        for ((x, y, z) in testCases) {
-            val expected = (x + y) * z
-            val result = mathChain.execute(mapOf(
-                "x" to x,
-                "y" to y,
-                "z" to z
-            ))
-            
-            assertEquals(expected.toString(), result)
+    // 输出取决于表单是否有效
+    output = conditional {
+        if (hasOutput("process.true.processForm")) {
+            output("process.true.processForm")
+        } else {
+            output("process.false.handleErrors")
         }
     }
 }
 ```
 
-## 最佳实践 ✅
+## 下一步
 
-### 工具链设计原则
+现在您已经了解了工具链，您可以：
 
-1. **模块化**：将复杂工具链分解为更小、可重用的工具链
-2. **清晰的步骤命名**：使用描述性名称命名每个步骤
-3. **错误处理**：包含适当的错误处理逻辑
-4. **参数验证**：在工具链开始时验证输入参数
-5. **文档**：为工具链提供详细的描述和示例
-6. **测试**：为工具链编写单元测试和集成测试
-
-### 工具链组织
-
-将相关工具链组织到逻辑组中：
-
-```kotlin
-// 用户相关工具链
-object UserToolChains {
-    val fetchUserData = toolchain("fetchUserData") { /* ... */ }
-    val updateUserProfile = toolchain("updateUserProfile") { /* ... */ }
-    val analyzeUserBehavior = toolchain("analyzeUserBehavior") { /* ... */ }
-}
-
-// 内容相关工具链
-object ContentToolChains {
-    val fetchArticles = toolchain("fetchArticles") { /* ... */ }
-    val generateSummary = toolchain("generateSummary") { /* ... */ }
-    val recommendContent = toolchain("recommendContent") { /* ... */ }
-}
-
-// 在代理中使用
-agent {
-    // ...
-    tools {
-        // 添加用户工具链
-        tool(UserToolChains.fetchUserData)
-        tool(UserToolChains.updateUserProfile)
-        
-        // 添加内容工具链
-        tool(ContentToolChains.fetchArticles)
-        tool(ContentToolChains.generateSummary)
-    }
-}
-```
-
-### 工具链文档
-
-为您的工具链提供详细的文档：
-
-```kotlin
-/**
- * 创建一个内容推荐工具链。
- *
- * 此工具链执行以下步骤：
- * 1. 获取用户数据和偏好
- * 2. 获取最新内容
- * 3. 根据用户偏好过滤内容
- * 4. 生成个性化推荐
- *
- * @param userService 用户服务实例
- * @param contentService 内容服务实例
- * @return 配置好的内容推荐工具链
- */
-fun createContentRecommendationChain(
-    userService: UserService,
-    contentService: ContentService
-) = toolchain("recommendContent") {
-    description("""
-        为用户生成个性化内容推荐。
-        
-        此工具链分析用户偏好并推荐相关内容。
-        
-        参数:
-        - userId: 用户 ID
-        - contentType: 内容类型 (article, video, podcast)
-        - limit: 推荐数量 (默认: 5)
-        
-        示例:
-        - 为用户推荐文章: {"userId": "user123", "contentType": "article"}
-        - 为用户推荐 10 个视频: {"userId": "user123", "contentType": "video", "limit": 10}
-    """.trimIndent())
-    
-    // 实现...
-}
-```
-
-## 总结 ✅
-
-工具链是 Kastrax 中强大的功能，允许您将多个工具组合成复杂的工作流程。通过使用工具链，您可以：
-
-- 创建模块化、可重用的工作流程
-- 实现条件逻辑和循环
-- 并行执行多个步骤
-- 处理错误和异常情况
-- 组合多个工具链创建更复杂的功能
-
-通过遵循本指南中的最佳实践，您可以创建健壮、可维护的工具链，使您的代理能够执行复杂的多步骤任务。
+1. 了解[工具调用生命周期和调试](./tool-lifecycle.mdx)
+2. 探索[工具系统与 Actor 模型集成](./tools-with-actors.mdx)
+3. 了解[工具系统安全性](./tools-security.mdx)
+4. 学习如何[创建自定义工具](./custom-tools.mdx)

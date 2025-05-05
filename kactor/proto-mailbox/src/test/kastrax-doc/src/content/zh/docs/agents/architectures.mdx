@@ -1,0 +1,406 @@
+---
+title: 代理架构 | Kastrax 文档
+description: Kastrax 支持的各种代理架构详细介绍，包括自适应、目标导向、层次化、反思型和创造性代理架构。
+---
+
+# 代理架构
+
+Kastrax 支持多种代理架构，每种架构都有其独特的特点和适用场景。本文档介绍了 Kastrax 中可用的代理架构，帮助您选择最适合您需求的架构。
+
+## 代理架构概述
+
+代理架构定义了代理的思考和行动模式，影响其解决问题的方式、决策过程和与环境的交互方式。选择合适的架构对于构建有效的 AI 代理至关重要。
+
+Kastrax 支持以下主要代理架构：
+
+1. **自适应代理**：根据用户偏好和反馈调整行为
+2. **目标导向代理**：专注于实现特定目标
+3. **层次化代理**：将复杂任务分解为子任务
+4. **反思型代理**：通过自我反思提高性能
+5. **创造性代理**：生成创新的解决方案
+
+## 自适应代理
+
+自适应代理能够根据用户偏好、反馈和交互模式调整其行为和响应。这种架构特别适合需要个性化体验的应用场景。
+
+### 特点
+
+- **用户模型构建**：构建和维护用户偏好和行为模型
+- **反馈学习**：从用户反馈中学习和调整
+- **渐进式适应**：随着时间的推移逐步调整行为
+- **多样化响应**：根据用户偏好调整响应风格和内容
+
+### 适用场景
+
+- 个人助手和虚拟伴侣
+- 客户服务和支持系统
+- 教育和学习应用
+- 内容推荐系统
+
+### 示例实现
+
+```typescript
+// 自适应代理示例
+const adaptiveAgent = agent({
+  name: "自适应助手",
+  instructions: `
+    你是一个自适应助手，能够根据用户偏好和反馈调整你的行为。
+    - 注意用户的语言风格和复杂度，相应地调整你的回答
+    - 记住用户提到的偏好和兴趣
+    - 根据用户的反馈调整你的回答方式
+    - 随着时间的推移，逐步适应用户的需求和期望
+  `,
+  
+  // 自适应代理特定配置
+  adaptiveConfig: {
+    learningRate: 0.1,
+    userModelEnabled: true,
+    feedbackProcessing: "immediate"
+  },
+  
+  // 记忆系统配置
+  memory: {
+    userPreferences: {
+      enabled: true,
+      maxEntries: 50
+    },
+    feedbackHistory: {
+      enabled: true,
+      maxEntries: 20
+    }
+  }
+});
+```
+
+## 目标导向代理
+
+目标导向代理专注于实现特定目标，通过规划和执行一系列步骤来完成任务。这种架构适合需要明确任务完成的应用场景。
+
+### 特点
+
+- **目标分解**：将复杂目标分解为可管理的子目标
+- **行动规划**：制定实现目标的行动计划
+- **进度跟踪**：监控目标完成进度
+- **障碍处理**：识别和克服实现目标的障碍
+
+### 适用场景
+
+- 任务自动化
+- 项目管理助手
+- 问题解决系统
+- 流程优化
+
+### 示例实现
+
+```typescript
+// 目标导向代理示例
+const goalOrientedAgent = agent({
+  name: "目标助手",
+  instructions: `
+    你是一个目标导向助手，专注于帮助用户实现特定目标。
+    - 明确理解用户的目标
+    - 将复杂目标分解为可管理的步骤
+    - 制定实现目标的行动计划
+    - 跟踪进度并适应变化的情况
+    - 提供克服障碍的建议
+  `,
+  
+  // 目标导向代理特定配置
+  goalOrientedConfig: {
+    planningEnabled: true,
+    maxPlanSteps: 10,
+    adaptivePlanning: true,
+    progressTracking: true
+  },
+  
+  // 记忆系统配置
+  memory: {
+    goalMemory: {
+      enabled: true,
+      maxGoals: 5
+    },
+    planMemory: {
+      enabled: true,
+      maxPlans: 10
+    }
+  }
+});
+```
+
+## 层次化代理
+
+层次化代理通过将复杂任务分解为层次结构中的子任务来解决问题。这种架构适合处理复杂、多步骤的任务。
+
+### 特点
+
+- **任务分层**：创建任务和子任务的层次结构
+- **委派能力**：将子任务委派给专门的处理模块
+- **结果整合**：整合子任务的结果
+- **资源分配**：在子任务之间分配资源
+
+### 适用场景
+
+- 复杂问题解决
+- 研究和分析
+- 多步骤工作流
+- 协作项目管理
+
+### 示例实现
+
+```typescript
+// 层次化代理示例
+const hierarchicalAgent = agent({
+  name: "层次化助手",
+  instructions: `
+    你是一个层次化助手，能够处理复杂的多步骤任务。
+    - 将复杂任务分解为层次结构中的子任务
+    - 确定子任务之间的依赖关系
+    - 按照适当的顺序执行子任务
+    - 整合子任务的结果形成完整解决方案
+  `,
+  
+  // 层次化代理特定配置
+  hierarchicalConfig: {
+    maxDepth: 3,
+    subTaskProcessing: "sequential",
+    resultIntegration: "automatic",
+    dependencyTracking: true
+  },
+  
+  // 记忆系统配置
+  memory: {
+    taskHierarchy: {
+      enabled: true,
+      maxTasks: 50
+    },
+    dependencyGraph: {
+      enabled: true
+    }
+  }
+});
+```
+
+## 反思型代理
+
+反思型代理能够评估自己的表现，识别改进机会，并调整其行为。这种架构适合需要持续改进和学习的应用场景。
+
+### 特点
+
+- **自我评估**：评估自己的表现和决策
+- **错误识别**：识别错误和改进机会
+- **策略调整**：基于反思调整策略
+- **元认知能力**：思考自己的思考过程
+
+### 适用场景
+
+- 持续学习系统
+- 复杂决策支持
+- 质量保证和改进
+- 自适应问题解决
+
+### 示例实现
+
+```typescript
+// 反思型代理示例
+const reflectiveAgent = agent({
+  name: "反思型助手",
+  instructions: `
+    你是一个反思型助手，能够评估和改进自己的表现。
+    - 评估你的回答的质量和相关性
+    - 识别错误、遗漏或改进机会
+    - 在必要时修正或完善你的回答
+    - 学习并应用从过去交互中获得的经验
+  `,
+  
+  // 反思型代理特定配置
+  reflectiveConfig: {
+    selfEvaluationEnabled: true,
+    evaluationFrequency: "afterEachResponse",
+    learningFromMistakes: true,
+    metacognitionLevel: "high"
+  },
+  
+  // 记忆系统配置
+  memory: {
+    performanceHistory: {
+      enabled: true,
+      maxEntries: 100
+    },
+    lessonsLearned: {
+      enabled: true,
+      maxEntries: 50
+    }
+  }
+});
+```
+
+## 创造性代理
+
+创造性代理专注于生成新颖、有用的想法和解决方案。这种架构适合需要创新和创造力的应用场景。
+
+### 特点
+
+- **发散思维**：探索多种可能性和视角
+- **创新生成**：创造新颖的想法和解决方案
+- **类比推理**：使用类比和隐喻促进创造性思考
+- **约束突破**：挑战假设和突破常规思维
+
+### 适用场景
+
+- 创意生成和头脑风暴
+- 产品设计和创新
+- 内容创作和故事生成
+- 艺术和创意表达
+
+### 示例实现
+
+```typescript
+// 创造性代理示例
+const creativeAgent = agent({
+  name: "创造性助手",
+  instructions: `
+    你是一个创造性助手，专注于生成新颖、有用的想法和解决方案。
+    - 探索多种可能性和视角
+    - 提出非常规和创新的想法
+    - 使用类比和隐喻促进创造性思考
+    - 挑战假设和常规思维模式
+    - 平衡创新性和实用性
+  `,
+  
+  // 创造性代理特定配置
+  creativeConfig: {
+    divergentThinking: "high",
+    analogicalReasoning: true,
+    constraintRelaxation: true,
+    noveltyPreference: 0.7
+  },
+  
+  // 记忆系统配置
+  memory: {
+    ideaRepository: {
+      enabled: true,
+      maxIdeas: 200
+    },
+    analogyLibrary: {
+      enabled: true,
+      maxEntries: 100
+    }
+  }
+});
+```
+
+## 混合架构
+
+在实际应用中，您可能需要结合多种架构的特点来满足特定需求。Kastrax 支持创建混合架构代理，融合不同架构的优势。
+
+### 示例：反思型目标导向代理
+
+```typescript
+// 反思型目标导向代理示例
+const reflectiveGoalAgent = agent({
+  name: "反思型目标助手",
+  instructions: `
+    你是一个结合了反思能力和目标导向的助手。
+    - 明确理解和分解用户目标
+    - 制定实现目标的行动计划
+    - 在执行过程中持续评估进展和策略
+    - 识别并学习从错误和成功中获得的经验
+    - 根据反思调整计划和行动
+  `,
+  
+  // 混合配置
+  config: {
+    // 目标导向特性
+    planningEnabled: true,
+    maxPlanSteps: 8,
+    progressTracking: true,
+    
+    // 反思型特性
+    selfEvaluationEnabled: true,
+    evaluationFrequency: "afterEachStep",
+    learningFromMistakes: true
+  },
+  
+  // 记忆系统配置
+  memory: {
+    goalMemory: { enabled: true },
+    planMemory: { enabled: true },
+    performanceHistory: { enabled: true },
+    lessonsLearned: { enabled: true }
+  }
+});
+```
+
+## 选择合适的架构
+
+选择代理架构时，请考虑以下因素：
+
+1. **任务性质**：任务是否需要创造力、规划能力或适应性？
+2. **用户需求**：用户是否需要个性化体验或一致的目标完成？
+3. **复杂性**：任务的复杂性和结构化程度如何？
+4. **交互模式**：代理将如何与用户和环境交互？
+5. **资源限制**：可用的计算资源和时间限制是什么？
+
+下表提供了不同架构的比较：
+
+| 架构 | 优势 | 劣势 | 最佳应用场景 |
+|------|------|------|------------|
+| 自适应 | 个性化体验，用户满意度高 | 需要时间学习用户偏好 | 个人助手，客户服务 |
+| 目标导向 | 高效完成任务，结构化方法 | 灵活性可能有限 | 任务自动化，项目管理 |
+| 层次化 | 处理复杂任务，模块化方法 | 可能需要更多资源 | 复杂问题解决，研究分析 |
+| 反思型 | 持续改进，高质量输出 | 额外的计算开销 | 决策支持，质量保证 |
+| 创造性 | 新颖解决方案，突破性思维 | 可能需要更多引导 | 创意生成，内容创作 |
+
+## 自定义架构
+
+除了预定义的架构外，Kastrax 还允许您创建完全自定义的代理架构，以满足特定需求。
+
+### 自定义架构示例
+
+```typescript
+// 自定义架构示例：专家咨询代理
+const expertConsultantAgent = agent({
+  name: "专家咨询助手",
+  instructions: `
+    你是一个专家咨询助手，专注于提供深入、权威的专业建议。
+    - 深入理解用户的专业问题
+    - 提供基于证据和最佳实践的建议
+    - 明确指出不确定性和限制
+    - 在必要时引用可靠来源
+    - 使用适当的专业术语，同时保持清晰
+  `,
+  
+  // 自定义架构配置
+  customConfig: {
+    expertiseLevel: "high",
+    evidenceBasedReasoning: true,
+    uncertaintyDisclosure: true,
+    technicalLanguageLevel: "adaptive"
+  },
+  
+  // 记忆系统配置
+  memory: {
+    domainKnowledge: {
+      enabled: true,
+      maxEntries: 500
+    },
+    caseHistory: {
+      enabled: true,
+      maxEntries: 100
+    },
+    referenceLibrary: {
+      enabled: true,
+      maxEntries: 200
+    }
+  }
+});
+```
+
+## 下一步
+
+现在您已经了解了 Kastrax 支持的各种代理架构，您可以：
+
+1. 探索 [Kotlin 代理架构](./architectures-kotlin.mdx)的实现细节
+2. 学习如何[添加工具](./adding-tools.mdx)到不同架构的代理
+3. 了解代理[监控](./monitoring-kotlin.mdx)和[版本控制](./versioning-kotlin.mdx)
+4. 深入了解[记忆系统](/docs/memory/overview.mdx)如何支持不同的代理架构
