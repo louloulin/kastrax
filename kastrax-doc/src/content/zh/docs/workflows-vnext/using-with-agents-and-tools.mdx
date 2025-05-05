@@ -1,0 +1,225 @@
+---
+title: "在工作流中使用代理和工具 | 工作流 (vNext) | Kastrax 文档"
+description: "Kastrax 工作流 (vNext) 中的步骤通过定义输入、输出和执行逻辑，提供了一种结构化的方式来管理操作。"
+---
+
+## 将代理作为步骤 ✅
+
+vNext 工作流可以使用 `createStep(agent)` 直接将 Kastrax 代理作为步骤使用：
+
+```kotlin
+import ai.kastrax.core.agent.agent
+import ai.kastrax.core.workflow.vnext.*
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+
+// 在其他地方定义的代理
+val myAgent = agent {
+    name("myAgent")
+    description("...")
+    
+    model = deepSeek {
+        apiKey("your-deepseek-api-key")
+        model(DeepSeekModel.DEEPSEEK_CHAT)
+        temperature(0.7)
+    }
+}
+
+// 创建带有代理的 Kastrax 实例
+val kastrax = Kastrax {
+    agents {
+        register("myAgent", myAgent)
+    }
+    
+    vnextWorkflows {
+        register("myWorkflow", myWorkflow)
+    }
+}
+
+// 在工作流中使用代理
+myWorkflow
+    .then(preparationStep)
+    .map {
+        prompt = it.getOutput(preparationStep, "formattedPrompt")
+    }
+    .then(createStep(myAgent)) // 直接将代理作为步骤使用
+    .then(processResultStep)
+    .commit()
+```
+
+## 将工具作为步骤 ✅
+
+vNext 工作流可以使用 `createStep(tool)` 直接将 Kastrax 工具作为步骤使用：
+
+```kotlin
+import ai.kastrax.core.tools.tool
+import ai.kastrax.core.workflow.vnext.*
+
+// 创建工具
+val myTool = tool("myTool") {
+    description("我的工具")
+    
+    parameters {
+        // 参数定义...
+    }
+    
+    execute { params ->
+        // 执行逻辑...
+        "成功"
+    }
+}
+
+// 在工作流中使用工具
+myWorkflow
+    .then(createStep(myTool))
+    .then(finalStep)
+    .commit()
+```
+
+## 在代理中将工作流作为工具 ✅
+
+```kotlin
+import ai.kastrax.core.agent.agent
+import ai.kastrax.core.tools.tool
+import ai.kastrax.core.workflow.vnext.*
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.runBlocking
+
+// 创建天气工作流
+val weatherWorkflow = createWorkflow("weather-workflow") {
+    inputSchema {
+        field("city", "要获取天气的城市", String::class)
+    }
+    
+    outputSchema {
+        field("activities", "推荐的活动", String::class)
+    }
+}
+.then(fetchWeatherStep)
+.then(planActivitiesStep)
+
+// 创建活动规划工具
+val activityPlannerTool = tool("getWeatherSpecificActivities") {
+    description("获取城市的天气特定活动")
+    
+    parameters {
+        parameter("city", "城市名称", String::class)
+    }
+    
+    execute { params ->
+        val city = params["city"] as String
+        val kastrax = getKastraxInstance()
+        
+        // 获取工作流
+        val plannerWorkflow = kastrax.getWorkflow("my-workflow")
+        if (plannerWorkflow == null) {
+            return "错误：找不到规划工作流"
+        }
+        
+        // 创建工作流运行
+        val run = plannerWorkflow.createRun()
+        val results = runBlocking {
+            run.start(mapOf(
+                "city" to city
+            ))
+        }
+        
+        // 获取活动规划步骤的结果
+        val planActivitiesStep = results.getStepResult("plan-activities")
+        if (planActivitiesStep.isSuccess()) {
+            return planActivitiesStep.getOutput("activities")
+        }
+        
+        "未找到活动"
+    }
+}
+
+// 创建活动规划代理
+val activityPlannerAgent = agent {
+    name("activityPlannerAgent")
+    description("""
+        你是一个活动规划师。你可以使用一个工具来获取任何城市的天气特定活动。
+        该工具使用代理来规划活动，你只需提供城市名称。
+        无论你获得什么信息，都按原样返回，并在上面添加你自己的想法。
+    """.trimIndent())
+    
+    model = deepSeek {
+        apiKey("your-deepseek-api-key")
+        model(DeepSeekModel.DEEPSEEK_CHAT)
+        temperature(0.7)
+    }
+    
+    tools {
+        tool(activityPlannerTool)
+    }
+}
+
+// 创建 Kastrax 实例
+val kastrax = Kastrax {
+    vnextWorkflows {
+        register("my-workflow", myWorkflow)
+    }
+    
+    agents {
+        register("activityPlannerAgent", activityPlannerAgent)
+    }
+}
+```
+
+## 工作流与代理和工具集成的最佳实践 ✅
+
+### 设计考虑
+
+1. **明确职责分工**：
+   - 使用工作流来协调复杂的多步骤流程
+   - 使用代理来处理需要自然语言理解的任务
+   - 使用工具来执行特定的功能操作
+
+2. **数据流设计**：
+   - 确保工作流步骤之间的数据流清晰明确
+   - 使用映射函数转换数据以匹配下一步骤的预期输入
+   - 考虑使用中间步骤来处理和转换数据
+
+3. **错误处理**：
+   - 在工作流中实现适当的错误处理机制
+   - 考虑使用条件步骤来处理不同的结果路径
+   - 提供有意义的错误消息和回退策略
+
+### 性能优化
+
+1. **并行执行**：
+   - 使用并行步骤执行独立的操作
+   - 避免不必要的序列依赖
+
+2. **资源管理**：
+   - 合理配置超时和重试策略
+   - 考虑长时间运行操作的中止机制
+
+3. **缓存策略**：
+   - 对于频繁使用的数据，考虑实现缓存
+   - 避免重复调用相同的外部服务
+
+### 测试和调试
+
+1. **单元测试**：
+   - 单独测试每个工作流步骤
+   - 使用模拟对象模拟代理和工具的行为
+
+2. **集成测试**：
+   - 测试完整的工作流执行
+   - 验证代理和工具之间的交互
+
+3. **日志和监控**：
+   - 实现详细的日志记录
+   - 监控工作流执行性能和错误率
+
+## 总结 ✅
+
+通过将代理和工具集成到工作流中，您可以创建强大的自动化解决方案，结合了结构化流程的可靠性和 AI 代理的灵活性。这种集成使您能够：
+
+- 使用代理处理需要自然语言理解的复杂任务
+- 使用工具执行特定的功能操作
+- 使用工作流协调整个过程并管理数据流
+
+通过遵循本指南中的最佳实践，您可以创建高效、可靠且可维护的集成解决方案。

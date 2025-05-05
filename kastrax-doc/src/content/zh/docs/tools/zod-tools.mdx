@@ -1,0 +1,518 @@
+---
+title: Zod 工具系统 | Kastrax 文档
+description: Kastrax 的 Zod 工具系统详细指南，包括类型安全的工具创建、模式定义和验证。
+---
+
+# Zod 工具系统 ✅
+
+Kastrax 的 Zod 工具系统提供了一种类型安全的方式来定义和使用工具。本指南详细介绍了如何使用 Zod 工具系统创建强大的工具。
+
+## Zod 工具概述 ✅
+
+Zod 工具系统受到 TypeScript 的 Zod 库启发，为 Kotlin 提供了类似的类型安全模式验证功能。使用 Zod 工具，您可以：
+
+- 定义类型安全的输入和输出模式
+- 自动验证工具输入
+- 在验证后转换数据
+- 与 Kotlin 数据类无缝集成
+
+## 基本用法 ✅
+
+### 创建简单的 Zod 工具
+
+以下是创建简单 Zod 工具的基本模式：
+
+```kotlin
+import ai.kastrax.core.tools.zodTool
+import ai.kastrax.zod.*
+import kotlinx.coroutines.runBlocking
+
+// 创建一个简单的字符串反转工具
+val reverseStringTool = zodTool<String, String> {
+    id = "reverse_string"
+    name = "字符串反转"
+    description = "反转输入的字符串"
+    
+    // 使用辅助函数定义输入和输出模式
+    inputSchema = stringInput("要反转的字符串")
+    outputSchema = stringOutput("反转后的字符串")
+    
+    // 实现执行逻辑
+    execute = { input ->
+        input.reversed()
+    }
+}
+
+// 使用工具
+fun main() = runBlocking {
+    val result = reverseStringTool.execute("你好，世界！")
+    println(result) // 输出: "！界世，好你"
+}
+```
+
+### 使用数据类
+
+Zod 工具系统可以与 Kotlin 数据类无缝集成：
+
+```kotlin
+import ai.kastrax.core.tools.zodTool
+import ai.kastrax.zod.*
+import kotlinx.coroutines.runBlocking
+
+// 定义输入和输出数据类
+data class GreetingInput(
+    val name: String,
+    val language: String = "zh"
+)
+
+data class GreetingOutput(
+    val message: String,
+    val language: String
+)
+
+// 创建使用数据类的工具
+val greetingTool = zodTool<GreetingInput, GreetingOutput> {
+    id = "greeting"
+    name = "问候工具"
+    description = "生成不同语言的问候语"
+    
+    // 定义输入模式并转换为数据类
+    inputSchema = objectInput("问候输入") {
+        stringField("name", "要问候的人名")
+        stringField("language", "语言代码", required = false) {
+            enum("zh", "en", "ja", "fr")
+        }
+    }.transform { input ->
+        GreetingInput(
+            name = input["name"] as String,
+            language = (input["language"] as? String) ?: "zh"
+        )
+    }
+    
+    // 定义输出模式
+    outputSchema = objectOutput("问候输出") {
+        stringField("message", "问候消息")
+        stringField("language", "使用的语言")
+    }.transform { output ->
+        GreetingOutput(
+            message = output["message"] as String,
+            language = output["language"] as String
+        )
+    }
+    
+    // 实现执行逻辑
+    execute = { input ->
+        val message = when (input.language) {
+            "en" -> "Hello, ${input.name}!"
+            "ja" -> "こんにちは、${input.name}さん！"
+            "fr" -> "Bonjour, ${input.name}!"
+            else -> "你好，${input.name}！"
+        }
+        
+        GreetingOutput(message, input.language)
+    }
+}
+
+// 使用工具
+fun main() = runBlocking {
+    val result = greetingTool.execute(GreetingInput("张三", "zh"))
+    println(result.message) // 输出: "你好，张三！"
+}
+```
+
+## 模式定义 ✅
+
+Zod 工具系统提供了多种辅助函数来定义模式：
+
+### 基本类型模式
+
+```kotlin
+// 字符串模式
+val stringSchema = stringInput("字符串输入")
+
+// 数字模式
+val numberSchema = numberInput("数字输入")
+
+// 布尔模式
+val booleanSchema = booleanInput("布尔输入")
+
+// 枚举模式
+val enumSchema = enumInput(MyEnum::class.java, "枚举输入")
+```
+
+### 对象模式
+
+```kotlin
+// 对象模式
+val userSchema = objectInput("用户数据") {
+    // 必填字段
+    stringField("username", "用户名") {
+        minLength = 3
+        maxLength = 20
+    }
+    
+    // 可选字段
+    stringField("email", "电子邮件", required = false) {
+        email = true
+    }
+    
+    // 嵌套对象
+    objectField("address", "地址", required = false) {
+        stringField("city", "城市")
+        stringField("street", "街道")
+    }
+    
+    // 数组字段
+    arrayField("tags", "标签", required = false) {
+        element = stringInput()
+    }
+}
+```
+
+### 数组模式
+
+```kotlin
+// 字符串数组
+val stringArraySchema = arrayInput(stringInput(), "字符串数组")
+
+// 对象数组
+val userArraySchema = arrayInput(
+    objectInput {
+        stringField("name", "姓名")
+        numberField("age", "年龄")
+    },
+    "用户数组"
+)
+```
+
+## 模式验证和转换 ✅
+
+### 验证规则
+
+Zod 工具系统支持多种验证规则：
+
+```kotlin
+// 字符串验证
+stringInput {
+    minLength = 3 // 最小长度
+    maxLength = 20 // 最大长度
+    pattern = "^[a-zA-Z0-9]+$" // 正则表达式模式
+    email = true // 电子邮件验证
+    url = true // URL 验证
+}
+
+// 数字验证
+numberInput {
+    min = 0.0 // 最小值
+    max = 100.0 // 最大值
+    int = true // 整数验证
+    positive = true // 正数验证
+}
+```
+
+### 数据转换
+
+您可以使用 `transform` 方法转换数据：
+
+```kotlin
+// 转换字符串为大写
+val uppercaseSchema = stringInput().transform { it.uppercase() }
+
+// 转换对象为数据类
+val userSchema = objectInput {
+    stringField("name", "姓名")
+    numberField("age", "年龄")
+}.transform { input ->
+    User(
+        name = input["name"] as String,
+        age = (input["age"] as Number).toInt()
+    )
+}
+```
+
+## 与代理集成 ✅
+
+将 Zod 工具与代理集成：
+
+```kotlin
+import ai.kastrax.core.agent.agent
+import ai.kastrax.core.tools.zodTool
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import ai.kastrax.zod.*
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    // 创建 Zod 工具
+    val weatherTool = zodTool<Map<String, Any?>, Map<String, Any?>> {
+        id = "getWeather"
+        name = "获取天气"
+        description = "获取指定城市的天气信息"
+        
+        inputSchema = objectInput {
+            stringField("city", "城市名称")
+            stringField("unit", "温度单位", required = false) {
+                enum("celsius", "fahrenheit")
+            }
+        }
+        
+        outputSchema = objectOutput {
+            numberField("temperature", "温度")
+            stringField("conditions", "天气状况")
+            stringField("city", "城市名称")
+            stringField("unit", "温度单位")
+        }
+        
+        execute = { input ->
+            val city = input["city"] as String
+            val unit = (input["unit"] as? String) ?: "celsius"
+            
+            // 模拟天气 API 调用
+            val temperature = 23.5
+            val conditions = "晴朗"
+            
+            mapOf(
+                "temperature" to temperature,
+                "conditions" to conditions,
+                "city" to city,
+                "unit" to unit
+            )
+        }
+    }
+    
+    // 创建使用 Zod 工具的代理
+    val agent = agent {
+        name("天气助手")
+        description("一个可以提供天气信息的助手")
+        
+        model = deepSeek {
+            apiKey("your-deepseek-api-key")
+            model(DeepSeekModel.DEEPSEEK_CHAT)
+            temperature(0.7)
+        }
+        
+        // 添加 Zod 工具
+        tools {
+            tool(weatherTool.toTool()) // 将 ZodTool 转换为 Tool
+        }
+    }
+    
+    // 使用代理
+    val response = agent.generate("北京今天的天气怎么样？")
+    println(response.text)
+}
+```
+
+## 高级用法 ✅
+
+### 组合模式
+
+您可以组合多个模式创建复杂的验证规则：
+
+```kotlin
+// 联合类型
+val stringOrNumberSchema = union(stringInput(), numberInput())
+
+// 交叉类型
+val baseUserSchema = objectInput {
+    stringField("id", "用户 ID")
+}
+
+val profileSchema = objectInput {
+    stringField("name", "姓名")
+    numberField("age", "年龄")
+}
+
+val userWithProfileSchema = intersection(baseUserSchema, profileSchema)
+```
+
+### 自定义验证
+
+您可以添加自定义验证逻辑：
+
+```kotlin
+// 自定义验证
+val evenNumberSchema = numberInput().refine(
+    check = { it % 2 == 0.0 },
+    message = "必须是偶数"
+)
+
+// 复杂验证
+val passwordSchema = stringInput().refine(
+    check = { password ->
+        password.length >= 8 &&
+        password.any { it.isDigit() } &&
+        password.any { it.isUpperCase() } &&
+        password.any { it.isLowerCase() }
+    },
+    message = "密码必须至少包含 8 个字符，并包含数字、大写字母和小写字母"
+)
+```
+
+## 错误处理 ✅
+
+Zod 工具系统提供了详细的错误信息：
+
+```kotlin
+import ai.kastrax.zod.*
+
+fun main() {
+    val userSchema = objectInput {
+        stringField("username", "用户名") {
+            minLength = 3
+        }
+        numberField("age", "年龄") {
+            min = 18.0
+        }
+    }
+    
+    // 验证无效数据
+    val invalidData = mapOf(
+        "username" to "ab", // 太短
+        "age" to 16 // 太小
+    )
+    
+    // 使用 safeParse 获取详细错误信息
+    val result = userSchema.safeParse(invalidData)
+    
+    when (result) {
+        is SchemaResult.Success -> {
+            println("验证成功: ${result.data}")
+        }
+        is SchemaResult.Failure -> {
+            println("验证失败:")
+            result.error.issues.forEach { issue ->
+                println("- ${issue.path.joinToString(".")}: ${issue.message}")
+            }
+        }
+    }
+}
+```
+
+## 最佳实践 ✅
+
+### 模式重用
+
+为了提高代码可维护性，将常用模式提取为变量：
+
+```kotlin
+// 定义可重用的模式
+val emailSchema = stringInput("电子邮件地址") {
+    email = true
+}
+
+val passwordSchema = stringInput("密码") {
+    minLength = 8
+    // 添加其他验证...
+}
+
+// 在多个工具中重用
+val registerTool = zodTool<Map<String, Any?>, Map<String, Any?>> {
+    // ...
+    inputSchema = objectInput {
+        field("email", emailSchema)
+        field("password", passwordSchema)
+        // 其他字段...
+    }
+    // ...
+}
+
+val loginTool = zodTool<Map<String, Any?>, Map<String, Any?>> {
+    // ...
+    inputSchema = objectInput {
+        field("email", emailSchema)
+        field("password", passwordSchema)
+    }
+    // ...
+}
+```
+
+### 模块化工具定义
+
+将工具定义组织到单独的文件或对象中：
+
+```kotlin
+// UserTools.kt
+object UserTools {
+    // 共享模式
+    private val emailSchema = stringInput("电子邮件地址") {
+        email = true
+    }
+    
+    private val passwordSchema = stringInput("密码") {
+        minLength = 8
+    }
+    
+    // 注册工具
+    val registerTool = zodTool<Map<String, Any?>, Map<String, Any?>> {
+        id = "register"
+        name = "用户注册"
+        description = "注册新用户"
+        
+        inputSchema = objectInput {
+            field("email", emailSchema)
+            field("password", passwordSchema)
+            stringField("name", "姓名")
+        }
+        
+        outputSchema = objectOutput {
+            stringField("userId", "用户 ID")
+            stringField("message", "注册结果消息")
+        }
+        
+        execute = { input ->
+            // 实现注册逻辑...
+            mapOf(
+                "userId" to "user-123",
+                "message" to "注册成功"
+            )
+        }
+    }
+    
+    // 登录工具
+    val loginTool = zodTool<Map<String, Any?>, Map<String, Any?>> {
+        id = "login"
+        name = "用户登录"
+        description = "用户登录系统"
+        
+        inputSchema = objectInput {
+            field("email", emailSchema)
+            field("password", passwordSchema)
+        }
+        
+        outputSchema = objectOutput {
+            stringField("token", "访问令牌")
+            stringField("message", "登录结果消息")
+        }
+        
+        execute = { input ->
+            // 实现登录逻辑...
+            mapOf(
+                "token" to "jwt-token-xyz",
+                "message" to "登录成功"
+            )
+        }
+    }
+}
+
+// 在代理中使用
+agent {
+    // ...
+    tools {
+        tool(UserTools.registerTool.toTool())
+        tool(UserTools.loginTool.toTool())
+    }
+}
+```
+
+## 总结 ✅
+
+Kastrax 的 Zod 工具系统提供了一种类型安全、可组合和可扩展的方式来定义和使用工具。通过使用 Zod 工具，您可以：
+
+- 创建具有严格类型检查的工具
+- 自动验证输入数据
+- 将验证后的数据转换为 Kotlin 数据类
+- 提供详细的错误信息
+- 组合和重用模式定义
+
+这些功能使您能够构建更加健壮和可维护的 AI 代理应用程序。

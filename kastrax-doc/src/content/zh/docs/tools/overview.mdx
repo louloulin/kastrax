@@ -1,6 +1,23 @@
+---
+title: 工具系统概述 | Kastrax 文档
+description: Kastrax 工具系统的详细介绍，包括工具定义、注册、调用和自定义工具的创建方法。
+---
+
 # 工具系统概述 ✅
 
 Kastrax 工具系统允许代理与外部系统交互、访问数据和执行操作。本指南解释了工具系统的架构以及如何有效地使用它。
+
+## 什么是工具？ ✅
+
+在 Kastrax 中，工具是代理可以调用的函数，使其能够：
+
+- 执行计算和数据处理
+- 与外部系统交互
+- 访问和修改文件
+- 搜索网络信息
+- 执行特定领域的操作
+
+工具扩展了代理的能力，使其不仅限于生成文本，还能执行实际操作。
 
 ## 工具系统架构 ✅
 
@@ -619,6 +636,120 @@ fun main() = runBlocking {
     println(agent.generate("计算 15.5 + 27.3").text)
     println(agent.generate("在 1 到 100 之间生成一个随机数").text)
     println(agent.generate("计算 '敏捷的棕色狐狸跳过懒狗' 中的单词数").text)
+}
+```
+
+## 类型安全的 Zod 工具 ✅
+
+Kastrax 提供了受 Zod 启发的模式系统，用于创建类型安全的工具：
+
+```kotlin
+import ai.kastrax.core.tools.zodTool
+import ai.kastrax.zod.*
+
+// 定义输入和输出类型
+data class CalculatorInput(
+    val operation: String,
+    val a: Double,
+    val b: Double
+)
+
+data class CalculatorOutput(
+    val result: Double
+)
+
+// 创建类型安全的工具
+val calculatorTool = zodTool<CalculatorInput, CalculatorOutput> {
+    id = "calculator"
+    name = "计算器"
+    description = "执行基本的数学运算"
+
+    // 定义输入模式
+    inputSchema = objectInput("计算器输入") {
+        stringField("operation", "要执行的操作") {
+            enum("add", "subtract", "multiply", "divide")
+        }
+        numberField("a", "第一个操作数")
+        numberField("b", "第二个操作数")
+    }.transform { input ->
+        CalculatorInput(
+            operation = input["operation"] as String,
+            a = (input["a"] as Number).toDouble(),
+            b = (input["b"] as Number).toDouble()
+        )
+    }
+
+    // 定义输出模式
+    outputSchema = objectOutput("计算器输出") {
+        numberField("result", "运算结果")
+    }.transform { output ->
+        CalculatorOutput(
+            result = (output["result"] as Number).toDouble()
+        )
+    }
+
+    // 实现执行逻辑
+    execute = { input ->
+        val result = when (input.operation) {
+            "add" -> input.a + input.b
+            "subtract" -> input.a - input.b
+            "multiply" -> input.a * input.b
+            "divide" -> input.a / input.b
+            else -> throw IllegalArgumentException("未知操作: ${input.operation}")
+        }
+
+        CalculatorOutput(result)
+    }
+}
+```
+
+### Zod 模式系统的优势
+
+使用 Zod 模式系统创建工具有以下优势：
+
+1. **类型安全**：在编译时捕获类型错误
+2. **输入验证**：自动验证工具输入
+3. **数据转换**：在验证后转换数据
+4. **清晰的 API**：使用链式 API 定义模式
+5. **与数据类集成**：方便地与 Kotlin 数据类集成
+
+### 简单的 Zod 工具示例
+
+以下是一个简单的字符串反转工具：
+
+```kotlin
+import ai.kastrax.core.tools.zodTool
+import ai.kastrax.zod.stringInput
+import ai.kastrax.zod.stringOutput
+import kotlinx.coroutines.runBlocking
+
+fun main() {
+    // 创建一个简单的字符串反转工具
+    val reverseStringTool = zodTool<String, String> {
+        id = "reverse_string"
+        name = "字符串反转"
+        description = "反转输入的字符串"
+
+        // 使用 stringInput 和 stringOutput 辅助函数创建模式
+        inputSchema = stringInput("要反转的字符串")
+        outputSchema = stringOutput("反转后的字符串")
+
+        // 实现执行逻辑
+        execute = { input ->
+            input.reversed()
+        }
+    }
+
+    // 使用工具
+    val input = "你好，世界！"
+
+    // 执行工具
+    val output = runBlocking {
+        reverseStringTool.execute(input)
+    }
+
+    println("原始字符串: $input")
+    println("反转后的字符串: $output")
 }
 ```
 

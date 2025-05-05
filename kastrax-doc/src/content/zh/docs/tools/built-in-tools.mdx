@@ -1,0 +1,603 @@
+---
+title: 内置工具 | Kastrax 文档
+description: Kastrax 提供的内置工具详细指南，包括计算器、网络搜索、文件系统等工具。
+---
+
+# 内置工具 ✅
+
+Kastrax 提供了一系列开箱即用的内置工具。这些工具涵盖了常见用例，如计算、网络搜索、文件操作等。本指南将介绍如何在代理中使用这些内置工具。
+
+## 工具工厂 ✅
+
+使用内置工具的最简单方法是通过 `ToolFactory` 类：
+
+```kotlin
+import ai.kastrax.core.tools.ToolFactory
+import ai.kastrax.core.agent.agent
+import ai.kastrax.core.tools.web.WebSearchTool
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    // 创建使用内置工具的代理
+    val myAgent = agent {
+        name("内置工具代理")
+        description("一个使用内置工具的代理")
+        
+        // 配置 LLM
+        model = deepSeek {
+            apiKey("your-deepseek-api-key")
+            model(DeepSeekModel.DEEPSEEK_CHAT)
+            temperature(0.7)
+        }
+        
+        // 添加内置工具
+        tools {
+            // 添加计算器工具
+            add(ToolFactory.createCalculatorTool())
+            
+            // 添加网络搜索工具
+            add(ToolFactory.createWebSearchTool(
+                apiKey = "your-search-api-key",
+                searchEngine = WebSearchTool.SearchEngine.GOOGLE,
+                maxResults = 5
+            ))
+            
+            // 添加文件系统工具
+            add(ToolFactory.createFileSystemTool(
+                rootPath = "./data",
+                allowAbsolutePaths = false
+            ))
+        }
+    }
+    
+    // 使用代理
+    val response = myAgent.generate("144 的平方根是多少？")
+    println(response.text)
+}
+```
+
+## 计算器工具 ✅
+
+计算器工具执行数学计算：
+
+```kotlin
+import ai.kastrax.core.tools.ToolFactory
+import ai.kastrax.core.agent.agent
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    // 创建使用计算器工具的代理
+    val myAgent = agent {
+        name("计算助手")
+        description("一个可以执行数学计算的助手")
+        
+        // 配置 LLM
+        model = deepSeek {
+            apiKey("your-deepseek-api-key")
+            model(DeepSeekModel.DEEPSEEK_CHAT)
+            temperature(0.7)
+        }
+        
+        tools {
+            // 添加计算器工具
+            add(ToolFactory.createCalculatorTool())
+        }
+    }
+    
+    // 使用代理
+    val response = myAgent.generate("计算 25 * 16")
+    println(response.text)
+}
+```
+
+### 计算器工具支持的操作
+
+计算器工具支持以下操作：
+
+- 基本运算：加法、减法、乘法、除法
+- 高级运算：幂运算、平方根
+- 三角函数：正弦、余弦、正切
+- 对数函数：常用对数、自然对数
+
+## 网络搜索工具 ✅
+
+网络搜索工具允许代理搜索互联网信息：
+
+```kotlin
+import ai.kastrax.core.tools.ToolFactory
+import ai.kastrax.core.agent.agent
+import ai.kastrax.core.tools.web.WebSearchTool
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    // 创建使用网络搜索工具的代理
+    val myAgent = agent {
+        name("搜索助手")
+        description("一个可以搜索互联网信息的助手")
+        
+        // 配置 LLM
+        model = deepSeek {
+            apiKey("your-deepseek-api-key")
+            model(DeepSeekModel.DEEPSEEK_CHAT)
+            temperature(0.7)
+        }
+        
+        tools {
+            // 添加网络搜索工具
+            add(ToolFactory.createWebSearchTool(
+                apiKey = "your-search-api-key",
+                searchEngine = WebSearchTool.SearchEngine.GOOGLE,
+                maxResults = 5
+            ))
+        }
+    }
+    
+    // 使用代理
+    val response = myAgent.generate("搜索关于量子计算的最新进展")
+    println(response.text)
+}
+```
+
+### 网络搜索工具配置选项
+
+网络搜索工具支持以下配置选项：
+
+- `apiKey`：搜索 API 密钥
+- `searchEngine`：搜索引擎（GOOGLE、BING、MOCK 等）
+- `maxResults`：最大结果数量
+
+## 文件系统工具 ✅
+
+文件系统工具允许代理与文件系统交互：
+
+```kotlin
+import ai.kastrax.core.tools.ToolFactory
+import ai.kastrax.core.agent.agent
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    // 创建使用文件系统工具的代理
+    val myAgent = agent {
+        name("文件助手")
+        description("一个可以操作文件系统的助手")
+        
+        // 配置 LLM
+        model = deepSeek {
+            apiKey("your-deepseek-api-key")
+            model(DeepSeekModel.DEEPSEEK_CHAT)
+            temperature(0.7)
+        }
+        
+        tools {
+            // 添加文件系统工具
+            add(ToolFactory.createFileSystemTool(
+                rootPath = "./data",
+                allowAbsolutePaths = false
+            ))
+        }
+    }
+    
+    // 使用代理
+    val response = myAgent.generate("列出 data 目录中的文件")
+    println(response.text)
+}
+```
+
+### 文件系统工具支持的操作
+
+文件系统工具支持以下操作：
+
+- 读取文件内容
+- 写入文件内容
+- 列出目录内容
+- 检查文件是否存在
+- 获取文件信息
+- 创建目录
+- 删除文件或目录
+
+### 文件系统工具输出格式
+
+文件系统工具返回以下格式的输出：
+
+```json
+{
+  "success": true,
+  "result": "操作结果",
+  "error": null  // 如果 success 为 false，则包含错误信息
+}
+```
+
+## 日期时间工具 ✅
+
+日期时间工具提供日期和时间信息：
+
+```kotlin
+import ai.kastrax.core.tools.ToolFactory
+import ai.kastrax.core.agent.agent
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    // 创建使用日期时间工具的代理
+    val myAgent = agent {
+        name("时间助手")
+        description("一个可以提供日期和时间信息的助手")
+        
+        // 配置 LLM
+        model = deepSeek {
+            apiKey("your-deepseek-api-key")
+            model(DeepSeekModel.DEEPSEEK_CHAT)
+            temperature(0.7)
+        }
+        
+        tools {
+            // 添加日期时间工具
+            add(ToolFactory.createDateTimeTool())
+        }
+    }
+    
+    // 使用代理
+    val response = myAgent.generate("现在的日期和时间是什么？")
+    println(response.text)
+}
+```
+
+### 日期时间工具支持的操作
+
+日期时间工具支持以下操作：
+
+- 获取当前日期
+- 获取当前时间
+- 获取当前时区
+- 格式化日期和时间
+- 计算日期差异
+- 解析日期字符串
+
+## HTTP 请求工具 ✅
+
+HTTP 请求工具允许代理发送 HTTP 请求：
+
+```kotlin
+import ai.kastrax.core.tools.ToolFactory
+import ai.kastrax.core.agent.agent
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    // 创建使用 HTTP 请求工具的代理
+    val myAgent = agent {
+        name("API 助手")
+        description("一个可以与 API 交互的助手")
+        
+        // 配置 LLM
+        model = deepSeek {
+            apiKey("your-deepseek-api-key")
+            model(DeepSeekModel.DEEPSEEK_CHAT)
+            temperature(0.7)
+        }
+        
+        tools {
+            // 添加 HTTP 请求工具
+            add(ToolFactory.createHttpRequestTool())
+        }
+    }
+    
+    // 使用代理
+    val response = myAgent.generate("获取 BBC 网站的最新新闻")
+    println(response.text)
+}
+```
+
+### HTTP 请求工具支持的方法
+
+HTTP 请求工具支持以下 HTTP 方法：
+
+- GET
+- POST
+- PUT
+- DELETE
+- PATCH
+- HEAD
+
+## 数据库工具 ✅
+
+数据库工具允许代理与数据库交互：
+
+```kotlin
+import ai.kastrax.core.tools.ToolFactory
+import ai.kastrax.core.agent.agent
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.runBlocking
+import javax.sql.DataSource
+import org.postgresql.ds.PGSimpleDataSource
+
+fun main() = runBlocking {
+    // 创建数据源
+    val dataSource = PGSimpleDataSource().apply {
+        setURL("jdbc:postgresql://localhost:5432/mydatabase")
+        user = "username"
+        password = "password"
+    }
+    
+    // 创建使用数据库工具的代理
+    val myAgent = agent {
+        name("数据库助手")
+        description("一个可以与数据库交互的助手")
+        
+        // 配置 LLM
+        model = deepSeek {
+            apiKey("your-deepseek-api-key")
+            model(DeepSeekModel.DEEPSEEK_CHAT)
+            temperature(0.7)
+        }
+        
+        tools {
+            // 添加数据库工具
+            add(ToolFactory.createDatabaseTool(dataSource))
+        }
+    }
+    
+    // 使用代理
+    val response = myAgent.generate("列出数据库中的所有用户")
+    println(response.text)
+}
+```
+
+### 数据库工具支持的操作
+
+数据库工具支持以下操作：
+
+- 执行 SQL 查询
+- 执行 SQL 更新
+- 获取表结构信息
+- 获取数据库元数据
+
+## 代码执行工具 ✅
+
+代码执行工具允许代理执行代码：
+
+```kotlin
+import ai.kastrax.core.tools.ToolFactory
+import ai.kastrax.core.agent.agent
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    // 创建使用代码执行工具的代理
+    val myAgent = agent {
+        name("代码助手")
+        description("一个可以执行代码的助手")
+        
+        // 配置 LLM
+        model = deepSeek {
+            apiKey("your-deepseek-api-key")
+            model(DeepSeekModel.DEEPSEEK_CHAT)
+            temperature(0.7)
+        }
+        
+        tools {
+            // 添加代码执行工具
+            add(ToolFactory.createCodeExecutionTool(
+                allowedLanguages = listOf("kotlin", "python", "javascript"),
+                timeoutSeconds = 5
+            ))
+        }
+    }
+    
+    // 使用代理
+    val response = myAgent.generate("使用 Kotlin 计算 5 的阶乘")
+    println(response.text)
+}
+```
+
+### 代码执行工具配置选项
+
+代码执行工具支持以下配置选项：
+
+- `allowedLanguages`：允许执行的编程语言列表
+- `timeoutSeconds`：执行超时时间（秒）
+- `memoryLimitMB`：内存限制（MB）
+- `enableNetworkAccess`：是否允许网络访问
+
+## 文本处理工具 ✅
+
+文本处理工具提供文本处理功能：
+
+```kotlin
+import ai.kastrax.core.tools.ToolFactory
+import ai.kastrax.core.agent.agent
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    // 创建使用文本处理工具的代理
+    val myAgent = agent {
+        name("文本助手")
+        description("一个可以处理文本的助手")
+        
+        // 配置 LLM
+        model = deepSeek {
+            apiKey("your-deepseek-api-key")
+            model(DeepSeekModel.DEEPSEEK_CHAT)
+            temperature(0.7)
+        }
+        
+        tools {
+            // 添加文本处理工具
+            add(ToolFactory.createTextProcessingTool())
+        }
+    }
+    
+    // 使用代理
+    val response = myAgent.generate("将文本 'Hello, World!' 转换为大写")
+    println(response.text)
+}
+```
+
+### 文本处理工具支持的操作
+
+文本处理工具支持以下操作：
+
+- 转换为大写
+- 转换为小写
+- 反转文本
+- 计算文本长度
+- 提取正则表达式匹配
+- 替换文本
+
+## 组合多个工具 ✅
+
+您可以在一个代理中组合多个内置工具：
+
+```kotlin
+import ai.kastrax.core.tools.ToolFactory
+import ai.kastrax.core.agent.agent
+import ai.kastrax.core.tools.web.WebSearchTool
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    // 创建使用多个工具的代理
+    val myAgent = agent {
+        name("多功能助手")
+        description("一个具有多种能力的助手")
+        
+        // 配置 LLM
+        model = deepSeek {
+            apiKey("your-deepseek-api-key")
+            model(DeepSeekModel.DEEPSEEK_CHAT)
+            temperature(0.7)
+        }
+        
+        // 添加多个工具
+        tools {
+            // 添加计算器工具
+            add(ToolFactory.createCalculatorTool())
+            
+            // 添加网络搜索工具
+            add(ToolFactory.createWebSearchTool(
+                apiKey = "your-search-api-key",
+                searchEngine = WebSearchTool.SearchEngine.GOOGLE,
+                maxResults = 5
+            ))
+            
+            // 添加文件系统工具
+            add(ToolFactory.createFileSystemTool(
+                rootPath = "./data",
+                allowAbsolutePaths = false
+            ))
+            
+            // 添加日期时间工具
+            add(ToolFactory.createDateTimeTool())
+            
+            // 添加 HTTP 请求工具
+            add(ToolFactory.createHttpRequestTool())
+            
+            // 添加代码执行工具
+            add(ToolFactory.createCodeExecutionTool(
+                allowedLanguages = listOf("kotlin", "python"),
+                timeoutSeconds = 5
+            ))
+        }
+    }
+    
+    // 使用代理
+    val response = myAgent.generate("搜索关于量子计算的信息，计算 25 * 16，并告诉我当前时间")
+    println(response.text)
+}
+```
+
+## 自定义内置工具 ✅
+
+您可以自定义内置工具的行为：
+
+```kotlin
+import ai.kastrax.core.tools.ToolFactory
+import ai.kastrax.core.agent.agent
+import ai.kastrax.core.tools.web.WebSearchTool
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    // 创建自定义网络搜索工具
+    val customSearchTool = ToolFactory.createWebSearchTool(
+        apiKey = "your-search-api-key",
+        searchEngine = WebSearchTool.SearchEngine.GOOGLE,
+        maxResults = 3
+    ).apply {
+        // 自定义工具 ID 和名称
+        id = "custom_search"
+        name = "自定义搜索"
+        description = "使用自定义参数搜索互联网"
+    }
+    
+    // 创建使用自定义工具的代理
+    val myAgent = agent {
+        name("自定义工具助手")
+        description("一个使用自定义工具的助手")
+        
+        // 配置 LLM
+        model = deepSeek {
+            apiKey("your-deepseek-api-key")
+            model(DeepSeekModel.DEEPSEEK_CHAT)
+            temperature(0.7)
+        }
+        
+        tools {
+            // 添加自定义工具
+            add(customSearchTool)
+        }
+    }
+    
+    // 使用代理
+    val response = myAgent.generate("使用自定义搜索工具查找关于人工智能的信息")
+    println(response.text)
+}
+```
+
+## 最佳实践 ✅
+
+### 工具选择
+
+- 根据代理的任务选择适当的工具
+- 避免添加不必要的工具，以减少混淆
+- 为特定领域的任务创建专用代理
+
+### 工具配置
+
+- 为工具提供适当的配置参数
+- 限制代码执行工具的权限和资源
+- 为文件系统工具设置安全的根路径
+
+### 错误处理
+
+- 处理工具可能返回的错误
+- 提供有用的错误消息
+- 实现重试逻辑（如适用）
+
+### 安全考虑
+
+- 保护 API 密钥和敏感信息
+- 限制文件系统访问范围
+- 控制代码执行环境
+
+## 总结 ✅
+
+Kastrax 提供了丰富的内置工具，使代理能够执行各种任务，从简单的计算到复杂的网络搜索和文件操作。通过组合这些工具，您可以创建功能强大的代理，满足各种用例需求。
+
+内置工具的主要优势在于它们易于使用、配置灵活，并且与 Kastrax 代理系统无缝集成。通过遵循本指南中的最佳实践，您可以有效地利用这些工具，创建智能、实用的代理应用程序。

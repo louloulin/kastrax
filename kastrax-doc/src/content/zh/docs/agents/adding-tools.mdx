@@ -1,0 +1,303 @@
+---
+title: "代理工具选择 | 代理文档 | Kastrax"
+description: 工具是可以由代理或工作流执行的类型化函数，具有内置的集成访问和参数验证功能。每个工具都有一个定义其输入的模式，一个实现其逻辑的执行函数，以及对配置的集成的访问权限。
+---
+
+# 代理工具选择 ✅
+
+工具是可以由代理或工作流执行的类型化函数，具有内置的集成访问和参数验证功能。每个工具都有一个定义其输入的模式，一个实现其逻辑的执行函数，以及对配置的集成的访问权限。
+
+## 创建工具 ✅
+
+在本节中，我们将介绍创建可供代理使用的工具的过程。让我们创建一个简单的工具，用于获取指定城市的当前天气信息。
+
+```kotlin
+import ai.kastrax.core.tools.tool
+import kotlinx.coroutines.runBlocking
+import io.ktor.client.*
+import io.ktor.client.request.*
+import io.ktor.client.statement.*
+import kotlinx.serialization.json.*
+
+// 创建天气信息工具
+val weatherInfoTool = tool("weatherInfo") {
+    description("获取指定城市的当前天气信息")
+    
+    parameters {
+        parameter("city", "城市名称", String::class)
+    }
+    
+    execute { params ->
+        val city = params["city"] as String
+        
+        // 替换为实际的天气服务 API 调用
+        val client = HttpClient()
+        val response = client.get("https://api.example.com/weather?city=$city")
+        val responseBody = response.bodyAsText()
+        
+        // 解析 JSON 响应
+        val weatherData = Json.parseToJsonElement(responseBody).jsonObject
+        val temperature = weatherData["temperature"]?.jsonPrimitive?.double ?: 0.0
+        val conditions = weatherData["conditions"]?.jsonPrimitive?.content ?: "未知"
+        
+        "$city 的当前天气：温度 $temperature°C，天气状况 $conditions"
+    }
+}
+```
+
+## 向代理添加工具 ✅
+
+现在我们将工具添加到代理中。我们将创建一个可以回答有关天气的问题的代理，并配置它使用我们的 `weatherInfoTool` 工具。
+
+```kotlin
+import ai.kastrax.core.agent.agent
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.runBlocking
+
+// 创建天气代理
+val weatherAgent = agent {
+    name("天气代理")
+    description("一个提供当前天气信息的助手")
+    
+    // 配置 LLM
+    model = deepSeek {
+        apiKey("your-deepseek-api-key")
+        model(DeepSeekModel.DEEPSEEK_CHAT)
+        temperature(0.7)
+    }
+    
+    // 添加天气信息工具
+    tools {
+        tool(weatherInfoTool)
+    }
+}
+```
+
+## 注册代理 ✅
+
+我们需要将代理注册到 Kastrax 中。
+
+```kotlin
+import ai.kastrax.core.Kastrax
+
+// 创建 Kastrax 实例并注册代理
+val kastrax = Kastrax {
+    agents {
+        register("weatherAgent", weatherAgent)
+    }
+}
+```
+
+这样就将代理注册到 Kastrax 中，使其可供使用。
+
+## 中止信号 ✅
+
+从 `generate` 和 `stream`（文本生成）传递的中止信号会转发到工具执行。您可以在执行函数的第二个参数中访问它们，例如中止长时间运行的计算或将它们转发到工具内部的 fetch 调用。
+
+```kotlin
+import ai.kastrax.core.agent.agent
+import ai.kastrax.core.tools.tool
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.runBlocking
+import io.ktor.client.*
+import io.ktor.client.request.*
+
+val weatherAgent = agent {
+    name("天气代理")
+    description("一个提供天气信息的助手")
+    
+    // 配置 LLM
+    model = deepSeek {
+        apiKey("your-deepseek-api-key")
+        model(DeepSeekModel.DEEPSEEK_CHAT)
+        temperature(0.7)
+    }
+    
+    // 添加天气工具
+    tools {
+        tool("weather") {
+            description("获取指定位置的天气信息")
+            
+            parameters {
+                parameter("location", "位置名称", String::class)
+            }
+            
+            executeWithAbortSignal { params, abortSignal ->
+                val location = params["location"] as String
+                
+                val client = HttpClient()
+                val response = client.get("https://api.weatherapi.com/v1/current.json?q=$location") {
+                    // 将中止信号转发到 HTTP 请求
+                    if (abortSignal != null) {
+                        this.abortSignal = abortSignal
+                    }
+                }
+                
+                // 处理响应...
+                "位置 $location 的天气信息"
+            }
+        }
+    }
+}
+
+// 使用代理并传递中止信号
+val result = weatherAgent.generate("旧金山的天气怎么样？", abortSignal = myAbortSignal)
+```
+
+## 注入请求/用户特定变量 ✅
+
+我们支持工具和工作流的依赖注入。您可以直接将运行时上下文传递给 `generate` 或 `stream` 函数调用，或使用服务器中间件注入它。
+
+以下是一个在华氏度和摄氏度之间切换温度刻度的示例：
+
+```kotlin
+import ai.kastrax.core.agent.agent
+import ai.kastrax.core.tools.tool
+import ai.kastrax.core.context.RuntimeContext
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.runBlocking
+import io.ktor.client.*
+import io.ktor.client.request.*
+import io.ktor.client.statement.*
+import kotlinx.serialization.json.*
+
+// 创建天气代理
+val weatherAgent = agent {
+    name("天气代理")
+    description("一个提供天气信息的助手")
+    
+    // 配置 LLM
+    model = deepSeek {
+        apiKey("your-deepseek-api-key")
+        model(DeepSeekModel.DEEPSEEK_CHAT)
+        temperature(0.7)
+    }
+    
+    // 添加天气工具
+    tools {
+        tool("weather") {
+            description("获取指定位置的天气信息")
+            
+            parameters {
+                parameter("location", "位置名称", String::class)
+            }
+            
+            executeWithContext { params, _, _, runtimeContext ->
+                val location = params["location"] as String
+                val scale = runtimeContext?.get("temperature-scale") ?: "celsius"
+                
+                val client = HttpClient()
+                val response = client.get("https://api.weatherapi.com/v1/current.json?q=$location")
+                val responseBody = response.bodyAsText()
+                
+                // 解析 JSON 响应
+                val json = Json.parseToJsonElement(responseBody).jsonObject
+                val tempC = json["current"]?.jsonObject?.get("temp_c")?.jsonPrimitive?.double ?: 0.0
+                val tempF = json["current"]?.jsonObject?.get("temp_f")?.jsonPrimitive?.double ?: 32.0
+                
+                val temperature = if (scale == "celsius") tempC else tempF
+                val unit = if (scale == "celsius") "°C" else "°F"
+                
+                "位置 $location 的温度是 $temperature$unit"
+            }
+        }
+    }
+}
+
+// 创建运行时上下文
+val runtimeContext = RuntimeContext()
+runtimeContext.set("temperature-scale", "celsius")
+
+// 使用代理并传递运行时上下文
+val result = weatherAgent.generate("旧金山的天气怎么样？", runtimeContext = runtimeContext)
+```
+
+## 调试工具 ✅
+
+您可以使用 JUnit 或任何其他测试框架测试工具。为工具编写单元测试可确保它们按预期行为并有助于及早发现错误。
+
+## 使用工具调用代理 ✅
+
+现在我们可以调用代理，它将使用工具获取天气信息。
+
+## 示例：与代理交互 ✅
+
+```kotlin
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    // 获取注册的代理
+    val agent = kastrax.getAgent("weatherAgent")
+    
+    // 生成响应
+    val response = agent.generate("今天纽约市的天气怎么样？")
+    
+    // 输出响应文本
+    println(response.text)
+}
+```
+
+代理将使用 `weatherInfoTool` 工具获取纽约市的当前天气，并相应地回应。
+
+## 工具设计最佳实践 ✅
+
+在为代理创建工具时，遵循以下指南将有助于确保可靠和直观的工具使用：
+
+### 工具描述
+
+工具的主要描述应该关注其目的和价值：
+
+- 保持描述简单，重点关注工具**做什么**
+- 强调工具的主要用例
+- 避免在主要描述中包含实现细节
+- 帮助代理理解**何时**使用工具
+
+```kotlin
+tool("documentSearch") {
+    description("访问知识库以查找回答用户问题所需的信息")
+    // ... 工具配置的其余部分
+}
+```
+
+### 参数模式
+
+技术细节属于参数模式，它们帮助代理正确使用工具：
+
+- 使用清晰的描述使参数自我说明
+- 包括默认值及其含义
+- 在有帮助的地方提供示例
+- 描述不同参数选择的影响
+
+```kotlin
+parameters {
+    parameter("query", "查找相关信息的搜索查询", String::class)
+    parameter("limit", "返回结果的数量。较高的值提供更多上下文，较低的值专注于最佳匹配", Int::class, optional = true, defaultValue = 5)
+    parameter("options", "可选配置。示例：'{\"filter\": \"category=news\"}'", String::class, optional = true)
+}
+```
+
+### 代理交互模式
+
+在以下情况下，工具更有可能被有效使用：
+
+- 查询或任务足够复杂，明确需要工具辅助
+- 代理指令提供了关于工具使用的清晰指导
+- 参数要求在模式中有良好的文档
+- 工具的目的与查询的需求一致
+
+### 常见陷阱
+
+- 在主要描述中过载技术细节
+- 混合实现细节和使用指导
+- 不清晰的参数描述或缺少示例
+
+遵循这些实践有助于确保您的工具可被代理发现和使用，同时保持目的（主要描述）和实现细节（参数模式）之间的清晰分离。
+
+## 总结 ✅
+
+通过本指南，您已经学习了如何创建工具、将工具添加到代理中、注册代理以及使用工具调用代理。您还了解了工具设计的最佳实践，这将帮助您创建更有效的工具。
+
+工具是扩展代理能力的强大方式，使其能够执行各种任务，从简单的计算到复杂的 API 调用。通过遵循本指南中的最佳实践，您可以创建直观、可靠的工具，使您的代理更加强大和有用。

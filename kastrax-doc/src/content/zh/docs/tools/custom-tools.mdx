@@ -1,0 +1,733 @@
+---
+title: 自定义工具开发 | Kastrax 文档
+description: 如何为 Kastrax 代理创建自定义工具，包括工具定义、参数验证、错误处理和最佳实践。
+---
+
+# 自定义工具开发 ✅
+
+本指南将帮助您为 Kastrax 代理创建自定义工具，从简单的工具到复杂的集成。
+
+## 自定义工具基础 ✅
+
+自定义工具允许您扩展代理的能力，使其能够执行特定领域的操作。以下是创建自定义工具的基本步骤：
+
+### 基本工具结构
+
+```kotlin
+import ai.kastrax.core.tools.tool
+import kotlinx.coroutines.runBlocking
+
+// 创建自定义工具
+val myCustomTool = tool("myTool") {
+    description("这是我的自定义工具")
+    
+    // 定义参数
+    parameters {
+        parameter("param1", "第一个参数", String::class)
+        parameter("param2", "第二个参数", Int::class, optional = true, defaultValue = 0)
+    }
+    
+    // 实现执行逻辑
+    execute { params ->
+        val param1 = params["param1"] as String
+        val param2 = params["param2"] as Int
+        
+        // 执行自定义逻辑
+        "处理结果: $param1, $param2"
+    }
+}
+
+// 测试工具
+fun main() = runBlocking {
+    val result = myCustomTool.execute(mapOf(
+        "param1" to "测试值",
+        "param2" to 42
+    ))
+    
+    println(result)
+}
+```
+
+### 工具参数定义
+
+工具参数可以有多种类型和配置：
+
+```kotlin
+parameters {
+    // 必填参数
+    parameter("name", "用户名", String::class)
+    
+    // 可选参数带默认值
+    parameter("age", "用户年龄", Int::class, optional = true, defaultValue = 18)
+    
+    // 枚举参数
+    parameter("role", "用户角色", String::class) {
+        enum("admin", "user", "guest")
+    }
+    
+    // 带验证的参数
+    parameter("email", "电子邮件", String::class) {
+        validate { email ->
+            if (!email.contains("@")) {
+                throw IllegalArgumentException("无效的电子邮件地址")
+            }
+        }
+    }
+    
+    // 复杂类型参数
+    parameter("settings", "用户设置", Map::class)
+}
+```
+
+## 高级工具开发 ✅
+
+### 异步工具
+
+对于需要长时间运行的操作，可以创建异步工具：
+
+```kotlin
+import ai.kastrax.core.tools.tool
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.runBlocking
+
+val asyncTool = tool("longRunningTask") {
+    description("执行长时间运行的任务")
+    
+    parameters {
+        parameter("taskId", "任务 ID", String::class)
+    }
+    
+    executeAsync { params ->
+        val taskId = params["taskId"] as String
+        
+        // 模拟长时间运行的操作
+        delay(3000) // 延迟 3 秒
+        
+        "任务 $taskId 已完成"
+    }
+}
+```
+
+### 工具错误处理
+
+良好的错误处理对于创建健壮的工具至关重要：
+
+```kotlin
+val divisionTool = tool("divide") {
+    description("除两个数")
+    
+    parameters {
+        parameter("dividend", "被除数", Double::class)
+        parameter("divisor", "除数", Double::class)
+    }
+    
+    execute { params ->
+        val dividend = params["dividend"] as Double
+        val divisor = params["divisor"] as Double
+        
+        try {
+            if (divisor == 0.0) {
+                throw ArithmeticException("除数不能为零")
+            }
+            
+            val result = dividend / divisor
+            "结果: $result"
+        } catch (e: ArithmeticException) {
+            "错误: ${e.message}"
+        } catch (e: Exception) {
+            "未知错误: ${e.message}"
+        }
+    }
+}
+```
+
+### 工具上下文
+
+工具可以访问执行上下文：
+
+```kotlin
+val contextAwareTool = tool("getUserInfo") {
+    description("获取当前用户信息")
+    
+    parameters {}
+    
+    executeWithContext { params, threadId, resourceId ->
+        // 使用上下文信息
+        "线程 ID: $threadId, 资源 ID: $resourceId"
+    }
+}
+```
+
+## 集成外部服务 ✅
+
+### HTTP API 集成
+
+创建与外部 API 交互的工具：
+
+```kotlin
+import ai.kastrax.core.tools.tool
+import io.ktor.client.*
+import io.ktor.client.request.*
+import io.ktor.client.statement.*
+import kotlinx.coroutines.runBlocking
+import kotlinx.serialization.json.*
+
+val weatherApiTool = tool("getWeather") {
+    description("获取城市的天气信息")
+    
+    parameters {
+        parameter("city", "城市名称", String::class)
+        parameter("country", "国家代码", String::class, optional = true, defaultValue = "CN")
+    }
+    
+    execute { params ->
+        val city = params["city"] as String
+        val country = params["country"] as String
+        
+        try {
+            val apiKey = "your-weather-api-key"
+            val url = "https://api.weatherapi.com/v1/current.json?key=$apiKey&q=$city,$country"
+            
+            val client = HttpClient()
+            val response = client.get(url)
+            val responseBody = response.bodyAsText()
+            
+            // 解析 JSON 响应
+            val json = Json.parseToJsonElement(responseBody).jsonObject
+            val location = json["location"]?.jsonObject
+            val current = json["current"]?.jsonObject
+            
+            val cityName = location?.get("name")?.jsonPrimitive?.content ?: city
+            val temperature = current?.get("temp_c")?.jsonPrimitive?.double ?: 0.0
+            val condition = current?.get("condition")?.jsonObject?.get("text")?.jsonPrimitive?.content ?: "未知"
+            
+            "$cityName 的天气: $temperature°C, $condition"
+        } catch (e: Exception) {
+            "获取天气信息失败: ${e.message}"
+        }
+    }
+}
+```
+
+### 数据库集成
+
+创建与数据库交互的工具：
+
+```kotlin
+import ai.kastrax.core.tools.tool
+import java.sql.Connection
+import java.sql.DriverManager
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+
+val databaseQueryTool = tool("queryDatabase") {
+    description("执行数据库查询")
+    
+    parameters {
+        parameter("query", "SQL 查询", String::class)
+        parameter("limit", "结果限制", Int::class, optional = true, defaultValue = 10)
+    }
+    
+    execute { params ->
+        val query = params["query"] as String
+        val limit = params["limit"] as Int
+        
+        // 添加 LIMIT 子句（注意：这只是一个简单示例，实际应用中应使用参数化查询防止 SQL 注入）
+        val limitedQuery = if (query.lowercase().contains("limit")) {
+            query
+        } else {
+            "$query LIMIT $limit"
+        }
+        
+        try {
+            withContext(Dispatchers.IO) {
+                // 数据库连接信息
+                val jdbcUrl = "jdbc:mysql://localhost:3306/mydb"
+                val username = "user"
+                val password = "password"
+                
+                var connection: Connection? = null
+                
+                try {
+                    connection = DriverManager.getConnection(jdbcUrl, username, password)
+                    val statement = connection.createStatement()
+                    val resultSet = statement.executeQuery(limitedQuery)
+                    
+                    // 构建结果
+                    val resultBuilder = StringBuilder("查询结果:\n")
+                    val metaData = resultSet.metaData
+                    val columnCount = metaData.columnCount
+                    
+                    // 添加列名
+                    for (i in 1..columnCount) {
+                        resultBuilder.append(metaData.getColumnName(i))
+                        if (i < columnCount) resultBuilder.append(" | ")
+                    }
+                    resultBuilder.append("\n")
+                    
+                    // 添加行
+                    var rowCount = 0
+                    while (resultSet.next() && rowCount < limit) {
+                        for (i in 1..columnCount) {
+                            resultBuilder.append(resultSet.getString(i) ?: "NULL")
+                            if (i < columnCount) resultBuilder.append(" | ")
+                        }
+                        resultBuilder.append("\n")
+                        rowCount++
+                    }
+                    
+                    resultBuilder.toString()
+                } finally {
+                    connection?.close()
+                }
+            }
+        } catch (e: Exception) {
+            "查询执行失败: ${e.message}"
+        }
+    }
+}
+```
+
+### 文件系统集成
+
+创建与文件系统交互的工具：
+
+```kotlin
+import ai.kastrax.core.tools.tool
+import java.nio.file.Files
+import java.nio.file.Path
+import java.nio.file.Paths
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+
+// 文件读取工具
+val readFileTool = tool("readFile") {
+    description("读取文件内容")
+    
+    parameters {
+        parameter("path", "文件路径", String::class)
+    }
+    
+    execute { params ->
+        val filePath = params["path"] as String
+        
+        try {
+            withContext(Dispatchers.IO) {
+                val path = Paths.get(filePath)
+                
+                if (!Files.exists(path)) {
+                    "错误: 文件不存在"
+                } else if (!Files.isRegularFile(path)) {
+                    "错误: 路径不是一个常规文件"
+                } else {
+                    val content = Files.readString(path)
+                    "文件内容:\n$content"
+                }
+            }
+        } catch (e: Exception) {
+            "读取文件失败: ${e.message}"
+        }
+    }
+}
+
+// 文件写入工具
+val writeFileTool = tool("writeFile") {
+    description("将内容写入文件")
+    
+    parameters {
+        parameter("path", "文件路径", String::class)
+        parameter("content", "要写入的内容", String::class)
+        parameter("append", "是否追加到文件末尾", Boolean::class, optional = true, defaultValue = false)
+    }
+    
+    execute { params ->
+        val filePath = params["path"] as String
+        val content = params["content"] as String
+        val append = params["append"] as Boolean
+        
+        try {
+            withContext(Dispatchers.IO) {
+                val path = Paths.get(filePath)
+                
+                // 确保父目录存在
+                val parent = path.parent
+                if (parent != null && !Files.exists(parent)) {
+                    Files.createDirectories(parent)
+                }
+                
+                // 写入文件
+                if (append && Files.exists(path)) {
+                    Files.writeString(path, "\n$content", java.nio.file.StandardOpenOption.APPEND)
+                } else {
+                    Files.writeString(path, content)
+                }
+                
+                "内容已成功写入 $filePath"
+            }
+        } catch (e: Exception) {
+            "写入文件失败: ${e.message}"
+        }
+    }
+}
+```
+
+## 工具组合和重用 ✅
+
+### 工具组合
+
+您可以组合多个工具创建更复杂的功能：
+
+```kotlin
+import ai.kastrax.core.tools.tool
+import ai.kastrax.core.tools.ToolRegistry
+import kotlinx.coroutines.runBlocking
+
+// 创建工具注册表
+val toolRegistry = ToolRegistry()
+
+// 注册基础工具
+val getCurrentDateTool = tool("getCurrentDate") {
+    description("获取当前日期")
+    parameters {}
+    execute { "当前日期: ${java.time.LocalDate.now()}" }
+}
+
+val getCurrentTimeTool = tool("getCurrentTime") {
+    description("获取当前时间")
+    parameters {}
+    execute { "当前时间: ${java.time.LocalTime.now()}" }
+}
+
+// 注册工具
+toolRegistry.register(getCurrentDateTool)
+toolRegistry.register(getCurrentTimeTool)
+
+// 创建组合工具
+val getDateTimeTool = tool("getDateTime") {
+    description("获取当前日期和时间")
+    parameters {}
+    execute {
+        val dateResult = runBlocking { toolRegistry.execute("getCurrentDate", mapOf()) }
+        val timeResult = runBlocking { toolRegistry.execute("getCurrentTime", mapOf()) }
+        "$dateResult\n$timeResult"
+    }
+}
+```
+
+### 工具工厂
+
+创建工具工厂以生成相似的工具：
+
+```kotlin
+import ai.kastrax.core.tools.tool
+
+// 创建工具工厂
+object MathToolFactory {
+    // 创建基本数学运算工具
+    fun createOperationTool(
+        operation: String,
+        symbol: String,
+        description: String,
+        calculate: (Double, Double) -> Double
+    ) = tool(operation) {
+        description(description)
+        
+        parameters {
+            parameter("a", "第一个操作数", Double::class)
+            parameter("b", "第二个操作数", Double::class)
+        }
+        
+        execute { params ->
+            val a = params["a"] as Double
+            val b = params["b"] as Double
+            
+            try {
+                val result = calculate(a, b)
+                "$a $symbol $b = $result"
+            } catch (e: Exception) {
+                "计算错误: ${e.message}"
+            }
+        }
+    }
+    
+    // 创建常用数学工具
+    val addTool = createOperationTool(
+        "add",
+        "+",
+        "将两个数相加",
+        { a, b -> a + b }
+    )
+    
+    val subtractTool = createOperationTool(
+        "subtract",
+        "-",
+        "从第一个数中减去第二个数",
+        { a, b -> a - b }
+    )
+    
+    val multiplyTool = createOperationTool(
+        "multiply",
+        "*",
+        "将两个数相乘",
+        { a, b -> a * b }
+    )
+    
+    val divideTool = createOperationTool(
+        "divide",
+        "/",
+        "将第一个数除以第二个数",
+        { a, b ->
+            if (b == 0.0) throw ArithmeticException("除数不能为零")
+            a / b
+        }
+    )
+}
+
+// 使用工具工厂
+agent {
+    // ...
+    tools {
+        tool(MathToolFactory.addTool)
+        tool(MathToolFactory.subtractTool)
+        tool(MathToolFactory.multiplyTool)
+        tool(MathToolFactory.divideTool)
+    }
+}
+```
+
+## 工具测试 ✅
+
+### 单元测试
+
+为您的自定义工具编写单元测试：
+
+```kotlin
+import ai.kastrax.core.tools.tool
+import kotlinx.coroutines.runBlocking
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertTrue
+
+class CalculatorToolTest {
+    // 被测试的工具
+    private val calculatorTool = tool("calculator") {
+        description("执行基本的数学运算")
+        
+        parameters {
+            parameter("operation", "要执行的操作", String::class) {
+                enum("add", "subtract", "multiply", "divide")
+            }
+            parameter("a", "第一个操作数", Double::class)
+            parameter("b", "第二个操作数", Double::class)
+        }
+        
+        execute { params ->
+            val operation = params["operation"] as String
+            val a = params["a"] as Double
+            val b = params["b"] as Double
+            
+            when (operation) {
+                "add" -> "结果: ${a + b}"
+                "subtract" -> "结果: ${a - b}"
+                "multiply" -> "结果: ${a * b}"
+                "divide" -> {
+                    if (b == 0.0) "错误: 除数不能为零"
+                    else "结果: ${a / b}"
+                }
+                else -> "错误: 未知操作"
+            }
+        }
+    }
+    
+    @Test
+    fun `test addition operation`() = runBlocking {
+        val result = calculatorTool.execute(mapOf(
+            "operation" to "add",
+            "a" to 5.0,
+            "b" to 3.0
+        ))
+        
+        assertEquals("结果: 8.0", result)
+    }
+    
+    @Test
+    fun `test division by zero`() = runBlocking {
+        val result = calculatorTool.execute(mapOf(
+            "operation" to "divide",
+            "a" to 10.0,
+            "b" to 0.0
+        ))
+        
+        assertEquals("错误: 除数不能为零", result)
+    }
+    
+    @Test
+    fun `test with invalid operation`() = runBlocking {
+        try {
+            calculatorTool.execute(mapOf(
+                "operation" to "invalid",
+                "a" to 5.0,
+                "b" to 3.0
+            ))
+            
+            // 如果没有抛出异常，测试失败
+            assertTrue(false, "应该抛出异常")
+        } catch (e: Exception) {
+            // 预期会抛出异常
+            assertTrue(true)
+        }
+    }
+}
+```
+
+### 集成测试
+
+测试工具与代理的集成：
+
+```kotlin
+import ai.kastrax.core.agent.agent
+import ai.kastrax.core.tools.tool
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.runBlocking
+import kotlin.test.Test
+import kotlin.test.assertTrue
+
+class ToolIntegrationTest {
+    // 测试工具
+    private val echoTool = tool("echo") {
+        description("返回输入的文本")
+        
+        parameters {
+            parameter("text", "要返回的文本", String::class)
+        }
+        
+        execute { params ->
+            val text = params["text"] as String
+            "Echo: $text"
+        }
+    }
+    
+    @Test
+    fun `test agent uses tool correctly`() = runBlocking {
+        // 创建使用工具的代理
+        val agent = agent {
+            name("测试代理")
+            description("用于测试工具集成的代理")
+            
+            model = deepSeek {
+                apiKey("your-deepseek-api-key")
+                model(DeepSeekModel.DEEPSEEK_CHAT)
+                temperature(0.7)
+            }
+            
+            tools {
+                tool(echoTool)
+            }
+        }
+        
+        // 测试代理使用工具
+        val response = agent.generate("请使用 echo 工具返回文本 'Hello, World!'")
+        
+        // 验证响应中包含工具输出
+        assertTrue(response.text.contains("Echo: Hello, World!"))
+    }
+}
+```
+
+## 最佳实践 ✅
+
+### 工具设计原则
+
+1. **单一职责**：每个工具应该只做一件事，并且做好
+2. **清晰的描述**：提供详细的工具和参数描述
+3. **健壮的错误处理**：优雅地处理所有可能的错误情况
+4. **参数验证**：验证所有输入参数
+5. **合理的默认值**：为可选参数提供合理的默认值
+6. **安全性考虑**：防止注入攻击和权限提升
+
+### 工具组织
+
+将相关工具组织到逻辑组中：
+
+```kotlin
+// 文件操作工具
+object FileTools {
+    val readFile = tool("readFile") { /* ... */ }
+    val writeFile = tool("writeFile") { /* ... */ }
+    val listDirectory = tool("listDirectory") { /* ... */ }
+    val fileExists = tool("fileExists") { /* ... */ }
+}
+
+// 数学工具
+object MathTools {
+    val add = tool("add") { /* ... */ }
+    val subtract = tool("subtract") { /* ... */ }
+    val multiply = tool("multiply") { /* ... */ }
+    val divide = tool("divide") { /* ... */ }
+}
+
+// 在代理中使用
+agent {
+    // ...
+    tools {
+        // 添加文件工具
+        tool(FileTools.readFile)
+        tool(FileTools.writeFile)
+        
+        // 添加数学工具
+        tool(MathTools.add)
+        tool(MathTools.subtract)
+    }
+}
+```
+
+### 工具文档
+
+为您的工具提供详细的文档：
+
+```kotlin
+/**
+ * 创建一个天气查询工具。
+ *
+ * 此工具使用 WeatherAPI.com 获取指定城市的天气信息。
+ *
+ * @param apiKey WeatherAPI.com API 密钥
+ * @return 配置好的天气工具
+ */
+fun createWeatherTool(apiKey: String) = tool("getWeather") {
+    description("""
+        获取指定城市的天气信息。
+        
+        此工具返回当前温度、天气状况和湿度。
+        
+        示例:
+        - 查询北京天气: {"city": "Beijing"}
+        - 查询上海天气（华氏度）: {"city": "Shanghai", "unit": "fahrenheit"}
+    """.trimIndent())
+    
+    parameters {
+        parameter("city", "城市名称", String::class)
+        parameter("unit", "温度单位 (celsius 或 fahrenheit)", String::class, optional = true, defaultValue = "celsius")
+    }
+    
+    execute { params ->
+        // 实现...
+    }
+}
+```
+
+## 总结 ✅
+
+创建自定义工具是扩展 Kastrax 代理能力的强大方式。通过遵循本指南中的最佳实践，您可以创建健壮、可重用和易于维护的工具，使您的代理能够执行各种特定领域的任务。
+
+记住以下关键点：
+
+- 每个工具应该有明确的目的和详细的描述
+- 验证所有输入参数并提供合理的默认值
+- 实现健壮的错误处理
+- 组织相关工具到逻辑组中
+- 为您的工具编写测试
+- 提供详细的文档和示例
+
+通过这些实践，您可以创建高质量的自定义工具，显著增强您的 Kastrax 代理的能力。
