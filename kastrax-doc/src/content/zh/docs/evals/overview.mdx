@@ -1,0 +1,580 @@
+---
+title: 评估系统概述 | Kastrax 文档
+description: Kastrax 评估系统的详细介绍，包括评估框架、评估指标和评估方法的实现和使用方法。
+---
+
+# 评估系统概述 ✅
+
+Kastrax 评估系统提供了一套全面的工具和方法，用于评估 AI 代理的性能、准确性和行为。本指南详细介绍了评估系统的架构、组件和使用方法。
+
+## 什么是评估系统？ ✅
+
+评估系统是一个框架，用于：
+
+- 测量 AI 代理的性能和质量
+- 比较不同代理实现的效果
+- 识别代理的优势和不足
+- 指导代理的改进和优化
+- 监控代理在生产环境中的表现
+
+通过系统化的评估，您可以确保 AI 代理满足预期的质量标准，并在部署前发现潜在问题。
+
+## 评估系统架构 ✅
+
+Kastrax 评估系统由以下核心组件组成：
+
+1. **评估框架**：定义评估流程和方法
+2. **评估指标**：量化代理性能的指标
+3. **评估数据集**：用于测试代理的标准数据集
+4. **评估运行器**：执行评估并收集结果
+5. **评估报告**：分析和展示评估结果
+
+## 基本评估用法 ✅
+
+以下是使用 Kastrax 评估系统的简单示例：
+
+```kotlin
+import ai.kastrax.evals.Evaluator
+import ai.kastrax.evals.metrics.AccuracyMetric
+import ai.kastrax.evals.datasets.QADataset
+import ai.kastrax.core.agent.agent
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    // 创建要评估的代理
+    val myAgent = agent {
+        name("评估测试代理")
+        description("用于评估的测试代理")
+        
+        model = deepSeek {
+            apiKey("your-deepseek-api-key")
+            model(DeepSeekModel.DEEPSEEK_CHAT)
+            temperature(0.7)
+        }
+    }
+    
+    // 创建评估器
+    val evaluator = Evaluator.create {
+        // 添加评估指标
+        metric(AccuracyMetric())
+        
+        // 添加评估数据集
+        dataset(QADataset.fromFile("qa_dataset.json"))
+        
+        // 配置评估参数
+        parameters {
+            maxExamples = 100
+            batchSize = 10
+            timeout = 30000 // 30 秒
+        }
+    }
+    
+    // 运行评估
+    val results = evaluator.evaluate(myAgent)
+    
+    // 打印评估结果
+    println("评估结果:")
+    println("准确率: ${results.getMetric("accuracy")}")
+    println("平均响应时间: ${results.getMetric("avg_response_time")} ms")
+    
+    // 生成评估报告
+    val report = evaluator.generateReport(results)
+    report.saveToFile("evaluation_report.html")
+}
+```
+
+## 评估指标 ✅
+
+Kastrax 提供了多种评估指标，用于衡量代理的不同方面：
+
+### 准确性指标
+
+```kotlin
+// 添加准确性指标
+evaluator.metric(AccuracyMetric())
+evaluator.metric(PrecisionMetric())
+evaluator.metric(RecallMetric())
+evaluator.metric(F1ScoreMetric())
+```
+
+### 质量指标
+
+```kotlin
+// 添加质量指标
+evaluator.metric(CoherenceMetric())
+evaluator.metric(RelevanceMetric())
+evaluator.metric(FluencyMetric())
+evaluator.metric(HelpfulnessMetric())
+```
+
+### 效率指标
+
+```kotlin
+// 添加效率指标
+evaluator.metric(ResponseTimeMetric())
+evaluator.metric(TokenUsageMetric())
+evaluator.metric(ToolUsageMetric())
+evaluator.metric(MemoryUsageMetric())
+```
+
+### 安全指标
+
+```kotlin
+// 添加安全指标
+evaluator.metric(HarmfulContentMetric())
+evaluator.metric(BiasMetric())
+evaluator.metric(PrivacyMetric())
+evaluator.metric(SecurityMetric())
+```
+
+### 自定义指标
+
+```kotlin
+// 创建自定义指标
+class CustomMetric : EvaluationMetric {
+    override val name: String = "custom_metric"
+    override val description: String = "自定义评估指标"
+    
+    override suspend fun evaluate(response: AgentResponse, expected: Any?): MetricResult {
+        // 实现自定义评估逻辑
+        val score = calculateCustomScore(response.text, expected as? String)
+        
+        return MetricResult(
+            name = name,
+            score = score,
+            details = mapOf("custom_info" to "自定义信息")
+        )
+    }
+    
+    private fun calculateCustomScore(response: String, expected: String?): Double {
+        // 实现自定义评分逻辑
+        return 0.85 // 示例分数
+    }
+}
+
+// 添加自定义指标
+evaluator.metric(CustomMetric())
+```
+
+## 评估数据集 ✅
+
+Kastrax 支持多种评估数据集：
+
+### 问答数据集
+
+```kotlin
+// 创建问答数据集
+val qaDataset = QADataset.fromFile("qa_dataset.json")
+
+// 或者手动创建
+val manualQADataset = QADataset.create {
+    example {
+        question = "什么是人工智能？"
+        answer = "人工智能是计算机科学的一个分支，致力于创建能够执行通常需要人类智能的任务的系统。"
+    }
+    example {
+        question = "Kastrax 是什么？"
+        answer = "Kastrax 是一个基于 Kotlin 的 AI 代理框架，提供了构建智能代理应用程序所需的核心组件。"
+    }
+    // 添加更多示例...
+}
+```
+
+### 工具使用数据集
+
+```kotlin
+// 创建工具使用数据集
+val toolDataset = ToolUsageDataset.fromFile("tool_dataset.json")
+
+// 或者手动创建
+val manualToolDataset = ToolUsageDataset.create {
+    example {
+        input = "计算 15 * 7 + 22 / 2 的结果"
+        expectedTools = listOf("calculator")
+        expectedResult = "计算结果: 116"
+    }
+    example {
+        input = "今天的天气怎么样？"
+        expectedTools = listOf("weather")
+        expectedResult = "包含天气信息的响应"
+    }
+    // 添加更多示例...
+}
+```
+
+### 对话数据集
+
+```kotlin
+// 创建对话数据集
+val conversationDataset = ConversationDataset.fromFile("conversation_dataset.json")
+
+// 或者手动创建
+val manualConversationDataset = ConversationDataset.create {
+    conversation {
+        message(role = "user", content = "你好，我想了解一下 Kastrax。")
+        message(role = "assistant", content = "你好！Kastrax 是一个基于 Kotlin 的 AI 代理框架，提供了构建智能代理应用程序所需的核心组件。有什么具体问题我可以帮你解答吗？")
+        message(role = "user", content = "它有哪些主要功能？")
+        message(role = "assistant", content = "Kastrax 的主要功能包括：1) 多种代理架构；2) Actor 模型集成；3) 高级记忆系统；4) 灵活的工具系统；5) RAG 系统；6) 工作流引擎；7) 多种 LLM 集成。")
+    }
+    // 添加更多对话...
+}
+```
+
+### 自定义数据集
+
+```kotlin
+// 创建自定义数据集
+class CustomDataset : EvaluationDataset {
+    override val name: String = "custom_dataset"
+    override val description: String = "自定义评估数据集"
+    
+    override suspend fun getExamples(): List<EvaluationExample> {
+        // 实现自定义数据集逻辑
+        return listOf(
+            EvaluationExample(
+                input = "自定义输入 1",
+                expected = "自定义期望输出 1",
+                metadata = mapOf("category" to "test")
+            ),
+            EvaluationExample(
+                input = "自定义输入 2",
+                expected = "自定义期望输出 2",
+                metadata = mapOf("category" to "test")
+            )
+        )
+    }
+}
+
+// 添加自定义数据集
+evaluator.dataset(CustomDataset())
+```
+
+## 评估运行器 ✅
+
+评估运行器负责执行评估并收集结果：
+
+```kotlin
+// 创建评估运行器
+val runner = EvaluationRunner.create {
+    // 配置并行度
+    parallelism = 4
+    
+    // 配置重试策略
+    retryStrategy {
+        maxRetries = 3
+        retryDelay = 1000 // 1 秒
+        backoffMultiplier = 2.0 // 指数退避
+    }
+    
+    // 配置日志
+    logging {
+        logLevel = LogLevel.INFO
+        logFile = "evaluation.log"
+    }
+    
+    // 配置超时
+    timeout = 30000 // 30 秒
+}
+
+// 运行评估
+val results = runner.run(evaluator, myAgent)
+```
+
+## 评估报告 ✅
+
+评估报告提供了评估结果的详细分析：
+
+```kotlin
+// 生成评估报告
+val report = EvaluationReport.generate(results) {
+    // 配置报告格式
+    format = ReportFormat.HTML
+    
+    // 添加图表
+    charts {
+        barChart("指标比较")
+        lineChart("响应时间分布")
+        pieChart("错误类型分布")
+    }
+    
+    // 添加详细分析
+    analysis {
+        includeFailedExamples = true
+        includeSuccessExamples = true
+        maxExamples = 10
+    }
+    
+    // 添加比较
+    comparison {
+        baseline = baselineResults
+        highlightDifferences = true
+    }
+}
+
+// 保存报告
+report.saveToFile("evaluation_report.html")
+
+// 或者获取报告内容
+val reportContent = report.getContent()
+println(reportContent)
+```
+
+## 持续评估 ✅
+
+Kastrax 支持持续评估，用于监控代理的长期性能：
+
+```kotlin
+import ai.kastrax.evals.ContinuousEvaluator
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    // 创建持续评估器
+    val continuousEvaluator = ContinuousEvaluator.create {
+        // 添加要评估的代理
+        agent("production", productionAgent)
+        
+        // 添加评估数据集
+        dataset(QADataset.fromFile("qa_dataset.json"))
+        
+        // 配置评估频率
+        schedule {
+            interval = 24 * 60 * 60 * 1000 // 每天
+            startTime = System.currentTimeMillis()
+        }
+        
+        // 配置警报
+        alerts {
+            threshold("accuracy", 0.8) { value, threshold ->
+                value < threshold
+            }
+            
+            notification {
+                email("admin@example.com")
+                slack("#monitoring")
+            }
+        }
+        
+        // 配置存储
+        storage {
+            type = StorageType.DATABASE
+            connectionString = "jdbc:postgresql://localhost:5432/evals"
+        }
+    }
+    
+    // 启动持续评估
+    continuousEvaluator.start()
+    
+    // 获取最新结果
+    val latestResults = continuousEvaluator.getLatestResults("production")
+    println("最新评估结果: $latestResults")
+    
+    // 获取历史趋势
+    val trend = continuousEvaluator.getTrend("production", "accuracy", days = 30)
+    println("准确率趋势: $trend")
+    
+    // 停止持续评估
+    continuousEvaluator.stop()
+}
+```
+
+## 在 CI/CD 中使用评估 ✅
+
+Kastrax 评估系统可以集成到 CI/CD 流程中：
+
+```kotlin
+import ai.kastrax.evals.CIEvaluator
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    // 创建 CI 评估器
+    val ciEvaluator = CIEvaluator.create {
+        // 添加评估数据集
+        dataset(QADataset.fromFile("qa_dataset.json"))
+        
+        // 添加评估指标
+        metric(AccuracyMetric())
+        metric(ResponseTimeMetric())
+        
+        // 配置阈值
+        threshold("accuracy", 0.85)
+        threshold("avg_response_time", 2000) { value, threshold ->
+            value < threshold // 响应时间越低越好
+        }
+        
+        // 配置报告
+        report {
+            format = ReportFormat.MARKDOWN
+            outputFile = "evaluation_report.md"
+        }
+    }
+    
+    // 运行 CI 评估
+    val success = ciEvaluator.evaluate(myAgent)
+    
+    // 根据评估结果决定 CI 流程是否通过
+    if (success) {
+        println("评估通过，继续 CI 流程")
+        System.exit(0)
+    } else {
+        println("评估失败，中止 CI 流程")
+        System.exit(1)
+    }
+}
+```
+
+## 自定义评估 ✅
+
+您可以创建自定义评估来满足特定需求：
+
+```kotlin
+import ai.kastrax.evals.CustomEvaluator
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    // 创建自定义评估器
+    val customEvaluator = CustomEvaluator.create {
+        // 定义评估逻辑
+        evaluationLogic { agent ->
+            // 实现自定义评估逻辑
+            val results = mutableMapOf<String, Double>()
+            
+            // 示例：评估代理的创造性
+            val creativityScore = evaluateCreativity(agent)
+            results["creativity"] = creativityScore
+            
+            // 示例：评估代理的学习能力
+            val learningScore = evaluateLearning(agent)
+            results["learning_ability"] = learningScore
+            
+            // 返回评估结果
+            results
+        }
+        
+        // 定义成功标准
+        successCriteria { results ->
+            val creativity = results["creativity"] ?: 0.0
+            val learningAbility = results["learning_ability"] ?: 0.0
+            
+            // 组合分数
+            val combinedScore = 0.6 * creativity + 0.4 * learningAbility
+            
+            // 判断是否成功
+            combinedScore >= 0.8
+        }
+    }
+    
+    // 运行自定义评估
+    val results = customEvaluator.evaluate(myAgent)
+    println("自定义评估结果: $results")
+}
+
+// 评估创造性的辅助函数
+suspend fun evaluateCreativity(agent: Agent): Double {
+    // 实现创造性评估逻辑
+    val prompts = listOf(
+        "创作一首关于人工智能的诗",
+        "设计一个解决气候变化的创新方案",
+        "想象一个未来的交通系统"
+    )
+    
+    var totalScore = 0.0
+    
+    for (prompt in prompts) {
+        val response = agent.generate(prompt)
+        val score = analyzeCreativity(response.text)
+        totalScore += score
+    }
+    
+    return totalScore / prompts.size
+}
+
+// 分析创造性的辅助函数
+fun analyzeCreativity(text: String): Double {
+    // 实现创造性分析逻辑
+    // 这里是一个简化的示例
+    val uniqueWords = text.split("\\s+".toRegex()).toSet().size
+    val totalWords = text.split("\\s+".toRegex()).size
+    val novelPhrases = countNovelPhrases(text)
+    
+    // 计算创造性分数
+    return 0.4 * (uniqueWords.toDouble() / totalWords) + 0.6 * (novelPhrases.toDouble() / totalWords)
+}
+
+// 评估学习能力的辅助函数
+suspend fun evaluateLearning(agent: Agent): Double {
+    // 实现学习能力评估逻辑
+    // 这里是一个简化的示例
+    
+    // 创建一个对话线程
+    val threadId = UUID.randomUUID().toString()
+    
+    // 第一轮：提供信息
+    agent.generate(
+        "我要告诉你一些信息：X 是 Y 的两倍，Y 是 Z 的三倍，Z 等于 2。",
+        options = AgentGenerateOptions(threadId = threadId)
+    )
+    
+    // 第二轮：测试记忆和推理
+    val response = agent.generate(
+        "根据我之前告诉你的信息，X 等于多少？",
+        options = AgentGenerateOptions(threadId = threadId)
+    )
+    
+    // 分析响应
+    return if (response.text.contains("12") || response.text.contains("X = 12")) {
+        1.0 // 完全正确
+    } else if (response.text.contains("X") && response.text.contains("12")) {
+        0.8 // 基本正确
+    } else {
+        0.0 // 不正确
+    }
+}
+
+// 计算新颖短语的辅助函数
+fun countNovelPhrases(text: String): Int {
+    // 实现新颖短语计数逻辑
+    // 这里是一个简化的示例
+    val commonPhrases = setOf(
+        "人工智能", "机器学习", "深度学习", "神经网络",
+        "气候变化", "全球变暖", "可持续发展",
+        "未来技术", "创新解决方案", "智能系统"
+    )
+    
+    var novelCount = 0
+    val words = text.split("\\s+".toRegex())
+    
+    for (i in 0 until words.size - 2) {
+        val phrase = words.subList(i, i + 3).joinToString(" ")
+        if (!commonPhrases.any { phrase.contains(it) }) {
+            novelCount++
+        }
+    }
+    
+    return novelCount
+}
+```
+
+## 最佳实践 ✅
+
+1. **多样化数据集**：使用多样化的数据集，覆盖不同场景和边缘情况
+2. **多维度评估**：使用多种指标评估代理的不同方面
+3. **基准比较**：与基准模型或之前的版本进行比较
+4. **持续评估**：定期评估代理性能，监控长期趋势
+5. **错误分析**：深入分析失败案例，找出改进机会
+6. **人机结合**：结合自动评估和人工评估，获得全面视角
+7. **适当阈值**：设置合理的成功阈值，既有挑战性又可实现
+8. **版本控制**：对评估数据集和指标进行版本控制，确保一致性
+
+## 结论 ✅
+
+Kastrax 评估系统提供了一套全面的工具和方法，用于评估 AI 代理的性能、准确性和行为。通过系统化的评估，您可以确保 AI 代理满足预期的质量标准，并在部署前发现潜在问题。
+
+## 下一步 ✅
+
+现在您已经了解了评估系统，您可以：
+
+1. 了解[自定义评估](./custom-eval.mdx)的详细用法
+2. 探索[文本评估](./textual-evals.mdx)的技术和策略
+3. 学习[在 CI 中运行评估](./running-in-ci.mdx)的方法和最佳实践
