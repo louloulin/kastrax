@@ -1,9 +1,7 @@
 import { Meta } from "nextra";
 
 const meta: Meta = {
-  index: {
-    title: "Overview",
-  },
+  index: "Overview",
 };
 
 export default meta;

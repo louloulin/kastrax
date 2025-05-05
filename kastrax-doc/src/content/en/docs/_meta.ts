@@ -1,47 +1,19 @@
 const meta = {
   index: "Introduction",
-  "getting-started": {
-    title: "Getting Started",
-  },
-  frameworks: {
-    title: "Frameworks",
-  },
-  agents: {
-    title: "Agents",
-  },
-  memory: {
-    title: "Memory",
-  },
-  workflows: {
-    title: "Workflows",
-  },
-  "workflows-vnext": {
-    title: "Workflows (vNext)",
-  },
-  rag: {
-    title: "RAG",
-  },
-  "local-dev": {
-    title: "Local Dev",
-  },
-  deployment: {
-    title: "Deployment",
-  },
-  "mastra-cloud": {
-    title: "Mastra Cloud",
-  },
-  observability: {
-    title: "Observability",
-  },
-  evals: {
-    title: "Evals",
-  },
-  storage: {
-    title: "Storage",
-  },
-  voice: {
-    title: "Voice",
-  },
+  "getting-started": "Getting Started",
+  frameworks: "Frameworks",
+  agents: "Agents",
+  memory: "Memory",
+  workflows: "Workflows",
+  "workflows-vnext": "Workflows (vNext)",
+  rag: "RAG",
+  "local-dev": "Local Dev",
+  deployment: "Deployment",
+  "mastra-cloud": "Mastra Cloud",
+  observability: "Observability",
+  evals: "Evals",
+  storage: "Storage",
+  voice: "Voice",
   integrations: "Integrations",
   community: "Community",
 };

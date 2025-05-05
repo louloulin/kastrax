@@ -1,0 +1,760 @@
+---
+title: Kotlin 监控 | Kastrax 文档
+description: 如何在 Kastrax 中监控代理性能、行为和资源使用情况，包括日志记录、指标收集和可视化。
+---
+
+# 代理监控
+
+监控是构建可靠、高性能 AI 代理系统的关键部分。Kastrax 提供了全面的监控功能，使您能够跟踪代理性能、行为和资源使用情况。本文档介绍如何在 Kotlin 中实现 Kastrax 代理监控。
+
+## 监控概述
+
+Kastrax 的监控系统包括以下主要组件：
+
+1. **日志记录**：详细记录代理活动和事件
+2. **指标收集**：收集性能和使用情况指标
+3. **跟踪**：跟踪请求和操作的执行路径
+4. **警报**：在检测到异常情况时发出警报
+5. **可视化**：可视化监控数据和趋势
+
+## 基本监控设置
+
+### 启用监控
+
+在创建代理时启用监控：
+
+```kotlin
+import ai.kastrax.core.agent.agent
+import ai.kastrax.core.monitoring.MonitoringConfig
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    // 创建带监控的代理
+    val myAgent = agent {
+        name = "监控助手"
+        instructions = "你是一个有用的助手。"
+        
+        model = deepSeek(
+            model = DeepSeekModel.DEEPSEEK_CHAT,
+            apiKey = "your-api-key"
+        )
+        
+        // 配置监控
+        monitoring {
+            enabled = true
+            logLevel = MonitoringConfig.LogLevel.INFO
+            metricsEnabled = true
+            tracingEnabled = true
+        }
+    }
+    
+    // 使用代理
+    val response = myAgent.generate("你好，请介绍一下自己。")
+    println(response.text)
+}
+```
+
+### 基本日志记录
+
+Kastrax 使用 SLF4J 进行日志记录，您可以配置任何兼容的日志实现（如 Logback 或 Log4j）：
+
+```kotlin
+// 在 build.gradle.kts 中添加依赖
+dependencies {
+    implementation("ch.qos.logback:logback-classic:1.4.11")
+}
+```
+
+创建 `src/main/resources/logback.xml` 配置文件：
+
+```xml
+<configuration>
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+    
+    <appender name="FILE" class="ch.qos.logback.core.FileAppender">
+        <file>logs/kastrax.log</file>
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+    
+    <!-- Kastrax 日志配置 -->
+    <logger name="ai.kastrax" level="INFO" />
+    
+    <!-- 代理监控日志配置 -->
+    <logger name="ai.kastrax.core.monitoring" level="DEBUG" />
+    
+    <root level="INFO">
+        <appender-ref ref="CONSOLE" />
+        <appender-ref ref="FILE" />
+    </root>
+</configuration>
+```
+
+## 高级监控功能
+
+### 自定义监控器
+
+您可以创建自定义监控器来跟踪特定指标：
+
+```kotlin
+import ai.kastrax.core.agent.agent
+import ai.kastrax.core.monitoring.AgentMonitor
+import ai.kastrax.core.monitoring.MonitoringEvent
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.runBlocking
+import org.slf4j.LoggerFactory
+import java.util.concurrent.atomic.AtomicInteger
+
+// 创建自定义监控器
+class CustomAgentMonitor : AgentMonitor {
+    private val logger = LoggerFactory.getLogger(CustomAgentMonitor::class.java)
+    private val requestCount = AtomicInteger(0)
+    private val tokenUsage = AtomicInteger(0)
+    private val toolCallCount = AtomicInteger(0)
+    
+    override fun onEvent(event: MonitoringEvent) {
+        when (event) {
+            is MonitoringEvent.RequestStarted -> {
+                val count = requestCount.incrementAndGet()
+                logger.info("请求开始: ID=${event.requestId}, 总请求数=$count")
+            }
+            
+            is MonitoringEvent.RequestCompleted -> {
+                logger.info("请求完成: ID=${event.requestId}, 耗时=${event.durationMs}ms")
+                tokenUsage.addAndGet(event.tokenUsage.totalTokens)
+            }
+            
+            is MonitoringEvent.ToolCallStarted -> {
+                val count = toolCallCount.incrementAndGet()
+                logger.info("工具调用开始: 工具=${event.toolName}, 总调用数=$count")
+            }
+            
+            is MonitoringEvent.ToolCallCompleted -> {
+                logger.info("工具调用完成: 工具=${event.toolName}, 耗时=${event.durationMs}ms")
+            }
+            
+            is MonitoringEvent.Error -> {
+                logger.error("错误: ${event.message}", event.exception)
+            }
+            
+            else -> {
+                logger.debug("其他事件: ${event.javaClass.simpleName}")
+            }
+        }
+    }
+    
+    fun getStats(): Map<String, Int> {
+        return mapOf(
+            "requestCount" to requestCount.get(),
+            "tokenUsage" to tokenUsage.get(),
+            "toolCallCount" to toolCallCount.get()
+        )
+    }
+}
+
+fun main() = runBlocking {
+    // 创建自定义监控器
+    val customMonitor = CustomAgentMonitor()
+    
+    // 创建代理并添加自定义监控器
+    val myAgent = agent {
+        name = "监控助手"
+        instructions = "你是一个有用的助手。"
+        
+        model = deepSeek(
+            model = DeepSeekModel.DEEPSEEK_CHAT,
+            apiKey = "your-api-key"
+        )
+        
+        // 配置监控
+        monitoring {
+            enabled = true
+            addMonitor(customMonitor)
+        }
+        
+        // 添加工具
+        tools {
+            tool("getCurrentTime") {
+                description("获取当前时间")
+                parameters {}
+                execute {
+                    val formatter = java.time.format.DateTimeFormatter.ofPattern("HH:mm:ss")
+                    val currentTime = java.time.LocalDateTime.now().format(formatter)
+                    "当前时间是 $currentTime"
+                }
+            }
+        }
+    }
+    
+    // 使用代理
+    repeat(5) { i ->
+        val query = if (i % 2 == 0) "你好，现在几点了？" else "请介绍一下自己。"
+        val response = myAgent.generate(query)
+        println("查询 $i: $query")
+        println("回复: ${response.text}")
+        println()
+    }
+    
+    // 打印统计信息
+    val stats = customMonitor.getStats()
+    println("统计信息:")
+    stats.forEach { (key, value) ->
+        println("- $key: $value")
+    }
+}
+```
+
+### 性能指标收集
+
+Kastrax 支持收集各种性能指标：
+
+```kotlin
+import ai.kastrax.core.agent.agent
+import ai.kastrax.core.monitoring.MetricsCollector
+import ai.kastrax.core.monitoring.MetricsRegistry
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.runBlocking
+import java.util.concurrent.TimeUnit
+
+fun main() = runBlocking {
+    // 创建指标注册表
+    val metricsRegistry = MetricsRegistry()
+    
+    // 创建代理并配置指标收集
+    val myAgent = agent {
+        name = "指标助手"
+        instructions = "你是一个有用的助手。"
+        
+        model = deepSeek(
+            model = DeepSeekModel.DEEPSEEK_CHAT,
+            apiKey = "your-api-key"
+        )
+        
+        // 配置监控
+        monitoring {
+            enabled = true
+            metricsEnabled = true
+            metricsRegistry = metricsRegistry
+        }
+    }
+    
+    // 使用代理
+    repeat(10) {
+        val response = myAgent.generate("你好，请简短介绍一下自己。")
+        println("回复 $it: ${response.text.take(50)}...")
+    }
+    
+    // 获取收集的指标
+    val metrics = metricsRegistry.getMetrics()
+    
+    // 打印指标
+    println("\n性能指标:")
+    
+    // 请求计数
+    val requestCount = metrics.getCounter("agent.requests.count").count
+    println("总请求数: $requestCount")
+    
+    // 请求延迟
+    val requestLatency = metrics.getTimer("agent.requests.latency")
+    println("请求延迟: 平均=${requestLatency.mean(TimeUnit.MILLISECONDS)}ms, " +
+            "最大=${requestLatency.max(TimeUnit.MILLISECONDS)}ms, " +
+            "p95=${requestLatency.percentile(95.0, TimeUnit.MILLISECONDS)}ms")
+    
+    // 令牌使用量
+    val inputTokens = metrics.getCounter("agent.tokens.input").count
+    val outputTokens = metrics.getCounter("agent.tokens.output").count
+    println("令牌使用量: 输入=$inputTokens, 输出=$outputTokens, 总计=${inputTokens + outputTokens}")
+    
+    // 工具调用
+    val toolCallCount = metrics.getCounter("agent.tools.calls.count").count
+    val toolCallLatency = metrics.getTimer("agent.tools.calls.latency")
+    println("工具调用: 总数=$toolCallCount, " +
+            "平均延迟=${toolCallLatency.mean(TimeUnit.MILLISECONDS)}ms")
+    
+    // 错误率
+    val errorCount = metrics.getCounter("agent.errors.count").count
+    val errorRate = if (requestCount > 0) (errorCount.toDouble() / requestCount) * 100 else 0.0
+    println("错误: 总数=$errorCount, 错误率=${String.format("%.2f", errorRate)}%")
+}
+```
+
+### 分布式跟踪
+
+对于分布式系统，Kastrax 支持与 OpenTelemetry 集成进行分布式跟踪：
+
+```kotlin
+// 在 build.gradle.kts 中添加依赖
+dependencies {
+    implementation("io.opentelemetry:opentelemetry-api:1.24.0")
+    implementation("io.opentelemetry:opentelemetry-sdk:1.24.0")
+    implementation("io.opentelemetry:opentelemetry-exporter-jaeger:1.24.0")
+    implementation("io.opentelemetry.instrumentation:opentelemetry-instrumentation-annotations:1.24.0")
+}
+```
+
+配置 OpenTelemetry 并与 Kastrax 集成：
+
+```kotlin
+import ai.kastrax.core.agent.agent
+import ai.kastrax.core.monitoring.TracingConfig
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import io.opentelemetry.api.OpenTelemetry
+import io.opentelemetry.api.common.Attributes
+import io.opentelemetry.exporter.jaeger.JaegerGrpcSpanExporter
+import io.opentelemetry.sdk.OpenTelemetrySdk
+import io.opentelemetry.sdk.resources.Resource
+import io.opentelemetry.sdk.trace.SdkTracerProvider
+import io.opentelemetry.sdk.trace.export.BatchSpanProcessor
+import io.opentelemetry.semconv.resource.attributes.ResourceAttributes
+import kotlinx.coroutines.runBlocking
+
+// 配置 OpenTelemetry
+fun initOpenTelemetry(): OpenTelemetry {
+    val jaegerExporter = JaegerGrpcSpanExporter.builder()
+        .setEndpoint("http://localhost:14250")
+        .build()
+    
+    val resource = Resource.getDefault()
+        .merge(Resource.create(Attributes.of(
+            ResourceAttributes.SERVICE_NAME, "kastrax-agent-service"
+        )))
+    
+    val tracerProvider = SdkTracerProvider.builder()
+        .addSpanProcessor(BatchSpanProcessor.builder(jaegerExporter).build())
+        .setResource(resource)
+        .build()
+    
+    return OpenTelemetrySdk.builder()
+        .setTracerProvider(tracerProvider)
+        .build()
+}
+
+fun main() = runBlocking {
+    // 初始化 OpenTelemetry
+    val openTelemetry = initOpenTelemetry()
+    val tracer = openTelemetry.getTracer("ai.kastrax.agent")
+    
+    // 创建代理并配置跟踪
+    val myAgent = agent {
+        name = "跟踪助手"
+        instructions = "你是一个有用的助手。"
+        
+        model = deepSeek(
+            model = DeepSeekModel.DEEPSEEK_CHAT,
+            apiKey = "your-api-key"
+        )
+        
+        // 配置监控
+        monitoring {
+            enabled = true
+            tracingEnabled = true
+            tracingConfig = TracingConfig(
+                tracer = tracer,
+                includePrompts = true,
+                includeResponses = true,
+                includeTokenUsage = true
+            )
+        }
+        
+        // 添加工具
+        tools {
+            tool("getCurrentTime") {
+                description("获取当前时间")
+                parameters {}
+                execute {
+                    val formatter = java.time.format.DateTimeFormatter.ofPattern("HH:mm:ss")
+                    val currentTime = java.time.LocalDateTime.now().format(formatter)
+                    "当前时间是 $currentTime"
+                }
+            }
+            
+            tool("calculateSum") {
+                description("计算总和")
+                parameters {
+                    parameter("numbers", "数字列表", List::class)
+                }
+                execute { params ->
+                    val numbers = params["numbers"] as List<Number>
+                    val sum = numbers.sumOf { it.toDouble() }
+                    "总和是: $sum"
+                }
+            }
+        }
+    }
+    
+    // 创建跟踪上下文
+    tracer.spanBuilder("agent-conversation").startSpan().use { span ->
+        // 使用代理
+        val conversation = myAgent.startConversation()
+        
+        // 第一轮对话
+        val response1 = conversation.generate("你好，现在几点了？")
+        println("代理: ${response1.text}")
+        
+        // 第二轮对话
+        val response2 = conversation.generate("计算 1, 2, 3, 4, 5 的总和")
+        println("代理: ${response2.text}")
+        
+        // 第三轮对话
+        val response3 = conversation.generate("谢谢你的帮助")
+        println("代理: ${response3.text}")
+    }
+    
+    // 关闭 OpenTelemetry SDK
+    OpenTelemetrySdk.builder().build().shutdown()
+}
+```
+
+## 监控仪表板
+
+### 创建简单的监控仪表板
+
+您可以使用 Kastrax 的监控 API 创建简单的监控仪表板：
+
+```kotlin
+import ai.kastrax.core.agent.agent
+import ai.kastrax.core.monitoring.DashboardConfig
+import ai.kastrax.core.monitoring.DashboardServer
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    // 创建代理
+    val myAgent = agent {
+        name = "仪表板助手"
+        instructions = "你是一个有用的助手。"
+        
+        model = deepSeek(
+            model = DeepSeekModel.DEEPSEEK_CHAT,
+            apiKey = "your-api-key"
+        )
+        
+        // 配置监控
+        monitoring {
+            enabled = true
+            metricsEnabled = true
+            tracingEnabled = true
+        }
+    }
+    
+    // 配置监控仪表板
+    val dashboardConfig = DashboardConfig(
+        port = 8080,
+        refreshIntervalSeconds = 5,
+        metricsEnabled = true,
+        logsEnabled = true,
+        tracingEnabled = true
+    )
+    
+    // 启动仪表板服务器
+    val dashboardServer = DashboardServer(dashboardConfig)
+    dashboardServer.registerAgent("main-agent", myAgent)
+    dashboardServer.start()
+    
+    println("监控仪表板已启动: http://localhost:8080")
+    
+    // 使用代理
+    repeat(20) { i ->
+        val query = when (i % 3) {
+            0 -> "你好，请介绍一下自己。"
+            1 -> "什么是人工智能？"
+            else -> "如何学习编程？"
+        }
+        
+        val response = myAgent.generate(query)
+        println("查询 $i: $query")
+        println("回复: ${response.text.take(50)}...")
+        println()
+        
+        // 暂停一下，让仪表板有时间更新
+        Thread.sleep(2000)
+    }
+    
+    println("按 Enter 键停止服务器...")
+    readLine()
+    
+    // 停止仪表板服务器
+    dashboardServer.stop()
+}
+```
+
+### 集成外部监控系统
+
+Kastrax 可以与流行的监控系统集成，如 Prometheus 和 Grafana：
+
+```kotlin
+// 在 build.gradle.kts 中添加依赖
+dependencies {
+    implementation("io.prometheus:simpleclient:0.16.0")
+    implementation("io.prometheus:simpleclient_hotspot:0.16.0")
+    implementation("io.prometheus:simpleclient_httpserver:0.16.0")
+}
+```
+
+配置 Prometheus 指标导出：
+
+```kotlin
+import ai.kastrax.core.agent.agent
+import ai.kastrax.core.monitoring.MetricsExporter
+import ai.kastrax.core.monitoring.MetricsRegistry
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import io.prometheus.client.CollectorRegistry
+import io.prometheus.client.Counter
+import io.prometheus.client.Histogram
+import io.prometheus.client.exporter.HTTPServer
+import io.prometheus.client.hotspot.DefaultExports
+import kotlinx.coroutines.runBlocking
+import java.util.concurrent.TimeUnit
+
+// 创建 Prometheus 指标导出器
+class PrometheusMetricsExporter(private val registry: CollectorRegistry) : MetricsExporter {
+    // 请求计数器
+    private val requestCounter = Counter.build()
+        .name("kastrax_agent_requests_total")
+        .help("代理请求总数")
+        .register(registry)
+    
+    // 请求延迟直方图
+    private val requestLatency = Histogram.build()
+        .name("kastrax_agent_request_duration_seconds")
+        .help("代理请求延迟（秒）")
+        .buckets(0.1, 0.5, 1.0, 2.0, 5.0, 10.0)
+        .register(registry)
+    
+    // 令牌使用量计数器
+    private val tokenCounter = Counter.build()
+        .name("kastrax_agent_tokens_total")
+        .help("代理令牌使用总数")
+        .labelNames("type")
+        .register(registry)
+    
+    // 工具调用计数器
+    private val toolCallCounter = Counter.build()
+        .name("kastrax_agent_tool_calls_total")
+        .help("代理工具调用总数")
+        .labelNames("tool")
+        .register(registry)
+    
+    // 错误计数器
+    private val errorCounter = Counter.build()
+        .name("kastrax_agent_errors_total")
+        .help("代理错误总数")
+        .labelNames("type")
+        .register(registry)
+    
+    override fun exportMetrics(metrics: MetricsRegistry) {
+        // 导出请求指标
+        requestCounter.inc(metrics.getCounter("agent.requests.count").count.toDouble())
+        
+        // 导出延迟指标
+        val latencyTimer = metrics.getTimer("agent.requests.latency")
+        latencyTimer.snapshot.values.forEach { value ->
+            requestLatency.observe(value / 1000.0) // 转换为秒
+        }
+        
+        // 导出令牌使用量
+        tokenCounter.labels("input").inc(metrics.getCounter("agent.tokens.input").count.toDouble())
+        tokenCounter.labels("output").inc(metrics.getCounter("agent.tokens.output").count.toDouble())
+        
+        // 导出工具调用
+        metrics.getCounters().filter { it.key.startsWith("agent.tools.calls.") && it.key.endsWith(".count") }
+            .forEach { (key, counter) ->
+                val toolName = key.substringAfter("agent.tools.calls.").substringBefore(".count")
+                toolCallCounter.labels(toolName).inc(counter.count.toDouble())
+            }
+        
+        // 导出错误
+        errorCounter.labels("total").inc(metrics.getCounter("agent.errors.count").count.toDouble())
+    }
+}
+
+fun main() = runBlocking {
+    // 初始化 Prometheus
+    val registry = CollectorRegistry.defaultRegistry
+    DefaultExports.initialize() // 添加 JVM 指标
+    
+    // 创建指标导出器
+    val metricsExporter = PrometheusMetricsExporter(registry)
+    
+    // 创建指标注册表
+    val metricsRegistry = MetricsRegistry()
+    
+    // 创建代理
+    val myAgent = agent {
+        name = "Prometheus 助手"
+        instructions = "你是一个有用的助手。"
+        
+        model = deepSeek(
+            model = DeepSeekModel.DEEPSEEK_CHAT,
+            apiKey = "your-api-key"
+        )
+        
+        // 配置监控
+        monitoring {
+            enabled = true
+            metricsEnabled = true
+            metricsRegistry = metricsRegistry
+        }
+        
+        // 添加工具
+        tools {
+            tool("getCurrentTime") {
+                description("获取当前时间")
+                parameters {}
+                execute {
+                    val formatter = java.time.format.DateTimeFormatter.ofPattern("HH:mm:ss")
+                    val currentTime = java.time.LocalDateTime.now().format(formatter)
+                    "当前时间是 $currentTime"
+                }
+            }
+        }
+    }
+    
+    // 启动 Prometheus HTTP 服务器
+    val server = HTTPServer.Builder()
+        .withPort(9090)
+        .withRegistry(registry)
+        .build()
+    
+    println("Prometheus 指标服务器已启动: http://localhost:9090/metrics")
+    
+    // 使用代理
+    repeat(10) { i ->
+        val query = if (i % 2 == 0) "你好，现在几点了？" else "请介绍一下自己。"
+        val response = myAgent.generate(query)
+        println("查询 $i: $query")
+        println("回复: ${response.text.take(50)}...")
+        println()
+        
+        // 导出指标
+        metricsExporter.exportMetrics(metricsRegistry)
+        
+        // 暂停一下
+        Thread.sleep(1000)
+    }
+    
+    println("按 Enter 键停止服务器...")
+    readLine()
+    
+    // 停止服务器
+    server.stop()
+}
+```
+
+## 监控最佳实践
+
+### 性能监控
+
+1. **关键指标**：监控以下关键指标：
+   - 请求延迟（平均、p95、p99）
+   - 令牌使用量（输入、输出、总计）
+   - 工具调用频率和延迟
+   - 错误率和类型
+   - 内存和 CPU 使用情况
+
+2. **基准测试**：定期进行基准测试，比较性能变化
+
+3. **容量规划**：使用监控数据进行容量规划和资源分配
+
+### 行为监控
+
+1. **输入输出日志**：记录代理的输入和输出，用于审计和分析
+
+2. **工具使用模式**：监控工具的使用模式和频率
+
+3. **异常行为检测**：检测异常行为，如过度使用某些工具或生成不适当的内容
+
+### 资源使用监控
+
+1. **令牌使用量**：监控 LLM 令牌使用量，控制成本
+
+2. **API 调用频率**：监控 API 调用频率，避免超出限制
+
+3. **存储使用情况**：监控记忆和数据存储使用情况
+
+### 警报设置
+
+1. **错误率警报**：当错误率超过阈值时发出警报
+
+2. **延迟警报**：当延迟超过阈值时发出警报
+
+3. **资源使用警报**：当资源使用接近限制时发出警报
+
+4. **异常行为警报**：当检测到异常行为时发出警报
+
+## 故障排除
+
+### 常见问题
+
+1. **高延迟**：
+   - 检查 LLM API 响应时间
+   - 检查工具执行时间
+   - 优化提示和上下文大小
+
+2. **高错误率**：
+   - 检查 API 密钥和权限
+   - 检查网络连接
+   - 检查工具实现中的错误
+
+3. **内存使用过高**：
+   - 优化记忆系统配置
+   - 减少并发请求数
+   - 检查内存泄漏
+
+### 日志分析
+
+使用日志分析工具识别问题模式：
+
+```kotlin
+import ai.kastrax.core.monitoring.LogAnalyzer
+import java.io.File
+
+fun main() {
+    // 分析日志文件
+    val logFile = File("logs/kastrax.log")
+    val analyzer = LogAnalyzer(logFile)
+    
+    // 获取错误摘要
+    val errorSummary = analyzer.getErrorSummary()
+    println("错误摘要:")
+    errorSummary.forEach { (errorType, count) ->
+        println("- $errorType: $count")
+    }
+    
+    // 获取性能摘要
+    val performanceSummary = analyzer.getPerformanceSummary()
+    println("\n性能摘要:")
+    println("- 平均请求延迟: ${performanceSummary.avgRequestLatencyMs}ms")
+    println("- p95 请求延迟: ${performanceSummary.p95RequestLatencyMs}ms")
+    println("- 平均令牌使用量: ${performanceSummary.avgTokenUsage}")
+    
+    // 获取工具使用摘要
+    val toolUsageSummary = analyzer.getToolUsageSummary()
+    println("\n工具使用摘要:")
+    toolUsageSummary.forEach { (toolName, stats) ->
+        println("- $toolName: 调用次数=${stats.callCount}, 平均延迟=${stats.avgLatencyMs}ms")
+    }
+}
+```
+
+## 下一步
+
+现在您已经了解了如何监控 Kastrax 代理，您可以：
+
+1. 设置全面的监控系统，跟踪代理性能和行为
+2. 集成外部监控工具，如 Prometheus 和 Grafana
+3. 实现自定义监控器，满足特定需求
+4. 学习[版本控制](./versioning-kotlin.mdx)，管理代理的不同版本
+5. 探索[可观测性](/docs/observability/tracing.mdx)的更多方面

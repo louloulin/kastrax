@@ -1,4 +1,7 @@
-export default {
-  title: "Agent-to-Agent Protocol",
-  description: "Documentation for the Agent-to-Agent (A2A) protocol in Kastrax"
+const meta = {
+  overview: "Overview",
+  "a2a-capabilities": "A2A Capabilities",
+  "a2a-security": "A2A Security"
 };
+
+export default meta;

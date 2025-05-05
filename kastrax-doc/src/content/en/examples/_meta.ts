@@ -1,28 +1,12 @@
 const meta = {
-  index: {
-    title: "Overview",
-  },
-  agents: {
-    title: "Agents",
-  },
-  workflows: {
-    title: "Workflows",
-  },
-  workflows_vNext: {
-    title: "Workflows (vNext)",
-  },
-  rag: {
-    title: "RAG",
-  },
-  memory: {
-    title: "Memory",
-  },
-  evals: {
-    title: "Evals",
-  },
-  voice: {
-    title: "Voice",
-  },
+  index: "Overview",
+  agents: "Agents",
+  workflows: "Workflows",
+  workflows_vNext: "Workflows (vNext)",
+  rag: "RAG",
+  memory: "Memory",
+  evals: "Evals",
+  voice: "Voice",
 };
 
 export default meta;

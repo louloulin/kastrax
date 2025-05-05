@@ -1,22 +1,10 @@
 const meta = {
-  chunking: {
-    title: "Chunking",
-  },
-  embedding: {
-    title: "Embedding",
-  },
-  upsert: {
-    title: "Upsert",
-  },
-  query: {
-    title: "Query",
-  },
-  rerank: {
-    title: "Rerank",
-  },
-  usage: {
-    title: "Usage",
-  },
+  chunking: "Chunking",
+  embedding: "Embedding",
+  upsert: "Upsert",
+  query: "Query",
+  rerank: "Rerank",
+  usage: "Usage",
 };
 
 export default meta;

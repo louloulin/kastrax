@@ -1,7 +1,7 @@
 const meta = {
   logging: "Logging",
   tracing: "Tracing",
-  "nextjs-tracing": { title: "Next.js Tracing", display: "hidden" },
+  "nextjs-tracing": "Next.js Tracing",
 };
 
 export default meta;
