@@ -1,17 +1,17 @@
 ---
-title: "Handling Complex LLM Operations | Workflows | Mastra"
-description: "Workflows in Mastra help you orchestrate complex sequences of operations with features like branching, parallel execution, resource suspension, and more."
+title: "Handling Complex LLM Operations | Workflows | Kastrax"
+description: "Workflows in Kastrax help you orchestrate complex sequences of operations with features like branching, parallel execution, resource suspension, and more."
 ---
 
 # Handling Complex LLM Operations with Workflows
 
-Workflows in Mastra help you orchestrate complex sequences of operations with features like branching, parallel execution, resource suspension, and more.
+Workflows in Kastrax help you orchestrate complex sequences of operations with features like branching, parallel execution, resource suspension, and more.
 
 ## When to use workflows
 
 Most AI applications need more than a single call to a language model. You may want to run multiple steps, conditionally skip certain paths, or even pause execution altogether until you receive user input. Sometimes your agent tool calling is not accurate enough.
 
-Mastra's workflow system provides:
+Kastrax's workflow system provides:
 
 - A standardized way to define steps and link them together.
 - Support for both simple (linear) and advanced (branching, parallel) paths.
@@ -27,9 +27,9 @@ Let's examine each part of the workflow creation process:
 
 #### 1. Creating the Workflow
 
-Here's how you define a workflow in Mastra. The `name` field determines the workflow's API endpoint (`/workflows/$NAME/`), while the `triggerSchema` defines the structure of the workflow's trigger data:
+Here's how you define a workflow in Kastrax. The `name` field determines the workflow's API endpoint (`/workflows/$NAME/`), while the `triggerSchema` defines the structure of the workflow's trigger data:
 
-```ts filename="src/mastra/workflow/index.ts"
+```ts filename="src/kastrax/workflow/index.ts"
 const myWorkflow = new Workflow({
   name: "my-workflow",
   triggerSchema: z.object({
@@ -42,7 +42,7 @@ const myWorkflow = new Workflow({
 
 Now, we'll define the workflow's steps. Each step can have its own input and output schemas. Here, `stepOne` doubles an input value, and `stepTwo` increments that result if `stepOne` was successful. (To keep things simple, we aren't making any LLM calls in this example):
 
-```ts filename="src/mastra/workflow/index.ts"
+```ts filename="src/kastrax/workflow/index.ts"
 const stepOne = new Step({
   id: "stepOne",
   outputSchema: z.object({
@@ -72,32 +72,32 @@ const stepTwo = new Step({
 
 Now, let's create the control flow, and "commit" (finalize the workflow). In this case, `stepOne` runs first and is followed by `stepTwo`.
 
-```ts filename="src/mastra/workflow/index.ts"
+```ts filename="src/kastrax/workflow/index.ts"
 myWorkflow.step(stepOne).then(stepTwo).commit();
 ```
 
 ### Register the Workflow
 
-Register your workflow with Mastra to enable logging and telemetry:
+Register your workflow with Kastrax to enable logging and telemetry:
 
-```ts showLineNumbers filename="src/mastra/index.ts"
-import { Mastra } from "@mastra/core";
+```ts showLineNumbers filename="src/kastrax/index.ts"
+import { Kastrax } from "@kastrax/core";
 
-export const mastra = new Mastra({
+export const kastrax = new Kastrax({
   workflows: { myWorkflow },
 });
 ```
 
-The workflow can also have the mastra instance injected into the context in the case where you need to create dynamic workflows:
+The workflow can also have the kastrax instance injected into the context in the case where you need to create dynamic workflows:
 
-```ts filename="src/mastra/workflow/index.ts"
-import { Mastra } from "@mastra/core";
+```ts filename="src/kastrax/workflow/index.ts"
+import { Kastrax } from "@kastrax/core";
 
-const mastra = new Mastra();
+const kastrax = new Kastrax();
 
 const myWorkflow = new Workflow({
   name: "my-workflow",
-  mastra,
+  kastrax,
 });
 ```
 
@@ -105,18 +105,18 @@ const myWorkflow = new Workflow({
 
 Execute your workflow programmatically or via API:
 
-```ts showLineNumbers filename="src/mastra/run-workflow.ts" copy
-import { mastra } from "./index";
+```ts showLineNumbers filename="src/kastrax/run-workflow.ts" copy
+import { kastrax } from "./index";
 
 // Get the workflow
-const myWorkflow = mastra.getWorkflow("myWorkflow");
+const myWorkflow = kastrax.getWorkflow("myWorkflow");
 const { runId, start } = myWorkflow.createRun();
 
 // Start the workflow execution
 await start({ triggerData: { inputValue: 45 } });
 ```
 
-Or use the API (requires running `mastra dev`):
+Or use the API (requires running `kastrax dev`):
 
 // Create workflow run
 
@@ -144,11 +144,11 @@ When you need to map data between steps or create dynamic data flows, [workflow 
 
 ## Suspend and Resume
 
-When you need to pause execution for external data, user input, or asynchronous events, Mastra [supports suspension at any step](./suspend-and-resume.mdx), persisting the state of the workflow so you can resume it later.
+When you need to pause execution for external data, user input, or asynchronous events, Kastrax [supports suspension at any step](./suspend-and-resume.mdx), persisting the state of the workflow so you can resume it later.
 
 ## Observability and Debugging
 
-Mastra workflows automatically [log the input and output of each step within a workflow run](../../reference/observability/otel-config.mdx), allowing you to send this data to your preferred logging, telemetry, or observability tools.
+Kastrax workflows automatically [log the input and output of each step within a workflow run](../../reference/observability/otel-config.mdx), allowing you to send this data to your preferred logging, telemetry, or observability tools.
 
 You can:
 

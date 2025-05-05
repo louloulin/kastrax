@@ -12,18 +12,18 @@ This example demonstrates how to use memory processors to limit token usage, fil
 First, install the memory package:
 
 ```bash copy
-npm install @mastra/memory@latest
+npm install @kastrax/memory@latest
 # or
-pnpm add @mastra/memory@latest
+pnpm add @kastrax/memory@latest
 # or
-yarn add @mastra/memory@latest
+yarn add @kastrax/memory@latest
 ```
 
 ## Basic Memory Setup with Processors
 
 ```typescript
-import { Memory } from "@mastra/memory";
-import { TokenLimiter, ToolCallFilter } from "@mastra/memory/processors";
+import { Memory } from "@kastrax/memory";
+import { TokenLimiter, ToolCallFilter } from "@kastrax/memory/processors";
 
 // Create memory with processors
 const memory = new Memory({
@@ -36,8 +36,8 @@ const memory = new Memory({
 The `TokenLimiter` helps you stay within your model's context window:
 
 ```typescript
-import { Memory } from "@mastra/memory";
-import { TokenLimiter } from "@mastra/memory/processors";
+import { Memory } from "@kastrax/memory";
+import { TokenLimiter } from "@kastrax/memory/processors";
 
 // Set up memory with a token limit
 const memory = new Memory({
@@ -51,8 +51,8 @@ const memory = new Memory({
 You can also specify a different encoding if needed:
 
 ```typescript
-import { Memory } from "@mastra/memory";
-import { TokenLimiter } from "@mastra/memory/processors";
+import { Memory } from "@kastrax/memory";
+import { TokenLimiter } from "@kastrax/memory/processors";
 import cl100k_base from "js-tiktoken/ranks/cl100k_base";
 
 const memory = new Memory({
@@ -70,8 +70,8 @@ const memory = new Memory({
 The `ToolCallFilter` processor removes tool calls and their results from memory:
 
 ```typescript
-import { Memory } from "@mastra/memory";
-import { ToolCallFilter } from "@mastra/memory/processors";
+import { Memory } from "@kastrax/memory";
+import { ToolCallFilter } from "@kastrax/memory/processors";
 
 // Filter out all tool calls
 const memoryNoTools = new Memory({
@@ -93,8 +93,8 @@ const memorySelectiveFilter = new Memory({
 Processors run in the order they are defined:
 
 ```typescript
-import { Memory } from "@mastra/memory";
-import { TokenLimiter, ToolCallFilter } from "@mastra/memory/processors";
+import { Memory } from "@kastrax/memory";
+import { TokenLimiter, ToolCallFilter } from "@kastrax/memory/processors";
 
 const memory = new Memory({
   processors: [
@@ -111,9 +111,9 @@ const memory = new Memory({
 You can create your own processors by extending the `MemoryProcessor` class:
 
 ```typescript
-import type { CoreMessage } from "@mastra/core";
-import { MemoryProcessor } from "@mastra/core/memory";
-import { Memory } from "@mastra/memory";
+import type { CoreMessage } from "@kastrax/core";
+import { MemoryProcessor } from "@kastrax/core/memory";
+import { Memory } from "@kastrax/memory";
 
 // Simple processor that keeps only the most recent messages
 class RecentMessagesProcessor extends MemoryProcessor {
@@ -146,8 +146,8 @@ Note: this example is for simplicity of understanding how custom processors work
 Here's how to use memory with processors in an agent:
 
 ```typescript
-import { Agent } from "@mastra/core/agent";
-import { Memory, TokenLimiter, ToolCallFilter } from "@mastra/memory";
+import { Agent } from "@kastrax/core/agent";
+import { Memory, TokenLimiter, ToolCallFilter } from "@kastrax/memory";
 import { openai } from "@ai-sdk/openai";
 
 // Set up memory with processors

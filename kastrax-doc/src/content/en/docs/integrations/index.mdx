@@ -18,15 +18,15 @@ Kastrax's default integrations are packaged as individually installable modules.
 To install the GitHub integration, run:
 
 ```bash copy
-npm install @mastra/github@latest
+npm install @kastrax/github@latest
 ```
 
 2. **Add the Integration to Your Project**
 
-Create a new file for your integrations (e.g., `src/mastra/integrations/index.ts`) and import the integration:
+Create a new file for your integrations (e.g., `src/kastrax/integrations/index.ts`) and import the integration:
 
-```typescript filename="src/mastra/integrations/index.ts" showLineNumbers copy
-import { GithubIntegration } from "@mastra/github";
+```typescript filename="src/kastrax/integrations/index.ts" showLineNumbers copy
+import { GithubIntegration } from "@kastrax/github";
 
 export const github = new GithubIntegration({
   config: {
@@ -41,8 +41,8 @@ Make sure to replace `process.env.GITHUB_PAT!` with your actual GitHub Personal 
 
 You can now use the integration when defining tools for your agents or in workflows.
 
-```typescript filename="src/mastra/tools/index.ts" showLineNumbers copy
-import { createTool } from "@mastra/core";
+```typescript filename="src/kastrax/tools/index.ts" showLineNumbers copy
+import { createTool } from "@kastrax/core";
 import { z } from "zod";
 import { github } from "../integrations";
 
@@ -82,9 +82,9 @@ In the example above:
 
 Once you've defined tools that utilize integrations, you can include these tools in your agents.
 
-```typescript filename="src/mastra/agents/index.ts" showLineNumbers copy
+```typescript filename="src/kastrax/agents/index.ts" showLineNumbers copy
 import { openai } from "@ai-sdk/openai";
-import { Agent } from "@mastra/core/agent";
+import { Agent } from "@kastrax/core/agent";
 import { getMainBranchRef } from "../tools";
 
 export const codeReviewAgent = new Agent({
@@ -126,15 +126,15 @@ Mem0 enables your agent to memorize and later remember facts per-user across all
 To install the Mem0 integration, run:
 
 ```bash copy
-npm install @mastra/mem0@latest
+npm install @kastrax/mem0@latest
 ```
 
 2. **Add the Integration to Your Project**
 
-Create a new file for your integrations (e.g., `src/mastra/integrations/index.ts`) and import the integration:
+Create a new file for your integrations (e.g., `src/kastrax/integrations/index.ts`) and import the integration:
 
-```typescript filename="src/mastra/integrations/index.ts" showLineNumbers copy
-import { Mem0Integration } from "@mastra/mem0";
+```typescript filename="src/kastrax/integrations/index.ts" showLineNumbers copy
+import { Mem0Integration } from "@kastrax/mem0";
 
 export const mem0 = new Mem0Integration({
   config: {
@@ -148,8 +148,8 @@ export const mem0 = new Mem0Integration({
 
 You can now use the integration when defining tools for your agents or in workflows.
 
-```typescript filename="src/mastra/tools/index.ts" showLineNumbers copy
-import { createTool } from "@mastra/core";
+```typescript filename="src/kastrax/tools/index.ts" showLineNumbers copy
+import { createTool } from "@kastrax/core";
 import { z } from "zod";
 import { mem0 } from "../integrations";
 
@@ -196,7 +196,7 @@ export const mem0MemorizeTool = createTool({
 
 In the example above:
 
-- We import the `@mastra/mem0` integration.
+- We import the `@kastrax/mem0` integration.
 - We define two tools that uses the Mem0 API client to create new memories and recall previously saved memories.
 - The tool accepts `question` as an input and returns the memory as a string.
 

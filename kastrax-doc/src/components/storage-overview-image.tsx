@@ -8,7 +8,7 @@ export const StorageOverviewImage = () => {
       {useTheme().resolvedTheme === "dark" ? (
         <Image
           className="rounded-lg"
-          src="/image/mastra-storage-overview-dark.png"
+          src="/image/kastrax-storage-overview-dark.png"
           alt="Diagram showing storage in Kastrax"
           width={700}
           height={700}
@@ -16,7 +16,7 @@ export const StorageOverviewImage = () => {
       ) : (
         <Image
           className="rounded-lg"
-          src="/image/mastra-storage-overview-light.png"
+          src="/image/kastrax-storage-overview-light.png"
           alt="Diagram showing storage in Kastrax"
           width={700}
           height={700}

@@ -1,6 +1,6 @@
 ---
-title: ".afterEvent() Method | Mastra Docs"
-description: "Reference for the afterEvent method in Mastra workflows that creates event-based suspension points."
+title: ".afterEvent() Method | Kastrax Docs"
+description: "Reference for the afterEvent method in Kastrax workflows that creates event-based suspension points."
 ---
 
 # afterEvent()
@@ -27,14 +27,14 @@ Returns the workflow instance for method chaining.
 
 The `afterEvent()` method is used to create an automatic suspension point in your workflow that waits for a specific named event. It's essentially a declarative way to define a point where your workflow should pause and wait for an external event to occur.
 
-When you call `afterEvent()`, Mastra:
+When you call `afterEvent()`, Kastrax:
 
 1. Creates a special step with ID `__eventName_event`
 2. This step automatically suspends the workflow execution
 3. The workflow remains suspended until the specified event is triggered via `resumeWithEvent()`
 4. When the event occurs, execution continues with the step following the `afterEvent()` call
 
-This method is part of Mastra's event-driven workflow capabilities, allowing you to create workflows that coordinate with external systems or user interactions without manually implementing suspension logic.
+This method is part of Kastrax's event-driven workflow capabilities, allowing you to create workflows that coordinate with external systems or user interactions without manually implementing suspension logic.
 
 ## Usage Notes
 

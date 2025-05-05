@@ -1,6 +1,6 @@
 # Error Handling
 
-The Mastra Client SDK includes built-in retry mechanism and error handling capabilities.
+The Kastrax Client SDK includes built-in retry mechanism and error handling capabilities.
 
 ## Error Handling
 
@@ -22,7 +22,7 @@ try {
 The client automatically retries failed requests with exponential backoff:
 
 ```typescript
-const client = new MastraClient({
+const client = new KastraxClient({
   baseUrl: "http://localhost:4111",
   retries: 3, // Number of retry attempts
   backoffMs: 300, // Initial backoff time

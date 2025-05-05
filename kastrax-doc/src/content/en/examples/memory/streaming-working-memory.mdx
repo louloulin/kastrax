@@ -14,7 +14,7 @@ First, set up the memory system with working memory enabled. Memory uses LibSQL 
 ### Text Stream Mode (Default)
 
 ```typescript
-import { Memory } from "@mastra/memory";
+import { Memory } from "@kastrax/memory";
 
 const memory = new Memory({
   options: {
@@ -64,7 +64,7 @@ In text stream mode, the agent includes working memory updates directly in its r
 
 ```typescript
 import { randomUUID } from "crypto";
-import { maskStreamTags } from "@mastra/core/utils";
+import { maskStreamTags } from "@kastrax/core/utils";
 
 const threadId = randomUUID();
 const resourceId = "SOME_USER_ID";
@@ -102,7 +102,7 @@ for await (const chunk of toolCallResponse.textStream) {
 ### Handling response data
 
 In text stream mode, the response stream will contain `<working_memory>$data</working_memory>` tagged data where `$data` is Markdown-formatted content.
-Mastra picks up these tags and automatically updates working memory with the data returned by the LLM.
+Kastrax picks up these tags and automatically updates working memory with the data returned by the LLM.
 
 To prevent showing this data to users you can use the `maskStreamTags` util as shown above.
 

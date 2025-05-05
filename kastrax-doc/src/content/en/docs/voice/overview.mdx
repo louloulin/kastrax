@@ -42,10 +42,10 @@ For detailed configuration options and advanced features, check out our [Text-to
 <Tabs items={["OpenAI", "Azure", "ElevenLabs", "PlayAI", "Google", "Cloudflare", "Deepgram", "Speechify", "Sarvam", "Murf"]}>
   <Tabs.Tab>
 ```typescript
-import { Agent } from '@mastra/core/agent';
+import { Agent } from '@kastrax/core/agent';
 import { openai } from '@ai-sdk/openai';
-import { OpenAIVoice } from "@mastra/voice-openai";
-import { playAudio } from "@mastra/node-audio";
+import { OpenAIVoice } from "@kastrax/voice-openai";
+import { playAudio } from "@kastrax/node-audio";
 
 const voiceAgent = new Agent({
   name: "Voice Agent",
@@ -69,10 +69,10 @@ Visit the [OpenAI Voice Reference](/reference/voice/openai) for more information
   </Tabs.Tab>
   <Tabs.Tab>
 ```typescript
-import { Agent } from '@mastra/core/agent';
+import { Agent } from '@kastrax/core/agent';
 import { openai } from '@ai-sdk/openai';
-import { AzureVoice } from "@mastra/voice-azure";
-import { playAudio } from "@mastra/node-audio";
+import { AzureVoice } from "@kastrax/voice-azure";
+import { playAudio } from "@kastrax/node-audio";
 
 const voiceAgent = new Agent({
   name: "Voice Agent",
@@ -95,10 +95,10 @@ Visit the [Azure Voice Reference](/reference/voice/azure) for more information o
   </Tabs.Tab>
   <Tabs.Tab>
 ```typescript
-import { Agent } from '@mastra/core/agent';
+import { Agent } from '@kastrax/core/agent';
 import { openai } from '@ai-sdk/openai';
-import { ElevenLabsVoice } from "@mastra/voice-elevenlabs";
-import { playAudio } from "@mastra/node-audio";
+import { ElevenLabsVoice } from "@kastrax/voice-elevenlabs";
+import { playAudio } from "@kastrax/node-audio";
 
 const voiceAgent = new Agent({
   name: "Voice Agent",
@@ -121,10 +121,10 @@ Visit the [ElevenLabs Voice Reference](/reference/voice/elevenlabs) for more inf
   </Tabs.Tab>
   <Tabs.Tab>
 ```typescript
-import { Agent } from '@mastra/core/agent';
+import { Agent } from '@kastrax/core/agent';
 import { openai } from '@ai-sdk/openai';
-import { PlayAIVoice } from "@mastra/voice-playai";
-import { playAudio } from "@mastra/node-audio";
+import { PlayAIVoice } from "@kastrax/voice-playai";
+import { playAudio } from "@kastrax/node-audio";
 
 const voiceAgent = new Agent({
   name: "Voice Agent",
@@ -147,10 +147,10 @@ Visit the [PlayAI Voice Reference](/reference/voice/playai) for more information
   </Tabs.Tab>
   <Tabs.Tab>
 ```typescript
-import { Agent } from '@mastra/core/agent';
+import { Agent } from '@kastrax/core/agent';
 import { openai } from '@ai-sdk/openai';
-import { GoogleVoice } from "@mastra/voice-google";
-import { playAudio } from "@mastra/node-audio";
+import { GoogleVoice } from "@kastrax/voice-google";
+import { playAudio } from "@kastrax/node-audio";
 
 const voiceAgent = new Agent({
   name: "Voice Agent",
@@ -173,10 +173,10 @@ Visit the [Google Voice Reference](/reference/voice/google) for more information
   </Tabs.Tab>
   <Tabs.Tab>
 ```typescript
-import { Agent } from '@mastra/core/agent';
+import { Agent } from '@kastrax/core/agent';
 import { openai } from '@ai-sdk/openai';
-import { CloudflareVoice } from "@mastra/voice-cloudflare";
-import { playAudio } from "@mastra/node-audio";
+import { CloudflareVoice } from "@kastrax/voice-cloudflare";
+import { playAudio } from "@kastrax/node-audio";
 
 const voiceAgent = new Agent({
   name: "Voice Agent",
@@ -199,10 +199,10 @@ Visit the [Cloudflare Voice Reference](/reference/voice/cloudflare) for more inf
   </Tabs.Tab>
   <Tabs.Tab>
 ```typescript
-import { Agent } from '@mastra/core/agent';
+import { Agent } from '@kastrax/core/agent';
 import { openai } from '@ai-sdk/openai';
-import { DeepgramVoice } from "@mastra/voice-deepgram";
-import { playAudio } from "@mastra/node-audio";
+import { DeepgramVoice } from "@kastrax/voice-deepgram";
+import { playAudio } from "@kastrax/node-audio";
 
 const voiceAgent = new Agent({
   name: "Voice Agent",
@@ -225,10 +225,10 @@ Visit the [Deepgram Voice Reference](/reference/voice/deepgram) for more informa
   </Tabs.Tab>
   <Tabs.Tab>
 ```typescript
-import { Agent } from '@mastra/core/agent';
+import { Agent } from '@kastrax/core/agent';
 import { openai } from '@ai-sdk/openai';
-import { SpeechifyVoice } from "@mastra/voice-speechify";
-import { playAudio } from "@mastra/node-audio";
+import { SpeechifyVoice } from "@kastrax/voice-speechify";
+import { playAudio } from "@kastrax/node-audio";
 
 const voiceAgent = new Agent({
   name: "Voice Agent",
@@ -251,10 +251,10 @@ Visit the [Speechify Voice Reference](/reference/voice/speechify) for more infor
   </Tabs.Tab>
   <Tabs.Tab>
 ```typescript
-import { Agent } from '@mastra/core/agent';
+import { Agent } from '@kastrax/core/agent';
 import { openai } from '@ai-sdk/openai';
-import { SarvamVoice } from "@mastra/voice-sarvam";
-import { playAudio } from "@mastra/node-audio";
+import { SarvamVoice } from "@kastrax/voice-sarvam";
+import { playAudio } from "@kastrax/node-audio";
 
 const voiceAgent = new Agent({
   name: "Voice Agent",
@@ -277,10 +277,10 @@ Visit the [Sarvam Voice Reference](/reference/voice/sarvam) for more information
   </Tabs.Tab>
   <Tabs.Tab>
 ```typescript
-import { Agent } from '@mastra/core/agent';
+import { Agent } from '@kastrax/core/agent';
 import { openai } from '@ai-sdk/openai';
-import { MurfVoice } from "@mastra/voice-murf";
-import { playAudio } from "@mastra/node-audio";
+import { MurfVoice } from "@kastrax/voice-murf";
+import { playAudio } from "@kastrax/node-audio";
 
 const voiceAgent = new Agent({
   name: "Voice Agent",
@@ -307,16 +307,16 @@ Visit the [Murf Voice Reference](/reference/voice/murf) for more information on 
 
 Transcribe spoken content using various providers like OpenAI, ElevenLabs, and more. For detailed configuration options and more, check out [Speech to Text](./speech-to-text).
 
-You can download a sample audio file from [here](https://github.com/mastra-ai/realtime-voice-demo/raw/refs/heads/main/how_can_i_help_you.mp3).
+You can download a sample audio file from [here](https://github.com/kastrax-ai/realtime-voice-demo/raw/refs/heads/main/how_can_i_help_you.mp3).
 <br/>
-<AudioPlayback audio="https://github.com/mastra-ai/realtime-voice-demo/raw/refs/heads/main/how_can_i_help_you.mp3" />
+<AudioPlayback audio="https://github.com/kastrax-ai/realtime-voice-demo/raw/refs/heads/main/how_can_i_help_you.mp3" />
 
 <Tabs items={["OpenAI", "Azure", "ElevenLabs", "Google", "Cloudflare", "Deepgram", "Sarvam"]}>
   <Tabs.Tab>
 ```typescript
-import { Agent } from '@mastra/core/agent';
+import { Agent } from '@kastrax/core/agent';
 import { openai } from '@ai-sdk/openai';
-import { OpenAIVoice } from "@mastra/voice-openai";
+import { OpenAIVoice } from "@kastrax/voice-openai";
 import { createReadStream } from 'fs';
 
 const voiceAgent = new Agent({
@@ -342,9 +342,9 @@ Visit the [OpenAI Voice Reference](/reference/voice/openai) for more information
   <Tabs.Tab>
 ```typescript
 import { createReadStream } from 'fs';
-import { Agent } from '@mastra/core/agent';
+import { Agent } from '@kastrax/core/agent';
 import { openai } from '@ai-sdk/openai';
-import { AzureVoice } from "@mastra/voice-azure";
+import { AzureVoice } from "@kastrax/voice-azure";
 import { createReadStream } from 'fs';
 
 const voiceAgent = new Agent({
@@ -369,9 +369,9 @@ Visit the [Azure Voice Reference](/reference/voice/azure) for more information o
   </Tabs.Tab>
   <Tabs.Tab>
 ```typescript
-import { Agent } from '@mastra/core/agent';
+import { Agent } from '@kastrax/core/agent';
 import { openai } from '@ai-sdk/openai';
-import { ElevenLabsVoice } from "@mastra/voice-elevenlabs";
+import { ElevenLabsVoice } from "@kastrax/voice-elevenlabs";
 import { createReadStream } from 'fs';
 
 const voiceAgent = new Agent({
@@ -396,9 +396,9 @@ Visit the [ElevenLabs Voice Reference](/reference/voice/elevenlabs) for more inf
   </Tabs.Tab>
   <Tabs.Tab>
 ```typescript
-import { Agent } from '@mastra/core/agent';
+import { Agent } from '@kastrax/core/agent';
 import { openai } from '@ai-sdk/openai';
-import { GoogleVoice } from "@mastra/voice-google";
+import { GoogleVoice } from "@kastrax/voice-google";
 import { createReadStream } from 'fs';
 
 const voiceAgent = new Agent({
@@ -423,9 +423,9 @@ Visit the [Google Voice Reference](/reference/voice/google) for more information
   </Tabs.Tab>
   <Tabs.Tab>
 ```typescript
-import { Agent } from '@mastra/core/agent';
+import { Agent } from '@kastrax/core/agent';
 import { openai } from '@ai-sdk/openai';
-import { CloudflareVoice } from "@mastra/voice-cloudflare";
+import { CloudflareVoice } from "@kastrax/voice-cloudflare";
 import { createReadStream } from 'fs';
 
 const voiceAgent = new Agent({
@@ -450,9 +450,9 @@ Visit the [Cloudflare Voice Reference](/reference/voice/cloudflare) for more inf
   </Tabs.Tab>
   <Tabs.Tab>
 ```typescript
-import { Agent } from '@mastra/core/agent';
+import { Agent } from '@kastrax/core/agent';
 import { openai } from '@ai-sdk/openai';
-import { DeepgramVoice } from "@mastra/voice-deepgram";
+import { DeepgramVoice } from "@kastrax/voice-deepgram";
 import { createReadStream } from 'fs';
 
 const voiceAgent = new Agent({
@@ -477,9 +477,9 @@ Visit the [Deepgram Voice Reference](/reference/voice/deepgram) for more informa
   </Tabs.Tab>
   <Tabs.Tab>
 ```typescript
-import { Agent } from '@mastra/core/agent';
+import { Agent } from '@kastrax/core/agent';
 import { openai } from '@ai-sdk/openai';
-import { SarvamVoice } from "@mastra/voice-sarvam";
+import { SarvamVoice } from "@kastrax/voice-sarvam";
 import { createReadStream } from 'fs';
 
 const voiceAgent = new Agent({
@@ -512,10 +512,10 @@ For detailed configuration options and advanced features, check out [Speech to S
 <Tabs items={["OpenAI"]}>
   <Tabs.Tab>
 ```typescript
-import { Agent } from '@mastra/core/agent';
+import { Agent } from '@kastrax/core/agent';
 import { openai } from '@ai-sdk/openai';
-import { playAudio, getMicrophoneStream } from '@mastra/node-audio';
-import { OpenAIRealtimeVoice } from "@mastra/voice-openai-realtime";
+import { playAudio, getMicrophoneStream } from '@kastrax/node-audio';
+import { OpenAIRealtimeVoice } from "@kastrax/voice-openai-realtime";
 
 const voiceAgent = new Agent({
   name: "Voice Agent",
@@ -760,10 +760,10 @@ This example demonstrates how to create and use two different voice providers in
 Start by creating instances of the voice providers with any necessary configuration.
 
 ```typescript
-import { OpenAIVoice } from "@mastra/voice-openai";
-import { PlayAIVoice } from "@mastra/voice-playai";
-import { CompositeVoice } from "@mastra/core/voice";
-import { playAudio, getMicrophoneStream } from "@mastra/node-audio";
+import { OpenAIVoice } from "@kastrax/voice-openai";
+import { PlayAIVoice } from "@kastrax/voice-playai";
+import { CompositeVoice } from "@kastrax/core/voice";
+import { playAudio, getMicrophoneStream } from "@kastrax/node-audio";
 
 // Initialize OpenAI voice for STT
 const input = new OpenAIVoice({

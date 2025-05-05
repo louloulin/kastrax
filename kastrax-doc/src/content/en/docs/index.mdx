@@ -5,11 +5,11 @@ description: "Kastrax is a Kotlin agent framework. It helps you build AI applica
 
 # About Kastrax ✅
 
-Kastrax is an open-source Kotlin agent framework.
+Kastrax is an open-source Kotlin agent framework that combines the power of the actor model with advanced AI capabilities.
 
-It's designed to give you the primitives you need to build AI applications and features.
+It's designed to give you the essential primitives you need to build distributed, scalable AI applications and features.
 
-You can use Kastrax to build [AI agents](/docs/agents/overview.mdx) ✅ that have memory and can execute functions, or chain LLM calls in deterministic [workflows](/docs/workflows/overview.mdx) ✅. You can feed them application-specific knowledge with [RAG](/docs/rag/overview.mdx) ✅, and integrate with various LLM providers.
+You can use Kastrax to build [AI agents](/docs/agents/overview.mdx) ✅ with memory and tool-calling capabilities, implement deterministic LLM workflows, and leverage RAG for knowledge integration. With features like agent versioning, performance monitoring, and distributed communication protocols, Kastrax provides a complete toolkit for developing, testing, and deploying AI applications.
 
 The main features include:
 
@@ -20,3 +20,6 @@ The main features include:
 * **[Workflow engine](/docs/workflows/overview.mdx)** ✅: When you want to execute LLM calls in a deterministic way, Kastrax gives you a powerful workflow engine. You can define discrete steps, handle errors, and manage state across steps.
 * **[Retrieval-augmented generation (RAG)](/docs/rag/overview.mdx)** ✅: Kastrax gives you APIs to process documents into chunks, create embeddings, and store them in a vector database. At query time, it retrieves relevant chunks to ground LLM responses in your data.
 * **[Actor model](/docs/actor/overview.mdx)** ✅: Kastrax integrates with the kactor library to provide a distributed actor system for building scalable and resilient agent applications.
+* **[Agent versioning](/docs/agents/versioning.mdx)** ✅: Kastrax supports agent versioning, allowing you to create, manage, and roll back different versions of your agents.
+* **[Observability](/docs/observability/overview.mdx)** ✅: Kastrax provides comprehensive observability features including metrics collection, behavior analysis, and visualization tools for monitoring agent performance.
+* **[A2A Protocol](/docs/a2a/overview.mdx)** ✅: Kastrax implements the Agent-to-Agent (A2A) protocol for standardized communication between agents, enabling complex multi-agent systems.

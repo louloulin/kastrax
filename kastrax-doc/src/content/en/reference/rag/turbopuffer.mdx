@@ -1,6 +1,6 @@
 ---
-title: "Reference: Turbopuffer Vector Store | Vector Databases | RAG | Mastra Docs"
-description: Documentation for integrating Turbopuffer with Mastra, a high-performance vector database for efficient similarity search.
+title: "Reference: Turbopuffer Vector Store | Vector Databases | RAG | Kastrax Docs"
+description: Documentation for integrating Turbopuffer with Kastrax, a high-performance vector database for efficient similarity search.
 ---
 
 # Turbopuffer Vector Store
@@ -209,7 +209,7 @@ The `schemaConfigForIndex` option allows you to define explicit schemas for diff
 
 ```typescript copy
 schemaConfigForIndex: (indexName: string) => {
-  // Mastra's default embedding model and index for memory messages:
+  // Kastrax's default embedding model and index for memory messages:
   if (indexName === "memory_messages_384") {
     return {
       dimensions: 384,

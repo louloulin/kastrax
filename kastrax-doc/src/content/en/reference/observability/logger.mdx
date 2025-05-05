@@ -1,5 +1,5 @@
 ---
-title: "Reference: Logger Instance | Mastra Observability Docs"
+title: "Reference: Logger Instance | Kastrax Observability Docs"
 description: Documentation for Logger instances, which provide methods to record events at various severity levels.
 ---
 
@@ -11,7 +11,7 @@ A Logger instance is created by `createLogger()` and provides methods to record 
 
 ```typescript showLineNumbers copy
 // Using a console logger
-const logger = createLogger({ name: 'Mastra', level: 'info' });
+const logger = createLogger({ name: 'Kastrax', level: 'info' });
 
 logger.debug('Debug message'); // Won't be logged because level is INFO
 logger.info({ message: 'User action occurred', destinationPath: 'user-actions', type: 'AGENT' }); // Logged
