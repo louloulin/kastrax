@@ -1,0 +1,348 @@
+---
+title: "Agent Versioning | Kastrax Docs"
+description: "Learn how to manage different versions of your AI agents in Kastrax, including creating, testing, deploying, and rolling back agent versions."
+---
+
+# Agent Versioning ✅
+
+Kastrax provides a comprehensive agent versioning system that allows you to create, manage, and roll back different versions of your agents. This guide explains the agent versioning architecture and how to use it effectively.
+
+## Why Version Agents? ✅
+
+Versioning your agents provides several benefits:
+
+- **Controlled Evolution**: Make incremental improvements to your agents
+- **Safe Testing**: Test new agent versions without affecting production
+- **Easy Rollback**: Quickly revert to previous versions if issues arise
+- **A/B Testing**: Compare different agent versions to optimize performance
+- **Audit Trail**: Track changes to agent configurations over time
+- **Compliance**: Meet regulatory requirements for AI system changes
+
+## Agent Versioning Architecture ✅
+
+The Kastrax agent versioning system consists of several key components:
+
+1. **Version Registry**: Central repository for agent versions
+2. **Version Control**: Tools for creating and managing versions
+3. **Deployment Management**: Tools for deploying versions to different environments
+4. **Rollback Mechanisms**: Tools for reverting to previous versions
+5. **Version Comparison**: Tools for comparing different versions
+
+## Creating Agent Versions ✅
+
+You can create new versions of your agents using the versioning API:
+
+```kotlin
+import ai.kastrax.core.agent.agent
+import ai.kastrax.core.versioning.versioning
+import ai.kastrax.integrations.deepseek.deepSeek
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    // Create an agent with versioning
+    val agent = agent {
+        name = "CustomerSupportAgent"
+        instructions = "You are a helpful customer support assistant."
+        model = deepSeek {
+            apiKey = "your-deepseek-api-key"
+        }
+        
+        // Enable versioning
+        versioning {
+            enabled = true
+            storageLocation = "s3://your-bucket/agent-versions"
+            initialVersion = "1.0.0"
+            description = "Initial version of customer support agent"
+        }
+    }
+    
+    // Create a new version
+    val newVersion = agent.versioning.createVersion(
+        version = "1.1.0",
+        description = "Improved response quality and added product knowledge",
+        changes = mapOf(
+            "instructions" to "You are a helpful customer support assistant with detailed knowledge of our products.",
+            "temperature" to 0.7
+        )
+    )
+    
+    println("Created new version: ${newVersion.version}")
+    println("Version ID: ${newVersion.id}")
+    println("Created at: ${newVersion.createdAt}")
+}
+```
+
+## Managing Agent Versions ✅
+
+You can list, get, and delete agent versions:
+
+```kotlin
+import ai.kastrax.core.agent.agent
+import ai.kastrax.core.versioning.versioning
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    // Create an agent with versioning
+    val agent = agent {
+        name = "CustomerSupportAgent"
+        // ... other configuration ...
+        
+        versioning {
+            enabled = true
+            // ... versioning configuration ...
+        }
+    }
+    
+    // List all versions
+    val versions = agent.versioning.listVersions()
+    println("Available versions:")
+    versions.forEach { version ->
+        println("- ${version.version} (${version.description})")
+    }
+    
+    // Get a specific version
+    val version = agent.versioning.getVersion("1.1.0")
+    println("Version details:")
+    println("Version: ${version.version}")
+    println("Description: ${version.description}")
+    println("Created at: ${version.createdAt}")
+    println("Created by: ${version.createdBy}")
+    println("Changes: ${version.changes}")
+    
+    // Delete a version
+    agent.versioning.deleteVersion("1.0.0")
+    println("Deleted version 1.0.0")
+}
+```
+
+## Deploying Agent Versions ✅
+
+You can deploy different versions of your agents to different environments:
+
+```kotlin
+import ai.kastrax.core.agent.agent
+import ai.kastrax.core.versioning.versioning
+import ai.kastrax.core.versioning.Environment
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    // Create an agent with versioning
+    val agent = agent {
+        name = "CustomerSupportAgent"
+        // ... other configuration ...
+        
+        versioning {
+            enabled = true
+            // ... versioning configuration ...
+        }
+    }
+    
+    // Define environments
+    val environments = listOf(
+        Environment(
+            name = "development",
+            description = "Development environment for testing new features"
+        ),
+        Environment(
+            name = "staging",
+            description = "Staging environment for pre-production testing"
+        ),
+        Environment(
+            name = "production",
+            description = "Production environment for end users"
+        )
+    )
+    
+    // Register environments
+    environments.forEach { env ->
+        agent.versioning.registerEnvironment(env)
+    }
+    
+    // Deploy versions to different environments
+    agent.versioning.deploy("1.2.0", "development")
+    agent.versioning.deploy("1.1.0", "staging")
+    agent.versioning.deploy("1.0.0", "production")
+    
+    // Get deployed versions
+    val deployedVersions = agent.versioning.getDeployedVersions()
+    println("Deployed versions:")
+    deployedVersions.forEach { (env, version) ->
+        println("- $env: $version")
+    }
+}
+```
+
+## Rolling Back Agent Versions ✅
+
+You can roll back to previous versions if issues arise:
+
+```kotlin
+import ai.kastrax.core.agent.agent
+import ai.kastrax.core.versioning.versioning
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    // Create an agent with versioning
+    val agent = agent {
+        name = "CustomerSupportAgent"
+        // ... other configuration ...
+        
+        versioning {
+            enabled = true
+            // ... versioning configuration ...
+        }
+    }
+    
+    // Deploy a new version to production
+    agent.versioning.deploy("1.1.0", "production")
+    println("Deployed version 1.1.0 to production")
+    
+    // Simulate an issue with the new version
+    println("Issue detected with version 1.1.0")
+    
+    // Roll back to the previous version
+    val rollback = agent.versioning.rollback("production")
+    println("Rolled back to version ${rollback.version} in production")
+    println("Rollback reason: ${rollback.reason}")
+    println("Rollback performed by: ${rollback.performedBy}")
+    println("Rollback timestamp: ${rollback.timestamp}")
+}
+```
+
+## A/B Testing Agent Versions ✅
+
+You can compare different agent versions using A/B testing:
+
+```kotlin
+import ai.kastrax.core.agent.agent
+import ai.kastrax.core.versioning.versioning
+import ai.kastrax.core.versioning.abTest
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    // Create an agent with versioning
+    val agent = agent {
+        name = "CustomerSupportAgent"
+        // ... other configuration ...
+        
+        versioning {
+            enabled = true
+            // ... versioning configuration ...
+        }
+    }
+    
+    // Create an A/B test
+    val test = agent.versioning.abTest {
+        name = "response-quality-test"
+        description = "Testing improved response quality in version 1.1.0"
+        versionA = "1.0.0"
+        versionB = "1.1.0"
+        trafficSplit = 0.5 // 50% of traffic to each version
+        metrics = listOf(
+            "response_time",
+            "user_satisfaction",
+            "task_completion"
+        )
+        duration = 7 * 24 * 60 * 60 * 1000 // 7 days in milliseconds
+    }
+    
+    println("Created A/B test: ${test.name}")
+    println("Test ID: ${test.id}")
+    println("Start time: ${test.startTime}")
+    println("End time: ${test.endTime}")
+    
+    // Get A/B test results (after the test has run)
+    val results = agent.versioning.getAbTestResults("response-quality-test")
+    println("A/B test results:")
+    println("Version A (${results.versionA}) metrics:")
+    results.metricsA.forEach { (metric, value) ->
+        println("- $metric: $value")
+    }
+    println("Version B (${results.versionB}) metrics:")
+    results.metricsB.forEach { (metric, value) ->
+        println("- $metric: $value")
+    }
+    println("Winner: ${results.winner}")
+    println("Confidence: ${results.confidence}")
+}
+```
+
+## Version Comparison ✅
+
+You can compare different versions of your agents:
+
+```kotlin
+import ai.kastrax.core.agent.agent
+import ai.kastrax.core.versioning.versioning
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    // Create an agent with versioning
+    val agent = agent {
+        name = "CustomerSupportAgent"
+        // ... other configuration ...
+        
+        versioning {
+            enabled = true
+            // ... versioning configuration ...
+        }
+    }
+    
+    // Compare two versions
+    val comparison = agent.versioning.compareVersions("1.0.0", "1.1.0")
+    println("Version comparison:")
+    println("Changes:")
+    comparison.changes.forEach { (key, change) ->
+        println("- $key: ${change.from} -> ${change.to}")
+    }
+    println("Performance difference:")
+    comparison.performanceDiff.forEach { (metric, diff) ->
+        println("- $metric: ${diff.percentage}% (${diff.direction})")
+    }
+}
+```
+
+## Version History and Audit Trail ✅
+
+You can view the version history and audit trail of your agents:
+
+```kotlin
+import ai.kastrax.core.agent.agent
+import ai.kastrax.core.versioning.versioning
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    // Create an agent with versioning
+    val agent = agent {
+        name = "CustomerSupportAgent"
+        // ... other configuration ...
+        
+        versioning {
+            enabled = true
+            // ... versioning configuration ...
+        }
+    }
+    
+    // Get version history
+    val history = agent.versioning.getHistory()
+    println("Version history:")
+    history.forEach { event ->
+        println("- ${event.timestamp}: ${event.action} (${event.version})")
+        println("  Performed by: ${event.user}")
+        println("  Details: ${event.details}")
+    }
+    
+    // Get audit trail for a specific version
+    val auditTrail = agent.versioning.getAuditTrail("1.1.0")
+    println("Audit trail for version 1.1.0:")
+    auditTrail.forEach { entry ->
+        println("- ${entry.timestamp}: ${entry.action}")
+        println("  Performed by: ${entry.user}")
+        println("  Details: ${entry.details}")
+    }
+}
+```
+
+## Conclusion ✅
+
+Kastrax's agent versioning system provides a comprehensive solution for managing different versions of your AI agents. By leveraging these features, you can safely evolve your agents, test new versions, and quickly roll back if issues arise, all while maintaining a complete audit trail of changes.
