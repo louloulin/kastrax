@@ -1,0 +1,580 @@
+---
+title: 工具调用生命周期和调试 | Kastrax 文档
+description: 详细介绍 Kastrax 工具调用的生命周期、调试技巧和常见问题排除方法。
+---
+
+# 工具调用生命周期和调试 ✅
+
+本指南详细介绍 Kastrax 工具调用的生命周期、调试技巧和常见问题排除方法，帮助您更好地理解和优化工具的使用。
+
+## 工具调用生命周期 ✅
+
+Kastrax 中的工具调用遵循一个明确的生命周期，了解这个过程有助于您更好地设计和调试工具。
+
+### 1. 工具注册阶段
+
+工具调用生命周期始于工具的注册：
+
+```kotlin
+val myAgent = agent {
+    // ...
+    tools {
+        // 注册工具
+        tool("myTool") {
+            description("我的工具")
+            parameters {
+                parameter("param1", "参数1", String::class)
+            }
+            execute { params ->
+                // 执行逻辑
+                "结果"
+            }
+        }
+    }
+}
+```
+
+在这个阶段，Kastrax 会：
+- 验证工具定义的完整性
+- 生成工具的 JSON Schema
+- 将工具注册到代理的工具注册表中
+
+### 2. 代理决策阶段
+
+当用户向代理发送请求时，LLM 会决定是否调用工具：
+
+```kotlin
+// 用户请求
+val response = myAgent.generate("我需要获取当前时间")
+```
+
+在这个阶段：
+- LLM 分析用户请求
+- 决定是否需要调用工具
+- 选择合适的工具
+- 准备工具调用参数
+
+### 3. 工具调用准备阶段
+
+一旦 LLM 决定调用工具，Kastrax 会准备工具调用：
+
+- 验证工具 ID 是否存在
+- 解析工具调用参数
+- 验证参数是否符合工具的参数模式
+
+### 4. 工具执行阶段
+
+准备完成后，Kastrax 执行工具：
+
+- 调用工具的 `execute` 方法
+- 传递解析后的参数
+- 捕获执行结果或异常
+
+### 5. 结果处理阶段
+
+工具执行完成后，Kastrax 处理执行结果：
+
+- 格式化工具执行结果
+- 处理可能的错误
+- 将结果返回给 LLM
+
+### 6. LLM 响应生成阶段
+
+LLM 接收工具执行结果并生成最终响应：
+
+- 解释工具执行结果
+- 将结果整合到回复中
+- 生成最终响应
+
+### 7. 响应返回阶段
+
+最后，完整的响应返回给用户：
+
+- 包含 LLM 的文本响应
+- 包含工具调用信息
+- 包含工具执行结果
+
+## 工具调用流程图
+
+以下是工具调用的完整流程图：
+
+```
+用户请求 → 代理接收 → LLM 处理 → 决定调用工具 → 准备工具调用
+    ↓
+响应返回 ← LLM 生成响应 ← 处理工具结果 ← 执行工具 ← 验证参数
+```
+
+## 工具调用调试 ✅
+
+### 启用调试日志
+
+要调试工具调用，首先启用详细日志：
+
+```kotlin
+import io.github.oshai.kotlinlogging.KotlinLogging
+import ch.qos.logback.classic.Level
+import ch.qos.logback.classic.Logger
+import org.slf4j.LoggerFactory
+
+// 启用详细日志
+fun enableDebugLogging() {
+    val rootLogger = LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME) as Logger
+    rootLogger.level = Level.DEBUG
+    
+    // 特别为工具系统启用 TRACE 级别
+    val toolsLogger = LoggerFactory.getLogger("ai.kastrax.core.tools") as Logger
+    toolsLogger.level = Level.TRACE
+}
+
+// 在应用启动时调用
+enableDebugLogging()
+```
+
+### 工具调用跟踪
+
+创建一个工具调用跟踪器，记录工具调用的详细信息：
+
+```kotlin
+import ai.kastrax.core.agent.AgentResponse
+import ai.kastrax.core.agent.ToolCall
+import ai.kastrax.core.agent.ToolResult
+
+// 工具调用跟踪器
+class ToolCallTracer {
+    private val logger = KotlinLogging.logger {}
+    
+    fun traceToolCalls(response: AgentResponse) {
+        if (response.toolCalls.isEmpty()) {
+            logger.info { "没有工具调用" }
+            return
+        }
+        
+        logger.info { "发现 ${response.toolCalls.size} 个工具调用:" }
+        
+        response.toolCalls.forEachIndexed { index, toolCall ->
+            logger.info { "工具调用 #${index + 1}:" }
+            traceToolCall(toolCall)
+            
+            // 跟踪工具结果
+            val result = response.toolResults[toolCall.id]
+            if (result != null) {
+                traceToolResult(result)
+            } else {
+                logger.warn { "未找到工具调用 ${toolCall.id} 的结果" }
+            }
+        }
+    }
+    
+    private fun traceToolCall(toolCall: ToolCall) {
+        logger.info { "  ID: ${toolCall.id}" }
+        logger.info { "  工具: ${toolCall.name}" }
+        logger.info { "  参数: ${toolCall.arguments}" }
+    }
+    
+    private fun traceToolResult(result: ToolResult) {
+        logger.info { "  成功: ${result.success}" }
+        if (result.success) {
+            logger.info { "  结果: ${result.result}" }
+        } else {
+            logger.error { "  错误: ${result.error}" }
+        }
+    }
+}
+
+// 使用跟踪器
+val tracer = ToolCallTracer()
+val response = myAgent.generate("执行某个操作")
+tracer.traceToolCalls(response)
+```
+
+### 工具执行监控
+
+创建一个工具执行监控器，测量工具执行时间和资源使用情况：
+
+```kotlin
+import ai.kastrax.core.tools.Tool
+import kotlinx.serialization.json.JsonElement
+import kotlin.system.measureTimeMillis
+
+// 工具执行监控器
+class ToolExecutionMonitor(private val tool: Tool) : Tool {
+    private val logger = KotlinLogging.logger {}
+    
+    override val id: String = tool.id
+    override val name: String = tool.name
+    override val description: String = tool.description
+    override val inputSchema: JsonElement = tool.inputSchema
+    override val outputSchema: JsonElement? = tool.outputSchema
+    
+    override suspend fun execute(input: JsonElement): JsonElement {
+        logger.info { "开始执行工具: $id" }
+        logger.info { "输入参数: $input" }
+        
+        var result: JsonElement
+        val executionTime = measureTimeMillis {
+            try {
+                result = tool.execute(input)
+            } catch (e: Exception) {
+                logger.error(e) { "工具执行失败: ${e.message}" }
+                throw e
+            }
+        }
+        
+        logger.info { "工具执行完成，耗时: ${executionTime}ms" }
+        logger.info { "执行结果: $result" }
+        
+        return result
+    }
+}
+
+// 使用监控器包装工具
+val monitoredTool = ToolExecutionMonitor(myTool)
+
+// 在代理中使用监控工具
+val myAgent = agent {
+    // ...
+    tools {
+        tool(monitoredTool)
+    }
+}
+```
+
+## 常见问题排除 ✅
+
+### 1. 工具未被调用
+
+**症状**：代理没有调用预期的工具。
+
+**可能原因**：
+- 工具描述不清晰或不完整
+- 用户请求没有明确表达需要使用工具
+- LLM 没有识别出需要使用工具
+
+**解决方案**：
+- 改进工具描述，使其更加明确和详细
+- 在代理指令中明确说明何时使用工具
+- 调整用户请求，更明确地表达需要使用工具
+
+```kotlin
+// 改进工具描述
+tool("weatherInfo") {
+    description("""
+        获取指定城市的天气信息。
+        当用户询问天气、温度、湿度、风力等天气相关信息时使用此工具。
+        示例查询：'北京今天的天气怎么样？'、'上海的温度是多少？'
+    """.trimIndent())
+    // ...
+}
+
+// 在代理指令中明确说明
+val myAgent = agent {
+    instructions("""
+        你是一个天气助手。当用户询问天气信息时，始终使用 weatherInfo 工具获取最新数据。
+        不要猜测天气信息，始终使用工具获取准确数据。
+    """.trimIndent())
+    // ...
+}
+```
+
+### 2. 参数验证失败
+
+**症状**：工具调用失败，报告参数验证错误。
+
+**可能原因**：
+- LLM 提供了错误格式的参数
+- 参数类型不匹配
+- 缺少必需参数
+
+**解决方案**：
+- 检查参数定义是否清晰
+- 提供参数示例
+- 实现更宽容的参数处理
+
+```kotlin
+// 提供更清晰的参数定义和示例
+tool("weatherInfo") {
+    description("获取指定城市的天气信息")
+    parameters {
+        parameter("city", "城市名称，例如：'北京'、'上海'、'广州'", String::class)
+        parameter("date", "日期（可选），格式：YYYY-MM-DD，例如：'2023-05-15'", String::class, 
+            optional = true, 
+            defaultValue = "today")
+    }
+    // ...
+}
+
+// 实现更宽容的参数处理
+execute { params ->
+    val city = params["city"] as? String ?: throw IllegalArgumentException("缺少城市参数")
+    val date = params["date"] as? String ?: "today"
+    
+    // 标准化城市名称
+    val normalizedCity = city.trim().lowercase()
+    
+    // 标准化日期
+    val normalizedDate = when (date.trim().lowercase()) {
+        "today", "今天" -> "today"
+        "tomorrow", "明天" -> "tomorrow"
+        else -> date
+    }
+    
+    // 执行逻辑...
+}
+```
+
+### 3. 工具执行超时
+
+**症状**：工具执行时间过长，导致超时。
+
+**可能原因**：
+- 工具执行逻辑效率低下
+- 外部服务响应慢
+- 处理大量数据
+
+**解决方案**：
+- 实现超时机制
+- 优化工具执行逻辑
+- 实现分页或流式处理
+
+```kotlin
+import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.withTimeoutOrNull
+
+// 实现超时机制
+execute { params ->
+    withTimeoutOrNull(5000L) { // 5秒超时
+        // 工具执行逻辑...
+    } ?: "操作超时，请尝试简化请求或分解为多个步骤"
+}
+
+// 对于外部 API 调用，设置连接和读取超时
+val client = HttpClient(CIO) {
+    engine {
+        requestTimeout = 5000 // 连接超时 5 秒
+        socketTimeout = 5000 // 读取超时 5 秒
+    }
+}
+```
+
+### 4. 工具返回格式错误
+
+**症状**：工具执行成功，但返回格式不符合 LLM 预期。
+
+**可能原因**：
+- 工具返回的数据结构复杂
+- 返回数据包含特殊字符或格式
+- 返回数据过大
+
+**解决方案**：
+- 简化和标准化返回格式
+- 处理特殊字符
+- 限制返回数据大小
+
+```kotlin
+// 简化和标准化返回格式
+execute { params ->
+    try {
+        val result = // ... 执行逻辑
+        
+        // 格式化结果
+        val formattedResult = formatResult(result)
+        
+        // 限制结果大小
+        if (formattedResult.length > 1000) {
+            formattedResult.substring(0, 997) + "..."
+        } else {
+            formattedResult
+        }
+    } catch (e: Exception) {
+        "执行失败: ${e.message}"
+    }
+}
+
+// 格式化结果的辅助函数
+private fun formatResult(result: Any): String {
+    return when (result) {
+        is Map<*, *> -> result.entries.joinToString("\n") { "${it.key}: ${it.value}" }
+        is List<*> -> result.joinToString("\n") { "- $it" }
+        else -> result.toString()
+    }
+}
+```
+
+### 5. 工具执行错误
+
+**症状**：工具执行失败，抛出异常。
+
+**可能原因**：
+- 输入参数处理错误
+- 外部服务不可用
+- 权限或资源问题
+
+**解决方案**：
+- 实现全面的错误处理
+- 提供有意义的错误消息
+- 实现重试机制
+
+```kotlin
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.Dispatchers
+import java.io.IOException
+
+// 实现全面的错误处理和重试机制
+execute { params ->
+    try {
+        withContext(Dispatchers.IO) {
+            // 尝试执行，最多重试 3 次
+            var attempts = 0
+            var lastError: Exception? = null
+            
+            while (attempts < 3) {
+                try {
+                    // 执行逻辑...
+                    return@withContext "成功结果"
+                } catch (e: IOException) {
+                    // 可重试的错误
+                    lastError = e
+                    attempts++
+                    if (attempts < 3) {
+                        delay(1000L * attempts) // 指数退避
+                    }
+                } catch (e: Exception) {
+                    // 不可重试的错误
+                    throw e
+                }
+            }
+            
+            // 所有重试都失败
+            throw lastError ?: IllegalStateException("未知错误")
+        }
+    } catch (e: Exception) {
+        when (e) {
+            is IOException -> "网络错误: ${e.message}，请稍后重试"
+            is IllegalArgumentException -> "参数错误: ${e.message}"
+            else -> "执行错误: ${e.message}"
+        }
+    }
+}
+```
+
+## 工具调用分析 ✅
+
+### 收集工具调用统计信息
+
+创建一个工具调用统计收集器，跟踪工具使用情况：
+
+```kotlin
+import ai.kastrax.core.tools.Tool
+import kotlinx.serialization.json.JsonElement
+import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.atomic.AtomicLong
+import kotlin.system.measureTimeMillis
+
+// 工具调用统计收集器
+class ToolCallStatistics {
+    private val callCounts = ConcurrentHashMap<String, AtomicLong>()
+    private val errorCounts = ConcurrentHashMap<String, AtomicLong>()
+    private val totalExecutionTime = ConcurrentHashMap<String, AtomicLong>()
+    
+    // 记录工具调用
+    fun recordCall(toolId: String, executionTime: Long, success: Boolean) {
+        callCounts.computeIfAbsent(toolId) { AtomicLong(0) }.incrementAndGet()
+        totalExecutionTime.computeIfAbsent(toolId) { AtomicLong(0) }.addAndGet(executionTime)
+        
+        if (!success) {
+            errorCounts.computeIfAbsent(toolId) { AtomicLong(0) }.incrementAndGet()
+        }
+    }
+    
+    // 获取统计信息
+    fun getStatistics(): Map<String, Map<String, Any>> {
+        return callCounts.keys.associateWith { toolId ->
+            val calls = callCounts[toolId]?.get() ?: 0
+            val errors = errorCounts[toolId]?.get() ?: 0
+            val totalTime = totalExecutionTime[toolId]?.get() ?: 0
+            
+            mapOf(
+                "calls" to calls,
+                "errors" to errors,
+                "successRate" to if (calls > 0) (calls - errors) * 100.0 / calls else 0.0,
+                "averageExecutionTime" to if (calls > 0) totalTime.toDouble() / calls else 0.0
+            )
+        }
+    }
+    
+    // 创建统计工具包装器
+    fun createStatisticalTool(tool: Tool): Tool {
+        return object : Tool {
+            override val id: String = tool.id
+            override val name: String = tool.name
+            override val description: String = tool.description
+            override val inputSchema: JsonElement = tool.inputSchema
+            override val outputSchema: JsonElement? = tool.outputSchema
+            
+            override suspend fun execute(input: JsonElement): JsonElement {
+                var success = false
+                var result: JsonElement
+                
+                val executionTime = measureTimeMillis {
+                    try {
+                        result = tool.execute(input)
+                        success = true
+                    } catch (e: Exception) {
+                        success = false
+                        throw e
+                    }
+                }
+                
+                recordCall(id, executionTime, success)
+                return result
+            }
+        }
+    }
+}
+
+// 使用统计收集器
+val statistics = ToolCallStatistics()
+
+// 在代理中使用统计工具
+val myAgent = agent {
+    // ...
+    tools {
+        tool(statistics.createStatisticalTool(myTool))
+    }
+}
+
+// 获取并打印统计信息
+fun printStatistics() {
+    val stats = statistics.getStatistics()
+    println("工具调用统计:")
+    stats.forEach { (toolId, metrics) ->
+        println("工具: $toolId")
+        println("  调用次数: ${metrics["calls"]}")
+        println("  成功率: ${metrics["successRate"]}%")
+        println("  平均执行时间: ${metrics["averageExecutionTime"]}ms")
+    }
+}
+```
+
+## 最佳实践 ✅
+
+### 工具设计最佳实践
+
+1. **明确的描述**：提供详细的工具描述，包括用途、参数和示例
+2. **参数验证**：实现严格的参数验证，但也要容忍常见的输入变体
+3. **错误处理**：提供有意义的错误消息，帮助 LLM 理解问题
+4. **性能优化**：优化工具执行逻辑，避免长时间运行
+5. **安全考虑**：实施适当的安全检查，特别是对于文件和网络操作
+
+### 工具调试最佳实践
+
+1. **增量测试**：单独测试工具，然后再集成到代理中
+2. **日志记录**：记录工具调用的输入、输出和执行时间
+3. **模拟外部依赖**：使用模拟对象测试依赖外部服务的工具
+4. **边缘情况测试**：测试各种边缘情况和错误情况
+5. **监控生产环境**：在生产环境中监控工具性能和错误率
+
+## 总结 ✅
+
+了解工具调用的生命周期和掌握调试技巧对于创建可靠、高效的工具至关重要。通过实施本指南中的最佳实践和故障排除方法，您可以提高工具的可靠性和性能，为用户提供更好的体验。

@@ -1,0 +1,709 @@
+---
+title: RAG 工具集成 | Kastrax 文档
+description: Kastrax 工具系统与 RAG（检索增强生成）的集成指南，包括检索工具、评估工具和优化工具的使用方法。
+---
+
+# RAG 工具集成 ✅
+
+Kastrax 提供了强大的工具系统与 RAG（检索增强生成）的集成能力，使代理能够从知识库中检索信息并生成更准确的回答。本指南详细介绍了如何使用 Kastrax 的 RAG 工具集成功能。
+
+## RAG 系统概述 ✅
+
+RAG（检索增强生成）是一种结合检索和生成的技术，通过从知识库中检索相关信息来增强 LLM 的生成能力。Kastrax 的 RAG 系统由以下主要组件组成：
+
+1. **文档处理**：加载和分割文档
+2. **嵌入生成**：将文档转换为向量表示
+3. **向量存储**：存储和检索嵌入文档
+4. **检索器**：根据查询检索相关文档
+5. **上下文生成**：生成增强上下文
+6. **RAG 工具**：将 RAG 功能集成到代理中
+
+## RAG 工具类型 ✅
+
+Kastrax 提供了多种 RAG 工具，使代理能够与 RAG 系统交互：
+
+### 1. 检索工具
+
+检索工具允许代理从知识库中检索相关信息：
+
+```kotlin
+import ai.kastrax.core.tools.tool
+import ai.kastrax.rag.RAG
+import ai.kastrax.rag.RagProcessOptions
+import kotlinx.serialization.json.*
+
+// 创建检索工具
+val retrievalTool = tool("knowledgeSearch") {
+    description("从知识库中搜索相关信息")
+    
+    parameters {
+        parameter("query", "搜索查询", String::class)
+        parameter("limit", "结果数量限制", Int::class, optional = true, defaultValue = 5)
+        parameter("minScore", "最小相似度分数", Double::class, optional = true, defaultValue = 0.7)
+    }
+    
+    execute { params ->
+        val query = params["query"] as String
+        val limit = (params["limit"] as? Int) ?: 5
+        val minScore = (params["minScore"] as? Double) ?: 0.7
+        
+        // 使用 RAG 系统搜索
+        val results = rag.search(query, limit, minScore)
+        
+        // 格式化结果
+        val formattedResults = results.mapIndexed { index, result ->
+            """
+            结果 ${index + 1}:
+            内容: ${result.document.content}
+            相似度: ${result.score}
+            来源: ${result.document.metadata["source"] ?: "未知"}
+            """.trimIndent()
+        }.joinToString("\n\n")
+        
+        "找到 ${results.size} 个相关结果:\n\n$formattedResults"
+    }
+}
+```
+
+### 2. 上下文生成工具
+
+上下文生成工具允许代理生成增强上下文：
+
+```kotlin
+// 创建上下文生成工具
+val contextGenerationTool = tool("generateContext") {
+    description("根据查询生成增强上下文")
+    
+    parameters {
+        parameter("query", "搜索查询", String::class)
+        parameter("includeMetadata", "是否包含元数据", Boolean::class, optional = true, defaultValue = true)
+        parameter("metadataKeys", "要包含的元数据键", List::class, optional = true, defaultValue = listOf("title", "source"))
+    }
+    
+    execute { params ->
+        val query = params["query"] as String
+        val includeMetadata = (params["includeMetadata"] as? Boolean) ?: true
+        val metadataKeys = (params["metadataKeys"] as? List<*>)?.filterIsInstance<String>() ?: listOf("title", "source")
+        
+        // 生成增强上下文
+        val context = if (includeMetadata) {
+            rag.generateContextWithMetadata(query, metadataKeys = metadataKeys)
+        } else {
+            rag.generateContext(query)
+        }
+        
+        context
+    }
+}
+```
+
+### 3. RAG 评估工具
+
+RAG 评估工具允许代理评估 RAG 系统的质量：
+
+```kotlin
+import ai.kastrax.rag.tools.RagEvaluationTool
+import ai.kastrax.rag.llm.LlmProviderClient
+
+// 创建 LLM 客户端
+val llmClient = LlmProviderClient(llmProvider)
+
+// 创建 RAG 评估工具
+val ragEvaluationTool = RagEvaluationTool(rag, llmClient)
+
+// 创建评估工具
+val evaluationTool = tool("evaluateRag") {
+    description("评估 RAG 系统的质量")
+    
+    parameters {
+        parameter("query", "用户查询", String::class)
+        parameter("answer", "生成的回答", String::class)
+        parameter("groundTruth", "参考答案", String::class, optional = true)
+    }
+    
+    execute { params ->
+        val query = params["query"] as String
+        val answer = params["answer"] as String
+        val groundTruth = params["groundTruth"] as? String
+        
+        // 评估 RAG 系统
+        val result = ragEvaluationTool.evaluate(query, answer, groundTruth = groundTruth)
+        
+        // 格式化评估结果
+        """
+        RAG 评估结果:
+        
+        查询: ${result.query}
+        
+        评估指标:
+        ${result.metricResults.joinToString("\n") { "- ${it.name}: ${it.score}" }}
+        
+        总体评分: ${result.overallScore}
+        
+        检索结果:
+        ${result.retrievalResults.take(3).joinToString("\n") { "- ${it.content.take(100)}..." }}
+        
+        建议改进:
+        ${result.suggestions?.joinToString("\n") { "- $it" } ?: "无建议"}
+        """.trimIndent()
+    }
+}
+```
+
+### 4. RAG 优化工具
+
+RAG 优化工具允许代理优化 RAG 系统的配置：
+
+```kotlin
+import ai.kastrax.rag.tools.RagOptimizationTool
+import ai.kastrax.rag.RagOptimizationOptions
+
+// 创建 RAG 优化工具
+val ragOptimizationTool = RagOptimizationTool(rag, llmClient)
+
+// 创建优化工具
+val optimizationTool = tool("optimizeRag") {
+    description("优化 RAG 系统的配置")
+    
+    parameters {
+        parameter("queries", "测试查询列表", List::class)
+        parameter("optimizeRetriever", "是否优化检索器", Boolean::class, optional = true, defaultValue = true)
+        parameter("optimizeReranking", "是否优化重排序", Boolean::class, optional = true, defaultValue = true)
+    }
+    
+    execute { params ->
+        val queries = (params["queries"] as List<*>).filterIsInstance<String>()
+        val optimizeRetriever = (params["optimizeRetriever"] as? Boolean) ?: true
+        val optimizeReranking = (params["optimizeReranking"] as? Boolean) ?: true
+        
+        // 创建优化选项
+        val options = RagOptimizationOptions(
+            optimizeRetriever = optimizeRetriever,
+            optimizeReranking = optimizeReranking
+        )
+        
+        // 优化 RAG 系统
+        val result = ragOptimizationTool.optimize(
+            queries = queries,
+            generateAnswer = { query, context ->
+                // 使用代理生成回答
+                val prompt = "基于以下上下文回答问题:\n\n$context\n\n问题: $query"
+                agent.generate(prompt).text
+            },
+            optimizationOptions = options
+        )
+        
+        // 格式化优化结果
+        """
+        RAG 优化结果:
+        
+        最佳配置:
+        ${result.bestConfiguration}
+        
+        最佳评分: ${result.bestScore}
+        
+        配置比较:
+        ${result.configurationResults.take(3).joinToString("\n") { 
+            "- 配置: ${it.configuration}, 评分: ${it.score}" 
+        }}
+        
+        建议:
+        ${result.recommendations.joinToString("\n") { "- $it" }}
+        """.trimIndent()
+    }
+}
+```
+
+### 5. RAG 基准测试工具
+
+RAG 基准测试工具允许代理创建和运行 RAG 评估基准测试：
+
+```kotlin
+import ai.kastrax.rag.tools.RagBenchmarkTool
+import ai.kastrax.rag.RagTestCase
+
+// 创建 RAG 基准测试工具
+val ragBenchmarkTool = RagBenchmarkTool(rag, llmClient)
+
+// 创建基准测试工具
+val benchmarkTool = tool("benchmarkRag") {
+    description("创建和运行 RAG 评估基准测试")
+    
+    parameters {
+        parameter("name", "基准测试名称", String::class)
+        parameter("description", "基准测试描述", String::class)
+        parameter("testCases", "测试用例列表", List::class)
+    }
+    
+    execute { params ->
+        val name = params["name"] as String
+        val description = params["description"] as String
+        val testCasesRaw = params["testCases"] as List<*>
+        
+        // 转换测试用例
+        val testCases = testCasesRaw.mapNotNull { case ->
+            if (case is Map<*, *>) {
+                val query = case["query"] as? String ?: return@mapNotNull null
+                val groundTruth = case["groundTruth"] as? String
+                
+                RagTestCase(query, groundTruth)
+            } else {
+                null
+            }
+        }
+        
+        // 创建基准测试
+        val benchmark = ragBenchmarkTool.createBenchmark(
+            name = name,
+            description = description,
+            testCases = testCases
+        )
+        
+        // 运行基准测试
+        val result = ragBenchmarkTool.runBenchmark(
+            benchmark = benchmark,
+            generateAnswer = { query, context ->
+                // 使用代理生成回答
+                val prompt = "基于以下上下文回答问题:\n\n$context\n\n问题: $query"
+                agent.generate(prompt).text
+            }
+        )
+        
+        // 格式化基准测试结果
+        """
+        RAG 基准测试结果:
+        
+        名称: ${result.name}
+        描述: ${result.description}
+        
+        总体评分: ${result.overallScore}
+        
+        指标评分:
+        ${result.metricScores.joinToString("\n") { "- ${it.key}: ${it.value}" }}
+        
+        测试用例结果:
+        ${result.testCaseResults.take(3).joinToString("\n\n") { caseResult ->
+            """
+            查询: ${caseResult.query}
+            回答: ${caseResult.answer.take(100)}...
+            评分: ${caseResult.score}
+            """.trimIndent()
+        }}
+        """.trimIndent()
+    }
+}
+```
+
+## 在代理中使用 RAG 工具 ✅
+
+### 创建 RAG 系统
+
+首先，创建 RAG 系统并加载文档：
+
+```kotlin
+import ai.kastrax.rag.RAG
+import ai.kastrax.rag.document.DirectoryDocumentLoader
+import ai.kastrax.rag.document.RecursiveCharacterTextSplitter
+import ai.kastrax.rag.embedding.OpenAIEmbeddingService
+import ai.kastrax.rag.vectorstore.InMemoryVectorStore
+import kotlinx.coroutines.runBlocking
+import java.io.File
+
+fun main() = runBlocking {
+    // 创建向量存储
+    val vectorStore = InMemoryVectorStore()
+    
+    // 创建嵌入服务
+    val embeddingService = OpenAIEmbeddingService(apiKey = "your-api-key")
+    
+    // 创建 RAG 系统
+    val rag = RAG(vectorStore, embeddingService)
+    
+    // 创建文档分割器
+    val splitter = RecursiveCharacterTextSplitter(
+        chunkSize = 1000,
+        chunkOverlap = 200
+    )
+    
+    // 加载文档
+    val loader = DirectoryDocumentLoader(
+        directory = File("path/to/documents"),
+        recursive = true,
+        fileExtensions = listOf("txt", "md", "pdf")
+    )
+    
+    rag.loadDocuments(loader, splitter)
+    
+    // 创建 RAG 代理
+    createRagAgent(rag)
+}
+```
+
+### 创建 RAG 代理
+
+然后，创建使用 RAG 工具的代理：
+
+```kotlin
+import ai.kastrax.core.agent.agent
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+
+fun createRagAgent(rag: RAG) {
+    // 创建检索工具
+    val retrievalTool = tool("knowledgeSearch") {
+        // 工具实现...
+    }
+    
+    // 创建上下文生成工具
+    val contextGenerationTool = tool("generateContext") {
+        // 工具实现...
+    }
+    
+    // 创建 RAG 代理
+    val ragAgent = agent {
+        name = "RAG 助手"
+        description = "一个能够从知识库中检索信息的助手"
+        
+        // 配置 LLM
+        model = deepSeek {
+            apiKey = "your-deepseek-api-key"
+            model = DeepSeekModel.DEEPSEEK_CHAT
+            temperature = 0.7
+        }
+        
+        // 添加 RAG 工具
+        tools {
+            tool(retrievalTool)
+            tool(contextGenerationTool)
+        }
+        
+        // 设置指令
+        instructions = """
+            你是一个基于检索增强生成 (RAG) 的问答助手。你的任务是使用提供的工具从知识库中检索信息，并基于检索到的信息回答用户的问题。
+            
+            当用户提出问题时，请按照以下步骤操作：
+            1. 使用 knowledgeSearch 工具搜索相关信息
+            2. 如果需要更详细的上下文，使用 generateContext 工具生成增强上下文
+            3. 基于检索到的信息回答用户的问题
+            4. 如果知识库中没有相关信息，坦诚告知用户
+            
+            始终引用信息来源，并确保回答准确、相关且有帮助。
+        """.trimIndent()
+    }
+    
+    // 使用代理
+    val response = ragAgent.generate("什么是检索增强生成 (RAG)？")
+    println(response.text)
+}
+```
+
+## 高级 RAG 工具配置 ✅
+
+### 混合检索策略
+
+Kastrax 支持多种检索策略，可以根据需要配置：
+
+```kotlin
+import ai.kastrax.rag.RagProcessOptions
+import ai.kastrax.rag.retrieval.HybridRetrieverConfig
+import ai.kastrax.rag.retrieval.EnhancedHybridRetrieverConfig
+import ai.kastrax.rag.retrieval.SemanticRetrieverConfig
+
+// 创建高级检索工具
+val advancedRetrievalTool = tool("advancedSearch") {
+    description("使用高级检索策略从知识库中搜索信息")
+    
+    parameters {
+        parameter("query", "搜索查询", String::class)
+        parameter("strategy", "检索策略 (basic, semantic, hybrid, enhanced)", String::class)
+        parameter("limit", "结果数量限制", Int::class, optional = true, defaultValue = 5)
+    }
+    
+    execute { params ->
+        val query = params["query"] as String
+        val strategy = params["strategy"] as String
+        val limit = (params["limit"] as? Int) ?: 5
+        
+        // 根据策略创建选项
+        val options = when (strategy.toLowerCase()) {
+            "basic" -> RagProcessOptions(
+                useHybridSearch = false,
+                useEnhancedHybridSearch = false,
+                useSemanticRetrieval = false
+            )
+            "semantic" -> RagProcessOptions(
+                useHybridSearch = false,
+                useEnhancedHybridSearch = false,
+                useSemanticRetrieval = true,
+                semanticOptions = SemanticRetrieverConfig(
+                    expandQuery = true,
+                    useSemanticClustering = true
+                )
+            )
+            "hybrid" -> RagProcessOptions(
+                useHybridSearch = true,
+                useEnhancedHybridSearch = false,
+                useSemanticRetrieval = false,
+                hybridOptions = HybridRetrieverConfig(
+                    vectorWeight = 0.7,
+                    keywordWeight = 0.3,
+                    expandLimit = 2.0
+                )
+            )
+            "enhanced" -> RagProcessOptions(
+                useHybridSearch = false,
+                useEnhancedHybridSearch = true,
+                useSemanticRetrieval = false,
+                enhancedHybridOptions = EnhancedHybridRetrieverConfig(
+                    useSemanticSearch = true,
+                    useKeywordSearch = true,
+                    useMetadataSearch = true,
+                    vectorWeight = 0.7,
+                    keywordWeight = 0.3
+                )
+            )
+            else -> RagProcessOptions()
+        }
+        
+        // 使用选项搜索
+        val results = rag.search(query, limit, options = options)
+        
+        // 格式化结果
+        // ...
+    }
+}
+```
+
+### 查询增强
+
+查询增强可以提高检索的准确性和多样性：
+
+```kotlin
+import ai.kastrax.rag.retrieval.QueryEnhancedRetrieverConfig
+
+// 创建查询增强工具
+val queryEnhancementTool = tool("enhancedQuery") {
+    description("使用查询增强技术从知识库中搜索信息")
+    
+    parameters {
+        parameter("query", "搜索查询", String::class)
+        parameter("maxQueries", "生成的最大查询数量", Int::class, optional = true, defaultValue = 3)
+    }
+    
+    execute { params ->
+        val query = params["query"] as String
+        val maxQueries = (params["maxQueries"] as? Int) ?: 3
+        
+        // 创建查询增强选项
+        val options = RagProcessOptions(
+            useQueryEnhancement = true,
+            queryEnhancementOptions = QueryEnhancedRetrieverConfig(
+                useMultiQuery = true,
+                maxQueriesPerRequest = maxQueries
+            )
+        )
+        
+        // 使用查询增强搜索
+        val results = rag.search(query, options = options)
+        
+        // 格式化结果
+        // ...
+    }
+}
+```
+
+### 上下文感知重排序
+
+上下文感知重排序可以提高检索结果的相关性：
+
+```kotlin
+// 创建上下文感知重排序工具
+val rerankingTool = tool("contextAwareReranking") {
+    description("使用上下文感知重排序从知识库中搜索信息")
+    
+    parameters {
+        parameter("query", "搜索查询", String::class)
+        parameter("limit", "结果数量限制", Int::class, optional = true, defaultValue = 5)
+    }
+    
+    execute { params ->
+        val query = params["query"] as String
+        val limit = (params["limit"] as? Int) ?: 5
+        
+        // 创建上下文感知重排序选项
+        val options = RagProcessOptions(
+            useHybridSearch = true,
+            useReranking = true,
+            useContextAwareReranking = true
+        )
+        
+        // 使用上下文感知重排序搜索
+        val results = rag.search(query, limit, options = options)
+        
+        // 格式化结果
+        // ...
+    }
+}
+```
+
+## RAG 工具最佳实践 ✅
+
+### 1. 文档分割
+
+- 将长文档分割成适当大小的块，通常在 500-1000 个字符之间
+- 使用重叠分割，确保上下文连续性，通常重叠 10-20% 的内容
+- 考虑语义分割，按段落或章节分割，而不是简单地按字符数分割
+
+### 2. 检索策略
+
+- 对于简单查询，使用基本的 Top-K 检索
+- 对于复杂查询，使用混合检索或增强混合检索
+- 对于需要多样性的查询，使用查询增强和语义聚类
+- 对于需要高精度的查询，使用上下文感知重排序
+
+### 3. 上下文生成
+
+- 限制上下文长度，避免超出模型的最大输入长度
+- 包含元数据，如标题、来源和日期，帮助代理理解信息的来源和可靠性
+- 使用模板格式化上下文，使其更易于代理理解和使用
+
+### 4. 工具设计
+
+- 为每个工具提供清晰、详细的描述，帮助代理理解何时使用它
+- 提供合理的默认参数值，减少代理需要指定的参数
+- 实现错误处理，确保工具在各种情况下都能正常工作
+- 返回结构化、易于理解的结果
+
+### 5. 代理指令
+
+- 提供明确的指令，告诉代理如何使用 RAG 工具
+- 指导代理如何评估检索结果的相关性和可靠性
+- 鼓励代理在回答中引用信息来源
+- 指导代理如何处理知识库中没有相关信息的情况
+
+## 示例应用 ✅
+
+### 文档问答系统
+
+```kotlin
+// 创建文档问答代理
+val documentQaAgent = agent {
+    name = "文档问答助手"
+    description = "一个能够回答文档相关问题的助手"
+    
+    // 配置 LLM
+    model = deepSeek {
+        apiKey = "your-deepseek-api-key"
+        model = DeepSeekModel.DEEPSEEK_CHAT
+        temperature = 0.7
+    }
+    
+    // 添加 RAG 工具
+    tools {
+        tool(retrievalTool)
+        tool(contextGenerationTool)
+    }
+    
+    // 设置指令
+    instructions = """
+        你是一个文档问答助手，专门回答与文档相关的问题。
+        
+        当用户提出问题时：
+        1. 使用 generateContext 工具从文档中检索相关信息
+        2. 基于检索到的信息回答问题
+        3. 引用信息来源，包括文档标题和位置
+        4. 如果文档中没有相关信息，坦诚告知用户
+        
+        保持回答简洁、准确，并直接基于文档内容。
+    """.trimIndent()
+}
+```
+
+### 研究助手
+
+```kotlin
+// 创建研究助手代理
+val researchAssistantAgent = agent {
+    name = "研究助手"
+    description = "一个帮助用户进行研究的助手"
+    
+    // 配置 LLM
+    model = deepSeek {
+        apiKey = "your-deepseek-api-key"
+        model = DeepSeekModel.DEEPSEEK_CHAT
+        temperature = 0.7
+    }
+    
+    // 添加 RAG 工具
+    tools {
+        tool(retrievalTool)
+        tool(contextGenerationTool)
+        tool(advancedRetrievalTool)
+    }
+    
+    // 设置指令
+    instructions = """
+        你是一个研究助手，帮助用户研究特定主题。
+        
+        当用户提出研究请求时：
+        1. 使用 advancedRetrievalTool 工具搜索相关信息，尝试不同的检索策略
+        2. 分析和综合检索到的信息
+        3. 提供结构化的研究报告，包括：
+           - 主题概述
+           - 关键发现
+           - 不同观点或方法
+           - 结论和建议
+           - 信息来源引用
+        
+        确保研究全面、客观，并考虑不同的观点和证据。
+    """.trimIndent()
+}
+```
+
+### RAG 评估和优化系统
+
+```kotlin
+// 创建 RAG 评估和优化代理
+val ragEvaluationAgent = agent {
+    name = "RAG 评估和优化助手"
+    description = "一个帮助评估和优化 RAG 系统的助手"
+    
+    // 配置 LLM
+    model = deepSeek {
+        apiKey = "your-deepseek-api-key"
+        model = DeepSeekModel.DEEPSEEK_CHAT
+        temperature = 0.7
+    }
+    
+    // 添加 RAG 工具
+    tools {
+        tool(evaluationTool)
+        tool(optimizationTool)
+        tool(benchmarkTool)
+    }
+    
+    // 设置指令
+    instructions = """
+        你是一个 RAG 评估和优化助手，帮助用户评估和优化 RAG 系统。
+        
+        你可以执行以下任务：
+        1. 评估单个查询的 RAG 质量
+        2. 优化 RAG 系统的配置
+        3. 创建和运行 RAG 基准测试
+        
+        当用户请求评估或优化时，使用相应的工具，并提供详细的分析和建议。
+    """.trimIndent()
+}
+```
+
+## 总结 ✅
+
+Kastrax 的工具系统与 RAG 的集成提供了强大的检索增强生成能力，使代理能够从知识库中检索信息并生成更准确的回答。通过使用本指南中介绍的 RAG 工具和最佳实践，您可以创建功能强大的 RAG 应用，如文档问答系统、研究助手和 RAG 评估系统。
+
+RAG 工具的关键优势包括：
+
+1. **提高回答准确性**：通过检索相关信息，减少幻觉和错误
+2. **扩展知识范围**：使代理能够访问最新和专业的知识
+3. **提供可验证的回答**：通过引用信息来源，增加回答的可信度
+4. **支持复杂查询**：通过高级检索策略，处理复杂和模糊的查询
+5. **可定制和优化**：通过评估和优化工具，不断改进 RAG 系统的性能

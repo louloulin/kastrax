@@ -24,26 +24,26 @@ fun main() = runBlocking {
     val myAgent = agent {
         name("内置工具代理")
         description("一个使用内置工具的代理")
-        
+
         // 配置 LLM
         model = deepSeek {
             apiKey("your-deepseek-api-key")
             model(DeepSeekModel.DEEPSEEK_CHAT)
             temperature(0.7)
         }
-        
+
         // 添加内置工具
         tools {
             // 添加计算器工具
             add(ToolFactory.createCalculatorTool())
-            
+
             // 添加网络搜索工具
             add(ToolFactory.createWebSearchTool(
                 apiKey = "your-search-api-key",
                 searchEngine = WebSearchTool.SearchEngine.GOOGLE,
                 maxResults = 5
             ))
-            
+
             // 添加文件系统工具
             add(ToolFactory.createFileSystemTool(
                 rootPath = "./data",
@@ -51,7 +51,7 @@ fun main() = runBlocking {
             ))
         }
     }
-    
+
     // 使用代理
     val response = myAgent.generate("144 的平方根是多少？")
     println(response.text)
@@ -74,20 +74,20 @@ fun main() = runBlocking {
     val myAgent = agent {
         name("计算助手")
         description("一个可以执行数学计算的助手")
-        
+
         // 配置 LLM
         model = deepSeek {
             apiKey("your-deepseek-api-key")
             model(DeepSeekModel.DEEPSEEK_CHAT)
             temperature(0.7)
         }
-        
+
         tools {
             // 添加计算器工具
             add(ToolFactory.createCalculatorTool())
         }
     }
-    
+
     // 使用代理
     val response = myAgent.generate("计算 25 * 16")
     println(response.text)
@@ -120,14 +120,14 @@ fun main() = runBlocking {
     val myAgent = agent {
         name("搜索助手")
         description("一个可以搜索互联网信息的助手")
-        
+
         // 配置 LLM
         model = deepSeek {
             apiKey("your-deepseek-api-key")
             model(DeepSeekModel.DEEPSEEK_CHAT)
             temperature(0.7)
         }
-        
+
         tools {
             // 添加网络搜索工具
             add(ToolFactory.createWebSearchTool(
@@ -137,7 +137,7 @@ fun main() = runBlocking {
             ))
         }
     }
-    
+
     // 使用代理
     val response = myAgent.generate("搜索关于量子计算的最新进展")
     println(response.text)
@@ -168,14 +168,14 @@ fun main() = runBlocking {
     val myAgent = agent {
         name("文件助手")
         description("一个可以操作文件系统的助手")
-        
+
         // 配置 LLM
         model = deepSeek {
             apiKey("your-deepseek-api-key")
             model(DeepSeekModel.DEEPSEEK_CHAT)
             temperature(0.7)
         }
-        
+
         tools {
             // 添加文件系统工具
             add(ToolFactory.createFileSystemTool(
@@ -184,7 +184,7 @@ fun main() = runBlocking {
             ))
         }
     }
-    
+
     // 使用代理
     val response = myAgent.generate("列出 data 目录中的文件")
     println(response.text)
@@ -231,20 +231,20 @@ fun main() = runBlocking {
     val myAgent = agent {
         name("时间助手")
         description("一个可以提供日期和时间信息的助手")
-        
+
         // 配置 LLM
         model = deepSeek {
             apiKey("your-deepseek-api-key")
             model(DeepSeekModel.DEEPSEEK_CHAT)
             temperature(0.7)
         }
-        
+
         tools {
             // 添加日期时间工具
             add(ToolFactory.createDateTimeTool())
         }
     }
-    
+
     // 使用代理
     val response = myAgent.generate("现在的日期和时间是什么？")
     println(response.text)
@@ -278,20 +278,20 @@ fun main() = runBlocking {
     val myAgent = agent {
         name("API 助手")
         description("一个可以与 API 交互的助手")
-        
+
         // 配置 LLM
         model = deepSeek {
             apiKey("your-deepseek-api-key")
             model(DeepSeekModel.DEEPSEEK_CHAT)
             temperature(0.7)
         }
-        
+
         tools {
             // 添加 HTTP 请求工具
             add(ToolFactory.createHttpRequestTool())
         }
     }
-    
+
     // 使用代理
     val response = myAgent.generate("获取 BBC 网站的最新新闻")
     println(response.text)
@@ -329,25 +329,25 @@ fun main() = runBlocking {
         user = "username"
         password = "password"
     }
-    
+
     // 创建使用数据库工具的代理
     val myAgent = agent {
         name("数据库助手")
         description("一个可以与数据库交互的助手")
-        
+
         // 配置 LLM
         model = deepSeek {
             apiKey("your-deepseek-api-key")
             model(DeepSeekModel.DEEPSEEK_CHAT)
             temperature(0.7)
         }
-        
+
         tools {
             // 添加数据库工具
             add(ToolFactory.createDatabaseTool(dataSource))
         }
     }
-    
+
     // 使用代理
     val response = myAgent.generate("列出数据库中的所有用户")
     println(response.text)
@@ -379,14 +379,14 @@ fun main() = runBlocking {
     val myAgent = agent {
         name("代码助手")
         description("一个可以执行代码的助手")
-        
+
         // 配置 LLM
         model = deepSeek {
             apiKey("your-deepseek-api-key")
             model(DeepSeekModel.DEEPSEEK_CHAT)
             temperature(0.7)
         }
-        
+
         tools {
             // 添加代码执行工具
             add(ToolFactory.createCodeExecutionTool(
@@ -395,7 +395,7 @@ fun main() = runBlocking {
             ))
         }
     }
-    
+
     // 使用代理
     val response = myAgent.generate("使用 Kotlin 计算 5 的阶乘")
     println(response.text)
@@ -427,20 +427,20 @@ fun main() = runBlocking {
     val myAgent = agent {
         name("文本助手")
         description("一个可以处理文本的助手")
-        
+
         // 配置 LLM
         model = deepSeek {
             apiKey("your-deepseek-api-key")
             model(DeepSeekModel.DEEPSEEK_CHAT)
             temperature(0.7)
         }
-        
+
         tools {
             // 添加文本处理工具
             add(ToolFactory.createTextProcessingTool())
         }
     }
-    
+
     // 使用代理
     val response = myAgent.generate("将文本 'Hello, World!' 转换为大写")
     println(response.text)
@@ -475,38 +475,38 @@ fun main() = runBlocking {
     val myAgent = agent {
         name("多功能助手")
         description("一个具有多种能力的助手")
-        
+
         // 配置 LLM
         model = deepSeek {
             apiKey("your-deepseek-api-key")
             model(DeepSeekModel.DEEPSEEK_CHAT)
             temperature(0.7)
         }
-        
+
         // 添加多个工具
         tools {
             // 添加计算器工具
             add(ToolFactory.createCalculatorTool())
-            
+
             // 添加网络搜索工具
             add(ToolFactory.createWebSearchTool(
                 apiKey = "your-search-api-key",
                 searchEngine = WebSearchTool.SearchEngine.GOOGLE,
                 maxResults = 5
             ))
-            
+
             // 添加文件系统工具
             add(ToolFactory.createFileSystemTool(
                 rootPath = "./data",
                 allowAbsolutePaths = false
             ))
-            
+
             // 添加日期时间工具
             add(ToolFactory.createDateTimeTool())
-            
+
             // 添加 HTTP 请求工具
             add(ToolFactory.createHttpRequestTool())
-            
+
             // 添加代码执行工具
             add(ToolFactory.createCodeExecutionTool(
                 allowedLanguages = listOf("kotlin", "python"),
@@ -514,7 +514,7 @@ fun main() = runBlocking {
             ))
         }
     }
-    
+
     // 使用代理
     val response = myAgent.generate("搜索关于量子计算的信息，计算 25 * 16，并告诉我当前时间")
     println(response.text)
@@ -545,25 +545,25 @@ fun main() = runBlocking {
         name = "自定义搜索"
         description = "使用自定义参数搜索互联网"
     }
-    
+
     // 创建使用自定义工具的代理
     val myAgent = agent {
         name("自定义工具助手")
         description("一个使用自定义工具的助手")
-        
+
         // 配置 LLM
         model = deepSeek {
             apiKey("your-deepseek-api-key")
             model(DeepSeekModel.DEEPSEEK_CHAT)
             temperature(0.7)
         }
-        
+
         tools {
             // 添加自定义工具
             add(customSearchTool)
         }
     }
-    
+
     // 使用代理
     val response = myAgent.generate("使用自定义搜索工具查找关于人工智能的信息")
     println(response.text)
@@ -595,6 +595,13 @@ fun main() = runBlocking {
 - 保护 API 密钥和敏感信息
 - 限制文件系统访问范围
 - 控制代码执行环境
+
+## 更多工具详情 ✅
+
+对于其他工具的详细信息，请参阅以下文档：
+
+- [HTTP 和代码执行工具](./http-code-tools.mdx)：了解 HTTP 请求工具和代码执行工具
+- [数据库和文本处理工具](./database-text-tools.mdx)：了解数据库工具和文本处理工具
 
 ## 总结 ✅
 

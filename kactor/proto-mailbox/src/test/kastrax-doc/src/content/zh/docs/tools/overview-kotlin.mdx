@@ -7,6 +7,18 @@ description: Kastrax Kotlin 工具系统的详细介绍，包括工具定义、�
 
 Kastrax 的 Kotlin 工具系统允许代理与外部系统交互、访问数据和执行操作。本指南详细介绍了如何在 Kotlin 中创建和使用工具。
 
+## 什么是工具？ ✅
+
+在 Kastrax 中，工具是代理可以调用的函数，使其能够：
+
+- 执行计算和数据处理
+- 与外部系统交互
+- 访问和修改文件
+- 搜索网络信息
+- 执行特定领域的操作
+
+工具扩展了代理的能力，使其不仅限于生成文本，还能执行实际操作。
+
 ## Kotlin 工具类型 ✅
 
 Kastrax 提供了两种主要的工具创建方式：
@@ -27,10 +39,10 @@ import kotlinx.coroutines.runBlocking
 // 创建简单工具
 val getCurrentTimeTool = tool("getCurrentTime") {
     description("获取当前时间")
-    
+
     // 空参数列表
     parameters {}
-    
+
     // 执行逻辑
     execute {
         val currentTime = java.time.LocalDateTime.now()
@@ -43,13 +55,13 @@ val getCurrentTimeTool = tool("getCurrentTime") {
 // 带参数的工具
 val calculateSumTool = tool("calculateSum") {
     description("计算两个数字的和")
-    
+
     // 定义参数
     parameters {
         parameter("a", "第一个数字", Double::class)
         parameter("b", "第二个数字", Double::class)
     }
-    
+
     // 执行逻辑
     execute { params ->
         val a = params["a"] as Double
@@ -77,15 +89,15 @@ fun main() = runBlocking {
 parameters {
     // 必填参数
     parameter("name", "用户名", String::class)
-    
+
     // 可选参数带默认值
     parameter("age", "用户年龄", Int::class, optional = true, defaultValue = 18)
-    
+
     // 枚举参数
     parameter("role", "用户角色", String::class) {
         enum("admin", "user", "guest")
     }
-    
+
     // 带验证的参数
     parameter("email", "电子邮件", String::class) {
         validate { email ->
@@ -160,11 +172,11 @@ val reverseStringTool = zodTool<String, String> {
     id = "reverse_string"
     name = "字符串反转"
     description = "反转输入的字符串"
-    
+
     // 使用辅助函数定义输入和输出模式
     inputSchema = stringInput("要反转的字符串")
     outputSchema = stringOutput("反转后的字符串")
-    
+
     // 实现执行逻辑
     execute = { input ->
         input.reversed()
@@ -209,11 +221,11 @@ val calculatorTool = zodTool<CalculatorInput, CalculatorOutput> {
     id = "calculator"
     name = "计算器"
     description = "执行基本的数学运算"
-    
+
     // 使用数据类作为输入和输出
     inputSchema = any() as Schema<CalculatorInput, CalculatorInput>
     outputSchema = any() as Schema<CalculatorOutput, CalculatorOutput>
-    
+
     execute = { input ->
         val result = when (input.operation) {
             "add" -> input.a + input.b
@@ -222,7 +234,7 @@ val calculatorTool = zodTool<CalculatorInput, CalculatorOutput> {
             "divide" -> input.a / input.b
             else -> throw IllegalArgumentException("未知操作: ${input.operation}")
         }
-        
+
         CalculatorOutput(result)
     }
 }
@@ -234,7 +246,7 @@ fun main() = runBlocking {
         a = 4.0,
         b = 7.0
     )
-    
+
     val output = calculatorTool.execute(input)
     println("操作: ${input.operation}")
     println("输入: ${input.a} 和 ${input.b}")
@@ -260,7 +272,7 @@ val myAgent = agent {
         model = DeepSeekModel.DEEPSEEK_CHAT,
         apiKey = "your-api-key"
     )
-    
+
     // 添加工具
     tools {
         // 添加单个工具
@@ -274,10 +286,10 @@ val myAgent = agent {
                 "当前时间是 $formattedTime"
             }
         }
-        
+
         // 添加预定义工具
         tool(calculatorTool)
-        
+
         // 添加工具类别
         category("文件操作") {
             tool("readFile") {
@@ -299,9 +311,9 @@ val response = myAgent.generate("现在几点了？")
 println(response.text)
 ```
 
-## 工具工厂 ✅
+## 内置工具和工具工厂 ✅
 
-Kastrax 提供了 `ToolFactory` 类，用于创建常用工具：
+Kastrax 提供了 `ToolFactory` 类，用于创建常用的内置工具：
 
 ```kotlin
 import ai.kastrax.core.agent.agent
@@ -313,33 +325,74 @@ import ai.kastrax.integrations.deepseek.DeepSeekModel
 // 创建代理
 val myAgent = agent {
     // ...
-    
+
     // 添加工具
     tools {
         // 添加计算器工具
         add(ToolFactory.createCalculatorTool())
-        
+
         // 添加网络搜索工具
         add(ToolFactory.createWebSearchTool(
             apiKey = "your-search-api-key",
             searchEngine = WebSearchTool.SearchEngine.GOOGLE,
             maxResults = 5
         ))
-        
+
         // 添加文件系统工具
         add(ToolFactory.createFileSystemTool(
             rootPath = "./data",
             allowAbsolutePaths = false
         ))
-        
+
         // 添加日期时间工具
         add(ToolFactory.createDateTimeTool())
-        
+
         // 添加 HTTP 请求工具
         add(ToolFactory.createHttpRequestTool())
+
+        // 添加代码执行工具
+        add(ToolFactory.createCodeExecutionTool(
+            allowedLanguages = listOf("kotlin", "python"),
+            timeoutSeconds = 5
+        ))
     }
 }
 ```
+
+### 主要内置工具
+
+Kastrax 提供了以下主要内置工具：
+
+1. **计算器工具 (CalculatorTool)**
+   - 支持基本运算：加法、减法、乘法、除法
+   - 支持高级运算：幂运算、平方根
+   - 支持三角函数：正弦、余弦、正切
+   - 支持对数函数：常用对数、自然对数
+
+2. **网络搜索工具 (WebSearchTool)**
+   - 支持多种搜索引擎：Google、Bing、模拟搜索
+   - 可配置搜索结果数量
+   - 返回结构化搜索结果
+
+3. **文件系统工具 (FileSystemTool)**
+   - 读取和写入文件
+   - 列出目录内容
+   - 检查文件是否存在
+   - 删除文件
+   - 安全路径解析
+
+4. **日期时间工具 (DateTimeTool)**
+   - 获取当前日期时间
+   - 格式化日期时间
+   - 日期时间计算（加减日期）
+   - 时区转换
+   - 日期时间比较
+
+5. **文本处理工具 (TextProcessingTool)**
+   - 转换为大写/小写
+   - 反转文本
+   - 计算文本长度
+   - 正则表达式匹配和替换
 
 ## 工具注册 ✅
 
@@ -386,6 +439,35 @@ agent {
 }
 ```
 
+## 工具系统最佳实践 ✅
+
+在使用 Kastrax 工具系统时，请考虑以下最佳实践：
+
+1. **工具命名和描述**
+   - 为工具提供清晰、描述性的名称
+   - 编写详细的描述，包括工具的功能、参数和示例
+   - 使用一致的命名约定
+
+2. **参数验证**
+   - 始终验证工具输入参数
+   - 提供有意义的错误消息
+   - 使用类型安全的 ZodTool 减少运行时错误
+
+3. **错误处理**
+   - 捕获并处理所有可能的异常
+   - 返回结构化的错误信息
+   - 记录错误以便调试
+
+4. **性能考虑**
+   - 对于耗时操作，使用协程和 Dispatchers.IO
+   - 考虑添加超时机制
+   - 对大型结果进行分页或流式处理
+
+5. **安全性**
+   - 限制文件系统访问范围
+   - 验证和清理用户输入
+   - 避免在工具中执行不受信任的代码
+
 ## 下一步 ✅
 
 现在您已经了解了工具系统，您可以：
@@ -393,3 +475,10 @@ agent {
 1. 学习[自定义工具开发](./custom-tools.mdx)
 2. 探索[Zod 工具系统](./zod-tools.mdx)
 3. 实现[工具链](./tool-chains.mdx)
+4. 查看[内置工具](./built-in-tools.mdx)的详细文档
+5. 了解[HTTP 和代码执行工具](./http-code-tools.mdx)
+6. 探索[数据库和文本处理工具](./database-text-tools.mdx)
+7. 学习[RAG 工具集成](./rag-tools.mdx)
+8. 学习[工具调用生命周期和调试](./tool-lifecycle.mdx)
+9. 探索[工具系统与 Actor 模型集成](./tools-with-actors.mdx)
+10. 了解[工具系统安全性](./tools-security.mdx)

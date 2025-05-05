@@ -1,0 +1,284 @@
+---
+title: HTTP 和代码执行工具 | Kastrax 文档
+description: Kastrax 提供的 HTTP 请求工具和代码执行工具详细指南，包括配置、使用方法和安全注意事项。
+---
+
+# HTTP 和代码执行工具 ✅
+
+Kastrax 提供了强大的 HTTP 请求工具和代码执行工具，使代理能够与外部 API 交互并执行动态代码。本指南详细介绍这些工具的使用方法和最佳实践。
+
+## HTTP 请求工具 ✅
+
+HTTP 请求工具允许代理发送 HTTP 请求到外部 API 和网站，获取数据或执行操作。
+
+### 创建 HTTP 请求工具
+
+使用 `ToolFactory` 创建 HTTP 请求工具：
+
+```kotlin
+import ai.kastrax.core.tools.ToolFactory
+import ai.kastrax.core.agent.agent
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    // 创建使用 HTTP 请求工具的代理
+    val myAgent = agent {
+        name = "API 助手"
+        description = "一个可以与 API 交互的助手"
+        
+        // 配置 LLM
+        model = deepSeek {
+            apiKey = "your-deepseek-api-key"
+            model = DeepSeekModel.DEEPSEEK_CHAT
+            temperature = 0.7
+        }
+        
+        tools {
+            // 添加 HTTP 请求工具
+            add(ToolFactory.createHttpRequestTool())
+        }
+    }
+    
+    // 使用代理
+    val response = myAgent.generate("获取 BBC 网站的最新新闻")
+    println(response.text)
+}
+```
+
+### HTTP 请求工具参数
+
+HTTP 请求工具支持以下参数：
+
+| 参数 | 类型 | 描述 | 是否必需 |
+|------|------|------|----------|
+| `method` | String | HTTP 方法（GET, POST, PUT, DELETE, PATCH, HEAD） | 是 |
+| `url` | String | 请求 URL | 是 |
+| `headers` | Map<String, String> | 请求头 | 否 |
+| `body` | Any | 请求体（用于 POST, PUT, PATCH） | 否 |
+| `queryParams` | Map<String, String> | URL 查询参数 | 否 |
+| `timeout` | Long | 请求超时（毫秒） | 否 |
+
+### 使用示例
+
+#### GET 请求示例
+
+```kotlin
+// 执行 GET 请求
+val getResult = httpRequestTool.execute(buildJsonObject {
+    put("method", "GET")
+    put("url", "https://api.example.com/data")
+    putJsonObject("headers") {
+        put("Accept", "application/json")
+        put("User-Agent", "Kastrax Agent")
+    }
+    putJsonObject("queryParams") {
+        put("limit", "10")
+        put("sort", "desc")
+    }
+})
+```
+
+#### POST 请求示例
+
+```kotlin
+// 执行 POST 请求
+val postResult = httpRequestTool.execute(buildJsonObject {
+    put("method", "POST")
+    put("url", "https://api.example.com/users")
+    putJsonObject("headers") {
+        put("Content-Type", "application/json")
+        put("Authorization", "Bearer your-token")
+    }
+    putJsonObject("body") {
+        put("name", "张三")
+        put("email", "zhangsan@example.com")
+        put("age", 30)
+    }
+})
+```
+
+### 安全注意事项
+
+使用 HTTP 请求工具时，请注意以下安全事项：
+
+1. **限制访问域名**：考虑限制代理可以访问的域名，以防止未授权的 API 调用
+2. **保护敏感信息**：避免在请求中包含敏感信息，如 API 密钥或个人数据
+3. **验证输入**：验证用户提供的 URL 和参数，以防止注入攻击
+4. **处理错误**：妥善处理 HTTP 错误，避免向用户暴露敏感信息
+
+## 代码执行工具 ✅
+
+代码执行工具允许代理动态执行代码，实现复杂的计算和数据处理。
+
+### 创建代码执行工具
+
+使用 `ToolFactory` 创建代码执行工具：
+
+```kotlin
+import ai.kastrax.core.tools.ToolFactory
+import ai.kastrax.core.agent.agent
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    // 创建使用代码执行工具的代理
+    val myAgent = agent {
+        name = "代码助手"
+        description = "一个可以执行代码的助手"
+        
+        // 配置 LLM
+        model = deepSeek {
+            apiKey = "your-deepseek-api-key"
+            model = DeepSeekModel.DEEPSEEK_CHAT
+            temperature = 0.7
+        }
+        
+        tools {
+            // 添加代码执行工具
+            add(ToolFactory.createCodeExecutionTool(
+                allowedLanguages = listOf("kotlin", "python", "javascript"),
+                timeoutSeconds = 5
+            ))
+        }
+    }
+    
+    // 使用代理
+    val response = myAgent.generate("使用 Kotlin 计算 5 的阶乘")
+    println(response.text)
+}
+```
+
+### 代码执行工具参数
+
+创建代码执行工具时，可以配置以下参数：
+
+| 参数 | 类型 | 描述 | 默认值 |
+|------|------|------|--------|
+| `allowedLanguages` | List<String> | 允许执行的编程语言列表 | ["kotlin", "python"] |
+| `timeoutSeconds` | Int | 代码执行超时时间（秒） | 10 |
+| `maxOutputLength` | Int | 最大输出长度（字符） | 10000 |
+| `sandboxed` | Boolean | 是否在沙箱环境中执行代码 | true |
+
+### 使用示例
+
+#### 执行 Kotlin 代码
+
+```kotlin
+// 执行 Kotlin 代码
+val kotlinResult = codeExecutionTool.execute(buildJsonObject {
+    put("language", "kotlin")
+    put("code", """
+        fun factorial(n: Int): Int {
+            return if (n <= 1) 1 else n * factorial(n - 1)
+        }
+        
+        val result = factorial(5)
+        println("5 的阶乘是: $result")
+        result
+    """.trimIndent())
+})
+```
+
+#### 执行 Python 代码
+
+```kotlin
+// 执行 Python 代码
+val pythonResult = codeExecutionTool.execute(buildJsonObject {
+    put("language", "python")
+    put("code", """
+        import math
+        
+        def calculate_stats(numbers):
+            return {
+                "sum": sum(numbers),
+                "average": sum(numbers) / len(numbers),
+                "max": max(numbers),
+                "min": min(numbers),
+                "std_dev": math.sqrt(sum((x - (sum(numbers) / len(numbers))) ** 2 for x in numbers) / len(numbers))
+            }
+        
+        numbers = [12, 45, 67, 23, 9, 18, 72]
+        result = calculate_stats(numbers)
+        print(f"统计结果: {result}")
+        result
+    """.trimIndent())
+})
+```
+
+### 安全注意事项
+
+代码执行工具具有潜在的安全风险，请注意以下事项：
+
+1. **限制执行环境**：始终在沙箱环境中执行代码，限制对系统资源的访问
+2. **设置超时**：为代码执行设置合理的超时时间，防止无限循环
+3. **限制内存使用**：限制代码可以使用的内存量，防止内存耗尽攻击
+4. **限制允许的语言**：只允许执行必要的编程语言
+5. **验证用户输入**：验证用户提供的代码，防止恶意代码执行
+6. **限制输出大小**：限制代码执行的输出大小，防止过大的输出
+
+## 组合使用 HTTP 和代码执行工具 ✅
+
+HTTP 请求工具和代码执行工具可以组合使用，实现更复杂的功能：
+
+```kotlin
+import ai.kastrax.core.tools.ToolFactory
+import ai.kastrax.core.agent.agent
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    // 创建使用多个工具的代理
+    val myAgent = agent {
+        name = "数据分析助手"
+        description = "一个可以获取和分析数据的助手"
+        
+        // 配置 LLM
+        model = deepSeek {
+            apiKey = "your-deepseek-api-key"
+            model = DeepSeekModel.DEEPSEEK_CHAT
+            temperature = 0.7
+        }
+        
+        tools {
+            // 添加 HTTP 请求工具
+            add(ToolFactory.createHttpRequestTool())
+            
+            // 添加代码执行工具
+            add(ToolFactory.createCodeExecutionTool(
+                allowedLanguages = listOf("python"),
+                timeoutSeconds = 10
+            ))
+        }
+    }
+    
+    // 使用代理
+    val response = myAgent.generate("获取某个公开 API 的数据并使用 Python 分析")
+    println(response.text)
+}
+```
+
+## 最佳实践 ✅
+
+### HTTP 请求工具最佳实践
+
+1. **缓存响应**：对于频繁请求的 API，考虑缓存响应以减少 API 调用
+2. **处理速率限制**：实现重试逻辑，处理 API 速率限制
+3. **使用适当的超时**：设置合理的超时时间，避免长时间等待
+4. **验证 SSL 证书**：确保验证 HTTPS 连接的 SSL 证书
+5. **使用 HTTP/2**：如果可能，使用 HTTP/2 提高性能
+
+### 代码执行工具最佳实践
+
+1. **提供预定义函数**：为常见任务提供预定义函数，减少需要执行的代码量
+2. **限制导入的库**：限制代码可以导入的库，只允许安全的库
+3. **监控资源使用**：监控代码执行的 CPU 和内存使用情况
+4. **提供清晰的错误消息**：当代码执行失败时，提供清晰的错误消息
+5. **记录代码执行**：记录执行的代码和结果，用于审计和调试
+
+## 总结 ✅
+
+HTTP 请求工具和代码执行工具是 Kastrax 中强大的功能，使代理能够与外部系统交互并执行动态代码。通过遵循本指南中的最佳实践和安全注意事项，您可以安全地使用这些工具，创建功能强大的代理应用程序。

@@ -1,0 +1,472 @@
+---
+title: 工具系统与 Actor 模型集成 | Kastrax 文档
+description: 详细介绍 Kastrax 工具系统与 Actor 模型的集成，包括分布式工具调用、远程工具共享和 Actor 间工具协作。
+---
+
+# 工具系统与 Actor 模型集成 ✅
+
+Kastrax 的一个强大特性是将工具系统与 Actor 模型无缝集成，使工具能够在分布式环境中使用。本指南详细介绍如何在 Actor 模型中使用工具，以及如何实现分布式工具调用和共享。
+
+## Actor 模型中的工具 ✅
+
+在 Kastrax 中，Actor 模型提供了一种并发和分布式计算的方式，而工具系统则扩展了代理的能力。将两者结合，可以创建强大的分布式 AI 代理系统。
+
+### Actor-Agent 集成基础
+
+首先，了解 Actor-Agent 集成的基本概念：
+
+```kotlin
+import ai.kastrax.actor.actorAgent
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import actor.proto.ActorSystem
+import kotlinx.coroutines.runBlocking
+import java.time.Duration
+
+fun main() = runBlocking {
+    // 创建 Actor 系统
+    val system = ActorSystem("kastrax-system")
+    
+    // 创建 Actor 化的 Agent
+    val agentPid = system.actorAgent {
+        // 配置代理
+        agent {
+            name = "助手"
+            instructions = "你是一个有帮助的助手。"
+            model = deepSeek {
+                model(DeepSeekModel.DEEPSEEK_CHAT)
+                apiKey("your-deepseek-api-key")
+            }
+            
+            // 添加工具
+            tools {
+                tool("calculator") {
+                    description("执行基本算术运算")
+                    parameters {
+                        parameter("expression", "要计算的数学表达式", String::class)
+                    }
+                    execute { params ->
+                        val expression = params["expression"] as String
+                        // 简单的表达式计算器
+                        "结果: ${evaluateExpression(expression)}"
+                    }
+                }
+            }
+        }
+        
+        // 配置 actor
+        actor {
+            // 设置监督策略
+            oneForOneStrategy {
+                maxRetries = 3
+                withinTimeRange = Duration.ofMinutes(1)
+            }
+            
+            // 设置邮箱类型
+            unboundedMailbox()
+        }
+    }
+    
+    // 发送消息
+    system.sendMessage(agentPid, "你能帮我计算 2 + 2 吗？")
+    
+    // 请求-响应模式
+    val response = system.askMessage(agentPid, "巴黎的人口是多少？")
+    println("回答: $response")
+}
+```
+
+## 分布式工具调用 ✅
+
+在分布式环境中，工具可以在不同的 Actor 节点上执行，这使得系统可以更好地利用资源并提高可扩展性。
+
+### 远程工具调用
+
+以下是如何在远程 Actor 上调用工具：
+
+```kotlin
+import ai.kastrax.actor.remote.RemoteAgent
+import ai.kastrax.actor.messages.ToolCallRequest
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    // 创建 Actor 系统
+    val system = ActorSystem("kastrax-system")
+    
+    // 连接到远程 Agent
+    val remoteAgent = RemoteAgent(system, "remote-host:8080")
+    
+    // 执行远程工具调用
+    val result = remoteAgent.executeTool(
+        agentId = "calculator-agent",
+        toolName = "calculator",
+        input = JsonObject(mapOf("expression" to JsonPrimitive("2+2")))
+    )
+    
+    println("工具调用结果: ${result.result}")
+}
+```
+
+### 工具调用消息
+
+Actor 之间的工具调用使用特定的消息类型：
+
+```kotlin
+// 工具调用请求
+val toolRequest = ToolCallRequest(
+    toolName = "calculator",
+    input = JsonObject(mapOf("expression" to JsonPrimitive("2+2")))
+)
+system.root.send(agentPid, toolRequest)
+
+// 工具调用响应
+class ToolCallResponse(
+    val success: Boolean,
+    val result: JsonElement? = null,
+    val error: String? = null
+)
+```
+
+## 工具共享与发现 ✅
+
+在分布式系统中，工具可以在多个 Actor 之间共享，这使得系统更加模块化和可重用。
+
+### 工具注册表
+
+创建一个中央工具注册表，使 Actor 可以发现和使用其他 Actor 提供的工具：
+
+```kotlin
+import ai.kastrax.core.tools.Tool
+import ai.kastrax.actor.ToolRegistry
+import kotlinx.coroutines.runBlocking
+
+// 创建工具注册表
+val toolRegistry = ToolRegistry()
+
+// 注册工具
+toolRegistry.register("calculator", calculatorTool)
+toolRegistry.register("weatherInfo", weatherInfoTool)
+
+// 查找工具
+val tool = toolRegistry.find("calculator")
+if (tool != null) {
+    // 使用工具
+    val result = runBlocking {
+        tool.execute(buildJsonObject {
+            put("expression", "2+2")
+        })
+    }
+    println("计算结果: $result")
+}
+```
+
+### 工具发现协议
+
+实现工具发现协议，使 Actor 可以动态发现其他 Actor 提供的工具：
+
+```kotlin
+// 工具发现请求
+val discoveryRequest = ToolDiscoveryRequest(
+    category = "math", // 可选的工具类别
+    capabilities = listOf("arithmetic", "algebra") // 可选的工具能力
+)
+system.root.send(registryPid, discoveryRequest)
+
+// 工具发现响应
+class ToolDiscoveryResponse(
+    val tools: List<ToolInfo>
+)
+
+// 工具信息
+class ToolInfo(
+    val id: String,
+    val name: String,
+    val description: String,
+    val providerId: String, // 提供工具的 Actor ID
+    val category: String? = null,
+    val capabilities: List<String> = emptyList()
+)
+```
+
+## 工具代理模式 ✅
+
+工具代理模式允许一个 Actor 代表另一个 Actor 执行工具调用，这在处理复杂的工具链或需要特殊权限的工具时非常有用。
+
+### 工具代理实现
+
+```kotlin
+import ai.kastrax.core.tools.Tool
+import ai.kastrax.actor.ToolProxy
+import kotlinx.serialization.json.JsonElement
+import kotlinx.coroutines.runBlocking
+
+// 创建工具代理
+class ToolProxy(
+    private val system: ActorSystem,
+    private val targetPid: PID,
+    override val id: String,
+    override val name: String,
+    override val description: String,
+    override val inputSchema: JsonElement,
+    override val outputSchema: JsonElement?
+) : Tool {
+    // 代理工具执行
+    override suspend fun execute(input: JsonElement): JsonElement {
+        // 发送工具调用请求到目标 Actor
+        val response = system.root.requestAwait<ToolCallResponse>(
+            targetPid,
+            ToolCallRequest(id, input)
+        )
+        
+        // 处理响应
+        if (response.success) {
+            return response.result ?: throw IllegalStateException("工具执行成功但没有结果")
+        } else {
+            throw IllegalStateException("工具执行失败: ${response.error}")
+        }
+    }
+}
+
+// 使用工具代理
+val calculatorProxy = ToolProxy(
+    system = system,
+    targetPid = calculatorActorPid,
+    id = "calculator",
+    name = "计算器",
+    description = "执行基本算术运算",
+    inputSchema = calculatorInputSchema,
+    outputSchema = calculatorOutputSchema
+)
+
+// 在代理中使用代理工具
+val myAgent = agent {
+    // ...
+    tools {
+        tool(calculatorProxy)
+    }
+}
+```
+
+## 分布式工具链 ✅
+
+分布式工具链允许跨多个 Actor 执行复杂的工作流程，每个 Actor 负责工作流程的一部分。
+
+### 分布式工具链实现
+
+```kotlin
+import ai.kastrax.core.tools.toolchain
+import ai.kastrax.actor.DistributedToolChain
+import kotlinx.coroutines.runBlocking
+
+// 创建分布式工具链
+val distributedChain = DistributedToolChain(system)
+
+// 添加工具链步骤，指定执行步骤的 Actor
+distributedChain.addStep("fetch", "data-fetcher-actor", fetchDataTool)
+distributedChain.addStep("process", "data-processor-actor", processDataTool)
+distributedChain.addStep("analyze", "data-analyzer-actor", analyzeDataTool)
+distributedChain.addStep("report", "report-generator-actor", generateReportTool)
+
+// 定义步骤之间的数据流
+distributedChain.connect("fetch", "process")
+distributedChain.connect("process", "analyze")
+distributedChain.connect("analyze", "report")
+
+// 执行分布式工具链
+val result = runBlocking {
+    distributedChain.execute(mapOf(
+        "url" to "https://example.com/data"
+    ))
+}
+
+println("工具链执行结果: $result")
+```
+
+## Actor 特定工具 ✅
+
+某些工具可能特定于某个 Actor，利用该 Actor 的特定能力或资源。
+
+### Actor 特定工具实现
+
+```kotlin
+import ai.kastrax.core.tools.tool
+import ai.kastrax.actor.ActorContext
+import kotlinx.coroutines.runBlocking
+
+// 创建 Actor 特定工具
+fun createActorSpecificTool(context: ActorContext) = tool("actorInfo") {
+    description("获取当前 Actor 的信息")
+    parameters {}
+    execute {
+        // 访问 Actor 特定的信息和资源
+        val pid = context.self
+        val address = context.system.address
+        val mailboxSize = context.mailboxSize()
+        
+        """
+        Actor 信息:
+        - PID: $pid
+        - 地址: $address
+        - 邮箱大小: $mailboxSize
+        """.trimIndent()
+    }
+}
+
+// 在 Actor 中使用特定工具
+class MyActor(context: ActorContext) : AbstractActor() {
+    private val actorInfoTool = createActorSpecificTool(context)
+    
+    // 在 Actor 中使用工具
+    override suspend fun receiveAsync(context: IContext) {
+        val message = context.message
+        if (message is String && message == "getInfo") {
+            val info = actorInfoTool.execute(buildJsonObject {})
+            context.sender.tell(info)
+        }
+    }
+}
+```
+
+## 工具访问控制 ✅
+
+在分布式环境中，控制对工具的访问非常重要，特别是对于敏感操作或资源密集型工具。
+
+### 工具访问控制实现
+
+```kotlin
+import ai.kastrax.core.tools.Tool
+import ai.kastrax.actor.security.AccessControl
+import kotlinx.serialization.json.JsonElement
+
+// 创建访问控制包装器
+class AccessControlledTool(
+    private val tool: Tool,
+    private val accessControl: AccessControl
+) : Tool {
+    override val id: String = tool.id
+    override val name: String = tool.name
+    override val description: String = tool.description
+    override val inputSchema: JsonElement = tool.inputSchema
+    override val outputSchema: JsonElement? = tool.outputSchema
+    
+    override suspend fun execute(input: JsonElement): JsonElement {
+        // 检查当前调用者是否有权限
+        val caller = accessControl.getCurrentCaller()
+        if (!accessControl.hasPermission(caller, id, "execute")) {
+            throw SecurityException("没有权限执行工具: $id")
+        }
+        
+        // 执行工具
+        return tool.execute(input)
+    }
+}
+
+// 使用访问控制工具
+val accessControl = AccessControl()
+accessControl.grantPermission("user-agent", "calculator", "execute")
+
+val secureCalculatorTool = AccessControlledTool(calculatorTool, accessControl)
+
+// 在代理中使用安全工具
+val myAgent = agent {
+    // ...
+    tools {
+        tool(secureCalculatorTool)
+    }
+}
+```
+
+## 工具监控与遥测 ✅
+
+在分布式系统中，监控工具的使用和性能非常重要，以便识别瓶颈和问题。
+
+### 工具监控实现
+
+```kotlin
+import ai.kastrax.core.tools.Tool
+import ai.kastrax.actor.monitoring.Metrics
+import kotlinx.serialization.json.JsonElement
+import kotlin.system.measureTimeMillis
+
+// 创建监控包装器
+class MonitoredTool(
+    private val tool: Tool,
+    private val metrics: Metrics
+) : Tool {
+    override val id: String = tool.id
+    override val name: String = tool.name
+    override val description: String = tool.description
+    override val inputSchema: JsonElement = tool.inputSchema
+    override val outputSchema: JsonElement? = tool.outputSchema
+    
+    override suspend fun execute(input: JsonElement): JsonElement {
+        // 记录调用次数
+        metrics.incrementCounter("tool.calls", mapOf("tool" to id))
+        
+        var success = true
+        var errorType: String? = null
+        
+        // 测量执行时间
+        val executionTime = measureTimeMillis {
+            try {
+                val result = tool.execute(input)
+                return result
+            } catch (e: Exception) {
+                success = false
+                errorType = e.javaClass.simpleName
+                throw e
+            } finally {
+                // 记录执行结果
+                metrics.recordExecutionResult(
+                    name = "tool.execution",
+                    success = success,
+                    duration = executionTime,
+                    tags = mapOf(
+                        "tool" to id,
+                        "success" to success.toString(),
+                        "error_type" to (errorType ?: "none")
+                    )
+                )
+            }
+        }
+        
+        throw IllegalStateException("不应该到达这里")
+    }
+}
+
+// 使用监控工具
+val metrics = Metrics()
+val monitoredCalculatorTool = MonitoredTool(calculatorTool, metrics)
+
+// 在代理中使用监控工具
+val myAgent = agent {
+    // ...
+    tools {
+        tool(monitoredCalculatorTool)
+    }
+}
+```
+
+## 最佳实践 ✅
+
+### 分布式工具设计最佳实践
+
+1. **无状态设计**：尽可能设计无状态工具，使其更容易在分布式环境中使用
+2. **容错性**：实现重试和断路器模式，处理分布式环境中的故障
+3. **异步通信**：使用异步通信模式，避免阻塞 Actor
+4. **序列化考虑**：确保工具输入和输出可以正确序列化
+5. **资源管理**：妥善管理工具使用的资源，特别是在分布式环境中
+
+### 工具共享最佳实践
+
+1. **明确的接口**：为共享工具定义明确的接口和文档
+2. **版本控制**：实施工具版本控制，确保兼容性
+3. **发现机制**：实现健壮的工具发现机制
+4. **访问控制**：实施适当的访问控制，保护敏感工具
+5. **监控和遥测**：监控共享工具的使用和性能
+
+## 总结 ✅
+
+Kastrax 的工具系统与 Actor 模型的集成提供了强大的分布式 AI 代理能力。通过本指南中介绍的技术和最佳实践，您可以创建可扩展、可靠的分布式工具系统，使 AI 代理能够在分布式环境中高效协作。

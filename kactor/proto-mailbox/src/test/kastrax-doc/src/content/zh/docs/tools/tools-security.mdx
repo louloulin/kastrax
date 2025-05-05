@@ -1,0 +1,809 @@
+---
+title: 工具系统安全性 | Kastrax 文档
+description: Kastrax 工具系统的安全性指南，包括权限控制、输入验证、敏感数据处理和安全最佳实践。
+---
+
+# 工具系统安全性 ✅
+
+工具系统为 AI 代理提供了强大的能力，但同时也带来了安全风险。本指南详细介绍了 Kastrax 工具系统的安全机制和最佳实践，帮助您构建安全可靠的工具。
+
+## 安全风险概述 ✅
+
+在实现工具系统时，需要考虑以下主要安全风险：
+
+1. **未授权访问**：未经授权的用户或代理访问敏感工具
+2. **权限提升**：代理获取超出其权限的能力
+3. **数据泄露**：敏感数据通过工具泄露
+4. **注入攻击**：通过工具参数注入恶意代码或命令
+5. **资源滥用**：工具消耗过多系统资源
+6. **恶意代码执行**：执行未经验证的代码
+
+## 权限控制 ✅
+
+### 基于角色的访问控制
+
+Kastrax 支持基于角色的访问控制 (RBAC)，限制对工具的访问：
+
+```kotlin
+import ai.kastrax.core.security.AccessControl
+import ai.kastrax.core.security.Role
+import ai.kastrax.core.security.Permission
+import ai.kastrax.core.tools.Tool
+
+// 创建访问控制系统
+val accessControl = AccessControl()
+
+// 定义角色和权限
+val userRole = Role("user", listOf(
+    Permission("tools:read"),
+    Permission("tools:basic")
+))
+
+val adminRole = Role("admin", listOf(
+    Permission("tools:read"),
+    Permission("tools:basic"),
+    Permission("tools:advanced"),
+    Permission("tools:system")
+))
+
+// 注册角色
+accessControl.registerRole(userRole)
+accessControl.registerRole(adminRole)
+
+// 创建安全工具包装器
+class SecureTool(
+    private val tool: Tool,
+    private val accessControl: AccessControl,
+    private val requiredPermission: String
+) : Tool {
+    override val id: String = tool.id
+    override val name: String = tool.name
+    override val description: String = tool.description
+    override val inputSchema = tool.inputSchema
+    override val outputSchema = tool.outputSchema
+    
+    override suspend fun execute(input: JsonElement): JsonElement {
+        // 获取当前用户
+        val user = getCurrentUser()
+        
+        // 检查权限
+        if (!accessControl.hasPermission(user, requiredPermission)) {
+            throw SecurityException("权限不足，无法执行工具: $id")
+        }
+        
+        // 执行工具
+        return tool.execute(input)
+    }
+}
+
+// 使用安全工具
+val secureCalculatorTool = SecureTool(
+    tool = calculatorTool,
+    accessControl = accessControl,
+    requiredPermission = "tools:basic"
+)
+
+val secureFileSystemTool = SecureTool(
+    tool = fileSystemTool,
+    accessControl = accessControl,
+    requiredPermission = "tools:system"
+)
+```
+
+### 细粒度权限控制
+
+对于需要更细粒度控制的场景，可以实现操作级别的权限检查：
+
+```kotlin
+// 文件系统工具的细粒度权限控制
+class SecureFileSystemTool(
+    private val accessControl: AccessControl
+) : Tool {
+    override val id: String = "secureFileSystem"
+    override val name: String = "安全文件系统"
+    override val description: String = "安全的文件系统操作"
+    
+    // 输入和输出模式定义...
+    
+    override suspend fun execute(input: JsonElement): JsonElement {
+        val operation = input.jsonObject["operation"]?.jsonPrimitive?.content
+            ?: throw IllegalArgumentException("缺少操作参数")
+        
+        // 获取当前用户
+        val user = getCurrentUser()
+        
+        // 根据操作检查不同的权限
+        val requiredPermission = when (operation) {
+            "read" -> "files:read"
+            "write", "append" -> "files:write"
+            "delete" -> "files:delete"
+            "list", "exists" -> "files:list"
+            else -> throw IllegalArgumentException("不支持的操作: $operation")
+        }
+        
+        // 检查权限
+        if (!accessControl.hasPermission(user, requiredPermission)) {
+            throw SecurityException("权限不足，无法执行操作: $operation")
+        }
+        
+        // 执行操作
+        return executeOperation(operation, input)
+    }
+    
+    // 执行具体操作的方法...
+}
+```
+
+## 输入验证 ✅
+
+输入验证是防止注入攻击和其他安全问题的关键。Kastrax 提供了多种方式进行输入验证：
+
+### 使用模式验证
+
+使用 Zod 工具系统进行严格的输入验证：
+
+```kotlin
+import ai.kastrax.core.tools.zodTool
+import ai.kastrax.zod.*
+
+// 创建带有严格输入验证的工具
+val secureQueryTool = zodTool<Map<String, Any?>, Map<String, Any?>> {
+    id = "secureQuery"
+    name = "安全查询"
+    description = "执行安全的数据库查询"
+    
+    // 定义输入模式
+    inputSchema = objectInput {
+        stringField("query", "SQL 查询") {
+            minLength = 1
+            // 使用正则表达式验证，只允许 SELECT 查询
+            pattern = "^\\s*SELECT\\s+.*$"
+            description = "只允许 SELECT 查询"
+        }
+        
+        numberField("limit", "结果限制") {
+            min = 1.0
+            max = 1000.0
+            default = 100.0
+            description = "结果数量限制，1-1000"
+        }
+    }
+    
+    // 定义输出模式
+    outputSchema = objectOutput {
+        arrayField("results", "查询结果")
+        numberField("rowCount", "结果行数")
+        optionalField("error", "错误信息", stringSchema())
+    }
+    
+    // 执行逻辑
+    execute = { input ->
+        val query = input["query"] as String
+        val limit = (input["limit"] as Number).toInt()
+        
+        // 额外的安全检查
+        if (query.contains(";") || 
+            query.contains("--") || 
+            query.toLowerCase().contains("union")) {
+            return@execute mapOf(
+                "results" to emptyList<Map<String, Any>>(),
+                "rowCount" to 0,
+                "error" to "查询包含不允许的字符或关键字"
+            )
+        }
+        
+        try {
+            // 使用参数化查询执行
+            val results = databaseService.executeQuery(query, limit)
+            
+            mapOf(
+                "results" to results,
+                "rowCount" to results.size
+            )
+        } catch (e: Exception) {
+            mapOf(
+                "results" to emptyList<Map<String, Any>>(),
+                "rowCount" to 0,
+                "error" to "查询执行错误: ${e.message}"
+            )
+        }
+    }
+}
+```
+
+### 参数化查询
+
+对于数据库操作，始终使用参数化查询防止 SQL 注入：
+
+```kotlin
+// 使用参数化查询
+val databaseTool = tool("database") {
+    description("执行数据库查询")
+    
+    parameters {
+        parameter("query", "SQL 查询模板", String::class)
+        parameter("params", "查询参数", Map::class)
+    }
+    
+    execute { params ->
+        val query = params["query"] as String
+        val queryParams = params["params"] as Map<String, Any>
+        
+        // 使用参数化查询执行
+        val connection = dataSource.connection
+        connection.use { conn ->
+            val statement = conn.prepareStatement(query)
+            
+            // 设置参数
+            queryParams.forEach { (key, value) ->
+                val index = key.toIntOrNull() ?: return@forEach
+                when (value) {
+                    is String -> statement.setString(index, value)
+                    is Int -> statement.setInt(index, value)
+                    is Double -> statement.setDouble(index, value)
+                    // 其他类型...
+                }
+            }
+            
+            // 执行查询
+            val resultSet = statement.executeQuery()
+            
+            // 处理结果...
+        }
+    }
+}
+```
+
+### 输入清理
+
+对于文件路径和命令等敏感输入，进行清理和规范化：
+
+```kotlin
+// 文件路径清理
+fun sanitizeFilePath(path: String, rootPath: String): Path {
+    // 规范化路径
+    val normalizedPath = path.replace("\\", "/")
+                            .replace("//", "/")
+                            .replace("..", "")
+    
+    // 解析路径
+    val resolvedPath = Paths.get(rootPath, normalizedPath).normalize()
+    
+    // 确保路径在根目录下
+    if (!resolvedPath.startsWith(Paths.get(rootPath))) {
+        throw SecurityException("路径超出根目录范围")
+    }
+    
+    return resolvedPath
+}
+
+// 命令清理
+fun sanitizeCommand(command: String, allowedCommands: List<String>): String {
+    // 检查命令是否在允许列表中
+    val commandName = command.split(" ")[0]
+    if (!allowedCommands.contains(commandName)) {
+        throw SecurityException("不允许的命令: $commandName")
+    }
+    
+    // 移除危险字符
+    return command.replace(";", "")
+                 .replace("&&", "")
+                 .replace("||", "")
+                 .replace("|", "")
+                 .replace(">", "")
+                 .replace("<", "")
+}
+```
+
+## 敏感数据处理 ✅
+
+### 敏感数据保护
+
+保护工具处理的敏感数据：
+
+```kotlin
+// 敏感数据处理工具
+val secureDataTool = tool("secureData") {
+    description("处理敏感数据")
+    
+    parameters {
+        parameter("data", "要处理的数据", String::class)
+        parameter("operation", "操作类型", String::class)
+    }
+    
+    execute { params ->
+        val data = params["data"] as String
+        val operation = params["operation"] as String
+        
+        try {
+            // 处理数据
+            val result = when (operation) {
+                "mask" -> maskSensitiveData(data)
+                "encrypt" -> encryptData(data)
+                "decrypt" -> decryptData(data)
+                else -> throw IllegalArgumentException("不支持的操作")
+            }
+            
+            // 返回结果，不记录敏感数据
+            "操作成功"
+        } catch (e: Exception) {
+            // 不在错误消息中包含敏感数据
+            "操作失败: ${e.javaClass.simpleName}"
+        } finally {
+            // 清理内存中的敏感数据
+            System.gc()
+        }
+    }
+}
+
+// 掩码敏感数据
+fun maskSensitiveData(data: String): String {
+    // 掩码信用卡号
+    val maskedCreditCard = data.replace(Regex("\\d{4}-\\d{4}-\\d{4}-\\d{4}"), "****-****-****-$4")
+    
+    // 掩码电子邮件
+    val maskedEmail = maskedCreditCard.replace(Regex("([a-zA-Z0-9._%+-]+)@([a-zA-Z0-9.-]+\\.[a-zA-Z]{2,})"), "****@$2")
+    
+    // 掩码电话号码
+    return maskedEmail.replace(Regex("\\d{11}"), "*******$3")
+}
+```
+
+### 安全日志记录
+
+确保日志中不包含敏感信息：
+
+```kotlin
+// 安全日志记录
+class SecureLogger(private val logger: Logger) {
+    // 敏感字段列表
+    private val sensitiveFields = listOf(
+        "password", "token", "key", "secret", "credential",
+        "creditCard", "ssn", "socialSecurity"
+    )
+    
+    // 安全记录信息
+    fun info(message: String, data: Map<String, Any?>) {
+        val sanitizedData = sanitizeData(data)
+        logger.info("$message, data: $sanitizedData")
+    }
+    
+    // 安全记录错误
+    fun error(message: String, error: Throwable, data: Map<String, Any?>) {
+        val sanitizedData = sanitizeData(data)
+        logger.error("$message, data: $sanitizedData", error)
+    }
+    
+    // 清理敏感数据
+    private fun sanitizeData(data: Map<String, Any?>): Map<String, Any?> {
+        return data.mapValues { (key, value) ->
+            if (sensitiveFields.any { key.toLowerCase().contains(it) }) {
+                "****" // 替换敏感数据
+            } else {
+                value
+            }
+        }
+    }
+}
+```
+
+## 资源限制 ✅
+
+### 超时机制
+
+为工具执行设置超时，防止长时间运行：
+
+```kotlin
+import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.withTimeoutOrNull
+import kotlin.time.Duration.Companion.seconds
+
+// 带超时的工具执行
+val timeoutTool = tool("timeout") {
+    description("带超时的工具")
+    
+    parameters {
+        parameter("operation", "要执行的操作", String::class)
+        parameter("timeout", "超时时间（秒）", Int::class, optional = true, defaultValue = 10)
+    }
+    
+    execute { params ->
+        val operation = params["operation"] as String
+        val timeout = (params["timeout"] as? Int) ?: 10
+        
+        // 使用 withTimeoutOrNull 设置超时
+        val result = withTimeoutOrNull(timeout.seconds) {
+            // 执行可能耗时的操作
+            performOperation(operation)
+        }
+        
+        result ?: "操作超时，请尝试增加超时时间或简化操作"
+    }
+}
+```
+
+### 内存和资源限制
+
+限制工具使用的内存和其他资源：
+
+```kotlin
+// 资源限制工具
+class ResourceLimitedTool(
+    private val maxMemoryMB: Int,
+    private val maxCpuTime: Long
+) : Tool {
+    // 工具实现...
+    
+    override suspend fun execute(input: JsonElement): JsonElement {
+        // 检查当前内存使用
+        val runtime = Runtime.getRuntime()
+        val usedMemory = (runtime.totalMemory() - runtime.freeMemory()) / (1024 * 1024)
+        
+        if (usedMemory > maxMemoryMB) {
+            throw ResourceLimitExceededException("内存使用超过限制")
+        }
+        
+        // 记录开始时间
+        val startTime = System.currentTimeMillis()
+        
+        try {
+            // 执行工具
+            val result = executeWithLimits(input)
+            
+            // 检查 CPU 时间
+            val endTime = System.currentTimeMillis()
+            if (endTime - startTime > maxCpuTime) {
+                throw ResourceLimitExceededException("CPU 时间超过限制")
+            }
+            
+            return result
+        } catch (e: Exception) {
+            throw e
+        }
+    }
+    
+    // 带资源限制的执行
+    private suspend fun executeWithLimits(input: JsonElement): JsonElement {
+        // 实现...
+    }
+}
+```
+
+## 安全审计 ✅
+
+### 工具调用审计
+
+记录和审计工具调用：
+
+```kotlin
+// 工具调用审计
+class AuditedTool(
+    private val tool: Tool,
+    private val auditLogger: AuditLogger
+) : Tool {
+    override val id: String = tool.id
+    override val name: String = tool.name
+    override val description: String = tool.description
+    override val inputSchema = tool.inputSchema
+    override val outputSchema = tool.outputSchema
+    
+    override suspend fun execute(input: JsonElement): JsonElement {
+        // 获取当前用户和上下文
+        val user = getCurrentUser()
+        val context = getExecutionContext()
+        
+        // 记录调用开始
+        val auditId = auditLogger.logToolCall(
+            toolId = id,
+            userId = user.id,
+            input = input,
+            context = context
+        )
+        
+        try {
+            // 执行工具
+            val result = tool.execute(input)
+            
+            // 记录成功结果
+            auditLogger.logToolResult(
+                auditId = auditId,
+                success = true,
+                result = result
+            )
+            
+            return result
+        } catch (e: Exception) {
+            // 记录失败结果
+            auditLogger.logToolResult(
+                auditId = auditId,
+                success = false,
+                error = e.message ?: "未知错误"
+            )
+            
+            throw e
+        }
+    }
+}
+
+// 审计日志接口
+interface AuditLogger {
+    fun logToolCall(toolId: String, userId: String, input: JsonElement, context: Map<String, Any?>): String
+    fun logToolResult(auditId: String, success: Boolean, result: JsonElement? = null, error: String? = null)
+    fun queryAuditLog(filters: Map<String, Any?>): List<AuditRecord>
+}
+```
+
+### 异常检测
+
+实现异常检测，识别可疑的工具调用模式：
+
+```kotlin
+// 异常检测服务
+class AnomalyDetectionService {
+    // 用户调用历史
+    private val userCallHistory = mutableMapOf<String, MutableList<ToolCallRecord>>()
+    
+    // 记录工具调用
+    fun recordToolCall(userId: String, toolId: String, input: JsonElement) {
+        val record = ToolCallRecord(
+            timestamp = System.currentTimeMillis(),
+            toolId = toolId,
+            input = input
+        )
+        
+        userCallHistory.getOrPut(userId) { mutableListOf() }.add(record)
+        
+        // 检测异常
+        detectAnomalies(userId)
+    }
+    
+    // 检测异常
+    private fun detectAnomalies(userId: String) {
+        val history = userCallHistory[userId] ?: return
+        
+        // 检测频率异常
+        detectFrequencyAnomalies(userId, history)
+        
+        // 检测模式异常
+        detectPatternAnomalies(userId, history)
+        
+        // 检测内容异常
+        detectContentAnomalies(userId, history)
+    }
+    
+    // 检测频率异常
+    private fun detectFrequencyAnomalies(userId: String, history: List<ToolCallRecord>) {
+        // 计算最近一分钟的调用次数
+        val recentCalls = history.count { 
+            it.timestamp > System.currentTimeMillis() - 60000 
+        }
+        
+        if (recentCalls > 100) {
+            // 记录异常并采取措施
+            logAnomaly(userId, "频率异常", "一分钟内调用次数过多: $recentCalls")
+            applyRateLimit(userId)
+        }
+    }
+    
+    // 其他异常检测方法...
+    
+    // 记录异常
+    private fun logAnomaly(userId: String, type: String, description: String) {
+        // 实现...
+    }
+    
+    // 应用速率限制
+    private fun applyRateLimit(userId: String) {
+        // 实现...
+    }
+}
+
+// 工具调用记录
+data class ToolCallRecord(
+    val timestamp: Long,
+    val toolId: String,
+    val input: JsonElement
+)
+```
+
+## 安全最佳实践 ✅
+
+### 工具开发安全最佳实践
+
+1. **最小权限原则**：工具应该只拥有完成任务所需的最小权限
+2. **输入验证**：验证所有输入参数，不信任用户输入
+3. **参数化查询**：使用参数化查询防止注入攻击
+4. **安全默认值**：提供安全的默认配置
+5. **错误处理**：妥善处理错误，不泄露敏感信息
+6. **资源限制**：实施超时和资源限制
+7. **审计日志**：记录工具调用和结果
+8. **敏感数据保护**：保护敏感数据，不在日志中记录
+9. **安全依赖**：使用安全的依赖库，定期更新
+10. **代码审查**：对工具代码进行安全审查
+
+### 文件系统工具安全最佳实践
+
+1. **路径限制**：限制文件操作在指定目录内
+2. **路径规范化**：规范化文件路径，防止目录遍历攻击
+3. **权限检查**：检查文件操作权限
+4. **安全文件名**：验证文件名，防止特殊字符和恶意文件名
+5. **内容验证**：验证文件内容，防止恶意文件
+
+```kotlin
+// 安全的文件系统工具
+val secureFileSystemTool = tool("secureFileSystem") {
+    description("安全的文件系统操作")
+    
+    parameters {
+        parameter("operation", "操作类型", String::class)
+        parameter("path", "文件路径", String::class)
+        parameter("content", "文件内容", String::class, optional = true)
+    }
+    
+    execute { params ->
+        val operation = params["operation"] as String
+        val path = params["path"] as String
+        val content = params["content"] as? String
+        
+        // 安全路径处理
+        val rootPath = "/safe/directory"
+        val safePath = sanitizeFilePath(path, rootPath)
+        
+        // 执行操作
+        when (operation) {
+            "read" -> readFile(safePath)
+            "write" -> {
+                if (content == null) {
+                    throw IllegalArgumentException("写入操作需要提供内容")
+                }
+                // 验证内容
+                val safeContent = sanitizeContent(content)
+                writeFile(safePath, safeContent)
+            }
+            "list" -> listDirectory(safePath)
+            "exists" -> checkExists(safePath)
+            else -> throw IllegalArgumentException("不支持的操作: $operation")
+        }
+    }
+}
+```
+
+### 代码执行工具安全最佳实践
+
+1. **沙箱执行**：在隔离环境中执行代码
+2. **语言限制**：限制可执行的编程语言
+3. **库限制**：限制可导入的库
+4. **超时限制**：设置执行超时
+5. **内存限制**：限制内存使用
+6. **禁止危险操作**：禁止文件系统访问、网络访问等危险操作
+
+```kotlin
+// 安全的代码执行工具
+val secureCodeExecutionTool = tool("secureCodeExecution") {
+    description("安全的代码执行")
+    
+    parameters {
+        parameter("language", "编程语言", String::class)
+        parameter("code", "要执行的代码", String::class)
+        parameter("timeout", "超时时间（秒）", Int::class, optional = true, defaultValue = 5)
+    }
+    
+    execute { params ->
+        val language = params["language"] as String
+        val code = params["code"] as String
+        val timeout = (params["timeout"] as? Int) ?: 5
+        
+        // 检查语言
+        val allowedLanguages = listOf("python", "javascript")
+        if (!allowedLanguages.contains(language)) {
+            throw IllegalArgumentException("不支持的语言: $language")
+        }
+        
+        // 检查代码安全性
+        checkCodeSafety(language, code)
+        
+        // 在沙箱中执行代码
+        executeInSandbox(language, code, timeout)
+    }
+}
+
+// 检查代码安全性
+fun checkCodeSafety(language: String, code: String) {
+    // 检查危险导入
+    val dangerousImports = when (language) {
+        "python" -> listOf("os", "sys", "subprocess", "shutil", "socket")
+        "javascript" -> listOf("fs", "child_process", "net", "http", "https")
+        else -> emptyList()
+    }
+    
+    // 检查代码中是否包含危险导入
+    dangerousImports.forEach { importName ->
+        if (code.contains("import\\s+$importName".toRegex()) || 
+            code.contains("from\\s+$importName\\s+import".toRegex()) ||
+            code.contains("require\\(['\"]$importName['\"]\\)".toRegex())) {
+            throw SecurityException("代码包含危险导入: $importName")
+        }
+    }
+    
+    // 检查危险函数
+    val dangerousFunctions = when (language) {
+        "python" -> listOf("eval", "exec", "open", "file", "__import__")
+        "javascript" -> listOf("eval", "Function", "setTimeout", "setInterval")
+        else -> emptyList()
+    }
+    
+    // 检查代码中是否包含危险函数
+    dangerousFunctions.forEach { functionName ->
+        if (code.contains("$functionName\\s*\\(".toRegex())) {
+            throw SecurityException("代码包含危险函数: $functionName")
+        }
+    }
+}
+```
+
+### 数据库工具安全最佳实践
+
+1. **参数化查询**：使用参数化查询防止 SQL 注入
+2. **最小权限**：使用最小权限数据库账户
+3. **查询限制**：限制可执行的查询类型
+4. **结果限制**：限制返回的结果数量
+5. **敏感数据保护**：保护敏感数据，不返回敏感字段
+
+```kotlin
+// 安全的数据库工具
+val secureDatabaseTool = tool("secureDatabase") {
+    description("安全的数据库操作")
+    
+    parameters {
+        parameter("query", "SQL 查询", String::class)
+        parameter("params", "查询参数", Map::class, optional = true, defaultValue = emptyMap<String, Any>())
+        parameter("limit", "结果限制", Int::class, optional = true, defaultValue = 100)
+    }
+    
+    execute { params ->
+        val query = params["query"] as String
+        val queryParams = params["params"] as Map<String, Any>
+        val limit = (params["limit"] as? Int) ?: 100
+        
+        // 检查查询类型
+        if (!query.trim().toLowerCase().startsWith("select")) {
+            throw SecurityException("只允许 SELECT 查询")
+        }
+        
+        // 检查查询安全性
+        checkQuerySafety(query)
+        
+        // 执行查询
+        val results = executeQuery(query, queryParams, limit)
+        
+        // 过滤敏感数据
+        filterSensitiveData(results)
+    }
+}
+
+// 检查查询安全性
+fun checkQuerySafety(query: String) {
+    // 检查多语句查询
+    if (query.contains(";")) {
+        throw SecurityException("不允许多语句查询")
+    }
+    
+    // 检查危险关键字
+    val dangerousKeywords = listOf(
+        "drop", "delete", "update", "insert", "alter", "create", "truncate",
+        "union", "into outfile", "load_file"
+    )
+    
+    dangerousKeywords.forEach { keyword ->
+        if (query.toLowerCase().contains(keyword)) {
+            throw SecurityException("查询包含危险关键字: $keyword")
+        }
+    }
+}
+```
+
+## 总结 ✅
+
+工具系统安全性是构建可靠 AI 代理的关键。通过实施本指南中的安全机制和最佳实践，您可以创建既强大又安全的工具，保护您的系统和数据免受潜在威胁。
+
+记住，安全是一个持续的过程，需要在开发、测试和部署的各个阶段考虑。定期审查和更新您的安全措施，跟踪新的安全威胁和最佳实践，确保您的工具系统始终保持安全。
