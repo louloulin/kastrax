@@ -1,0 +1,824 @@
+---
+title: Zod 工具系统 | Kastrax 文档
+description: Kastrax 的 Zod 工具系统详细介绍，包括类型安全的工具定义、模式验证和高级用例。
+---
+
+# Zod 工具系统
+
+Kastrax 的 Zod 工具系统提供了一种类型安全的方式来定义和使用工具。它基于 Kotlin 的类型系统，确保在编译时捕获类型错误，并在运行时提供强大的验证功能。
+
+## Zod 工具概述
+
+Zod 工具系统的核心是 `zodTool` DSL 函数，它允许您创建具有明确输入和输出类型的工具：
+
+```kotlin
+import ai.kastrax.core.tools.zodTool
+import ai.kastrax.zod.stringInput
+import ai.kastrax.zod.stringOutput
+import kotlinx.coroutines.runBlocking
+
+// 创建一个简单的字符串处理工具
+val uppercaseTool = zodTool<String, String> {
+    id = "uppercase"
+    name = "转大写"
+    description = "将文本转换为大写形式"
+    
+    // 定义输入和输出模式
+    inputSchema = stringInput("要转换的文本")
+    outputSchema = stringOutput("转换后的大写文本")
+    
+    // 实现执行逻辑
+    execute = { input ->
+        input.uppercase()
+    }
+}
+
+// 测试工具
+fun main() = runBlocking {
+    val result = uppercaseTool.execute("hello world")
+    println(result) // 输出: HELLO WORLD
+}
+```
+
+## 基本类型模式
+
+Kastrax 提供了多种基本类型的模式定义函数：
+
+```kotlin
+import ai.kastrax.core.tools.zodTool
+import ai.kastrax.zod.*
+import kotlinx.coroutines.runBlocking
+
+// 字符串工具
+val stringTool = zodTool<String, String> {
+    id = "string_tool"
+    name = "字符串工具"
+    description = "处理字符串"
+    
+    inputSchema = stringInput("输入字符串")
+    outputSchema = stringOutput("输出字符串")
+    
+    execute = { input -> input }
+}
+
+// 数字工具
+val numberTool = zodTool<Double, Double> {
+    id = "number_tool"
+    name = "数字工具"
+    description = "处理数字"
+    
+    inputSchema = numberInput("输入数字")
+    outputSchema = numberOutput("输出数字")
+    
+    execute = { input -> input * 2 }
+}
+
+// 布尔工具
+val booleanTool = zodTool<Boolean, String> {
+    id = "boolean_tool"
+    name = "布尔工具"
+    description = "处理布尔值"
+    
+    inputSchema = booleanInput("输入布尔值")
+    outputSchema = stringOutput("输出结果")
+    
+    execute = { input -> if (input) "是" else "否" }
+}
+
+// 测试工具
+fun main() = runBlocking {
+    println(stringTool.execute("测试"))
+    println(numberTool.execute(5.0))
+    println(booleanTool.execute(true))
+}
+```
+
+## 复杂类型模式
+
+### 对象模式
+
+使用 `object` 模式定义复杂对象：
+
+```kotlin
+import ai.kastrax.core.tools.zodTool
+import ai.kastrax.zod.*
+import kotlinx.coroutines.runBlocking
+import kotlinx.serialization.Serializable
+
+// 定义输入和输出数据类
+@Serializable
+data class Person(
+    val name: String,
+    val age: Int,
+    val email: String? = null
+)
+
+@Serializable
+data class Greeting(
+    val message: String,
+    val timestamp: Long
+)
+
+// 创建使用对象模式的工具
+val greetingTool = zodTool<Person, Greeting> {
+    id = "greeting_tool"
+    name = "问候工具"
+    description = "生成个性化问候"
+    
+    // 使用对象模式定义输入
+    inputSchema = objectSchema<Person> {
+        field("name", stringSchema(), "人名")
+        field("age", numberSchema().int(), "年龄")
+        field("email", stringSchema().optional(), "电子邮件（可选）")
+    }
+    
+    // 使用对象模式定义输出
+    outputSchema = objectSchema<Greeting> {
+        field("message", stringSchema(), "问候消息")
+        field("timestamp", numberSchema().long(), "时间戳")
+    }
+    
+    // 执行逻辑
+    execute = { person ->
+        val message = if (person.age < 18) {
+            "你好，年轻的 ${person.name}！"
+        } else {
+            "您好，${person.name}！"
+        }
+        
+        Greeting(
+            message = message,
+            timestamp = System.currentTimeMillis()
+        )
+    }
+}
+
+// 测试工具
+fun main() = runBlocking {
+    val person = Person(
+        name = "张三",
+        age = 25,
+        email = "zhangsan@example.com"
+    )
+    
+    val greeting = greetingTool.execute(person)
+    println("${greeting.message} (${greeting.timestamp})")
+}
+```
+
+### 数组模式
+
+使用 `array` 模式处理集合：
+
+```kotlin
+import ai.kastrax.core.tools.zodTool
+import ai.kastrax.zod.*
+import kotlinx.coroutines.runBlocking
+import kotlinx.serialization.Serializable
+
+// 定义数据类
+@Serializable
+data class NumberStats(
+    val sum: Double,
+    val average: Double,
+    val min: Double,
+    val max: Double,
+    val count: Int
+)
+
+// 创建使用数组模式的工具
+val statsCalculatorTool = zodTool<List<Double>, NumberStats> {
+    id = "stats_calculator"
+    name = "统计计算器"
+    description = "计算数字列表的统计信息"
+    
+    // 使用数组模式定义输入
+    inputSchema = arraySchema(numberSchema(), "数字列表")
+    
+    // 使用对象模式定义输出
+    outputSchema = objectSchema<NumberStats> {
+        field("sum", numberSchema(), "总和")
+        field("average", numberSchema(), "平均值")
+        field("min", numberSchema(), "最小值")
+        field("max", numberSchema(), "最大值")
+        field("count", numberSchema().int(), "数量")
+    }
+    
+    // 执行逻辑
+    execute = { numbers ->
+        if (numbers.isEmpty()) {
+            NumberStats(0.0, 0.0, 0.0, 0.0, 0)
+        } else {
+            NumberStats(
+                sum = numbers.sum(),
+                average = numbers.average(),
+                min = numbers.minOrNull() ?: 0.0,
+                max = numbers.maxOrNull() ?: 0.0,
+                count = numbers.size
+            )
+        }
+    }
+}
+
+// 测试工具
+fun main() = runBlocking {
+    val numbers = listOf(5.0, 10.0, 15.0, 20.0, 25.0)
+    val stats = statsCalculatorTool.execute(numbers)
+    
+    println("统计信息:")
+    println("- 总和: ${stats.sum}")
+    println("- 平均值: ${stats.average}")
+    println("- 最小值: ${stats.min}")
+    println("- 最大值: ${stats.max}")
+    println("- 数量: ${stats.count}")
+}
+```
+
+### 联合类型
+
+使用 `union` 模式处理多种可能的类型：
+
+```kotlin
+import ai.kastrax.core.tools.zodTool
+import ai.kastrax.zod.*
+import kotlinx.coroutines.runBlocking
+import kotlinx.serialization.Serializable
+
+// 定义可能的输入类型
+@Serializable
+sealed class SearchInput {
+    @Serializable
+    data class TextQuery(val query: String) : SearchInput()
+    
+    @Serializable
+    data class IdQuery(val id: Int) : SearchInput()
+}
+
+@Serializable
+data class SearchResult(
+    val type: String,
+    val result: String
+)
+
+// 创建使用联合类型的工具
+val searchTool = zodTool<SearchInput, SearchResult> {
+    id = "search_tool"
+    name = "搜索工具"
+    description = "通过文本或 ID 搜索"
+    
+    // 使用联合模式定义输入
+    inputSchema = unionSchema<SearchInput> {
+        variant(objectSchema<SearchInput.TextQuery> {
+            field("query", stringSchema(), "文本查询")
+        })
+        
+        variant(objectSchema<SearchInput.IdQuery> {
+            field("id", numberSchema().int(), "ID 查询")
+        })
+    }
+    
+    // 定义输出
+    outputSchema = objectSchema<SearchResult> {
+        field("type", stringSchema(), "结果类型")
+        field("result", stringSchema(), "搜索结果")
+    }
+    
+    // 执行逻辑
+    execute = { input ->
+        when (input) {
+            is SearchInput.TextQuery -> {
+                SearchResult(
+                    type = "TEXT",
+                    result = "文本搜索结果: ${input.query}"
+                )
+            }
+            is SearchInput.IdQuery -> {
+                SearchResult(
+                    type = "ID",
+                    result = "ID 搜索结果: ${input.id}"
+                )
+            }
+        }
+    }
+}
+
+// 测试工具
+fun main() = runBlocking {
+    // 文本查询
+    val textResult = searchTool.execute(SearchInput.TextQuery("Kotlin"))
+    println("${textResult.type}: ${textResult.result}")
+    
+    // ID 查询
+    val idResult = searchTool.execute(SearchInput.IdQuery(42))
+    println("${idResult.type}: ${idResult.result}")
+}
+```
+
+## 模式验证和转换
+
+### 字符串验证
+
+```kotlin
+import ai.kastrax.core.tools.zodTool
+import ai.kastrax.zod.*
+import kotlinx.coroutines.runBlocking
+
+// 创建带验证的电子邮件工具
+val validateEmailTool = zodTool<String, Boolean> {
+    id = "validate_email"
+    name = "电子邮件验证"
+    description = "验证电子邮件地址格式"
+    
+    // 使用验证规则的字符串模式
+    inputSchema = stringSchema()
+        .email("必须是有效的电子邮件地址")
+        .describe("电子邮件地址")
+    
+    outputSchema = booleanOutput("验证结果")
+    
+    execute = { email ->
+        // 由于已经通过模式验证，这里总是返回 true
+        true
+    }
+}
+
+// 测试工具
+fun main() = runBlocking {
+    try {
+        // 有效的电子邮件
+        val validResult = validateEmailTool.execute("user@example.com")
+        println("有效的电子邮件: $validResult")
+        
+        // 无效的电子邮件（会抛出异常）
+        val invalidResult = validateEmailTool.execute("invalid-email")
+        println("无效的电子邮件: $invalidResult")
+    } catch (e: Exception) {
+        println("验证错误: ${e.message}")
+    }
+}
+```
+
+### 数字验证
+
+```kotlin
+import ai.kastrax.core.tools.zodTool
+import ai.kastrax.zod.*
+import kotlinx.coroutines.runBlocking
+
+// 创建带数字验证的工具
+val validateAgeTool = zodTool<Int, String> {
+    id = "validate_age"
+    name = "年龄验证"
+    description = "验证年龄是否在合法范围内"
+    
+    // 使用验证规则的数字模式
+    inputSchema = numberSchema().int()
+        .min(0, "年龄不能为负数")
+        .max(120, "年龄不能超过 120")
+        .describe("年龄")
+    
+    outputSchema = stringOutput("验证结果")
+    
+    execute = { age ->
+        when {
+            age < 18 -> "未成年人"
+            age < 65 -> "成年人"
+            else -> "老年人"
+        }
+    }
+}
+
+// 测试工具
+fun main() = runBlocking {
+    try {
+        println(validateAgeTool.execute(15)) // 输出: 未成年人
+        println(validateAgeTool.execute(30)) // 输出: 成年人
+        println(validateAgeTool.execute(70)) // 输出: 老年人
+        
+        // 无效的年龄（会抛出异常）
+        println(validateAgeTool.execute(-5))
+    } catch (e: Exception) {
+        println("验证错误: ${e.message}")
+    }
+}
+```
+
+### 自定义验证
+
+```kotlin
+import ai.kastrax.core.tools.zodTool
+import ai.kastrax.zod.*
+import kotlinx.coroutines.runBlocking
+import kotlinx.serialization.Serializable
+
+@Serializable
+data class Password(val value: String)
+
+@Serializable
+data class PasswordStrength(
+    val isStrong: Boolean,
+    val score: Int,
+    val feedback: String
+)
+
+// 创建带自定义验证的工具
+val passwordStrengthTool = zodTool<Password, PasswordStrength> {
+    id = "password_strength"
+    name = "密码强度检测"
+    description = "检测密码强度并提供反馈"
+    
+    // 使用自定义验证的对象模式
+    inputSchema = objectSchema<Password> {
+        field("value", stringSchema()
+            .min(8, "密码长度至少为 8 个字符")
+            .refine({ password ->
+                password.any { it.isDigit() } && 
+                password.any { it.isLetter() } && 
+                password.any { !it.isLetterOrDigit() }
+            }, "密码必须包含字母、数字和特殊字符")
+            .describe("密码")
+        )
+    }
+    
+    outputSchema = objectSchema<PasswordStrength> {
+        field("isStrong", booleanSchema(), "是否为强密码")
+        field("score", numberSchema().int(), "密码强度评分 (1-10)")
+        field("feedback", stringSchema(), "改进建议")
+    }
+    
+    execute = { password ->
+        // 计算密码强度
+        val hasUppercase = password.value.any { it.isUpperCase() }
+        val hasLowercase = password.value.any { it.isLowerCase() }
+        val hasDigit = password.value.any { it.isDigit() }
+        val hasSpecial = password.value.any { !it.isLetterOrDigit() }
+        val length = password.value.length
+        
+        // 计算分数 (1-10)
+        var score = 0
+        if (length >= 8) score += 1
+        if (length >= 12) score += 1
+        if (length >= 16) score += 1
+        if (hasUppercase) score += 2
+        if (hasLowercase) score += 1
+        if (hasDigit) score += 2
+        if (hasSpecial) score += 2
+        
+        // 生成反馈
+        val feedback = buildString {
+            if (score < 7) {
+                append("密码可以改进: ")
+                if (!hasUppercase) append("添加大写字母; ")
+                if (!hasLowercase) append("添加小写字母; ")
+                if (!hasDigit) append("添加数字; ")
+                if (!hasSpecial) append("添加特殊字符; ")
+                if (length < 12) append("增加长度至少 12 个字符; ")
+            } else {
+                append("密码强度良好")
+            }
+        }
+        
+        PasswordStrength(
+            isStrong = score >= 7,
+            score = score,
+            feedback = feedback
+        )
+    }
+}
+
+// 测试工具
+fun main() = runBlocking {
+    try {
+        // 测试强密码
+        val strongResult = passwordStrengthTool.execute(Password("P@ssw0rd123!"))
+        println("强密码评估:")
+        println("- 强度: ${if (strongResult.isStrong) "强" else "弱"}")
+        println("- 分数: ${strongResult.score}/10")
+        println("- 反馈: ${strongResult.feedback}")
+        
+        // 测试弱密码（会抛出异常）
+        val weakResult = passwordStrengthTool.execute(Password("password"))
+        println(weakResult)
+    } catch (e: Exception) {
+        println("验证错误: ${e.message}")
+    }
+}
+```
+
+## 高级用例
+
+### 链式工具
+
+使用 Zod 工具创建处理管道：
+
+```kotlin
+import ai.kastrax.core.tools.zodTool
+import ai.kastrax.zod.*
+import kotlinx.coroutines.runBlocking
+import kotlinx.serialization.Serializable
+
+// 定义数据类
+@Serializable
+data class TextInput(val text: String)
+
+@Serializable
+data class TokenizedText(val tokens: List<String>)
+
+@Serializable
+data class FilteredTokens(val tokens: List<String>)
+
+@Serializable
+data class TokenCounts(val counts: Map<String, Int>)
+
+// 第一个工具：分词
+val tokenizeTool = zodTool<TextInput, TokenizedText> {
+    id = "tokenize"
+    name = "文本分词"
+    description = "将文本分割为单词"
+    
+    inputSchema = objectSchema<TextInput> {
+        field("text", stringSchema(), "输入文本")
+    }
+    
+    outputSchema = objectSchema<TokenizedText> {
+        field("tokens", arraySchema(stringSchema()), "分词结果")
+    }
+    
+    execute = { input ->
+        val tokens = input.text.split(Regex("\\s+|[,.!?;:]"))
+            .filter { it.isNotEmpty() }
+        
+        TokenizedText(tokens)
+    }
+}
+
+// 第二个工具：过滤停用词
+val filterStopwordsTool = zodTool<TokenizedText, FilteredTokens> {
+    id = "filter_stopwords"
+    name = "过滤停用词"
+    description = "从分词结果中过滤常见停用词"
+    
+    inputSchema = objectSchema<TokenizedText> {
+        field("tokens", arraySchema(stringSchema()), "分词结果")
+    }
+    
+    outputSchema = objectSchema<FilteredTokens> {
+        field("tokens", arraySchema(stringSchema()), "过滤后的分词")
+    }
+    
+    execute = { input ->
+        val stopwords = setOf("的", "了", "是", "在", "我", "有", "和", "就", "不", "人", "都", "一", "一个", "上", "也", "很")
+        val filtered = input.tokens.filter { it.lowercase() !in stopwords }
+        
+        FilteredTokens(filtered)
+    }
+}
+
+// 第三个工具：计算词频
+val countTokensTool = zodTool<FilteredTokens, TokenCounts> {
+    id = "count_tokens"
+    name = "词频统计"
+    description = "统计词频"
+    
+    inputSchema = objectSchema<FilteredTokens> {
+        field("tokens", arraySchema(stringSchema()), "过滤后的分词")
+    }
+    
+    outputSchema = objectSchema<TokenCounts> {
+        field("counts", mapSchema(stringSchema(), numberSchema().int()), "词频统计")
+    }
+    
+    execute = { input ->
+        val counts = input.tokens
+            .groupBy { it.lowercase() }
+            .mapValues { it.value.size }
+        
+        TokenCounts(counts)
+    }
+}
+
+// 组合工具链
+fun processText(text: String): TokenCounts {
+    return runBlocking {
+        val input = TextInput(text)
+        val tokenized = tokenizeTool.execute(input)
+        val filtered = filterStopwordsTool.execute(tokenized)
+        val counts = countTokensTool.execute(filtered)
+        counts
+    }
+}
+
+// 测试工具链
+fun main() {
+    val text = "自然语言处理是人工智能的一个重要分支，它研究人类语言和计算机之间的交互。自然语言处理技术被广泛应用于机器翻译、情感分析、文本摘要等领域。"
+    
+    val result = processText(text)
+    
+    println("词频统计:")
+    result.counts.entries
+        .sortedByDescending { it.value }
+        .forEach { (word, count) ->
+            println("- $word: $count")
+        }
+}
+```
+
+### 异步工具
+
+处理异步操作的 Zod 工具：
+
+```kotlin
+import ai.kastrax.core.tools.zodTool
+import ai.kastrax.zod.*
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
+import kotlinx.serialization.Serializable
+import java.io.File
+
+@Serializable
+data class FileReadRequest(val path: String)
+
+@Serializable
+data class FileContent(val content: String, val size: Long)
+
+// 创建异步文件读取工具
+val fileReaderTool = zodTool<FileReadRequest, FileContent> {
+    id = "file_reader"
+    name = "文件读取器"
+    description = "异步读取文件内容"
+    
+    inputSchema = objectSchema<FileReadRequest> {
+        field("path", stringSchema(), "文件路径")
+    }
+    
+    outputSchema = objectSchema<FileContent> {
+        field("content", stringSchema(), "文件内容")
+        field("size", numberSchema().long(), "文件大小（字节）")
+    }
+    
+    execute = { request ->
+        // 使用 IO 调度器异步读取文件
+        withContext(Dispatchers.IO) {
+            val file = File(request.path)
+            
+            if (!file.exists()) {
+                throw IllegalArgumentException("文件不存在: ${request.path}")
+            }
+            
+            if (!file.isFile) {
+                throw IllegalArgumentException("路径不是文件: ${request.path}")
+            }
+            
+            // 模拟耗时操作
+            delay(500)
+            
+            // 读取文件内容
+            val content = file.readText()
+            val size = file.length()
+            
+            FileContent(content, size)
+        }
+    }
+}
+
+// 测试异步工具
+fun main() = runBlocking {
+    try {
+        val result = fileReaderTool.execute(FileReadRequest("example.txt"))
+        
+        println("文件内容:")
+        println(result.content)
+        println("文件大小: ${result.size} 字节")
+    } catch (e: Exception) {
+        println("错误: ${e.message}")
+    }
+}
+```
+
+### 工具组合
+
+将多个 Zod 工具组合成一个工具集：
+
+```kotlin
+import ai.kastrax.core.tools.ToolRegistry
+import ai.kastrax.core.tools.zodTool
+import ai.kastrax.zod.*
+import kotlinx.coroutines.runBlocking
+import kotlinx.serialization.Serializable
+
+// 定义工具集
+class StringToolset {
+    // 转大写工具
+    val uppercase = zodTool<String, String> {
+        id = "uppercase"
+        name = "转大写"
+        description = "将文本转换为大写"
+        
+        inputSchema = stringInput("输入文本")
+        outputSchema = stringOutput("大写文本")
+        
+        execute = { it.uppercase() }
+    }
+    
+    // 转小写工具
+    val lowercase = zodTool<String, String> {
+        id = "lowercase"
+        name = "转小写"
+        description = "将文本转换为小写"
+        
+        inputSchema = stringInput("输入文本")
+        outputSchema = stringOutput("小写文本")
+        
+        execute = { it.lowercase() }
+    }
+    
+    // 反转工具
+    val reverse = zodTool<String, String> {
+        id = "reverse"
+        name = "反转文本"
+        description = "反转文本字符顺序"
+        
+        inputSchema = stringInput("输入文本")
+        outputSchema = stringOutput("反转后的文本")
+        
+        execute = { it.reversed() }
+    }
+    
+    // 计数工具
+    val count = zodTool<String, Int> {
+        id = "count"
+        name = "字符计数"
+        description = "计算文本中的字符数"
+        
+        inputSchema = stringInput("输入文本")
+        outputSchema = numberOutput("字符数").int()
+        
+        execute = { it.length }
+    }
+    
+    // 注册所有工具
+    fun registerAll(registry: ToolRegistry) {
+        registry.register(uppercase)
+        registry.register(lowercase)
+        registry.register(reverse)
+        registry.register(count)
+    }
+}
+
+// 使用工具集
+fun main() = runBlocking {
+    val toolset = StringToolset()
+    
+    // 创建工具注册表
+    val registry = ToolRegistry()
+    toolset.registerAll(registry)
+    
+    // 获取并使用工具
+    val uppercaseTool = registry.getTool("uppercase")
+    val reverseTool = registry.getTool("reverse")
+    val countTool = registry.getTool("count")
+    
+    val text = "Hello, Kastrax!"
+    
+    // 使用工具
+    val uppercased = uppercaseTool.execute(mapOf("input" to text))
+    println("大写: $uppercased")
+    
+    val reversed = reverseTool.execute(mapOf("input" to text))
+    println("反转: $reversed")
+    
+    val count = countTool.execute(mapOf("input" to text))
+    println("字符数: $count")
+}
+```
+
+## 最佳实践
+
+### 类型安全
+
+1. **使用数据类**：为输入和输出定义明确的数据类
+2. **利用泛型**：充分利用 Kotlin 的泛型系统
+3. **避免类型转换**：尽量避免使用 `as` 进行类型转换
+
+### 模式设计
+
+1. **精确定义**：为每个字段提供精确的类型和验证规则
+2. **提供描述**：为模式和字段添加清晰的描述
+3. **合理分组**：将相关字段组织在一起
+
+### 错误处理
+
+1. **提供有意义的错误消息**：使用 `.refine()` 和验证函数提供详细错误信息
+2. **优雅处理验证失败**：捕获并处理验证异常
+3. **返回结构化错误**：使用一致的错误格式
+
+## 下一步
+
+现在您已经了解了 Zod 工具系统，您可以：
+
+1. 学习如何[组合工具创建工具链](./tool-chains.mdx)
+2. 了解[工具调用生命周期和调试](./tool-lifecycle.mdx)
+3. 探索[工具系统与 Actor 模型集成](./tools-with-actors.mdx)
+4. 了解[工具系统安全性](./tools-security.mdx)

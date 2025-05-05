@@ -1,0 +1,683 @@
+---
+title: 自定义工具开发 | Kastrax 文档
+description: 如何在 Kastrax 中创建和使用自定义工具，包括工具定义、参数验证、错误处理和最佳实践。
+---
+
+# 自定义工具开发
+
+虽然 Kastrax 提供了许多内置工具，但您可能需要创建自定义工具来满足特定需求。本指南将介绍如何创建、测试和集成自定义工具。
+
+## 基本工具创建
+
+### 使用 `tool` DSL
+
+最简单的创建工具方式是使用 `tool` DSL 函数：
+
+```kotlin
+import ai.kastrax.core.tools.tool
+import kotlinx.coroutines.runBlocking
+
+// 创建一个简单的问候工具
+val greetingTool = tool("greeting") {
+    description("生成个性化问候语")
+    
+    parameters {
+        parameter("name", "用户名称", String::class)
+        parameter("formal", "是否使用正式语气", Boolean::class, optional = true, defaultValue = false)
+    }
+    
+    execute { params ->
+        val name = params["name"] as String
+        val formal = params["formal"] as? Boolean ?: false
+        
+        if (formal) {
+            "尊敬的 $name，您好！"
+        } else {
+            "嗨，$name！"
+        }
+    }
+}
+
+// 测试工具
+fun main() = runBlocking {
+    val informalGreeting = greetingTool.execute(mapOf(
+        "name" to "张三"
+    ))
+    println(informalGreeting) // 输出: 嗨，张三！
+    
+    val formalGreeting = greetingTool.execute(mapOf(
+        "name" to "李总",
+        "formal" to true
+    ))
+    println(formalGreeting) // 输出: 尊敬的 李总，您好！
+}
+```
+
+### 工具组件详解
+
+自定义工具包含以下主要组件：
+
+1. **ID**：工具的唯一标识符
+2. **描述**：工具功能的详细说明
+3. **参数定义**：工具接受的输入参数
+4. **执行逻辑**：工具的实际功能实现
+
+## 高级参数定义
+
+### 参数类型和验证
+
+Kastrax 支持多种参数类型和验证方式：
+
+```kotlin
+parameters {
+    // 基本类型参数
+    parameter("name", "用户名称", String::class)
+    parameter("age", "用户年龄", Int::class)
+    parameter("height", "用户身高（米）", Double::class)
+    parameter("isActive", "是否活跃用户", Boolean::class)
+    
+    // 可选参数
+    parameter("title", "用户头衔", String::class, optional = true)
+    
+    // 带默认值的参数
+    parameter("language", "首选语言", String::class, optional = true, defaultValue = "zh-CN")
+    
+    // 枚举参数
+    parameter("role", "用户角色", String::class) {
+        enum("admin", "user", "guest")
+    }
+    
+    // 带验证的参数
+    parameter("email", "电子邮件地址", String::class) {
+        validate { email ->
+            if (!email.contains("@")) {
+                throw IllegalArgumentException("无效的电子邮件地址")
+            }
+        }
+    }
+    
+    // 数值范围验证
+    parameter("score", "评分（1-10）", Int::class) {
+        validate { score ->
+            if (score < 1 || score > 10) {
+                throw IllegalArgumentException("评分必须在 1 到 10 之间")
+            }
+        }
+    }
+}
+```
+
+### 复杂参数类型
+
+您可以使用 Kotlin 的类型系统定义复杂参数：
+
+```kotlin
+import ai.kastrax.core.tools.tool
+import kotlinx.coroutines.runBlocking
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
+
+// 定义复杂参数类型
+@Serializable
+data class Address(
+    val street: String,
+    val city: String,
+    val zipCode: String,
+    val country: String
+)
+
+@Serializable
+data class Person(
+    val name: String,
+    val age: Int,
+    val address: Address
+)
+
+// 创建使用复杂参数的工具
+val formatAddressTool = tool("formatAddress") {
+    description("格式化地址信息")
+    
+    parameters {
+        parameter("person", "人员信息", String::class) {
+            description("JSON 格式的人员信息，包含姓名、年龄和地址")
+        }
+    }
+    
+    execute { params ->
+        val personJson = params["person"] as String
+        val person = Json.decodeFromString<Person>(personJson)
+        
+        val address = person.address
+        """
+        ${person.name} (${person.age}岁)
+        ${address.street}
+        ${address.city}, ${address.zipCode}
+        ${address.country}
+        """.trimIndent()
+    }
+}
+
+// 测试工具
+fun main() = runBlocking {
+    val personJson = """
+        {
+            "name": "张三",
+            "age": 30,
+            "address": {
+                "street": "和平路123号",
+                "city": "上海",
+                "zipCode": "200000",
+                "country": "中国"
+            }
+        }
+    """.trimIndent()
+    
+    val formattedAddress = formatAddressTool.execute(mapOf(
+        "person" to personJson
+    ))
+    
+    println(formattedAddress)
+}
+```
+
+## 错误处理
+
+良好的错误处理对于自定义工具至关重要：
+
+```kotlin
+import ai.kastrax.core.tools.tool
+import kotlinx.coroutines.runBlocking
+import java.io.File
+import java.io.IOException
+
+// 创建带错误处理的文件读取工具
+val readFileTool = tool("readFile") {
+    description("读取文件内容")
+    
+    parameters {
+        parameter("path", "文件路径", String::class)
+    }
+    
+    execute { params ->
+        val path = params["path"] as String
+        
+        try {
+            val file = File(path)
+            
+            // 检查文件是否存在
+            if (!file.exists()) {
+                return@execute "错误: 文件不存在 - $path"
+            }
+            
+            // 检查是否为文件
+            if (!file.isFile) {
+                return@execute "错误: 路径指向的不是文件 - $path"
+            }
+            
+            // 检查是否可读
+            if (!file.canRead()) {
+                return@execute "错误: 无法读取文件 - $path"
+            }
+            
+            // 读取文件内容
+            val content = file.readText()
+            
+            // 返回文件内容
+            "文件内容:\n$content"
+        } catch (e: IOException) {
+            "错误: 读取文件时发生 IO 异常 - ${e.message}"
+        } catch (e: SecurityException) {
+            "错误: 安全异常，无权限访问文件 - ${e.message}"
+        } catch (e: Exception) {
+            "错误: 未知异常 - ${e.message}"
+        }
+    }
+}
+```
+
+## 异步工具
+
+对于耗时操作，应使用协程实现异步处理：
+
+```kotlin
+import ai.kastrax.core.tools.tool
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
+
+// 创建异步工具
+val asyncProcessingTool = tool("asyncProcessing") {
+    description("执行耗时的异步处理")
+    
+    parameters {
+        parameter("data", "要处理的数据", String::class)
+        parameter("processingTime", "处理时间（毫秒）", Int::class, optional = true, defaultValue = 1000)
+    }
+    
+    execute { params ->
+        val data = params["data"] as String
+        val processingTime = params["processingTime"] as Int
+        
+        // 使用 IO 调度器执行耗时操作
+        withContext(Dispatchers.IO) {
+            // 模拟耗时处理
+            delay(processingTime.toLong())
+            
+            // 处理数据（示例：反转字符串）
+            val result = data.reversed()
+            
+            "处理完成: $result"
+        }
+    }
+}
+
+// 测试异步工具
+fun main() = runBlocking {
+    val result = asyncProcessingTool.execute(mapOf(
+        "data" to "Hello, World!",
+        "processingTime" to 2000
+    ))
+    
+    println(result) // 输出: 处理完成: !dlroW ,olleH
+}
+```
+
+## 工具组合
+
+您可以组合多个工具创建更复杂的功能：
+
+```kotlin
+import ai.kastrax.core.tools.tool
+import kotlinx.coroutines.runBlocking
+import java.io.File
+
+// 创建文件读取工具
+val readFileTool = tool("readFile") {
+    description("读取文件内容")
+    parameters {
+        parameter("path", "文件路径", String::class)
+    }
+    execute { params ->
+        val path = params["path"] as String
+        try {
+            File(path).readText()
+        } catch (e: Exception) {
+            "错误: ${e.message}"
+        }
+    }
+}
+
+// 创建文本统计工具
+val textStatsTool = tool("textStats") {
+    description("分析文本统计信息")
+    parameters {
+        parameter("text", "要分析的文本", String::class)
+    }
+    execute { params ->
+        val text = params["text"] as String
+        
+        val charCount = text.length
+        val wordCount = text.split(Regex("\\s+")).count { it.isNotEmpty() }
+        val lineCount = text.lines().size
+        
+        """
+        文本统计:
+        - 字符数: $charCount
+        - 单词数: $wordCount
+        - 行数: $lineCount
+        """.trimIndent()
+    }
+}
+
+// 创建组合工具
+val fileStatsTool = tool("fileStats") {
+    description("分析文件文本统计信息")
+    parameters {
+        parameter("path", "文件路径", String::class)
+    }
+    execute { params ->
+        val path = params["path"] as String
+        
+        // 首先读取文件
+        val fileContent = readFileTool.execute(mapOf("path" to path))
+        
+        // 检查是否有错误
+        if (fileContent.startsWith("错误:")) {
+            return@execute fileContent
+        }
+        
+        // 分析文本统计信息
+        val stats = textStatsTool.execute(mapOf("text" to fileContent))
+        
+        "文件: $path\n$stats"
+    }
+}
+
+// 测试组合工具
+fun main() = runBlocking {
+    val result = fileStatsTool.execute(mapOf(
+        "path" to "example.txt"
+    ))
+    
+    println(result)
+}
+```
+
+## 工具类和工具集
+
+对于复杂应用，可以创建工具类和工具集：
+
+```kotlin
+import ai.kastrax.core.tools.tool
+import kotlinx.coroutines.runBlocking
+
+// 创建工具类
+class FileTools {
+    // 读取文件工具
+    val readFile = tool("readFile") {
+        description("读取文件内容")
+        parameters {
+            parameter("path", "文件路径", String::class)
+        }
+        execute { params ->
+            val path = params["path"] as String
+            try {
+                java.io.File(path).readText()
+            } catch (e: Exception) {
+                "错误: ${e.message}"
+            }
+        }
+    }
+    
+    // 写入文件工具
+    val writeFile = tool("writeFile") {
+        description("写入文件内容")
+        parameters {
+            parameter("path", "文件路径", String::class)
+            parameter("content", "文件内容", String::class)
+            parameter("append", "是否追加内容", Boolean::class, optional = true, defaultValue = false)
+        }
+        execute { params ->
+            val path = params["path"] as String
+            val content = params["content"] as String
+            val append = params["append"] as Boolean
+            
+            try {
+                val file = java.io.File(path)
+                
+                if (append) {
+                    file.appendText(content)
+                } else {
+                    file.writeText(content)
+                }
+                
+                "成功写入文件: $path"
+            } catch (e: Exception) {
+                "错误: ${e.message}"
+            }
+        }
+    }
+    
+    // 列出目录工具
+    val listDirectory = tool("listDirectory") {
+        description("列出目录内容")
+        parameters {
+            parameter("path", "目录路径", String::class)
+        }
+        execute { params ->
+            val path = params["path"] as String
+            try {
+                val dir = java.io.File(path)
+                
+                if (!dir.exists() || !dir.isDirectory) {
+                    return@execute "错误: 无效的目录路径"
+                }
+                
+                val files = dir.listFiles() ?: return@execute "目录为空"
+                
+                val fileList = files.joinToString("\n") { file ->
+                    val type = if (file.isDirectory) "目录" else "文件"
+                    "${file.name} ($type)"
+                }
+                
+                "目录内容:\n$fileList"
+            } catch (e: Exception) {
+                "错误: ${e.message}"
+            }
+        }
+    }
+}
+
+// 使用工具类
+fun main() = runBlocking {
+    val fileTools = FileTools()
+    
+    // 写入文件
+    val writeResult = fileTools.writeFile.execute(mapOf(
+        "path" to "test.txt",
+        "content" to "这是一个测试文件。\n这是第二行。"
+    ))
+    println(writeResult)
+    
+    // 读取文件
+    val readResult = fileTools.readFile.execute(mapOf(
+        "path" to "test.txt"
+    ))
+    println("读取结果:\n$readResult")
+    
+    // 列出目录
+    val listResult = fileTools.listDirectory.execute(mapOf(
+        "path" to "."
+    ))
+    println(listResult)
+}
+```
+
+## 工具测试
+
+测试自定义工具是确保其可靠性的关键：
+
+```kotlin
+import ai.kastrax.core.tools.tool
+import kotlinx.coroutines.runBlocking
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertTrue
+
+class CalculatorToolTest {
+    // 定义计算器工具
+    private val calculatorTool = tool("calculator") {
+        description("执行基本数学运算")
+        parameters {
+            parameter("operation", "运算类型", String::class) {
+                enum("add", "subtract", "multiply", "divide")
+            }
+            parameter("a", "第一个数字", Double::class)
+            parameter("b", "第二个数字", Double::class)
+        }
+        execute { params ->
+            val operation = params["operation"] as String
+            val a = params["a"] as Double
+            val b = params["b"] as Double
+            
+            when (operation) {
+                "add" -> a + b
+                "subtract" -> a - b
+                "multiply" -> a * b
+                "divide" -> {
+                    if (b == 0.0) {
+                        throw IllegalArgumentException("除数不能为零")
+                    }
+                    a / b
+                }
+                else -> throw IllegalArgumentException("未知操作: $operation")
+            }
+        }
+    }
+    
+    @Test
+    fun `test addition operation`() = runBlocking {
+        val result = calculatorTool.execute(mapOf(
+            "operation" to "add",
+            "a" to 5.0,
+            "b" to 3.0
+        ))
+        
+        assertEquals(8.0, result)
+    }
+    
+    @Test
+    fun `test subtraction operation`() = runBlocking {
+        val result = calculatorTool.execute(mapOf(
+            "operation" to "subtract",
+            "a" to 10.0,
+            "b" to 4.0
+        ))
+        
+        assertEquals(6.0, result)
+    }
+    
+    @Test
+    fun `test multiplication operation`() = runBlocking {
+        val result = calculatorTool.execute(mapOf(
+            "operation" to "multiply",
+            "a" to 7.0,
+            "b" to 6.0
+        ))
+        
+        assertEquals(42.0, result)
+    }
+    
+    @Test
+    fun `test division operation`() = runBlocking {
+        val result = calculatorTool.execute(mapOf(
+            "operation" to "divide",
+            "a" to 20.0,
+            "b" to 5.0
+        ))
+        
+        assertEquals(4.0, result)
+    }
+    
+    @Test
+    fun `test division by zero`() = runBlocking {
+        try {
+            calculatorTool.execute(mapOf(
+                "operation" to "divide",
+                "a" to 10.0,
+                "b" to 0.0
+            ))
+            
+            // 如果没有抛出异常，测试失败
+            assertTrue(false, "应该抛出除数为零的异常")
+        } catch (e: IllegalArgumentException) {
+            // 预期的异常
+            assertTrue(e.message?.contains("除数不能为零") ?: false)
+        }
+    }
+}
+```
+
+## 工具文档
+
+为工具提供详细的文档是良好实践：
+
+```kotlin
+import ai.kastrax.core.tools.tool
+import kotlinx.coroutines.runBlocking
+
+/**
+ * 创建一个天气查询工具
+ * 
+ * 此工具允许查询指定城市的天气信息。它接受城市名称作为输入，
+ * 并返回当前天气状况、温度和湿度。
+ * 
+ * 参数:
+ * - city: 要查询天气的城市名称
+ * - units: 温度单位，可选值为 "celsius"（摄氏度）或 "fahrenheit"（华氏度），默认为 "celsius"
+ * 
+ * 返回:
+ * 包含天气信息的字符串，格式为：
+ * "[城市] 当前天气: [天气状况], 温度: [温度][单位], 湿度: [湿度]%"
+ * 
+ * 示例:
+ * 输入: { "city": "北京", "units": "celsius" }
+ * 输出: "北京当前天气: 晴, 温度: 25°C, 湿度: 45%"
+ * 
+ * 错误处理:
+ * - 如果城市不存在，返回错误消息
+ * - 如果网络请求失败，返回错误消息
+ */
+val weatherTool = tool("getWeather") {
+    description("""
+        获取指定城市的天气信息。
+        返回当前天气状况、温度和湿度。
+        示例: 北京当前天气: 晴, 温度: 25°C, 湿度: 45%
+    """.trimIndent())
+    
+    parameters {
+        parameter("city", "城市名称", String::class)
+        parameter("units", "温度单位", String::class, optional = true, defaultValue = "celsius") {
+            enum("celsius", "fahrenheit")
+        }
+    }
+    
+    execute { params ->
+        val city = params["city"] as String
+        val units = params["units"] as String
+        
+        // 这里应该是实际的天气 API 调用
+        // 为了示例，我们返回模拟数据
+        val weatherCondition = "晴"
+        val temperature = 25
+        val humidity = 45
+        
+        val tempUnit = if (units == "celsius") "°C" else "°F"
+        
+        "$city当前天气: $weatherCondition, 温度: $temperature$tempUnit, 湿度: $humidity%"
+    }
+}
+
+// 测试工具
+fun main() = runBlocking {
+    val weather = weatherTool.execute(mapOf(
+        "city" to "北京"
+    ))
+    
+    println(weather)
+}
+```
+
+## 最佳实践
+
+### 工具设计原则
+
+1. **单一职责**：每个工具应专注于一个特定功能
+2. **清晰的接口**：提供明确的参数定义和返回值
+3. **全面的验证**：验证所有输入参数
+4. **健壮的错误处理**：优雅处理所有可能的错误情况
+5. **详细的文档**：提供完整的使用说明和示例
+
+### 性能优化
+
+1. **使用协程**：对于 I/O 密集型操作，使用 `Dispatchers.IO`
+2. **资源管理**：正确关闭资源，如文件和网络连接
+3. **缓存结果**：对于频繁调用的工具，考虑缓存结果
+4. **批处理**：合并多个操作减少开销
+
+### 安全考虑
+
+1. **输入验证**：验证所有用户输入
+2. **权限检查**：确保工具只能访问授权的资源
+3. **敏感数据处理**：安全处理密码和 API 密钥
+4. **限制资源使用**：防止资源耗尽攻击
+
+## 下一步
+
+现在您已经了解了如何创建自定义工具，您可以：
+
+1. 探索[Zod 工具系统](./zod-tools.mdx)，了解更强大的类型安全工具创建方式
+2. 学习如何[组合工具创建工具链](./tool-chains.mdx)
+3. 了解[工具调用生命周期和调试](./tool-lifecycle.mdx)
+4. 探索[工具系统与 Actor 模型集成](./tools-with-actors.mdx)

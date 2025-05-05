@@ -1,0 +1,424 @@
+---
+title: 内置工具 | Kastrax 文档
+description: Kastrax 提供的内置工具详细介绍，包括计算器、文件系统、网络搜索、日期时间和文本处理工具。
+---
+
+# 内置工具
+
+Kastrax 提供了一系列内置工具，可以直接在代理中使用，无需额外开发。这些工具涵盖了常见的功能需求，如计算、文件操作、网络搜索等。
+
+## 工具工厂
+
+Kastrax 提供了 `ToolFactory` 类，用于创建各种内置工具：
+
+```kotlin
+import ai.kastrax.core.tools.ToolFactory
+import ai.kastrax.core.tools.web.WebSearchTool
+
+// 创建计算器工具
+val calculatorTool = ToolFactory.createCalculatorTool()
+
+// 创建网络搜索工具
+val searchTool = ToolFactory.createWebSearchTool(
+    apiKey = "your-search-api-key",
+    searchEngine = WebSearchTool.SearchEngine.GOOGLE,
+    maxResults = 5
+)
+```
+
+## 计算器工具
+
+计算器工具提供了基本和高级数学运算功能。
+
+### 功能
+
+- 基本运算：加法、减法、乘法、除法
+- 高级运算：幂运算、平方根、绝对值
+- 三角函数：正弦、余弦、正切
+- 对数函数：常用对数、自然对数
+
+### 使用示例
+
+```kotlin
+import ai.kastrax.core.tools.ToolFactory
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    val calculatorTool = ToolFactory.createCalculatorTool()
+    
+    // 基本运算
+    val addResult = calculatorTool.execute(mapOf(
+        "operation" to "add",
+        "a" to 5.0,
+        "b" to 3.0
+    ))
+    println("5 + 3 = $addResult") // 输出: 5 + 3 = 8.0
+    
+    // 高级运算
+    val powerResult = calculatorTool.execute(mapOf(
+        "operation" to "power",
+        "base" to 2.0,
+        "exponent" to 3.0
+    ))
+    println("2^3 = $powerResult") // 输出: 2^3 = 8.0
+    
+    // 三角函数
+    val sinResult = calculatorTool.execute(mapOf(
+        "operation" to "sin",
+        "angle" to 30.0,
+        "unit" to "degrees"
+    ))
+    println("sin(30°) = $sinResult") // 输出: sin(30°) = 0.5
+}
+```
+
+## 文件系统工具
+
+文件系统工具允许代理读取、写入和管理文件。
+
+### 功能
+
+- 读取文件内容
+- 写入文件内容
+- 列出目录内容
+- 检查文件是否存在
+- 创建和删除文件/目录
+
+### 使用示例
+
+```kotlin
+import ai.kastrax.core.tools.ToolFactory
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    val fileSystemTool = ToolFactory.createFileSystemTool(
+        rootPath = "./data",
+        allowAbsolutePaths = false
+    )
+    
+    // 读取文件
+    val readResult = fileSystemTool.execute(mapOf(
+        "operation" to "readFile",
+        "path" to "example.txt"
+    ))
+    println("文件内容: $readResult")
+    
+    // 写入文件
+    val writeResult = fileSystemTool.execute(mapOf(
+        "operation" to "writeFile",
+        "path" to "output.txt",
+        "content" to "这是一个测试文件",
+        "append" to false
+    ))
+    println("写入结果: $writeResult")
+    
+    // 列出目录内容
+    val listResult = fileSystemTool.execute(mapOf(
+        "operation" to "listDirectory",
+        "path" to "."
+    ))
+    println("目录内容: $listResult")
+}
+```
+
+### 安全考虑
+
+文件系统工具默认限制在指定的根目录内操作，以防止未授权的文件访问。您可以通过以下参数控制安全性：
+
+- `rootPath`：限制文件操作的根目录
+- `allowAbsolutePaths`：是否允许使用绝对路径
+- `allowParentDirectoryTraversal`：是否允许访问父目录
+
+## 网络搜索工具
+
+网络搜索工具允许代理从互联网搜索信息。
+
+### 功能
+
+- 支持多种搜索引擎：Google、Bing
+- 可配置搜索结果数量
+- 返回结构化搜索结果，包括标题、URL 和摘要
+
+### 使用示例
+
+```kotlin
+import ai.kastrax.core.tools.ToolFactory
+import ai.kastrax.core.tools.web.WebSearchTool
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    val searchTool = ToolFactory.createWebSearchTool(
+        apiKey = "your-search-api-key",
+        searchEngine = WebSearchTool.SearchEngine.GOOGLE,
+        maxResults = 5
+    )
+    
+    // 执行搜索
+    val searchResults = searchTool.execute(mapOf(
+        "query" to "Kotlin 协程教程",
+        "numResults" to 3
+    ))
+    
+    println("搜索结果: $searchResults")
+}
+```
+
+### 配置选项
+
+- `apiKey`：搜索 API 密钥
+- `searchEngine`：搜索引擎类型（GOOGLE、BING、MOCK）
+- `maxResults`：最大结果数量
+- `safeSearch`：是否启用安全搜索
+
+## 日期时间工具
+
+日期时间工具提供了日期和时间相关的功能。
+
+### 功能
+
+- 获取当前日期时间
+- 格式化日期时间
+- 日期时间计算（加减日期）
+- 时区转换
+- 日期时间比较
+
+### 使用示例
+
+```kotlin
+import ai.kastrax.core.tools.ToolFactory
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    val dateTimeTool = ToolFactory.createDateTimeTool()
+    
+    // 获取当前时间
+    val currentTime = dateTimeTool.execute(mapOf(
+        "operation" to "getCurrentDateTime",
+        "format" to "yyyy-MM-dd HH:mm:ss",
+        "timezone" to "Asia/Shanghai"
+    ))
+    println("当前时间: $currentTime")
+    
+    // 日期计算
+    val futureDate = dateTimeTool.execute(mapOf(
+        "operation" to "addToDate",
+        "date" to "2023-01-01",
+        "amount" to 30,
+        "unit" to "DAYS",
+        "format" to "yyyy-MM-dd"
+    ))
+    println("30天后: $futureDate")
+    
+    // 时区转换
+    val convertedTime = dateTimeTool.execute(mapOf(
+        "operation" to "convertTimezone",
+        "dateTime" to "2023-01-01 12:00:00",
+        "fromTimezone" to "UTC",
+        "toTimezone" to "Asia/Tokyo",
+        "format" to "yyyy-MM-dd HH:mm:ss"
+    ))
+    println("转换后时间: $convertedTime")
+}
+```
+
+## 文本处理工具
+
+文本处理工具提供了文本操作和分析功能。
+
+### 功能
+
+- 转换为大写/小写
+- 反转文本
+- 计算文本长度
+- 正则表达式匹配和替换
+- 文本分割和连接
+
+### 使用示例
+
+```kotlin
+import ai.kastrax.core.tools.ToolFactory
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    val textTool = ToolFactory.createTextProcessingTool()
+    
+    // 转换为大写
+    val upperCase = textTool.execute(mapOf(
+        "operation" to "toUpperCase",
+        "text" to "hello world"
+    ))
+    println("大写: $upperCase") // 输出: 大写: HELLO WORLD
+    
+    // 计算长度
+    val length = textTool.execute(mapOf(
+        "operation" to "length",
+        "text" to "hello world"
+    ))
+    println("长度: $length") // 输出: 长度: 11
+    
+    // 正则替换
+    val replaced = textTool.execute(mapOf(
+        "operation" to "regexReplace",
+        "text" to "hello world",
+        "pattern" to "world",
+        "replacement" to "Kotlin"
+    ))
+    println("替换后: $replaced") // 输出: 替换后: hello Kotlin
+}
+```
+
+## HTTP 请求工具
+
+HTTP 请求工具允许代理与外部 API 和网站交互。
+
+### 功能
+
+- 支持 GET、POST、PUT、DELETE 等 HTTP 方法
+- 设置请求头和查询参数
+- 发送 JSON 和表单数据
+- 处理响应状态码和响应体
+
+### 使用示例
+
+```kotlin
+import ai.kastrax.core.tools.ToolFactory
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    val httpTool = ToolFactory.createHttpRequestTool()
+    
+    // GET 请求
+    val getResponse = httpTool.execute(mapOf(
+        "method" to "GET",
+        "url" to "https://api.example.com/data",
+        "headers" to mapOf(
+            "Accept" to "application/json"
+        )
+    ))
+    println("GET 响应: $getResponse")
+    
+    // POST 请求
+    val postResponse = httpTool.execute(mapOf(
+        "method" to "POST",
+        "url" to "https://api.example.com/users",
+        "headers" to mapOf(
+            "Content-Type" to "application/json"
+        ),
+        "body" to """{"name": "张三", "email": "zhangsan@example.com"}"""
+    ))
+    println("POST 响应: $postResponse")
+}
+```
+
+## 代码执行工具
+
+代码执行工具允许代理执行代码片段。
+
+### 功能
+
+- 支持多种编程语言：Kotlin、Python、JavaScript
+- 安全执行环境
+- 超时限制
+- 捕获标准输出和错误
+
+### 使用示例
+
+```kotlin
+import ai.kastrax.core.tools.ToolFactory
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    val codeExecutionTool = ToolFactory.createCodeExecutionTool(
+        allowedLanguages = listOf("kotlin", "python"),
+        timeoutSeconds = 5
+    )
+    
+    // 执行 Kotlin 代码
+    val kotlinResult = codeExecutionTool.execute(mapOf(
+        "language" to "kotlin",
+        "code" to """
+            fun factorial(n: Int): Int {
+                return if (n <= 1) 1 else n * factorial(n - 1)
+            }
+            
+            println("5的阶乘是: ${factorial(5)}")
+        """
+    ))
+    println("Kotlin 执行结果: $kotlinResult")
+    
+    // 执行 Python 代码
+    val pythonResult = codeExecutionTool.execute(mapOf(
+        "language" to "python",
+        "code" to """
+            def fibonacci(n):
+                a, b = 0, 1
+                for _ in range(n):
+                    a, b = b, a + b
+                return a
+                
+            print(f"第10个斐波那契数是: {fibonacci(10)}")
+        """
+    ))
+    println("Python 执行结果: $pythonResult")
+}
+```
+
+### 安全考虑
+
+代码执行工具存在潜在的安全风险。建议采取以下措施：
+
+- 限制允许执行的语言
+- 设置执行超时
+- 限制资源使用（内存、CPU）
+- 在沙箱环境中执行代码
+- 禁止访问敏感系统资源
+
+## 数据库工具
+
+数据库工具允许代理与数据库交互。
+
+### 功能
+
+- 支持多种数据库：MySQL、PostgreSQL、SQLite
+- 执行 SQL 查询
+- 获取查询结果
+- 执行数据库事务
+
+### 使用示例
+
+```kotlin
+import ai.kastrax.core.tools.ToolFactory
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    val dbTool = ToolFactory.createDatabaseTool(
+        jdbcUrl = "jdbc:sqlite:sample.db",
+        username = "",
+        password = ""
+    )
+    
+    // 执行查询
+    val queryResult = dbTool.execute(mapOf(
+        "operation" to "query",
+        "sql" to "SELECT * FROM users WHERE age > 18"
+    ))
+    println("查询结果: $queryResult")
+    
+    // 执行更新
+    val updateResult = dbTool.execute(mapOf(
+        "operation" to "update",
+        "sql" to "UPDATE users SET status = 'active' WHERE id = 1"
+    ))
+    println("更新结果: $updateResult")
+}
+```
+
+## 下一步
+
+现在您已经了解了 Kastrax 提供的内置工具，您可以：
+
+1. 学习如何[创建自定义工具](./custom-tools.mdx)
+2. 探索[Zod 工具系统](./zod-tools.mdx)
+3. 了解如何[组合工具创建工具链](./tool-chains.mdx)
+4. 学习[HTTP 和代码执行工具](./http-code-tools.mdx)的高级用法
+5. 探索[数据库和文本处理工具](./database-text-tools.mdx)的详细功能
