@@ -99,7 +99,7 @@ export const ShowcaseGrid = () => {
     },
 
     {
-      title: "NotebookLM-Mastra",
+      title: "NotebookLM-Kastrax",
       description:
         "AI-powered assistant that creates podcasts from the sources you upload",
       image: notebookImg,
@@ -152,7 +152,7 @@ export const ShowcaseGrid = () => {
             Showcase
           </h1>
           <p className="text-lg text-zinc-600 dark:text-zinc-400">
-            Check out these applications built with Mastra.
+            Check out these applications built with Kastrax.
           </p>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

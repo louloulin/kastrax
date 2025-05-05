@@ -75,7 +75,7 @@ export const Footer = () => {
                 htmlFor="email"
                 className="text-text-6 pb-3 block text-sm items"
               >
-                Mastra Newsletter
+                Kastrax Newsletter
               </label>
               <SubscribeForm
                 placeholder="you@company.com"

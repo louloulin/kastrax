@@ -9,7 +9,7 @@ export const StorageOverviewImage = () => {
         <Image
           className="rounded-lg"
           src="/image/mastra-storage-overview-dark.png"
-          alt="Diagram showing storage in Mastra"
+          alt="Diagram showing storage in Kastrax"
           width={700}
           height={700}
         />
@@ -17,7 +17,7 @@ export const StorageOverviewImage = () => {
         <Image
           className="rounded-lg"
           src="/image/mastra-storage-overview-light.png"
-          alt="Diagram showing storage in Mastra"
+          alt="Diagram showing storage in Kastrax"
           width={700}
           height={700}
         />

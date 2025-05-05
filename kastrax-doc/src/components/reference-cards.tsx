@@ -22,7 +22,7 @@ export const ReferenceCards = () => {
       items={{
         Core: [
           {
-            title: "Mastra Class",
+            title: "Kastrax Class",
             href: "/reference/core/mastra-class",
           },
         ],
@@ -76,7 +76,7 @@ export const ReferenceCards = () => {
             href: "/reference/tools/vector-query-tool",
           },
           {
-            title: "MastraMCPClient",
+            title: "KastraxMCPClient",
             href: "/reference/tools/client",
           },
           {

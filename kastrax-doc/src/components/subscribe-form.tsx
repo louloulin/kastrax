@@ -143,7 +143,7 @@ export const SubscribeForm = ({
               {showLabel ? (
                 <T id="components.subscribe_form.0">
                   <FormLabel className="text-[13px] mb-[0.69rem] block text-gray-500 dark:text-[#E6E6E6]">
-                    <Var>{label || "Mastra Newsletter"}</Var>
+                    <Var>{label || "Kastrax Newsletter"}</Var>
                   </FormLabel>
                 </T>
               ) : null}

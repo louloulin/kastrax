@@ -1,15 +1,15 @@
 ---
-title: "Using Mastra Integrations | Mastra Local Development Docs"
-description: Documentation for Mastra integrations, which are auto-generated, type-safe API clients for third-party services.
+title: "Using Kastrax Integrations | Kastrax Local Development Docs"
+description: Documentation for Kastrax integrations, which are type-safe API clients for third-party services.
 ---
 
-# Using Mastra Integrations
+# Using Kastrax Integrations
 
-Integrations in Mastra are auto-generated, type-safe API clients for third-party services. They can be used as tools for agents or as steps in workflows.
+Integrations in Kastrax are type-safe API clients for third-party services. They can be used as tools for agents or as steps in workflows.
 
 ## Installing an Integration
 
-Mastra's default integrations are packaged as individually installable npm modules. You can add an integration to your project by installing it via npm and importing it into your Mastra configuration.
+Kastrax's default integrations are packaged as individually installable modules. You can add an integration to your project by including it in your Gradle dependencies and importing it into your Kastrax configuration.
 
 ### Example: Adding the GitHub Integration
 
@@ -118,8 +118,8 @@ Consider using a `.env` file or another secure method to manage sensitive creden
 ### Example: Adding the Mem0 Integration
 
 In this example you'll learn how to use the [Mem0](https://mem0.ai) platform to add long-term memory capabilities to an agent via tool-use.
-This memory integration can work alongside Mastra's own [agent memory features](https://mastra.ai/docs/agents/agent-memory).
-Mem0 enables your agent to memorize and later remember facts per-user across all interactions with that user, while Mastra's memory works per-thread. Using the two in conjunction will allow Mem0 to store long term memories across conversations/interactions, while Mastra's memory will maintain linear conversation history in individual conversations.
+This memory integration can work alongside Kastrax's own [agent memory features](/docs/memory/overview.mdx).
+Mem0 enables your agent to memorize and later remember facts per-user across all interactions with that user, while Kastrax's memory works per-thread. Using the two in conjunction will allow Mem0 to store long term memories across conversations/interactions, while Kastrax's memory will maintain linear conversation history in individual conversations.
 
 1. **Install the Integration Package**
 
@@ -202,12 +202,12 @@ In the example above:
 
 ## Available Integrations
 
-Mastra provides several built-in integrations; primarily API-key based integrations that do not require OAuth. Some available integrations including Github, Stripe, Resend, Firecrawl, and more.
+Kastrax provides several built-in integrations; primarily API-key based integrations that do not require OAuth. Some available integrations including Github, Stripe, Resend, and more.
 
-Check [Mastra's codebase](https://github.com/mastra-ai/mastra/tree/main/integrations) or [npm packages](https://www.npmjs.com/search?q=%22%40mastra%22) for a full list of available integrations.
+Check Kastrax's codebase or Maven Central for a full list of available integrations.
 
 ## Conclusion
 
-Integrations in Mastra enable your AI agents and workflows to interact with external services seamlessly. By installing and configuring integrations, you can extend the capabilities of your application to include operations such as fetching data from APIs, sending messages, or managing resources in third-party systems.
+Integrations in Kastrax enable your AI agents and workflows to interact with external services seamlessly. By installing and configuring integrations, you can extend the capabilities of your application to include operations such as fetching data from APIs, sending messages, or managing resources in third-party systems.
 
 Remember to consult the documentation of each integration for specific usage details and to adhere to best practices for security and type safety.
