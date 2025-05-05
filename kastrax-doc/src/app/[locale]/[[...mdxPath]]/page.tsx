@@ -11,9 +11,10 @@ const baseUrl = process.env.NEXT_PUBLIC_APP_URL;
 
 export async function generateMetadata(props: any) {
   const { locale, mdxPath } = await props.params;
-  const { metadata } = await importPage(mdxPath, locale || "en");
+  const { metadata } = await importPage(mdxPath, "en");
 
-  const url = `${baseUrl}/${locale}/${mdxPath?.join("/")}`;
+  // Always use 'en' as the locale in URLs
+  const url = `${baseUrl}/en/${mdxPath?.join("/")}`;
   const title = metadata.title;
   const description = metadata.description;
 
@@ -46,8 +47,8 @@ export async function generateMetadata(props: any) {
 const Wrapper = getMDXComponents().wrapper;
 
 export default async function Page(props: any) {
-  const { locale, mdxPath } = await props.params;
-  const result = await importPage(mdxPath, locale);
+  const { mdxPath } = await props.params;
+  const result = await importPage(mdxPath, "en");
   const { default: MDXContent, toc, metadata } = result;
   return (
     <Wrapper toc={toc} metadata={metadata}>

@@ -131,6 +131,61 @@ export default withGT(
           destination: "/en/docs",
           permanent: false,
         },
+        {
+          source: "/zh",
+          destination: "/en",
+          permanent: false,
+        },
+        {
+          source: "/zh/docs",
+          destination: "/en/docs",
+          permanent: false,
+        },
+        {
+          source: "/zh/docs/:path*",
+          destination: "/en/docs/:path*",
+          permanent: false,
+        },
+        {
+          source: "/zh/reference",
+          destination: "/en/reference",
+          permanent: false,
+        },
+        {
+          source: "/zh/reference/:path*",
+          destination: "/en/reference/:path*",
+          permanent: false,
+        },
+        {
+          source: "/zh/examples",
+          destination: "/en/examples",
+          permanent: false,
+        },
+        {
+          source: "/zh/examples/:path*",
+          destination: "/en/examples/:path*",
+          permanent: false,
+        },
+        {
+          source: "/zh/guides",
+          destination: "/en/guides",
+          permanent: false,
+        },
+        {
+          source: "/zh/guides/:path*",
+          destination: "/en/guides/:path*",
+          permanent: false,
+        },
+        {
+          source: "/zh/showcase",
+          destination: "/en/showcase",
+          permanent: false,
+        },
+        {
+          source: "/zh/showcase/:path*",
+          destination: "/en/showcase/:path*",
+          permanent: false,
+        },
       ];
     },
     async rewrites() {

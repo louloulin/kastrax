@@ -194,7 +194,7 @@
               {
                 "type": "p",
                 "props": {
-                  "children": "Mastraで構築されたこれらのアプリケーションをご覧ください。",
+                  "children": "Kastraxで構築されたこれらのアプリケーションをご覧ください。",
                   "data-_gt": {
                     "id": 4
                   }
@@ -384,7 +384,7 @@
                         {
                           "type": "label",
                           "props": {
-                            "children": "Mastra ニュースレター",
+                            "children": "Kastrax ニュースレター",
                             "data-_gt": {
                               "id": 6
                             }

@@ -24,7 +24,7 @@ export default function NotFound() {
         </T>
         <T id="_locale_.notFound.link">
           <Link
-            href="/docs"
+            href="/en/docs"
             className="font-semibold text-[var(--color-el-4)] mt-2"
           >
             Return to{" "}

@@ -9,7 +9,7 @@ import { SubscribeForm } from "./subscribe-form";
 const links = [
   {
     text: "Docs",
-    url: "/docs",
+    url: "/en/docs",
   },
   {
     text: "Book",
@@ -37,7 +37,7 @@ const socials: Array<{
   {
     text: "github",
 
-    url: "https://github.com/mastra-ai/mastra",
+    url: "https://github.com/louloulin/kastrax",
   },
   {
     text: "discord",
@@ -47,12 +47,12 @@ const socials: Array<{
   {
     text: "X",
 
-    url: "https://x.com/mastra_ai",
+    url: "https://x.com/kastrax_ai",
   },
   {
     text: "youtube",
 
-    url: "https://www.youtube.com/@mastra-ai",
+    url: "https://www.youtube.com/@kastrax-ai",
   },
 ];
 

@@ -61,8 +61,8 @@ const ShowcaseCard = ({
 
 export const ShowcaseGrid = () => {
   const pathname = usePathname();
-  const locale = pathname.split("/")[1];
-  console.log(locale);
+  // Always use 'en' as the locale regardless of the current path
+  const locale = "en";
   const showcaseItems: ShowcaseCardProps[] = [
     {
       title: "Olive",

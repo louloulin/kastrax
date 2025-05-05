@@ -65,7 +65,7 @@ export const Nav = ({ stars }: { stars: number }) => {
       className="relative px-6"
     >
       <Link
-        href="/zh/docs"
+        href="/en/docs"
         className="px-1.5 absolute left-[118px]  md:left-[125px] text-[var(--x-color-primary-600)] font-medium tracking-wider py-0.5 text-xs rounded border border-[var(--border)] uppercase"
       >
         Docs

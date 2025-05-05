@@ -40,13 +40,15 @@ export default async function RootLayout({
   children: React.ReactNode;
   params: Promise<{ locale: string }>;
 }>) {
-  const { locale } = await params;
-  const pageMap = await getPageMap(`/${locale || "en"}`);
+  // Always use 'en' as the locale regardless of the URL parameter
+  const { locale: urlLocale } = await params;
+  const locale = "en";
+  const pageMap = await getPageMap(`/en`);
   const stars = await fetchStars();
 
   return (
     <html
-      lang={locale || "en"}
+      lang="en"
       dir="ltr"
       className={cn(
         "antialiased",
