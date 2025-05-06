@@ -135,313 +135,458 @@ Metadata filtering allows you to narrow down search results based on document at
 
 Here are examples of different filtering approaches:
 
-```ts showLineNumbers copy
+```kotlin filename="MetadataFiltering.kt" showLineNumbers
+import ai.kastrax.rag.retrieval.RetrievalEngine
+import ai.kastrax.rag.retrieval.RetrievalOptions
+
+// Create a retrieval engine
+val retrievalEngine = RetrievalEngine(vectorDB, embedder)
+
 // Simple equality filter
-const results = await pgVector.query({
-  indexName: "embeddings",
-  queryVector: embedding,
-  topK: 10,
-  filter: {
-    source: "article1.txt"
-  }
-});
+val results1 = retrievalEngine.retrieve(
+    query = "What are the main points in the article?",
+    options = RetrievalOptions(
+        indexName = "document_embeddings",
+        filter = mapOf(
+            "source" to "article1.txt"  // Only return documents from this source
+        )
+    )
+)
 
 // Numeric comparison
-const results = await pgVector.query({
-  indexName: "embeddings",
-  queryVector: embedding,
-  topK: 10,
-  filter: {
-    price: { $gt: 100 }
-  }
-});
+val results2 = retrievalEngine.retrieve(
+    query = "What are the main points in the article?",
+    options = RetrievalOptions(
+        indexName = "document_embeddings",
+        filter = mapOf(
+            "price" to mapOf(
+                "$gt" to 100  // Only return documents with price > 100
+            )
+        )
+    )
+)
 
 // Multiple conditions
-const results = await pgVector.query({
-  indexName: "embeddings",
-  queryVector: embedding,
-  topK: 10,
-  filter: {
-    category: "electronics",
-    price: { $lt: 1000 },
-    inStock: true
-  }
-});
+val results3 = retrievalEngine.retrieve(
+    query = "What are the main points in the article?",
+    options = RetrievalOptions(
+        indexName = "document_embeddings",
+        filter = mapOf(
+            "category" to "electronics",
+            "price" to mapOf(
+                "$lt" to 1000  // Price < 1000
+            ),
+            "inStock" to true
+        )
+    )
+)
 
 // Array operations
-const results = await pgVector.query({
-  indexName: "embeddings",
-  queryVector: embedding,
-  topK: 10,
-  filter: {
-    tags: { $in: ["sale", "new"] }
-  }
-});
+val results4 = retrievalEngine.retrieve(
+    query = "What are the main points in the article?",
+    options = RetrievalOptions(
+        indexName = "document_embeddings",
+        filter = mapOf(
+            "tags" to mapOf(
+                "$in" to listOf("sale", "new")  // Tags include either "sale" or "new"
+            )
+        )
+    )
+)
 
 // Logical operators
-const results = await pgVector.query({
-  indexName: "embeddings",
-  queryVector: embedding,
-  topK: 10,
-  filter: {
-    $or: [
-      { category: "electronics" },
-      { category: "accessories" }
-    ],
-    $and: [
-      { price: { $gt: 50 } },
-      { price: { $lt: 200 } }
-    ]
-  }
-});
+val results5 = retrievalEngine.retrieve(
+    query = "What are the main points in the article?",
+    options = RetrievalOptions(
+        indexName = "document_embeddings",
+        filter = mapOf(
+            "$or" to listOf(
+                mapOf("category" to "electronics"),
+                mapOf("category" to "accessories")
+            ),
+            "$and" to listOf(
+                mapOf("price" to mapOf("$gt" to 50)),
+                mapOf("price" to mapOf("$lt" to 200))
+            )
+        )
+    )
+)
 ```
 
-Common use cases for metadata filtering:
-- Filter by document source or type
-- Filter by date ranges
-- Filter by specific categories or tags
-- Filter by numerical ranges (e.g., price, rating)
-- Combine multiple conditions for precise querying
-- Filter by document attributes (e.g., language, author)
+#### Common Filter Operators
 
-For an example of how to use metadata filtering, see the [Hybrid Vector Search](../../examples/rag/query/hybrid-vector-search.mdx) example.
+| Operator | Description | Example |
+|----------|-------------|--------|
+| Equality | Direct match | `"category" to "electronics"` |
+| `$gt` | Greater than | `"price" to mapOf("$gt" to 100)` |
+| `$gte` | Greater than or equal | `"price" to mapOf("$gte" to 100)` |
+| `$lt` | Less than | `"price" to mapOf("$lt" to 1000)` |
+| `$lte` | Less than or equal | `"price" to mapOf("$lte" to 1000)` |
+| `$in` | In array | `"tags" to mapOf("$in" to listOf("sale", "new"))` |
+| `$nin` | Not in array | `"tags" to mapOf("$nin" to listOf("discontinued"))` |
+| `$or` | Logical OR | `"$or" to listOf(mapOf(...), mapOf(...))` |
+| `$and` | Logical AND | `"$and" to listOf(mapOf(...), mapOf(...))` |
+| `$not` | Logical NOT | `"$not" to mapOf("category" to "outdated")` |
+
+#### Common Use Cases for Metadata Filtering
+
+- **Source Filtering**: Limit results to specific document sources or types
+- **Date Filtering**: Retrieve documents from specific time periods
+- **Category Filtering**: Focus on documents with specific categories or tags
+- **Numerical Filtering**: Filter by numerical ranges (e.g., price, rating, page count)
+- **Attribute Filtering**: Select documents with specific attributes (e.g., language, author, format)
+- **Combination Filtering**: Combine multiple conditions for precise querying
 
 ### Vector Query Tool
 
 Sometimes you want to give your agent the ability to query a vector database directly. The Vector Query Tool allows your agent to be in charge of retrieval decisions, combining semantic search with optional filtering and reranking based on the agent's understanding of the user's needs.
 
-```ts showLineNumbers copy
-const vectorQueryTool = createVectorQueryTool({
-  vectorStoreName: 'pgVector',
-  indexName: 'embeddings',
-  model: openai.embedding('text-embedding-3-small'),
-});
+```kotlin filename="VectorQueryTool.kt" showLineNumbers
+import ai.kastrax.rag.vectordb.PgVectorAdapter
+import ai.kastrax.rag.tools.VectorQueryTool
+import ai.kastrax.rag.embedding.OpenAIEmbedder
+import ai.kastrax.core.agent.Agent
+import ai.kastrax.core.agent.AgentBuilder
+
+// Create a vector database adapter
+val vectorDB = PgVectorAdapter(
+    connectionString = System.getenv("POSTGRES_CONNECTION_STRING")
+)
+
+// Create an embedder
+val embedder = OpenAIEmbedder()
+
+// Create the vector query tool
+val vectorQueryTool = VectorQueryTool(
+    vectorDB = vectorDB,
+    embedder = embedder,
+    indexName = "document_embeddings",
+    description = "Search for information in the knowledge base"
+)
+
+// Create an agent with the vector query tool
+val agent = AgentBuilder()
+    .withTools(listOf(vectorQueryTool))
+    .withModel("gpt-4")
+    .withSystemPrompt("You are a helpful assistant with access to a knowledge base.")
+    .build()
+
+// The agent can now use the tool to query the vector database
+val result = agent.run("Find information about climate change impacts on agriculture")
 ```
 
-When creating the tool, pay special attention to the tool's name and description - these help the agent understand when and how to use the retrieval capabilities. For example, you might name it "SearchKnowledgeBase" and describe it as "Search through our documentation to find relevant information about X topic."
+When creating the tool, pay special attention to the tool's name and description - these help the agent understand when and how to use the retrieval capabilities. For example, you might name it "SearchKnowledgeBase" and describe it as "Search through our documentation to find relevant information about specific topics."
 
-This is particularly useful when:
-- Your agent needs to dynamically decide what information to retrieve
-- The retrieval process requires complex decision-making
-- You want the agent to combine multiple retrieval strategies based on context
+The agent can use this tool to:
+- Formulate semantic search queries
+- Apply metadata filters
+- Adjust the number of results
+- Rerank results based on relevance to the user's question
 
-For detailed configuration options and advanced usage, see the [Vector Query Tool Reference](/reference/tools/vector-query-tool).
+This approach gives the agent more control over the retrieval process, allowing it to adapt its search strategy based on the conversation context and user needs.
 
-### Vector Store Prompts
+## Advanced Retrieval Techniques ✅
 
-Vector store prompts define query patterns and filtering capabilities for each vector database implementation.
-When implementing filtering, these prompts are required in the agent's instructions to specify valid operators and syntax for each vector store implementation.
+### Hybrid Search
 
-<Tabs items={['Pg Vector', 'Pinecone', 'Qdrant', 'Chroma', 'Astra', 'LibSQL', 'Upstash', 'Cloudflare', 'MongoDB']}>
-  <Tabs.Tab>
-```ts showLineNumbers copy
-import { openai } from '@ai-sdk/openai';
-import { PGVECTOR_PROMPT } from "@kastrax/pg";
+Hybrid search combines vector similarity search with traditional keyword search to improve retrieval quality. This approach is particularly useful when you need to find documents that are both semantically similar to a query and contain specific keywords.
 
-export const ragAgent = new Agent({
-  name: 'RAG Agent',
-  model: openai('gpt-4o-mini'),
-  instructions: `
-  Process queries using the provided context. Structure responses to be concise and relevant.
-  ${PGVECTOR_PROMPT}
-  `,
-  tools: { vectorQueryTool },
-});
-```
-</Tabs.Tab>
+```kotlin filename="HybridSearch.kt" showLineNumbers
+import ai.kastrax.rag.retrieval.HybridRetrievalEngine
+import ai.kastrax.rag.retrieval.HybridRetrievalOptions
 
-<Tabs.Tab>
-```ts filename="vector-store.ts" showLineNumbers copy
-import { openai } from '@ai-sdk/openai';
-import { PINECONE_PROMPT } from "@kastrax/pinecone";
+// Create a hybrid retrieval engine
+val hybridEngine = HybridRetrievalEngine(
+    vectorDB = vectorDB,
+    embedder = embedder,
+    textIndexer = textIndexer  // For keyword search
+)
 
-export const ragAgent = new Agent({
-  name: 'RAG Agent',
-  model: openai('gpt-4o-mini'),
-  instructions: `
-  Process queries using the provided context. Structure responses to be concise and relevant.
-  ${PINECONE_PROMPT}
-  `,
-  tools: { vectorQueryTool },
-});
-```
-</Tabs.Tab>
-
-<Tabs.Tab>
-```ts filename="vector-store.ts" showLineNumbers copy
-import { openai } from '@ai-sdk/openai';
-import { QDRANT_PROMPT } from "@kastrax/qdrant";
-
-export const ragAgent = new Agent({
-  name: 'RAG Agent',
-  model: openai('gpt-4o-mini'),
-  instructions: `
-  Process queries using the provided context. Structure responses to be concise and relevant.
-  ${QDRANT_PROMPT}
-  `,
-  tools: { vectorQueryTool },
-});
-```
-</Tabs.Tab>
-
-<Tabs.Tab>
-```ts filename="vector-store.ts" showLineNumbers copy
-import { openai } from '@ai-sdk/openai';
-import { CHROMA_PROMPT } from "@kastrax/chroma";
-
-export const ragAgent = new Agent({
-  name: 'RAG Agent',
-  model: openai('gpt-4o-mini'),
-  instructions: `
-  Process queries using the provided context. Structure responses to be concise and relevant.
-  ${CHROMA_PROMPT}
-  `,
-  tools: { vectorQueryTool },
-});
-```
-</Tabs.Tab>
-
-<Tabs.Tab>
-```ts filename="vector-store.ts" showLineNumbers copy
-import { openai } from '@ai-sdk/openai';
-import { ASTRA_PROMPT } from "@kastrax/astra";
-
-export const ragAgent = new Agent({
-  name: 'RAG Agent',
-  model: openai('gpt-4o-mini'),
-  instructions: `
-  Process queries using the provided context. Structure responses to be concise and relevant.
-  ${ASTRA_PROMPT}
-  `,
-  tools: { vectorQueryTool },
-});
-```
-</Tabs.Tab>
-
-<Tabs.Tab>
-```ts filename="vector-store.ts" showLineNumbers copy
-import { openai } from '@ai-sdk/openai';
-import { LIBSQL_PROMPT } from "@kastrax/libsql";
-
-export const ragAgent = new Agent({
-  name: 'RAG Agent',
-  model: openai('gpt-4o-mini'),
-  instructions: `
-  Process queries using the provided context. Structure responses to be concise and relevant.
-  ${LIBSQL_PROMPT}
-  `,
-  tools: { vectorQueryTool },
-});
-```
-</Tabs.Tab>
-
-<Tabs.Tab>
-```ts filename="vector-store.ts" showLineNumbers copy
-import { openai } from '@ai-sdk/openai';
-import { UPSTASH_PROMPT } from "@kastrax/upstash";
-
-export const ragAgent = new Agent({
-  name: 'RAG Agent',
-  model: openai('gpt-4o-mini'),
-  instructions: `
-  Process queries using the provided context. Structure responses to be concise and relevant.
-  ${UPSTASH_PROMPT}
-  `,
-  tools: { vectorQueryTool },
-});
-```
-</Tabs.Tab>
-
-<Tabs.Tab>
-```ts filename="vector-store.ts" showLineNumbers copy
-import { openai } from '@ai-sdk/openai';
-import { VECTORIZE_PROMPT } from "@kastrax/vectorize";
-
-export const ragAgent = new Agent({
-  name: 'RAG Agent',
-  model: openai('gpt-4o-mini'),
-  instructions: `
-  Process queries using the provided context. Structure responses to be concise and relevant.
-  ${VECTORIZE_PROMPT}
-  `,
-  tools: { vectorQueryTool },
-});
-```
-</Tabs.Tab>
-
-<Tabs.Tab>
-```ts filename="vector-store.ts" showLineNumbers copy
-import { openai } from '@ai-sdk/openai';
-import { MONGODB_PROMPT } from "@kastrax/mongodb";
-
-export const ragAgent = new Agent({
-  name: 'RAG Agent',
-  model: openai('gpt-4o-mini'),
-  instructions: `
-  Process queries using the provided context. Structure responses to be concise and relevant.
-  ${MONGODB_PROMPT}
-  `,
-  tools: { vectorQueryTool },
-});
-```
-</Tabs.Tab>
-
-</Tabs>
-
-### Re-ranking
-
-Initial vector similarity search can sometimes miss nuanced relevance. Re-ranking is a more computationally expensive process, but more accurate algorithm that improves results by:
-
-- Considering word order and exact matches
-- Applying more sophisticated relevance scoring
-- Using a method called cross-attention between query and documents
-
-Here's how to use re-ranking:
-
-```ts showLineNumbers copy
-import { openai } from "@ai-sdk/openai";
-import { rerank } from "@kastrax/rag";
-
-// Get initial results from vector search
-const initialResults = await pgVector.query({
-  indexName: "embeddings",
-  queryVector: queryEmbedding,
-  topK: 10,
-});
-
-// Re-rank the results
-const rerankedResults = await rerank(initialResults, query, openai('gpt-4o-mini'));
+// Perform hybrid search
+val results = hybridEngine.retrieve(
+    query = "climate change agriculture drought resistant crops",
+    options = HybridRetrievalOptions(
+        indexName = "document_embeddings",
+        vectorWeight = 0.7,  // Weight for vector similarity (0.0-1.0)
+        textWeight = 0.3,    // Weight for text similarity (0.0-1.0)
+        limit = 10
+    )
+)
 ```
 
-> **Note:** For semantic scoring to work properly during re-ranking, each result must include the text content in its `metadata.text` field.
+Hybrid search is particularly effective for:
+- Queries containing specific technical terms or proper nouns
+- Situations where exact keyword matching is important
+- Improving precision while maintaining recall
 
-The re-ranked results combine vector similarity with semantic understanding to improve retrieval quality.
+### Reranking
 
-For more details about re-ranking, see the [rerank()](/reference/rag/rerank) method.
+Reranking improves retrieval quality by applying a more sophisticated relevance model to the initial search results. Kastrax supports multiple reranking approaches:
 
-For an example of how to use the re-ranking method, see the [Re-ranking Results](../../examples/rag/rerank/rerank.mdx) example.
+```kotlin filename="Reranking.kt" showLineNumbers
+import ai.kastrax.rag.retrieval.RetrievalEngine
+import ai.kastrax.rag.retrieval.RetrievalOptions
+import ai.kastrax.rag.reranking.CrossEncoderReranker
+import ai.kastrax.rag.reranking.RerankerOptions
 
-### Graph-based Retrieval
+// Create a reranker
+val reranker = CrossEncoderReranker(
+    options = RerankerOptions(
+        modelName = "cross-encoder/ms-marco-MiniLM-L-6-v2",
+        threshold = 0.7  // Minimum score to include in results
+    )
+)
 
-For documents with complex relationships, graph-based retrieval can follow connections between chunks. This helps when:
+// Create a retrieval engine with reranking
+val retrievalEngine = RetrievalEngine(
+    vectorDB = vectorDB,
+    embedder = embedder,
+    reranker = reranker
+)
 
+// Retrieve and rerank results
+val results = retrievalEngine.retrieve(
+    query = "What are the effects of climate change on agriculture?",
+    options = RetrievalOptions(
+        indexName = "document_embeddings",
+        limit = 20,  // Retrieve more initial results for reranking
+        rerank = true  // Enable reranking
+    )
+)
+```
+
+Reranking is particularly useful for:
+- Improving precision in the final results
+- Handling complex or ambiguous queries
+- Reducing the impact of embedding model limitations
+
+### Contextual Retrieval
+
+Contextual retrieval takes into account the conversation history or user context when retrieving information:
+
+```kotlin filename="ContextualRetrieval.kt" showLineNumbers
+import ai.kastrax.rag.retrieval.ContextualRetrievalEngine
+import ai.kastrax.rag.retrieval.ContextualRetrievalOptions
+import ai.kastrax.rag.context.ConversationContext
+
+// Create a conversation context
+val conversationContext = ConversationContext()
+
+// Add messages to the context
+conversationContext.addMessage("user", "Tell me about climate change impacts.")
+conversationContext.addMessage("assistant", "Climate change has various impacts including rising temperatures, sea level rise, and extreme weather events.")
+
+// Create a contextual retrieval engine
+val contextualEngine = ContextualRetrievalEngine(
+    vectorDB = vectorDB,
+    embedder = embedder
+)
+
+// Perform contextual retrieval
+val results = contextualEngine.retrieve(
+    query = "What about its effects on agriculture specifically?",
+    options = ContextualRetrievalOptions(
+        indexName = "document_embeddings",
+        context = conversationContext,
+        contextWeight = 0.3,  // Weight for conversation context
+        limit = 5
+    )
+)
+```
+
+Contextual retrieval is valuable for:
+- Maintaining conversation coherence
+- Resolving ambiguous references in follow-up questions
+- Providing more relevant results based on user interests
+
+## Best Practices ✅
+
+### Query Formulation
+
+1. **Be specific**: Craft queries that are specific and focused on the information you need
+2. **Include key terms**: Include important keywords and technical terms in your queries
+3. **Avoid ambiguity**: Phrase queries to minimize ambiguity and multiple interpretations
+4. **Consider query expansion**: For important queries, try multiple formulations to improve recall
+
+### Retrieval Configuration
+
+1. **Adjust result limits**: Retrieve more results for reranking (e.g., 20-50) but fewer for direct use (e.g., 3-5)
+2. **Use appropriate similarity metrics**: Choose the right similarity metric (cosine, dot product, Euclidean) for your embedding model
+3. **Set minimum similarity thresholds**: Filter out low-relevance results with minimum score thresholds
+4. **Combine retrieval strategies**: Use hybrid search and reranking for important queries
+
+### Metadata Management
+
+1. **Design metadata thoughtfully**: Include metadata fields that will be useful for filtering
+2. **Be consistent**: Use consistent naming and formatting for metadata fields
+3. **Include hierarchical metadata**: Add category/subcategory relationships for more flexible filtering
+4. **Add temporal metadata**: Include creation/update dates to filter by recency
+
+## Complete RAG Pipeline ✅
+
+Here's a complete example showing how retrieval fits into the full RAG pipeline:
+
+```kotlin filename="CompleteRAGPipeline.kt" showLineNumbers
+import ai.kastrax.rag.document.Document
+import ai.kastrax.rag.chunking.RecursiveChunker
+import ai.kastrax.rag.embedding.OpenAIEmbedder
+import ai.kastrax.rag.vectordb.PineconeAdapter
+import ai.kastrax.rag.retrieval.RetrievalEngine
+import ai.kastrax.rag.reranking.CrossEncoderReranker
+import ai.kastrax.rag.generation.LLMGenerator
+import ai.kastrax.rag.prompt.PromptTemplate
+
+// 1. Document Processing
+val document = Document.fromText("""
+    # Climate Change and Agriculture
+
+    Climate change poses significant challenges to global agriculture.
+    Rising temperatures and changing precipitation patterns affect crop yields.
+    Farmers must adapt to these changing conditions to ensure food security.
+
+    ## Effects on Crop Yields
+
+    Studies have shown that for each degree Celsius of warming, there is a
+    potential reduction in global yields of wheat by 6%, rice by 3.2%,
+    maize by 7.4%, and soybean by 3.1%.
+
+    ## Adaptation Strategies
+
+    Farmers are implementing various strategies to adapt to climate change:
+    - Drought-resistant crop varieties
+    - Improved irrigation systems
+    - Diversification of crops
+    - Precision agriculture techniques
+""".trimIndent())
+
+// 2. Chunking
+val chunker = RecursiveChunker()
+val chunks = chunker.chunk(document)
+
+// 3. Embedding
+val embedder = OpenAIEmbedder()
+val embeddedChunks = embedder.embed(chunks)
+
+// 4. Vector Storage
+val vectorDB = PineconeAdapter()
+vectorDB.upsert("document_embeddings", embeddedChunks)
+
+// 5. Reranker Setup
+val reranker = CrossEncoderReranker()
+
+// 6. Retrieval Engine
+val retrievalEngine = RetrievalEngine(
+    vectorDB = vectorDB,
+    embedder = embedder,
+    reranker = reranker
+)
+
+// 7. Query and Retrieve
+val query = "How does climate change affect wheat production?"
+val retrievedChunks = retrievalEngine.retrieve(
+    query = query,
+    options = RetrievalOptions(
+        indexName = "document_embeddings",
+        limit = 3,
+        rerank = true
+    )
+)
+
+// 8. Format Context
+val context = retrievedChunks.joinToString("\n\n") { it.chunk.content }
+
+// 9. Generate Response
+val promptTemplate = PromptTemplate(
+    template = """
+    Answer the following question based on the provided context.
+
+    Context:
+    {{context}}
+
+    Question:
+    {{question}}
+
+    Answer:
+    """.trimIndent()
+)
+
+val prompt = promptTemplate.format(mapOf(
+    "context" to context,
+    "question" to query
+))
+
+val generator = LLMGenerator()
+val answer = generator.generate(prompt)
+
+// 10. Return Result
+println("Query: $query")
+println("Answer: $answer")
+```
+
+## Conclusion ✅
+
+Effective retrieval is the cornerstone of any successful RAG system. Kastrax provides a comprehensive suite of retrieval capabilities that enable you to find the most relevant information for your users' queries.
+
+By leveraging advanced techniques like metadata filtering, hybrid search, reranking, and contextual retrieval, you can significantly improve the quality of your RAG system's responses. Remember to follow best practices for query formulation, retrieval configuration, and metadata management to get the most out of Kastrax's retrieval capabilities.
+
+The right retrieval strategy depends on your specific use case, data characteristics, and performance requirements. Experiment with different approaches and combinations to find the optimal solution for your application.
+
+
+
+
+
+
+### Knowledge Graph Retrieval
+
+For documents with complex relationships, knowledge graph retrieval can follow connections between chunks. This approach is particularly useful when:
+
+```kotlin filename="KnowledgeGraphRetrieval.kt" showLineNumbers
+import ai.kastrax.rag.retrieval.GraphRetrievalEngine
+import ai.kastrax.rag.retrieval.GraphRetrievalOptions
+import ai.kastrax.rag.graph.KnowledgeGraph
+
+// Create a knowledge graph
+val knowledgeGraph = KnowledgeGraph()
+
+// Add nodes and relationships from embedded chunks
+embeddedChunks.forEach { chunk ->
+    knowledgeGraph.addNode(
+        id = chunk.id,
+        content = chunk.content,
+        embedding = chunk.embedding,
+        metadata = chunk.metadata
+    )
+}
+
+// Add relationships between nodes
+knowledgeGraph.addRelationship(
+    sourceId = "chunk1",
+    targetId = "chunk2",
+    type = "references",
+    weight = 0.8
+)
+
+// Create a graph retrieval engine
+val graphEngine = GraphRetrievalEngine(
+    knowledgeGraph = knowledgeGraph,
+    embedder = embedder
+)
+
+// Retrieve information using graph traversal
+val results = graphEngine.retrieve(
+    query = "How does climate change affect agriculture?",
+    options = GraphRetrievalOptions(
+        maxHops = 2,  // Maximum relationship traversal depth
+        limit = 5,    // Maximum number of results
+        traversalStrategy = "breadth-first"  // BFS or DFS
+    )
+)
+```
+
+Knowledge graph retrieval is particularly valuable when:
 - Information is spread across multiple documents
 - Documents reference each other
 - You need to traverse relationships to find complete answers
+- The domain has complex entity relationships
 
-Example setup:
 
-```ts showLineNumbers copy
-const graphQueryTool = createGraphQueryTool({
-  vectorStoreName: 'pgVector',
-  indexName: 'embeddings',
-  model: openai.embedding('text-embedding-3-small'),
-  graphOptions: {
-    threshold: 0.7,
-  }
-});
-```
-
-For more details about graph-based retrieval, see the [GraphRAG](/reference/rag/graph-rag) class and the [createGraphQueryTool()](/reference/tools/graph-rag-tool) function.
-
-For an example of how to use the graph-based retrieval method, see the [Graph-based Retrieval](../../examples/rag/usage/graph-rag.mdx) example.

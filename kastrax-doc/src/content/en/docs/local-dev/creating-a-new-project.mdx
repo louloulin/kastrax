@@ -1,54 +1,235 @@
 ---
-title: "Creating a new Project | Kastrax Local Development Docs"
-description: "Create new Kastrax projects or add Kastrax to existing Node.js applications using the CLI"
+title: "Creating a New Kastrax Project | Local Development | Kastrax Docs"
+description: "Learn how to create new Kastrax AI Agent projects using the Kastrax CLI or by integrating with existing Kotlin applications."
 ---
 
-# Creating a new project ✅
+# Creating a New Kastrax Project ✅
 
-You can create a new project using the `create-kastrax` package:
+Kastrax provides multiple ways to create new AI agent projects, whether you're starting from scratch or integrating with an existing Kotlin application. This guide will walk you through the different approaches and help you choose the right one for your needs.
 
-```bash npm2yarn copy
-npm create kastrax@latest 
+## Using the Kastrax CLI ✅
+
+The simplest way to create a new Kastrax project is using the Kastrax CLI tool, which sets up all the necessary dependencies and project structure for you.
+
+### Installing the CLI
+
+First, install the Kastrax CLI globally:
+
+```bash
+# Install using Homebrew (macOS/Linux)
+brew install kastrax/tap/kastrax-cli
+
+# Or install using SDKMAN (cross-platform)
+curl -s "https://get.sdkman.io" | bash
+source "$HOME/.sdkman/bin/sdkman-init.sh"
+sdk install kastrax
+
+# Or download the binary directly
+curl -L https://github.com/kastrax/kastrax-cli/releases/latest/download/kastrax-cli-$(uname -s)-$(uname -m) -o /usr/local/bin/kastrax
+chmod +x /usr/local/bin/kastrax
 ```
 
-You can also create a new project by using the `kastrax` CLI directly:
+### Creating a New Project
 
-```bash npm2yarn copy
-npm install -g kastrax@latest 
-kastrax create
+Once the CLI is installed, create a new project with:
+
+```bash
+# Create a new project interactively
+kastrax new
+
+# Or specify a project name directly
+kastrax new my-agent-project
 ```
 
 ## Interactive Setup ✅
 
-Running commands without arguments starts a CLI prompt for:
+When you run `kastrax new` without additional arguments, the CLI will guide you through an interactive setup process:
 
-1. Project name
-1. Component selection
-2. LLM provider configuration
-3. API key setup
-4. Example code inclusion
+1. **Project Name**: Choose a name for your project (will be used for directory and build artifacts)
+2. **Project Type**: Select from different project templates (standalone agent, multi-agent system, RAG application, etc.)
+3. **Agent Capabilities**: Choose which capabilities to include (RAG, tools, workflows, etc.)
+4. **LLM Provider**: Select your preferred LLM provider (OpenAI, DeepSeek, Anthropic, etc.)
+5. **Vector Database**: Choose a vector database for RAG applications (optional)
+6. **API Key Setup**: Configure API keys for selected services
+7. **Example Code**: Include example implementations to help you get started
 
 ## Non-Interactive Setup ✅
 
-To initialize kastrax in non-interactive mode use the following command arguments:
+For automated or scripted setups, you can use command-line arguments to bypass the interactive prompts:
 
 ```bash
-Arguments:
-  --components     Specify components: agents, tools, workflows
-  --llm-provider   LLM provider: openai, anthropic, groq, google, or cerebras
-  --add-example    Include example implementation
-  --llm-api-key    Provider API key
-  --project-name   Project name that will be used in package.json and as the project directory name
+kastrax new my-agent-project \
+  --type standalone \
+  --capabilities rag,tools,workflows \
+  --llm-provider deepseek \
+  --vector-db pinecone \
+  --include-examples true \
+  --gradle-version 8.5 \
+  --kotlin-version 1.9.20
 ```
 
+Available arguments:
 
+| Argument | Description | Options |
+|----------|-------------|--------|
+| `--type` | Project template | `standalone`, `multi-agent`, `rag`, `workflow` |
+| `--capabilities` | Agent capabilities | `rag`, `tools`, `workflows`, `monitoring` |
+| `--llm-provider` | LLM provider | `openai`, `deepseek`, `anthropic`, `google`, `local` |
+| `--vector-db` | Vector database | `pinecone`, `qdrant`, `pgvector`, `chroma`, `none` |
+| `--include-examples` | Include examples | `true`, `false` |
+| `--gradle-version` | Gradle version | Any valid Gradle version |
+| `--kotlin-version` | Kotlin version | Any valid Kotlin version |
 
-Generated project structure:
+## Generated Project Structure ✅
+
+After creating a new project, you'll have a structure similar to this:
+
 ```
-my-project/
+my-agent-project/
+├── build.gradle.kts           # Main Gradle build file
+├── settings.gradle.kts        # Gradle settings
+├── gradle/                    # Gradle wrapper files
 ├── src/
-│   └── kastrax/
-│       └── index.ts    # Kastrax entry point
-├── package.json
-└── tsconfig.json
+│   ├── main/
+│   │   ├── kotlin/
+│   │   │   └── com/example/   # Your application code
+│   │   │       ├── Main.kt    # Application entry point
+│   │   │       ├── agents/    # Agent definitions
+│   │   │       ├── tools/     # Custom tools
+│   │   │       └── workflows/ # Workflow definitions
+│   │   └── resources/         # Configuration files
+│   └── test/                  # Test directory
+└── README.md                  # Project documentation
 ```
+
+This structure follows Kotlin best practices and makes it easy to organize your agent components.
+
+## Adding Kastrax to Existing Projects ✅
+
+If you already have a Kotlin project and want to add Kastrax capabilities, you can integrate it manually by adding the necessary dependencies to your `build.gradle.kts` file:
+
+```kotlin filename="build.gradle.kts"
+// Add the Kastrax repository
+repositories {
+    mavenCentral()
+    maven { url = uri("https://repo.kastrax.ai/repository/maven-public/") }
+}
+
+// Add Kastrax dependencies
+dependencies {
+    // Core Kastrax library
+    implementation("ai.kastrax:kastrax-core:1.0.0")
+
+    // Optional modules based on your needs
+    implementation("ai.kastrax:kastrax-rag:1.0.0")         // For RAG capabilities
+    implementation("ai.kastrax:kastrax-tools:1.0.0")       // For tool integration
+    implementation("ai.kastrax:kastrax-workflow:1.0.0")    // For workflow orchestration
+    implementation("ai.kastrax:kastrax-monitoring:1.0.0")  // For agent monitoring
+
+    // LLM provider integrations
+    implementation("ai.kastrax:kastrax-openai:1.0.0")      // For OpenAI integration
+    implementation("ai.kastrax:kastrax-deepseek:1.0.0")    // For DeepSeek integration
+
+    // Vector database integrations
+    implementation("ai.kastrax:kastrax-pinecone:1.0.0")    // For Pinecone integration
+    implementation("ai.kastrax:kastrax-pgvector:1.0.0")    // For PostgreSQL/pgvector integration
+}
+```
+
+After adding the dependencies, you can start using Kastrax in your application:
+
+```kotlin filename="src/main/kotlin/com/example/Main.kt"
+import ai.kastrax.core.KastraxSystem
+import ai.kastrax.core.agent.AgentBuilder
+import ai.kastrax.core.llm.LLMProvider
+
+fun main() {
+    // Initialize the Kastrax system
+    val kastraxSystem = KastraxSystem()
+
+    // Create an agent
+    val agent = AgentBuilder()
+        .withName("MyAssistant")
+        .withModel("gpt-4")
+        .withSystemPrompt("You are a helpful assistant.")
+        .build()
+
+    // Register the agent with the system
+    kastraxSystem.registerAgent(agent)
+
+    // Use the agent
+    val response = agent.run("Tell me about Kastrax AI agents.")
+    println(response)
+}
+```
+
+## Project Templates ✅
+
+Kastrax provides several project templates to help you get started quickly based on your specific needs:
+
+### Standalone Agent Template
+
+A simple, single-agent application for straightforward use cases:
+
+```bash
+kastrax new my-agent --type standalone
+```
+
+This template includes:
+- Basic agent configuration
+- Simple conversation handling
+- Environment variable management for API keys
+- Example prompts and responses
+
+### RAG Application Template
+
+A template focused on retrieval-augmented generation applications:
+
+```bash
+kastrax new my-rag-app --type rag
+```
+
+This template includes:
+- Document processing pipeline
+- Vector database integration
+- Retrieval mechanisms
+- Example RAG agent implementation
+
+### Multi-Agent System Template
+
+A template for building systems with multiple cooperating agents:
+
+```bash
+kastrax new my-agent-system --type multi-agent
+```
+
+This template includes:
+- Multiple agent definitions with different roles
+- Inter-agent communication mechanisms
+- Coordination patterns
+- Example multi-agent conversation flow
+
+### Workflow Orchestration Template
+
+A template focused on complex workflow orchestration:
+
+```bash
+kastrax new my-workflow-app --type workflow
+```
+
+This template includes:
+- Workflow definitions
+- Step orchestration
+- Error handling patterns
+- Example workflow implementation
+
+## Next Steps ✅
+
+After creating your project, you can:
+
+1. **Explore the generated code**: Familiarize yourself with the project structure and example implementations
+2. **Configure your LLM provider**: Set up your API keys in the configuration files
+3. **Run the example application**: Test that everything is working correctly
+4. **Start customizing**: Modify the agents, tools, and workflows to suit your specific needs
+
+For more detailed information on developing with Kastrax, see the [Agent Development](../agents/agent-development.mdx) and [Tool Integration](../tools/tool-integration.mdx) guides.
