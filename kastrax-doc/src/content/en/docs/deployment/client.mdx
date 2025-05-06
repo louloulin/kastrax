@@ -31,8 +31,8 @@ To ensure smooth development, make sure you have:
 import { Tabs } from "nextra/components";
 
 <Tabs items={["Kotlin/Gradle", "Java/Maven", "Android", "JavaScript"]}>
-  <Tabs.Tab>
-```kotlin filename="build.gradle.kts" copy
+<Tabs.Tab>
+```kotlin
 // Add the Kastrax repository
 repositories {
     mavenCentral()
@@ -44,9 +44,9 @@ dependencies {
     implementation("ai.kastrax:kastrax-client:1.0.0")
 }
 ```
-  </Tabs.Tab>
-  <Tabs.Tab>
-```xml filename="pom.xml" copy
+</Tabs.Tab>
+<Tabs.Tab>
+```xml
 <!-- Add the Kastrax repository -->
 <repositories>
     <repository>
@@ -64,9 +64,9 @@ dependencies {
     </dependency>
 </dependencies>
 ```
-  </Tabs.Tab>
-  <Tabs.Tab>
-```kotlin filename="build.gradle.kts" copy
+</Tabs.Tab>
+<Tabs.Tab>
+```kotlin
 // Add the Kastrax repository
 repositories {
     mavenCentral()
@@ -78,9 +78,9 @@ dependencies {
     implementation("ai.kastrax:kastrax-client-android:1.0.0")
 }
 ```
-  </Tabs.Tab>
-  <Tabs.Tab>
-```bash copy
+</Tabs.Tab>
+<Tabs.Tab>
+```bash
 # npm
 npm install @kastrax/client-js@latest
 
@@ -90,14 +90,14 @@ yarn add @kastrax/client-js@latest
 # pnpm
 pnpm add @kastrax/client-js@latest
 ```
-  </Tabs.Tab>
+</Tabs.Tab>
 </Tabs>
 
 ## Initialize Kastrax Client ✅
 
 <Tabs items={["Kotlin", "Java", "JavaScript"]}>
-  <Tabs.Tab>
-```kotlin filename="KotlinClient.kt" copy
+<Tabs.Tab>
+```kotlin
 import ai.kastrax.client.KastraxClient
 
 // Create a client with default configuration
@@ -111,9 +111,9 @@ val clientWithConfig = KastraxClient(
     retries = 3               // Number of retry attempts
 )
 ```
-  </Tabs.Tab>
-  <Tabs.Tab>
-```java filename="JavaClient.java" copy
+</Tabs.Tab>
+<Tabs.Tab>
+```java
 import ai.kastrax.client.KastraxClient;
 import ai.kastrax.client.KastraxClientConfig;
 
@@ -129,9 +129,9 @@ KastraxClientConfig config = new KastraxClientConfig.Builder()
 
 KastraxClient clientWithConfig = new KastraxClient("http://localhost:8080", config);
 ```
-  </Tabs.Tab>
-  <Tabs.Tab>
-```typescript filename="JavaScriptClient.ts" copy
+</Tabs.Tab>
+<Tabs.Tab>
+```typescript
 import { KastraxClient } from "@kastrax/client-js";
 
 // Create a client with default configuration
@@ -150,7 +150,7 @@ const clientWithConfig = new KastraxClient({
   }
 });
 ```
-  </Tabs.Tab>
+</Tabs.Tab>
 </Tabs>
 
 ### Configuration Options
@@ -158,7 +158,7 @@ const clientWithConfig = new KastraxClient({
 The Kastrax Client SDK supports the following configuration options:
 
 | Option | Description | Default |
-|--------|-------------|--------|
+|--------|-------------|---------|
 | `baseUrl` | The base URL of the Kastrax server | Required |
 | `apiKey` | API key for authentication | `null` |
 | `timeout` | Connection timeout in milliseconds | `30000` |
@@ -166,40 +166,39 @@ The Kastrax Client SDK supports the following configuration options:
 | `retryDelay` | Initial delay between retries in milliseconds | `300` |
 | `maxRetryDelay` | Maximum delay between retries in milliseconds | `5000` |
 | `headers` | Custom HTTP headers to include in all requests | `{}` |
-```
 
 ## Examples ✅
 
 Once your KastraxClient is initialized, you can start making client calls via the type-safe interface.
 
 <Tabs items={["Kotlin", "Java", "JavaScript"]}>
-  <Tabs.Tab>
-```kotlin filename="KotlinExample.kt" copy
+<Tabs.Tab>
+```kotlin
 import ai.kastrax.client.KastraxClient
 import kotlinx.coroutines.runBlocking
 
 fun main() = runBlocking {
     // Initialize the client
     val client = KastraxClient("http://localhost:8080")
-
+    
     // Get a reference to your agent
     val agent = client.getAgent("assistant")
-
+    
     // Generate a response
     val response = agent.generate("Hello, I'm testing the Kastrax client!")
-
+    
     // Print the response
     println("Agent response: ${response.text}")
-
+    
     // You can also use the streaming API
     agent.generateStream("Tell me a story about AI").collect { chunk ->
         print(chunk.text)
     }
 }
 ```
-  </Tabs.Tab>
-  <Tabs.Tab>
-```java filename="JavaExample.java" copy
+</Tabs.Tab>
+<Tabs.Tab>
+```java
 import ai.kastrax.client.KastraxClient;
 import ai.kastrax.client.agent.Agent;
 import ai.kastrax.client.agent.GenerateResponse;
@@ -208,16 +207,16 @@ public class JavaExample {
     public static void main(String[] args) throws Exception {
         // Initialize the client
         KastraxClient client = new KastraxClient("http://localhost:8080");
-
+        
         // Get a reference to your agent
         Agent agent = client.getAgent("assistant");
-
+        
         // Generate a response
         GenerateResponse response = agent.generate("Hello, I'm testing the Kastrax client!");
-
+        
         // Print the response
         System.out.println("Agent response: " + response.getText());
-
+        
         // You can also use the streaming API with a callback
         agent.generateStream(
             "Tell me a story about AI",
@@ -226,9 +225,9 @@ public class JavaExample {
     }
 }
 ```
-  </Tabs.Tab>
-  <Tabs.Tab>
-```typescript filename="JavaScriptExample.ts" copy
+</Tabs.Tab>
+<Tabs.Tab>
+```typescript
 import { KastraxClient } from "@kastrax/client-js";
 
 async function main() {
@@ -236,10 +235,10 @@ async function main() {
     const client = new KastraxClient({
         baseUrl: "http://localhost:8080"
     });
-
+    
     // Get a reference to your agent
     const agent = client.getAgent("assistant");
-
+    
     // Generate a response
     const response = await agent.generate({
         messages: [
@@ -249,10 +248,10 @@ async function main() {
             }
         ]
     });
-
+    
     // Print the response
     console.log("Agent response:", response.text);
-
+    
     // You can also use the streaming API
     const stream = await agent.generateStream({
         messages: [
@@ -262,7 +261,7 @@ async function main() {
             }
         ]
     });
-
+    
     for await (const chunk of stream) {
         process.stdout.write(chunk.text);
     }
@@ -270,7 +269,7 @@ async function main() {
 
 main().catch(console.error);
 ```
-  </Tabs.Tab>
+</Tabs.Tab>
 </Tabs>
 
 ## Available Features ✅
@@ -288,8 +287,8 @@ The Kastrax Client SDK exposes all resources served by the Kastrax Server:
 ### Agent Operations
 
 <Tabs items={["Kotlin", "Java", "JavaScript"]}>
-  <Tabs.Tab>
-```kotlin filename="AgentOperations.kt" copy
+<Tabs.Tab>
+```kotlin
 // Get an agent by ID
 val agent = client.getAgent("assistant")
 
@@ -314,9 +313,9 @@ agent.generateStream("Tell me a story").collect { chunk ->
     print(chunk.text)
 }
 ```
-  </Tabs.Tab>
-  <Tabs.Tab>
-```java filename="AgentOperations.java" copy
+</Tabs.Tab>
+<Tabs.Tab>
+```java
 // Get an agent by ID
 Agent agent = client.getAgent("assistant");
 
@@ -341,9 +340,9 @@ agent.generateStream(
     chunk -> System.out.print(chunk.getText())
 );
 ```
-  </Tabs.Tab>
-  <Tabs.Tab>
-```typescript filename="AgentOperations.ts" copy
+</Tabs.Tab>
+<Tabs.Tab>
+```typescript
 // Get an agent by ID
 const agent = client.getAgent("assistant");
 
@@ -372,9 +371,8 @@ for await (const chunk of stream) {
     process.stdout.write(chunk.text);
 }
 ```
-  </Tabs.Tab>
+</Tabs.Tab>
 </Tabs>
-
 
 ## Best Practices ✅
 
@@ -383,8 +381,8 @@ for await (const chunk of stream) {
 Implement proper error handling to gracefully handle API errors and network issues:
 
 <Tabs items={["Kotlin", "Java", "JavaScript"]}>
-  <Tabs.Tab>
-```kotlin filename="ErrorHandling.kt" copy
+<Tabs.Tab>
+```kotlin
 import ai.kastrax.client.KastraxClient
 import ai.kastrax.client.exception.KastraxApiException
 import ai.kastrax.client.exception.KastraxNetworkException
@@ -392,7 +390,7 @@ import kotlinx.coroutines.runBlocking
 
 fun main() = runBlocking {
     val client = KastraxClient("http://localhost:8080")
-
+    
     try {
         val agent = client.getAgent("assistant")
         val response = agent.generate("Test message")
@@ -409,9 +407,9 @@ fun main() = runBlocking {
     }
 }
 ```
-  </Tabs.Tab>
-  <Tabs.Tab>
-```java filename="ErrorHandling.java" copy
+</Tabs.Tab>
+<Tabs.Tab>
+```java
 import ai.kastrax.client.KastraxClient;
 import ai.kastrax.client.agent.Agent;
 import ai.kastrax.client.exception.KastraxApiException;
@@ -420,7 +418,7 @@ import ai.kastrax.client.exception.KastraxNetworkException;
 public class ErrorHandling {
     public static void main(String[] args) {
         KastraxClient client = new KastraxClient("http://localhost:8080");
-
+        
         try {
             Agent agent = client.getAgent("assistant");
             var response = agent.generate("Test message");
@@ -438,16 +436,16 @@ public class ErrorHandling {
     }
 }
 ```
-  </Tabs.Tab>
-  <Tabs.Tab>
-```typescript filename="ErrorHandling.ts" copy
+</Tabs.Tab>
+<Tabs.Tab>
+```typescript
 import { KastraxClient, KastraxApiError, KastraxNetworkError } from "@kastrax/client-js";
 
 async function main() {
     const client = new KastraxClient({
         baseUrl: "http://localhost:8080"
     });
-
+    
     try {
         const agent = client.getAgent("assistant");
         const response = await agent.generate({
@@ -470,7 +468,7 @@ async function main() {
 
 main().catch(console.error);
 ```
-  </Tabs.Tab>
+</Tabs.Tab>
 </Tabs>
 
 ### Configuration Management
@@ -478,8 +476,8 @@ main().catch(console.error);
 Use environment variables or configuration files to manage client settings:
 
 <Tabs items={["Kotlin", "Java", "JavaScript"]}>
-  <Tabs.Tab>
-```kotlin filename="ConfigManagement.kt" copy
+<Tabs.Tab>
+```kotlin
 import ai.kastrax.client.KastraxClient
 
 // Load configuration from environment variables
@@ -492,9 +490,9 @@ val client = KastraxClient(
     apiKey = apiKey
 )
 ```
-  </Tabs.Tab>
-  <Tabs.Tab>
-```java filename="ConfigManagement.java" copy
+</Tabs.Tab>
+<Tabs.Tab>
+```java
 import ai.kastrax.client.KastraxClient;
 import ai.kastrax.client.KastraxClientConfig;
 
@@ -503,21 +501,21 @@ public class ConfigManagement {
         // Load configuration from environment variables
         String baseUrl = System.getenv("KASTRAX_API_URL");
         if (baseUrl == null) baseUrl = "http://localhost:8080";
-
+        
         String apiKey = System.getenv("KASTRAX_API_KEY");
-
+        
         // Create client with environment-based configuration
         KastraxClientConfig config = new KastraxClientConfig.Builder()
             .apiKey(apiKey)
             .build();
-
+            
         KastraxClient client = new KastraxClient(baseUrl, config);
     }
 }
 ```
-  </Tabs.Tab>
-  <Tabs.Tab>
-```typescript filename="ConfigManagement.ts" copy
+</Tabs.Tab>
+<Tabs.Tab>
+```typescript
 import { KastraxClient } from "@kastrax/client-js";
 
 // Load configuration from environment variables
@@ -530,7 +528,7 @@ const client = new KastraxClient({
     apiKey
 });
 ```
-  </Tabs.Tab>
+</Tabs.Tab>
 </Tabs>
 
 ### Performance Optimization
@@ -548,4 +546,3 @@ const client = new KastraxClient({
 3. **Request Validation**: Validate user input before sending it to the server
 4. **Response Validation**: Validate server responses before processing them
 5. **Rate Limiting**: Implement client-side rate limiting to avoid overwhelming the server
-
