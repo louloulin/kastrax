@@ -1,116 +1,290 @@
 ---
-title: "Runtime context | Agents | Kastrax Docs"
-description: Learn how to use Kastrax's dependency injection system to provide runtime configuration to agents and tools.
+title: "Runtime Context in Kastrax AI Agents | Agents | Kastrax Docs"
+description: Learn how to use Kastrax's powerful dependency injection system to provide runtime configuration to AI agents and tools, enabling dynamic behavior adaptation.
 ---
 
-# Agent Runtime Context ✅
+# Runtime Context in Kastrax AI Agents ✅
 
-Kastrax provides runtime context, which is a system based on dependency injection that enables you to configure your agents and tools with runtime variables. If you find yourself creating several different agents that do very similar things, runtime context allows you to combine them into one agent.
+Kastrax provides a sophisticated runtime context system based on dependency injection that enables you to dynamically configure your AI agents and tools with runtime variables. This powerful feature allows you to create flexible, adaptable agents that can modify their behavior based on runtime conditions without changing their underlying implementation.
 
-## Overview ✅
+## Runtime Context Architecture ✅
 
-The dependency injection system allows you to:
+Kastrax implements a robust dependency injection system that provides several key capabilities:
 
-1. Pass runtime configuration variables to agents through a type-safe runtimeContext
-2. Access these variables within tool execution contexts
-3. Modify agent behavior without changing the underlying code
-4. Share configuration across multiple tools within the same agent
+1. **Type-safe Configuration**: Pass strongly-typed runtime variables to agents through a type-safe context
+2. **Contextual Tool Execution**: Access context variables within tool execution environments
+3. **Dynamic Behavior Adaptation**: Modify agent behavior at runtime without changing implementation code
+4. **Shared Configuration**: Share configuration across multiple tools and components within an agent
+5. **Environment-aware Processing**: Adapt agent responses based on deployment environment or user preferences
 
 ## Basic Usage ✅
 
-```typescript
-const agent = kastrax.getAgent("weatherAgent");
+Here's how to use runtime context with a Kastrax AI agent:
 
-// Define your runtimeContext's type structure
-type WeatherRuntimeContext = {
-  "temperature-scale": "celsius" | "fahrenheit"; // Fixed typo in "fahrenheit"
-};
+```kotlin
+import ai.kastrax.core.agent.Agent
+import ai.kastrax.core.context.RuntimeContext
+import ai.kastrax.core.context.ContextKey
 
-const runtimeContext = new RuntimeContext<WeatherRuntimeContext>();
-runtimeContext.set("temperature-scale", "celsius");
+// Define your runtime context keys using the type-safe ContextKey system
+object WeatherContextKeys {
+    val TEMPERATURE_SCALE = ContextKey<String>("temperature-scale")
+    val LANGUAGE = ContextKey<String>("language")
+    val LOCATION = ContextKey<String>("location")
+}
 
-const response = await agent.generate("What's the weather like today?", {
-  runtimeContext,
-});
+// Create a runtime context and set values
+val runtimeContext = RuntimeContext().apply {
+    set(WeatherContextKeys.TEMPERATURE_SCALE, "celsius")
+    set(WeatherContextKeys.LANGUAGE, "en-US")
+    set(WeatherContextKeys.LOCATION, "New York")
+}
 
-console.log(response.text);
+// Use the context when generating a response
+val response = agent.generate(
+    input = "What's the weather like today?",
+    sessionId = "user-123",
+    conversationId = "weather-session",
+    context = runtimeContext
+)
+
+println(response.text)
 ```
 
-## Using with REST API ✅
+This example demonstrates how to create a runtime context with temperature scale, language, and location preferences, then pass it to an agent when generating a response.
 
-Here's how to dynamically set temperature units based on a user's location using the Cloudflare `CF-IPCountry` header:
+## Using with Web Services ✅
 
-```typescript filename="src/index.ts"
-import { Kastrax } from "@kastrax/core";
-import { RuntimeContext } from "@kastrax/core/di";
-import { agent as weatherAgent } from "./agents/weather";
+Kastrax makes it easy to integrate runtime context with web services. Here's how to dynamically set temperature units based on a user's location in a Ktor web service:
 
-// Define RuntimeContext type with clear, descriptive types
-type WeatherRuntimeContext = {
-  "temperature-scale": "celsius" | "fahrenheit";
-};
+```kotlin
+import ai.kastrax.core.agent.Agent
+import ai.kastrax.core.context.RuntimeContext
+import ai.kastrax.core.context.ContextKey
+import io.ktor.server.application.*
+import io.ktor.server.engine.*
+import io.ktor.server.netty.*
+import io.ktor.server.routing.*
+import io.ktor.server.request.*
+import io.ktor.server.response.*
 
-export const kastrax = new Kastrax({
-  agents: {
-    weather: weatherAgent,
-  },
-  server: {
-    middleware: [
-      async (c, next) => {
-        const country = c.req.header("CF-IPCountry");
-        const runtimeContext = c.get<WeatherRuntimeContext>("runtimeContext");
+// Define context keys
+object ContextKeys {
+    val TEMPERATURE_SCALE = ContextKey<String>("temperature-scale")
+    val LANGUAGE = ContextKey<String>("language")
+}
 
-        // Set temperature scale based on country
-        runtimeContext.set(
-          "temperature-scale",
-          country === "US" ? "fahrenheit" : "celsius",
-        );
+// Create a Ktor web service
+fun main() {
+    embeddedServer(Netty, port = 8080) {
+        // Configure the agent
+        val weatherAgent = getWeatherAgent()
 
-        await next(); // Don't forget to call next()
-      },
-    ],
-  },
-});
+        // Add a request interceptor to set context based on headers
+        intercept(ApplicationCallPipeline.Monitoring) {
+            // Get country from header (similar to Cloudflare's CF-IPCountry)
+            val country = call.request.header("X-Country-Code")
+
+            // Store the runtime context in call attributes
+            val runtimeContext = RuntimeContext().apply {
+                // Set temperature scale based on country
+                set(ContextKeys.TEMPERATURE_SCALE,
+                    if (country == "US") "fahrenheit" else "celsius")
+
+                // Set language based on Accept-Language header
+                val language = call.request.header("Accept-Language")?.split(",")?.firstOrNull() ?: "en-US"
+                set(ContextKeys.LANGUAGE, language)
+            }
+
+            // Store context in call attributes for later use
+            call.attributes.put(RuntimeContextKey, runtimeContext)
+        }
+
+        // Define routes
+        routing {
+            post("/ask") {
+                // Get the user's question from the request
+                val request = call.receive<WeatherRequest>()
+
+                // Get the runtime context from call attributes
+                val runtimeContext = call.attributes[RuntimeContextKey]
+
+                // Generate a response using the agent with the runtime context
+                val response = weatherAgent.generate(
+                    input = request.question,
+                    sessionId = request.userId,
+                    conversationId = request.conversationId,
+                    context = runtimeContext
+                )
+
+                // Return the response
+                call.respond(WeatherResponse(text = response.text))
+            }
+        }
+    }.start(wait = true)
+}
+
+// Data classes for request/response
+data class WeatherRequest(
+    val question: String,
+    val userId: String,
+    val conversationId: String
+)
+
+data class WeatherResponse(
+    val text: String
+)
+
+// Key for storing runtime context in call attributes
+private val RuntimeContextKey = AttributeKey<RuntimeContext>("RuntimeContext")
 ```
 
-## Creating Tools with Variables ✅
+This example demonstrates how to create a web service that dynamically configures the agent's runtime context based on request headers, providing personalized responses to each user.
 
-Tools can access runtimeContext variables and must conform to the agent's runtimeContext type:
+## Creating Context-Aware Tools ✅
 
-```typescript
-import { createTool } from "@kastrax/core/tools";
-import { z } from "zod";
+Kastrax tools can access runtime context variables to adapt their behavior dynamically. Here's how to create a weather tool that uses context variables:
 
-export const weatherTool = createTool({
-  id: "getWeather",
-  description: "Get the current weather for a location",
-  inputSchema: z.object({
-    location: z.string().describe("The location to get weather for"),
-  }),
-  execute: async ({ context, runtimeContext }) => {
-    // Type-safe access to runtimeContext variables
-    const temperatureUnit = runtimeContext.get("temperature-scale");
+```kotlin
+import ai.kastrax.core.tool.Tool
+import ai.kastrax.core.tool.ToolDefinition
+import ai.kastrax.core.tool.ToolResult
+import ai.kastrax.core.context.RuntimeContext
+import ai.kastrax.core.context.ContextKey
+import kotlinx.serialization.Serializable
 
-    const weather = await fetchWeather(context.location, {
-      temperatureUnit,
-    });
+// Define input and output types
+@Serializable
+data class WeatherToolInput(
+    val location: String
+)
 
-    return { result: weather };
-  },
-});
+@Serializable
+data class WeatherToolOutput(
+    val location: String,
+    val temperature: String,
+    val conditions: String,
+    val unit: String
+)
 
-async function fetchWeather(
-  location: string,
-  { temperatureUnit }: { temperatureUnit: "celsius" | "fahrenheit" },
-): Promise<WeatherResponse> {
-  // Implementation of weather API call
-  const response = await weatherApi.fetch(location, temperatureUnit);
+// Define context keys
+object WeatherContextKeys {
+    val TEMPERATURE_SCALE = ContextKey<String>("temperature-scale")
+    val LANGUAGE = ContextKey<String>("language")
+}
 
-  return {
-    location,
-    temperature: "72°F",
-    conditions: "Sunny",
-    unit: temperatureUnit,
-  };
+// Implement the context-aware tool
+class WeatherTool : Tool<WeatherToolInput, WeatherToolOutput> {
+    // Define tool metadata
+    override val definition = ToolDefinition(
+        name = "get_weather",
+        description = "Get the current weather for a specified location",
+        inputType = WeatherToolInput::class,
+        outputType = WeatherToolOutput::class
+    )
+
+    // Implement the execution logic with context awareness
+    override suspend fun execute(
+        input: WeatherToolInput,
+        context: RuntimeContext
+    ): ToolResult<WeatherToolOutput> {
+        return try {
+            // Get temperature scale from context (with default fallback)
+            val temperatureScale = context.get(WeatherContextKeys.TEMPERATURE_SCALE) ?: "celsius"
+
+            // Get language from context (with default fallback)
+            val language = context.get(WeatherContextKeys.LANGUAGE) ?: "en-US"
+
+            // Fetch weather data using the context variables
+            val weather = fetchWeatherData(
+                location = input.location,
+                temperatureScale = temperatureScale,
+                language = language
+            )
+
+            // Return the result
+            ToolResult.Success(weather)
+        } catch (e: Exception) {
+            ToolResult.Error("Failed to fetch weather data: ${e.message}")
+        }
+    }
+
+    // Helper method to fetch weather data
+    private suspend fun fetchWeatherData(
+        location: String,
+        temperatureScale: String,
+        language: String
+    ): WeatherToolOutput {
+        // In a real implementation, this would call a weather API
+        // For demonstration, we're returning mock data
+
+        // Format temperature based on scale
+        val temp = if (temperatureScale == "celsius") "22°C" else "72°F"
+
+        // Get conditions in the appropriate language
+        val conditions = when (language.substringBefore("-")) {
+            "es" -> "Soleado"
+            "fr" -> "Ensoleillé"
+            else -> "Sunny"
+        }
+
+        return WeatherToolOutput(
+            location = location,
+            temperature = temp,
+            conditions = conditions,
+            unit = temperatureScale
+        )
+    }
 }
 ```
+
+## Advanced Context Features ✅
+
+Kastrax's runtime context system provides several advanced features for more complex scenarios:
+
+### Context Inheritance
+
+```kotlin
+// Create a base context with common settings
+val baseContext = RuntimeContext().apply {
+    set(CommonKeys.LANGUAGE, "en-US")
+    set(CommonKeys.TIMEZONE, "America/New_York")
+}
+
+// Create a derived context that inherits from the base context
+val userContext = RuntimeContext(parent = baseContext).apply {
+    // Override or add user-specific settings
+    set(UserKeys.TEMPERATURE_SCALE, "fahrenheit")
+    set(UserKeys.LOCATION, "New York")
+}
+
+// The userContext now has access to both its own settings and those from baseContext
+```
+
+### Context Scopes
+
+```kotlin
+// Create a scoped context for a specific operation
+val result = runtimeContext.withScope { scopedContext ->
+    // Temporarily modify the context for this scope only
+    scopedContext.set(OperationKeys.DEBUG_MODE, true)
+    scopedContext.set(OperationKeys.TIMEOUT, 30000)
+
+    // Execute an operation with the scoped context
+    performOperation(scopedContext)
+}
+// Changes made in the scope don't affect the original context
+```
+
+### Context Observers
+
+```kotlin
+// Register an observer to be notified when specific keys change
+runtimeContext.addObserver(UserKeys.LANGUAGE) { oldValue, newValue ->
+    println("Language changed from $oldValue to $newValue")
+    // Perform any necessary updates when the language changes
+    updateTranslations(newValue)
+}
+```
+
+These advanced features enable sophisticated context management for complex AI agent applications.

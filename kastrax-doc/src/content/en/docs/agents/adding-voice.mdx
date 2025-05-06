@@ -1,182 +1,454 @@
-# Adding Voice to Agents ✅
+---
+title: "Adding Voice Capabilities to Kastrax AI Agents | Agents | Kastrax Docs"
+description: "Comprehensive guide to implementing voice interaction capabilities in Kastrax AI Agents, including speech synthesis, speech recognition, and real-time conversations."
+---
 
-Kastrax agents can be enhanced with voice capabilities, allowing them to speak responses and listen to user input. You can configure an agent to use either a single voice provider or combine multiple providers for different operations.
+# Adding Voice Capabilities to Kastrax AI Agents ✅
+
+Kastrax AI Agents can be enhanced with sophisticated voice capabilities, enabling natural spoken interactions with users. The voice system supports text-to-speech (TTS) for generating spoken responses, speech-to-text (STT) for understanding user input, and real-time speech-to-speech for continuous conversations. This guide explains how to implement these capabilities in your Kastrax agents.
+
+## Voice Architecture in Kastrax ✅
+
+Kastrax implements a sophisticated voice system with several key components:
+
+1. **Voice Providers**: Adapters for various speech services (DeepSeek, ElevenLabs, Google, etc.)
+2. **Voice Interface**: A unified API for text-to-speech and speech-to-text operations
+3. **Realtime Voice**: Support for continuous, bidirectional speech conversations
+4. **Voice Events**: An event system for monitoring and responding to voice interactions
+5. **Voice Configuration**: Extensive options for customizing voice characteristics
+
+This architecture allows for flexible integration with different voice services while maintaining a consistent developer experience.
 
 ## Using a Single Provider ✅
 
 The simplest way to add voice to an agent is to use a single provider for both speaking and listening:
 
-```typescript
-import { createReadStream } from "fs";
-import path from "path";
-import { Agent } from "@kastrax/core/agent";
-import { OpenAIVoice } from "@kastrax/voice-openai";
-import { openai } from "@ai-sdk/openai";
+```kotlin
+import ai.kastrax.core.agent.Agent
+import ai.kastrax.core.agent.AgentConfig
+import ai.kastrax.core.llm.DeepSeekProvider
+import ai.kastrax.voice.DeepSeekVoice
+import ai.kastrax.voice.config.SpeakOptions
+import ai.kastrax.voice.config.ListenOptions
+import ai.kastrax.voice.AudioFormat
+import java.io.File
+import kotlinx.coroutines.runBlocking
 
-// Initialize the voice provider with default settings
-const voice = new OpenAIVoice();
+fun main() = runBlocking {
+    // Initialize the voice provider with default settings
+    val voice = DeepSeekVoice(
+        apiKey = "your-deepseek-api-key",
+        defaultVoice = "female-1"  // Default voice
+    )
 
-// Create an agent with voice capabilities
-export const agent = new Agent({
-  name: "Agent",
-  instructions: `You are a helpful assistant with both STT and TTS capabilities.`,
-  model: openai("gpt-4o"),
-  voice,
-});
+    // Create an agent with voice capabilities
+    val agent = Agent(
+        config = AgentConfig(
+            name = "VoiceAssistant",
+            description = "An assistant with voice interaction capabilities",
+            instructions = "You are a helpful assistant with both speech recognition and speech synthesis capabilities.",
+            llmProvider = DeepSeekProvider(apiKey = "your-deepseek-api-key"),
+            voice = voice
+        )
+    )
 
-// The agent can now use voice for interaction
-const audioStream = await agent.voice.speak("Hello, I'm your AI assistant!", {
-  filetype: "m4a",
-});
+    // The agent can now use voice for interaction
+    val audioStream = agent.voice.speak(
+        text = "Hello, I'm your AI assistant!",
+        options = SpeakOptions(
+            format = AudioFormat.MP3,
+            voice = "male-2",  // Override the default voice
+            speed = 1.0f,      // Normal speaking speed
+            pitch = 0.0f       // Normal pitch
+        )
+    )
 
-playAudio(audioStream!);
+    // Save the audio to a file
+    val outputFile = File("assistant_greeting.mp3")
+    audioStream.use { input ->
+        outputFile.outputStream().use { output ->
+            input.copyTo(output)
+        }
+    }
+    println("Saved greeting to ${outputFile.absolutePath}")
 
-try {
-  const transcription = await agent.voice.listen(audioStream);
-  console.log(transcription)
-} catch (error) {
-  console.error("Error transcribing audio:", error);
+    // Transcribe audio from a file
+    try {
+        val inputFile = File("user_input.mp3")
+        val transcription = agent.voice.listen(
+            audioStream = inputFile.inputStream(),
+            options = ListenOptions(
+                format = AudioFormat.MP3,
+                language = "en-US",  // Specify language for better accuracy
+                model = "standard"    // Use standard recognition model
+            )
+        )
+        println("Transcription: $transcription")
+    } catch (e: Exception) {
+        println("Error transcribing audio: ${e.message}")
+    }
 }
 ```
 
 ## Using Multiple Providers ✅
 
-For more flexibility, you can use different providers for speaking and listening using the CompositeVoice class:
+For more flexibility, you can use different providers for speaking and listening using the CompositeVoice class. This allows you to leverage the strengths of different voice services:
 
-```typescript
-import { Agent } from "@kastrax/core/agent";
-import { CompositeVoice } from "@kastrax/core/voice";
-import { OpenAIVoice } from "@kastrax/voice-openai";
-import { PlayAIVoice } from "@kastrax/voice-playai";
-import { openai } from "@ai-sdk/openai";
+```kotlin
+import ai.kastrax.core.agent.Agent
+import ai.kastrax.core.agent.AgentConfig
+import ai.kastrax.core.llm.DeepSeekProvider
+import ai.kastrax.voice.CompositeVoice
+import ai.kastrax.voice.DeepSeekVoice
+import ai.kastrax.voice.ElevenLabsVoice
+import ai.kastrax.voice.GoogleVoice
 
-export const agent = new Agent({
-  name: "Agent",
-  instructions: `You are a helpful assistant with both STT and TTS capabilities.`,
-  model: openai("gpt-4o"),
+// Create an agent with multiple voice providers
+val agent = Agent(
+    config = AgentConfig(
+        name = "MultiProviderVoiceAssistant",
+        description = "An assistant using multiple voice services",
+        instructions = "You are a helpful assistant with advanced voice capabilities.",
+        llmProvider = DeepSeekProvider(apiKey = "your-deepseek-api-key"),
 
-  // Create a composite voice using OpenAI for listening and PlayAI for speaking
-  voice: new CompositeVoice({
-    input: new OpenAIVoice(),
-    output: new PlayAIVoice(),
-  }),
-});
+        // Create a composite voice using different providers for different functions
+        voice = CompositeVoice(
+            // Use DeepSeek for speech recognition (STT)
+            input = DeepSeekVoice(
+                apiKey = "your-deepseek-api-key",
+                config = DeepSeekVoiceConfig(
+                    recognitionModel = "whisper-large-v3"
+                )
+            ),
+
+            // Use ElevenLabs for high-quality speech synthesis (TTS)
+            output = ElevenLabsVoice(
+                apiKey = "your-elevenlabs-api-key",
+                defaultVoice = "Rachel",
+                stability = 0.7f,
+                similarityBoost = 0.5f
+            )
+        )
+    )
+)
+
+// You can also create more complex combinations
+val advancedAgent = Agent(
+    config = AgentConfig(
+        name = "AdvancedVoiceAssistant",
+        description = "An assistant with specialized voice capabilities",
+        instructions = "You are a helpful assistant with advanced voice capabilities.",
+        llmProvider = DeepSeekProvider(apiKey = "your-deepseek-api-key"),
+
+        // Create a composite voice with fallback providers
+        voice = CompositeVoice(
+            // Primary input provider with fallback
+            input = CompositeVoice.InputWithFallback(
+                primary = DeepSeekVoice(apiKey = "your-deepseek-api-key"),
+                fallback = GoogleVoice(apiKey = "your-google-api-key")
+            ),
+
+            // Primary output provider with fallback
+            output = CompositeVoice.OutputWithFallback(
+                primary = ElevenLabsVoice(apiKey = "your-elevenlabs-api-key"),
+                fallback = DeepSeekVoice(apiKey = "your-deepseek-api-key")
+            )
+        )
+    )
+)
 ```
+
+This approach allows you to:
+
+- Use specialized providers for different voice functions
+- Implement fallback mechanisms for improved reliability
+- Optimize for different quality, cost, or performance requirements
+- Mix and match providers based on specific use cases
 
 ## Working with Audio Streams ✅
 
-The `speak()` and `listen()` methods work with Node.js streams. Here's how to save and load audio files:
+The `speak()` and `listen()` methods in Kastrax work with Kotlin's `InputStream` and `OutputStream` for handling audio data. Here's how to work with audio files and streams:
 
 ### Saving Speech Output
 
-The `speak` method returns a stream that you can pipe to a file or speaker.
+The `speak` method returns an input stream that you can save to a file or send to speakers:
 
-```typescript
-import { createWriteStream } from "fs";
-import path from "path";
+```kotlin
+import ai.kastrax.voice.config.SpeakOptions
+import ai.kastrax.voice.AudioFormat
+import java.io.File
+import kotlinx.coroutines.runBlocking
 
-// Generate speech and save to file
-const audio = await agent.voice.speak("Hello, World!");
-const filePath = path.join(process.cwd(), "agent.mp3");
-const writer = createWriteStream(filePath);
+fun saveAgentSpeech() = runBlocking {
+    // Generate speech with custom options
+    val audioStream = agent.voice.speak(
+        text = "Hello, world! This is a demonstration of Kastrax voice capabilities.",
+        options = SpeakOptions(
+            format = AudioFormat.MP3,
+            voice = "female-1",
+            speed = 1.1f,  // Slightly faster than normal
+            pitch = -0.2f  // Slightly lower pitch
+        )
+    )
 
-audio.pipe(writer);
+    // Save the audio to a file
+    val outputFile = File("agent_speech.mp3")
+    audioStream.use { input ->
+        outputFile.outputStream().use { output ->
+            input.copyTo(output)
+        }
+    }
 
-await new Promise<void>((resolve, reject) => {
-  writer.on("finish", () => resolve());
-  writer.on("error", reject);
-});
-```
-
-
-### Transcribing Audio Input
-
-The `listen` method expects a stream of audio data from a microphone or file.
-
-```typescript
-import { createReadStream } from "fs";
-import path from "path";
-
-// Read audio file and transcribe
-const audioFilePath = path.join(process.cwd(), "/agent.m4a");
-const audioStream = createReadStream(audioFilePath);
-
-try {
-  console.log("Transcribing audio file...");
-  const transcription = await agent.voice.listen(audioStream, {
-    filetype: "m4a",
-  });
-  console.log("Transcription:", transcription);
-} catch (error) {
-  console.error("Error transcribing audio:", error);
+    println("Speech saved to: ${outputFile.absolutePath}")
 }
 ```
 
-## Speech-to-Speech Voice Interactions ✅
+### Processing Audio in Memory
 
-For more dynamic and interactive voice experiences, you can use real-time voice providers that support speech-to-speech capabilities:
+You can also process audio data in memory for more advanced use cases:
 
-```typescript
-import { Agent } from "@kastrax/core/agent";
-import { getMicrophoneStream } from "@kastrax/node-audio";
-import { OpenAIRealtimeVoice } from "@kastrax/voice-openai-realtime";
-import { search, calculate } from "../tools";
+```kotlin
+import ai.kastrax.voice.config.SpeakOptions
+import ai.kastrax.voice.AudioFormat
+import java.io.ByteArrayOutputStream
+import kotlinx.coroutines.runBlocking
 
-// Initialize the realtime voice provider
-const voice = new OpenAIRealtimeVoice({
-  chatModel: {
-    apiKey: process.env.OPENAI_API_KEY,
-    model: "gpt-4o-mini-realtime",
-  },
-  speaker: "alloy",
-});
+fun processAudioInMemory() = runBlocking {
+    // Generate speech
+    val audioStream = agent.voice.speak(
+        text = "Processing audio in memory",
+        options = SpeakOptions(format = AudioFormat.WAV)
+    )
 
-// Create an agent with speech-to-speech voice capabilities
-export const agent = new Agent({
-  name: "Agent",
-  instructions: `You are a helpful assistant with speech-to-speech capabilities.`,
-  model: openai("gpt-4o"),
-  tools: {
-    // Tools configured on Agent are passed to voice provider
-    search,
-    calculate,
-  },
-  voice,
-});
+    // Read the entire audio stream into memory
+    val audioData = ByteArrayOutputStream().use { output ->
+        audioStream.use { input ->
+            input.copyTo(output)
+        }
+        output.toByteArray()
+    }
 
-// Establish a WebSocket connection
-await agent.voice.connect();
+    // Now you can process the audio data in memory
+    println("Generated ${audioData.size} bytes of audio data")
 
-// Start a conversation
-agent.voice.speak("Hello, I'm your AI assistant!");
+    // Example: Apply audio processing (e.g., volume adjustment)
+    val processedAudio = applyAudioProcessing(audioData)
 
-// Stream audio from a microphone
-const microphoneStream = getMicrophoneStream();
-agent.voice.send(microphoneStream);
+    // Save the processed audio
+    File("processed_audio.wav").writeBytes(processedAudio)
+}
 
-// When done with the conversation
-agent.voice.close();
+// Example audio processing function
+fun applyAudioProcessing(audioData: ByteArray): ByteArray {
+    // This is a simplified example - in a real application,
+    // you would implement actual audio processing logic here
+    return audioData  // Return unmodified for this example
+}
 ```
 
-### Event System
+### Transcribing Audio Input
 
-The realtime voice provider emits several events you can listen for:
+The `listen` method accepts an input stream of audio data from a microphone or file:
 
-```typescript
-// Listen for speech audio data sent from voice provider
-agent.voice.on("speaking", ({ audio }) => {
-  // audio contains ReadableStream or Int16Array audio data
-});
+```kotlin
+import ai.kastrax.voice.config.ListenOptions
+import ai.kastrax.voice.AudioFormat
+import java.io.File
+import kotlinx.coroutines.runBlocking
 
-// Listen for transcribed text sent from both voice provider and user
-agent.voice.on("writing", ({ text, role }) => {
-  console.log(`${role} said: ${text}`);
-});
+fun transcribeAudioFile() = runBlocking {
+    // Read audio file
+    val audioFile = File("user_input.mp3")
 
-// Listen for errors
-agent.voice.on("error", (error) => {
-  console.error("Voice error:", error);
-});
+    try {
+        println("Transcribing audio file...")
+        val transcription = agent.voice.listen(
+            audioStream = audioFile.inputStream(),
+            options = ListenOptions(
+                format = AudioFormat.MP3,
+                language = "en-US",
+                model = "large",       // Use large model for better accuracy
+                promptHint = "technical discussion"  // Provide context hint
+            )
+        )
+        println("Transcription: $transcription")
+
+        // Generate a response based on the transcription
+        val response = agent.generate(
+            input = transcription,
+            sessionId = "voice-user-123",
+            conversationId = "voice-session-456"
+        )
+
+        // Convert the response to speech
+        val responseAudio = agent.voice.speak(response.text)
+        File("agent_response.mp3").outputStream().use { output ->
+            responseAudio.copyTo(output)
+        }
+
+    } catch (e: Exception) {
+        println("Audio transcription error: ${e.message}")
+    }
+}
+```
+
+## Real-time Voice Conversations ✅
+
+Kastrax supports real-time, bidirectional voice conversations through its realtime voice providers. This enables natural, continuous speech interactions between users and agents:
+
+```kotlin
+import ai.kastrax.core.agent.Agent
+import ai.kastrax.core.agent.AgentConfig
+import ai.kastrax.core.llm.DeepSeekProvider
+import ai.kastrax.voice.realtime.RealtimeVoice
+import ai.kastrax.voice.realtime.RealtimeVoiceConfig
+import ai.kastrax.voice.realtime.VoiceEvent
+import ai.kastrax.tools.SearchTool
+import ai.kastrax.tools.CalculatorTool
+import ai.kastrax.audio.MicrophoneStream
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.launch
+
+fun main() = runBlocking {
+    // Initialize the realtime voice provider
+    val realtimeVoice = RealtimeVoice(
+        config = RealtimeVoiceConfig(
+            apiKey = "your-api-key",
+            model = "deepseek-chat",
+            voice = "female-1",
+            responseSpeed = 0.9f,  // Slightly faster response generation
+            interruptible = true    // Allow interrupting the agent while speaking
+        )
+    )
+
+    // Create an agent with real-time voice capabilities
+    val agent = Agent(
+        config = AgentConfig(
+            name = "RealtimeVoiceAssistant",
+            description = "An assistant with real-time voice conversation capabilities",
+            instructions = "You are a helpful assistant capable of real-time voice conversations. Respond naturally and concisely.",
+            llmProvider = DeepSeekProvider(apiKey = "your-deepseek-api-key"),
+            tools = listOf(
+                SearchTool(),
+                CalculatorTool()
+            ),
+            voice = realtimeVoice
+        )
+    )
+
+    // Set up event listeners
+    setupVoiceEventListeners(agent)
+
+    // Establish connection to the voice service
+    agent.voice.connect()
+
+    // Start the conversation with a greeting
+    agent.voice.speak("Hello, I'm your AI assistant. How can I help you today?")
+
+    // Get microphone input stream
+    val microphoneStream = MicrophoneStream.create()
+
+    // Send microphone audio to the agent
+    launch {
+        agent.voice.send(microphoneStream)
+    }
+
+    // Keep the application running until user ends the conversation
+    println("Conversation started. Press Enter to end the conversation.")
+    readLine()
+
+    // Clean up when done
+    microphoneStream.close()
+    agent.voice.close()
+    println("Conversation ended.")
+}
+
+// Set up event listeners for the voice system
+fun setupVoiceEventListeners(agent: Agent) {
+    // Listen for speech audio data from the voice provider
+    agent.voice.on(VoiceEvent.SPEAKING) { event ->
+        val audio = event.audio
+        // Process the audio data (e.g., play through speakers)
+        playAudioThroughSpeakers(audio)
+    }
+
+    // Listen for transcribed text from both the voice provider and user
+    agent.voice.on(VoiceEvent.WRITING) { event ->
+        println("${event.role}: ${event.text}")
+
+        // You can also save the conversation to a transcript
+        if (event.isFinal) {
+            saveToTranscript(event.role, event.text)
+        }
+    }
+
+    // Listen for thinking events (when the agent is processing)
+    agent.voice.on(VoiceEvent.THINKING) { event ->
+        println("Agent is thinking...")
+        // You could display a visual indicator here
+    }
+
+    // Listen for errors
+    agent.voice.on(VoiceEvent.ERROR) { event ->
+        println("Voice error: ${event.error}")
+    }
+}
+
+// Example function to play audio through speakers
+fun playAudioThroughSpeakers(audio: InputStream) {
+    // Implementation would depend on your audio playback library
+    // This is a placeholder for actual audio playback code
+}
+
+// Example function to save conversation to transcript
+fun saveToTranscript(role: String, text: String) {
+    File("conversation_transcript.txt").appendText("$role: $text\n")
+}
+```
+
+### Advanced Real-time Features
+
+Kastrax's real-time voice system supports several advanced features:
+
+```kotlin
+// Enable voice activity detection to automatically detect when the user stops speaking
+val voiceWithVAD = RealtimeVoice(
+    config = RealtimeVoiceConfig(
+        apiKey = "your-api-key",
+        model = "deepseek-chat",
+        voice = "female-1",
+        voiceActivityDetection = VoiceActivityDetectionConfig(
+            enabled = true,
+            silenceThreshold = 0.3f,  // Level of silence to detect end of speech
+            silenceDuration = 1000     // Milliseconds of silence to trigger end of speech
+        )
+    )
+)
+
+// Enable streaming responses for faster agent replies
+val streamingVoice = RealtimeVoice(
+    config = RealtimeVoiceConfig(
+        apiKey = "your-api-key",
+        model = "deepseek-chat",
+        voice = "female-1",
+        streamingMode = StreamingMode.INCREMENTAL,  // Start speaking before full response is generated
+        chunkSize = 20                              // Words per chunk for incremental speaking
+    )
+)
+
+// Enable voice commands for controlling the conversation
+val voiceWithCommands = RealtimeVoice(
+    config = RealtimeVoiceConfig(
+        apiKey = "your-api-key",
+        model = "deepseek-chat",
+        voice = "female-1",
+        voiceCommands = listOf(
+            VoiceCommand("stop", "Stop the current response"),
+            VoiceCommand("pause", "Pause the conversation"),
+            VoiceCommand("resume", "Resume the conversation")
+        )
+    )
+)
 ```
 
 ## Supported Voice Providers ✅
@@ -185,16 +457,101 @@ Kastrax supports multiple voice providers for text-to-speech (TTS) and speech-to
 
 | Provider | Package | Features | Reference |
 |----------|---------|----------|-----------|
-| OpenAI | `@kastrax/voice-openai` | TTS, STT | [Documentation](/reference/voice/openai) |
-| OpenAI Realtime | `@kastrax/voice-openai-realtime` | Realtime speech-to-speech | [Documentation](/reference/voice/openai-realtime) |
-| ElevenLabs | `@kastrax/voice-elevenlabs` | High-quality TTS | [Documentation](/reference/voice/elevenlabs) |
-| PlayAI | `@kastrax/voice-playai` | TTS | [Documentation](/reference/voice/playai) |
-| Google | `@kastrax/voice-google` | TTS, STT | [Documentation](/reference/voice/google) |
-| Deepgram | `@kastrax/voice-deepgram` | STT | [Documentation](/reference/voice/deepgram) |
-| Murf | `@kastrax/voice-murf` | TTS | [Documentation](/reference/voice/murf) |
-| Speechify | `@kastrax/voice-speechify` | TTS | [Documentation](/reference/voice/speechify) |
-| Sarvam | `@kastrax/voice-sarvam` | TTS, STT | [Documentation](/reference/voice/sarvam) |
-| Azure | `@kastrax/voice-azure` | TTS, STT | [Documentation](/reference/voice/kastrax-voice) |
-| Cloudflare | `@kastrax/voice-cloudflare` | TTS | [Documentation](/reference/voice/kastrax-voice) |
+| DeepSeek | `ai.kastrax.voice.DeepSeekVoice` | TTS, STT | [Documentation](/reference/voice/deepseek) |
+| DeepSeek Realtime | `ai.kastrax.voice.realtime.DeepSeekRealtimeVoice` | Realtime speech-to-speech | [Documentation](/reference/voice/deepseek-realtime) |
+| ElevenLabs | `ai.kastrax.voice.ElevenLabsVoice` | High-quality TTS | [Documentation](/reference/voice/elevenlabs) |
+| Google | `ai.kastrax.voice.GoogleVoice` | TTS, STT | [Documentation](/reference/voice/google) |
+| Azure | `ai.kastrax.voice.AzureVoice` | TTS, STT | [Documentation](/reference/voice/azure) |
+| Whisper | `ai.kastrax.voice.WhisperVoice` | STT | [Documentation](/reference/voice/whisper) |
 
 For more details on voice capabilities, see the [Voice API Reference](/reference/voice/kastrax-voice).
+
+## Integration with Actor Model ✅
+
+One of Kastrax's unique features is the integration of the voice system with the actor model, enabling distributed voice processing:
+
+```kotlin
+import ai.kastrax.actor.ActorSystem
+import ai.kastrax.actor.Props
+import ai.kastrax.voice.VoiceActor
+import ai.kastrax.voice.DeepSeekVoice
+import ai.kastrax.voice.messages.*
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    // Create an actor system
+    val system = ActorSystem("voice-system")
+
+    // Create a voice actor
+    val voiceActor = system.actorOf(
+        Props.create(VoiceActor::class.java, DeepSeekVoice(apiKey = "your-api-key")),
+        "voice-actor"
+    )
+
+    // Send a speech synthesis message
+    val result = system.ask<VoiceResult>(
+        voiceActor,
+        SpeakMessage("Hello, I am a voice actor!")
+    )
+
+    // Process the result
+    when (result) {
+        is VoiceResult.Success -> {
+            val audioData = result.audio
+            // Process the audio data...
+            File("actor_speech.mp3").outputStream().use { output ->
+                audioData.copyTo(output)
+            }
+            println("Speech generated successfully")
+        }
+        is VoiceResult.Error -> {
+            println("Voice processing error: ${result.message}")
+        }
+    }
+
+    // Send a speech recognition message
+    val audioFile = File("input.mp3")
+    val transcriptionResult = system.ask<VoiceResult>(
+        voiceActor,
+        ListenMessage(audioFile.inputStream())
+    )
+
+    // Process the transcription result
+    when (transcriptionResult) {
+        is VoiceResult.Success -> {
+            val transcription = transcriptionResult.text
+            println("Transcription: $transcription")
+        }
+        is VoiceResult.Error -> {
+            println("Transcription error: ${transcriptionResult.message}")
+        }
+    }
+
+    // Shutdown the actor system when done
+    system.terminate()
+}
+```
+
+This integration enables building sophisticated multi-agent systems where voice processing can be distributed across different nodes and executed concurrently.
+
+## Best Practices ✅
+
+When implementing voice capabilities in your Kastrax agents, consider these best practices:
+
+1. **Choose the Right Provider**: Select voice providers based on your specific requirements for quality, latency, and language support.
+
+2. **Handle Errors Gracefully**: Implement robust error handling for network issues, service unavailability, or audio processing failures.
+
+3. **Optimize Audio Settings**: Configure audio format, quality, and compression based on your bandwidth and storage constraints.
+
+4. **Consider Privacy**: Be transparent about audio recording and processing, and implement appropriate data retention policies.
+
+5. **Test with Real Users**: Voice interfaces require extensive testing with diverse accents, background noise conditions, and use cases.
+
+6. **Provide Visual Feedback**: When using voice in applications with visual interfaces, provide feedback about listening and speaking states.
+
+7. **Implement Fallbacks**: Always provide text-based alternatives for situations where voice interaction isn't possible or fails.
+
+8. **Monitor Performance**: Track metrics like speech recognition accuracy, response times, and user satisfaction to continuously improve your voice interface.
+
+By following these guidelines, you can create Kastrax AI Agents with robust voice capabilities that provide natural and effective user interactions.

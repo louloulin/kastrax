@@ -1,286 +1,421 @@
 ---
-title: "Using MCP With Kastrax | Agents | Kastrax Docs"
-description: "Use MCP in Kastrax to integrate third party tools and resources in your AI agents."
+title: "Integrating MCP with Kastrax AI Agents | Agents | Kastrax Docs"
+description: "Comprehensive guide to using Model Context Protocol (MCP) with Kastrax AI Agents to extend their capabilities with external tools and resources."
 ---
 
-# Using MCP With Kastrax ✅
+# Integrating MCP with Kastrax AI Agents ✅
 
-[Model Context Protocol (MCP)](https://modelcontextprotocol.io/introduction) is a standardized way for AI models to discover and interact with external tools and resources.
+[Model Context Protocol (MCP)](https://modelcontextprotocol.io/introduction) is a standardized protocol that enables AI agents to discover and interact with external tools, services, and knowledge bases. Kastrax provides robust support for MCP, allowing your agents to leverage a wide ecosystem of third-party capabilities without writing custom integrations.
 
-## Overview ✅
+## MCP Architecture in Kastrax ✅
 
-MCP in Kastrax provides a standardized way to connect to tool servers. It supports Stdio and HTTP (uses Streamable HTTP, falls back to SSE).
+Kastrax implements MCP support through a layered architecture that provides flexibility and extensibility:
 
-## Installation ✅
+1. **MCP Client Layer**: Manages connections to MCP servers and handles protocol-specific communication
+2. **Tool Adapter Layer**: Converts MCP tool definitions into Kastrax-compatible tool interfaces
+3. **Agent Integration Layer**: Enables agents to discover and use MCP tools seamlessly
 
-Using pnpm:
+This architecture supports multiple transport protocols:
 
-```bash
-pnpm add @kastrax/mcp@latest
+- **Stdio**: For local MCP servers running as child processes
+- **HTTP/WebSocket**: For remote MCP servers accessible over the network
+- **Custom Transports**: Extensible architecture for implementing additional protocols
+
+## Adding MCP Support to Your Project ✅
+
+To use MCP with Kastrax, you need to include the MCP module in your project dependencies:
+
+```kotlin
+// In your build.gradle.kts file
+dependencies {
+    implementation("ai.kastrax:kastrax-core:1.0.0")
+    implementation("ai.kastrax:kastrax-mcp:1.0.0")  // Add MCP support
+}
 ```
 
-Using npm:
+The `kastrax-mcp` module provides all the necessary components for integrating with MCP servers.
 
-```bash copy
-npm install @kastrax/mcp@latest
-```
+## Configuring MCP Clients ✅
 
-## Using MCP in Your Code ✅
+Kastrax provides a flexible `MCPClient` class that manages connections to multiple MCP servers. The client automatically selects the appropriate transport protocol based on your configuration:
 
-The `MCPClient` class provides a way to manage multiple tool servers in your Kastrax applications without managing multiple MCP clients. The `KastraxMCPClient` used internally by `MCPConfiguration` now automatically detects the transport type based on your server configuration:
+- **Process-based servers**: Uses Stdio transport for local processes
+- **Network-based servers**: Uses HTTP/WebSocket for remote servers
 
--   If you provide a `command`, it uses the Stdio transport.
--   If you provide a `url`, it first attempts to use the Streamable HTTP transport and falls back to the legacy SSE transport if the initial connection fails.
+Here's how to configure an MCP client in Kastrax:
 
-Here's an example configuration:
+```kotlin
+import ai.kastrax.mcp.MCPClient
+import ai.kastrax.mcp.config.MCPServerConfig
+import ai.kastrax.mcp.config.ProcessConfig
+import ai.kastrax.mcp.config.HttpConfig
 
-```typescript
-import { MCPClient } from "@kastrax/mcp";
-import { Agent } from "@kastrax/core/agent";
-import { openai } from "@ai-sdk/openai";
+// Create an MCP client with multiple server configurations
+val mcpClient = MCPClient(
+    servers = mapOf(
+        // Process-based MCP server (using Stdio transport)
+        "sequential" to MCPServerConfig(
+            process = ProcessConfig(
+                command = "npx",
+                args = listOf("-y", "@modelcontextprotocol/server-sequential-thinking"),
+                environment = mapOf("NODE_ENV" to "production")
+            )
+        ),
 
-const mcp = new MCPClient({
-  servers: {
-    // Stdio example
-    sequential: {
-      command: "npx",
-      args: ["-y", "@modelcontextprotocol/server-sequential-thinking"],
-    },
-    // HTTP example (will try Streamable HTTP first, then fallback to SSE)
-    weather: {
-      url: new URL("http://localhost:8080/mcp"), // Use the base URL for Streamable HTTP
-      requestInit: {
-        headers: {
-          Authorization: "Bearer your-token",
-        },
-      },
-    },
-  },
-});
-```
+        // HTTP-based MCP server
+        "weather" to MCPServerConfig(
+            http = HttpConfig(
+                url = "http://localhost:8080/mcp",
+                headers = mapOf("Authorization" to "Bearer your-token")
+            )
+        )
+    )
+)
 
-### Tools vs Toolsets
+## Integrating MCP Tools with Agents ✅
 
-The `MCPClient` class provides two ways to access MCP tools, each suited for different use cases:
+Kastrax provides two approaches for integrating MCP tools with your agents, each suited for different use cases:
 
-#### Using Tools (`getTools()`)
+### Static Tool Integration
 
 Use this approach when:
 
 - You have a single MCP connection
 - The tools are used by a single user/context
-- Tool configuration (API keys, credentials) remains constant
-- You want to initialize an Agent with a fixed set of tools
+- Tool configuration remains constant
+- You want to initialize an agent with a fixed set of tools
 
-```typescript
-const agent = new Agent({
-  name: "CLI Assistant",
-  instructions: "You help users with CLI tasks",
-  model: openai("gpt-4o-mini"),
-  tools: await mcp.getTools(), // Tools are fixed at agent creation
-});
+```kotlin
+import ai.kastrax.core.agent.Agent
+import ai.kastrax.core.agent.AgentConfig
+import ai.kastrax.core.llm.DeepSeekProvider
+import ai.kastrax.mcp.MCPClient
+
+// Create the MCP client
+val mcpClient = MCPClient(/* configuration */)
+
+// Get all available tools from the MCP servers
+val mcpTools = mcpClient.getTools()
+
+// Create an agent with the MCP tools
+val agent = Agent(
+    config = AgentConfig(
+        name = "CLI Assistant",
+        description = "An assistant that helps with command-line tasks",
+        instructions = "You help users with CLI tasks and provide accurate command suggestions.",
+        llmProvider = DeepSeekProvider(apiKey = "your-deepseek-api-key"),
+        tools = mcpTools  // Tools are fixed at agent creation
+    )
+)
 ```
 
-#### Using Toolsets (`getToolsets()`)
+### Dynamic Tool Integration
 
 Use this approach when:
 
 - You need per-request tool configuration
 - Tools need different credentials per user
-- Running in a multi-user environment (web app, API, etc)
+- Running in a multi-user environment
 - Tool configuration needs to change dynamically
 
-```typescript
-const mcp = new MCPClient({
-  servers: {
-    example: {
-      command: "npx",
-      args: ["-y", "@example/fakemcp"],
-      env: {
-        API_KEY: "your-api-key",
-      },
-    },
-  },
-});
+```kotlin
+import ai.kastrax.core.agent.Agent
+import ai.kastrax.core.agent.AgentConfig
+import ai.kastrax.core.llm.DeepSeekProvider
+import ai.kastrax.mcp.MCPClient
+import ai.kastrax.mcp.config.MCPServerConfig
+import ai.kastrax.mcp.config.ProcessConfig
 
-// Get the current toolsets configured for this user
-const toolsets = await mcp.getToolsets();
+// Create a configurable MCP client
+val mcpClient = MCPClient(
+    servers = mapOf(
+        "example" to MCPServerConfig(
+            process = ProcessConfig(
+                command = "npx",
+                args = listOf("-y", "@example/fakemcp"),
+                environment = mapOf("API_KEY" to "your-api-key")
+            )
+        )
+    )
+)
 
-// Use the agent with user-specific tool configurations
-const response = await agent.stream(
-  "What's new in Kastrax and how's the weather?",
-  {
-    toolsets,
-  },
-);
+// Create the agent without MCP tools initially
+val agent = Agent(
+    config = AgentConfig(
+        name = "Dynamic Assistant",
+        description = "An assistant that uses dynamically configured tools",
+        instructions = "You help users with various tasks using the most appropriate tools.",
+        llmProvider = DeepSeekProvider(apiKey = "your-deepseek-api-key")
+        // No tools specified here - they'll be provided at runtime
+    )
+)
+
+// Later, when handling a user request:
+fun handleUserRequest(userId: String, input: String) {
+    // Get user-specific tool configuration
+    val userApiKey = getUserApiKey(userId)
+
+    // Configure MCP client with user-specific credentials
+    mcpClient.updateServerEnvironment("example", mapOf("API_KEY" to userApiKey))
+
+    // Get the current toolsets configured for this user
+    val toolsets = mcpClient.getToolsets()
+
+    // Generate a response using the dynamically configured tools
+    val response = agent.generate(
+        input = input,
+        sessionId = userId,
+        conversationId = "dynamic-tools-session",
+        toolsets = toolsets
+    )
+
+    // Return the response to the user
+    return response.text
+}
 ```
 
-## MCP Registries ✅
+## Popular MCP Registries ✅
 
-MCP servers can be accessed through registries that provide curated collections of tools.
-We've curated an [MCP Registry Registry](https://kastrax.ai/mcp-registry-registry) to help you find the best places to source MCP servers, but here's how you can use tools from some of our favorites:
+Kastrax can integrate with various MCP registries that provide curated collections of tools. Here are some popular registries and how to use them with Kastrax:
 
 ### mcp.run Registry
 
-[mcp.run](https://www.mcp.run/) makes it easy for you to call pre-authenticated, secure MCP Servers. The tools from mcp.run are free, and entirely managed, so your agent only needs a SSE URL and can use any tools a user has installed. MCP Servers are grouped into [Profiles](https://docs.mcp.run/user-guide/manage-profiles), and accessed with a unique SSE URL.
+[mcp.run](https://www.mcp.run/) provides pre-authenticated, secure MCP servers that can be easily integrated with Kastrax:
 
-For each Profile, you can copy/paste unique, signed URLs into your `MCPClient` like this:
+```kotlin
+import ai.kastrax.mcp.MCPClient
+import ai.kastrax.mcp.config.MCPServerConfig
+import ai.kastrax.mcp.config.HttpConfig
 
-```typescript
-const mcp = new MCPClient({
-  servers: {
-    marketing: {
-      url: new URL(process.env.MCP_RUN_SSE_URL!),
-    },
-  },
-});
+// Create an MCP client with mcp.run configuration
+val mcpClient = MCPClient(
+    servers = mapOf(
+        "marketing" to MCPServerConfig(
+            http = HttpConfig(
+                url = System.getenv("MCP_RUN_SSE_URL") ?: "",
+                // No additional headers needed as the URL contains authentication
+            )
+        )
+    )
+)
 ```
 
-> Important: Each SSE URL on on [mcp.run](https://mcp.run) contains a unique signature, that should be treated like a password. It's best to read your SSE URL as an environment variable and manage it outside of your application code.
+> **Important**: Each SSE URL on [mcp.run](https://mcp.run) contains a unique signature that should be treated like a password. Store it securely in your environment variables or configuration system.
 
-```bash filename=".env" copy
+```properties
+# In your application.conf or environment variables
 MCP_RUN_SSE_URL=https://www.mcp.run/api/mcp/sse?nonce=...
 ```
 
 ### Composio.dev Registry
 
-[Composio.dev](https://composio.dev) provides a registry of [SSE-based MCP servers](https://mcp.composio.dev) that can be easily integrated with Kastrax. The SSE URL that's generated for Cursor is compatible with Kastrax - you can use it directly in your configuration:
+[Composio.dev](https://composio.dev) offers a registry of MCP servers for various services like Google Sheets, Gmail, and more:
 
-```typescript
-const mcp = new MCPClient({
-  servers: {
-    googleSheets: {
-      url: new URL("https://mcp.composio.dev/googlesheets/[private-url-path]"),
-    },
-    gmail: {
-      url: new URL("https://mcp.composio.dev/gmail/[private-url-path]"),
-    },
-  },
-});
+```kotlin
+import ai.kastrax.mcp.MCPClient
+import ai.kastrax.mcp.config.MCPServerConfig
+import ai.kastrax.mcp.config.HttpConfig
+
+// Create an MCP client with Composio.dev configurations
+val mcpClient = MCPClient(
+    servers = mapOf(
+        "googleSheets" to MCPServerConfig(
+            http = HttpConfig(
+                url = "https://mcp.composio.dev/googlesheets/[private-url-path]"
+            )
+        ),
+        "gmail" to MCPServerConfig(
+            http = HttpConfig(
+                url = "https://mcp.composio.dev/gmail/[private-url-path]"
+            )
+        )
+    )
+)
 ```
 
-When using Composio-provided tools, you can authenticate with services (like Google Sheets or Gmail) directly through conversation with your agent. The tools include authentication capabilities that guide you through the process while chatting.
-
-Note: The Composio.dev integration is best suited for single-user scenarios like personal automation, as the SSE URL is tied to your account and can't be used for multiple users. Each URL represents a single account's authentication context.
+Composio tools include built-in authentication capabilities, allowing your agent to guide users through the authentication process during conversation.
 
 ### Smithery.ai Registry
 
-[Smithery.ai](https://smithery.ai) provides a registry of MCP servers that you can easily use with Kastrax:
+[Smithery.ai](https://smithery.ai) provides a registry of MCP servers that can be used with Kastrax:
 
-```typescript
-// Unix/Mac
-const mcp = new MCPClient({
-  servers: {
-    sequentialThinking: {
-      command: "npx",
-      args: [
-        "-y",
-        "@smithery/cli@latest",
-        "run",
-        "@smithery-ai/server-sequential-thinking",
-        "--config",
-        "{}",
-      ],
-    },
-  },
-});
+```kotlin
+import ai.kastrax.mcp.MCPClient
+import ai.kastrax.mcp.config.MCPServerConfig
+import ai.kastrax.mcp.config.ProcessConfig
 
-// Windows
-const mcp = new MCPClient({
-  servers: {
-    sequentialThinking: {
-      command: "cmd",
-      args: [
-        "/c",
-        "npx",
-        "-y",
-        "@smithery/cli@latest",
-        "run",
-        "@smithery-ai/server-sequential-thinking",
-        "--config",
-        "{}",
-      ],
-    },
-  },
-});
+// For Unix/Mac
+val mcpClient = MCPClient(
+    servers = mapOf(
+        "sequentialThinking" to MCPServerConfig(
+            process = ProcessConfig(
+                command = "npx",
+                args = listOf(
+                    "-y",
+                    "@smithery/cli@latest",
+                    "run",
+                    "@smithery-ai/server-sequential-thinking",
+                    "--config",
+                    "{}"
+                )
+            )
+        )
+    )
+)
+
+// For Windows
+val windowsMcpClient = MCPClient(
+    servers = mapOf(
+        "sequentialThinking" to MCPServerConfig(
+            process = ProcessConfig(
+                command = "cmd",
+                args = listOf(
+                    "/c",
+                    "npx",
+                    "-y",
+                    "@smithery/cli@latest",
+                    "run",
+                    "@smithery-ai/server-sequential-thinking",
+                    "--config",
+                    "{}"
+                )
+            )
+        )
+    )
+)
 ```
 
-This example is adapted from the Claude integration example in the Smithery documentation.
+## Filtering MCP Tools ✅
 
-## Excluding Tools in Your MCP Server ✅
+Kastrax allows you to filter the tools provided by MCP servers before passing them to your agents. This is useful when you want to limit the tools available to an agent or when you need to customize the tool set for specific use cases.
 
-The tools from your MCP server are returned as a plain JavaScript object when you call `await mcp.getTools()` or `await mcp.getToolsets()`. This means you can easily filter or exclude tools before passing them to your agent.
+### Filtering Tools by Name
 
-### Excluding Tools Examples
+Suppose your MCP server exposes three tools: `weather`, `stockPrice`, and `news`, but you want to exclude the `news` tool:
 
-Suppose your MCP server exposes three tools: `weather`, `stockPrice`, and `news`, but you want to exclude the `news` tool from your agent. You can do this by filtering the tools object:
+```kotlin
+import ai.kastrax.mcp.MCPClient
+import ai.kastrax.core.agent.Agent
+import ai.kastrax.core.agent.AgentConfig
+import ai.kastrax.core.llm.DeepSeekProvider
+import ai.kastrax.core.tool.Tool
 
-```typescript
-import { MCPClient } from "@kastrax/mcp";
-import { Agent } from "@kastrax/core/agent";
-import { openai } from "@ai-sdk/openai";
-
-const mcp = new MCPClient({
-  servers: {
-    myServer: {
-      command: "npx",
-      args: ["tsx", "my-mcp-server.ts"],
-    },
-  },
-});
+// Create the MCP client
+val mcpClient = MCPClient(/* configuration */)
 
 // Get all tools from the MCP server
-const allTools = await mcp.getTools();
+val allTools = mcpClient.getTools()
 
-// Exclude the 'news' tool (tool names are namespaced as 'serverName_toolName')
-const filteredTools = Object.fromEntries(
-  Object.entries(allTools).filter(([toolName]) => toolName !== "myServer_news")
-);
+// Filter out the 'news' tool (tool names are namespaced as 'serverName_toolName')
+val filteredTools = allTools.filterNot { (name, _) ->
+    name == "myServer_news"
+}
 
-// Pass only the filtered tools to your agent
-const agent = new Agent({
-  name: "Selective Agent",
-  instructions: "You can access only selected tools.",
-  model: openai("gpt-4"),
-  tools: filteredTools,
-});
+// Create an agent with only the filtered tools
+val agent = Agent(
+    config = AgentConfig(
+        name = "Selective Agent",
+        description = "An assistant with access to selected tools only",
+        instructions = "You can access only weather and stock price information.",
+        llmProvider = DeepSeekProvider(apiKey = "your-deepseek-api-key"),
+        tools = filteredTools
+    )
+)
 ```
 
-You can use any logic in the `.filter()` function to exclude tools by name, type, or any other property. This approach works the same way for `getToolsets()` if you want to filter toolsets dynamically per request.
+### Selecting Specific Tools
 
-Another approach is to destructure the tools you want to use, or exclude the tools you do not want.
+Alternatively, you can select only the specific tools you want to use:
 
-```typescript
-// Remove the undesired tool from the destructed object
-const { myServer_news, ...filteredTools } = await mcp.getTools();
+```kotlin
+// Get all tools from the MCP server
+val allTools = mcpClient.getTools()
 
-// Pass only the filtered tools to your agent
-const agent = new Agent({
-  name: "Selective Agent",
-  instructions: "You can access only selected tools.",
-  model: openai("gpt-4"),
-  tools: filteredTools,
-});
+// Select only the weather and stock price tools
+val selectedTools = allTools.filter { (name, _) ->
+    name == "myServer_weather" || name == "myServer_stockPrice"
+}
+
+// Create an agent with only the selected tools
+val agent = Agent(
+    config = AgentConfig(
+        name = "Selective Agent",
+        description = "An assistant with access to selected tools only",
+        instructions = "You can access only weather and stock price information.",
+        llmProvider = DeepSeekProvider(apiKey = "your-deepseek-api-key"),
+        tools = selectedTools
+    )
+)
 ```
 
-```typescript
-// Select the desired tools from the destructed object
-const { myServer_weather, myServer_stockPrice } = await mcp.getTools();
+## Advanced MCP Features ✅
 
-// Pass only the filtered tools to your agent
-const agent = new Agent({
-  name: "Selective Agent",
-  instructions: "You can access only selected tools.",
-  model: openai("gpt-4"),
-  tools: { myServer_weather, myServer_stockPrice },
-});
+### Tool Transformation
+
+Kastrax allows you to transform MCP tools before using them with your agents. This is useful for adding custom behavior, logging, or modifying tool parameters:
+
+```kotlin
+import ai.kastrax.mcp.MCPClient
+import ai.kastrax.mcp.MCPTool
+import ai.kastrax.core.tool.Tool
+
+// Create a wrapper that adds logging to MCP tools
+fun <I : Any, O : Any> addLoggingToTool(tool: Tool<I, O>): Tool<I, O> {
+    return object : Tool<I, O> by tool {
+        override suspend fun execute(input: I, context: ToolContext): ToolResult<O> {
+            println("Executing tool: ${tool.definition.name} with input: $input")
+            val startTime = System.currentTimeMillis()
+
+            val result = tool.execute(input, context)
+
+            val duration = System.currentTimeMillis() - startTime
+            println("Tool execution completed in ${duration}ms with result: $result")
+
+            return result
+        }
+    }
+}
+
+// Get MCP tools and transform them
+val mcpTools = mcpClient.getTools()
+val enhancedTools = mcpTools.mapValues { (_, tool) -> addLoggingToTool(tool) }
+```
+
+### Custom MCP Server Implementation
+
+Kastrax supports implementing your own MCP servers that can be used by your agents or shared with others:
+
+```kotlin
+import ai.kastrax.mcp.server.MCPServer
+import ai.kastrax.mcp.server.MCPToolDefinition
+
+class CustomMCPServer : MCPServer {
+    override val serverInfo = MCPServerInfo(
+        name = "custom-server",
+        version = "1.0.0",
+        description = "A custom MCP server with specialized tools"
+    )
+
+    override val tools = listOf(
+        MCPToolDefinition(
+            name = "custom_tool",
+            description = "A specialized tool for custom operations",
+            parameters = /* parameter schema */,
+            execute = { params ->
+                // Tool implementation
+            }
+        )
+    )
+}
 ```
 
 ## Using the Kastrax Documentation Server ✅
 
-Looking to use Kastrax's MCP documentation server in your IDE? Check out our [MCP Documentation Server guide](/docs/getting-started/mcp-docs-server) to get started.
+Kastrax provides an MCP documentation server that can be used in your IDE to access comprehensive documentation about Kastrax features and capabilities. Check out our [MCP Documentation Server guide](/docs/getting-started/mcp-docs-server) to get started.
 
 ## Next Steps ✅
 
-- Learn more about [MCPClient](/reference/tools/mcp-client)
-- Check out our [example projects](/examples) that use MCP
+- Explore the [MCPClient API Reference](/reference/tools/mcp-client) for detailed information about the client API
+- Check out our [example projects](/examples) that demonstrate MCP integration
+- Learn about [creating custom MCP servers](/docs/advanced/custom-mcp-servers) for specialized use cases
+- Discover how to [combine MCP tools with custom tools](/docs/advanced/hybrid-tool-systems) for maximum flexibility

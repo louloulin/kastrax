@@ -1,0 +1,284 @@
+# 为 Kastrax AI Agent 添加语音功能 ✅
+
+Kastrax AI Agent 可以通过语音功能进行增强，使其能够说出响应并听取用户输入。您可以配置代理使用单一语音提供商，或者组合多个提供商用于不同的操作。
+
+## Kastrax 语音架构 ✅
+
+Kastrax 实现了一个灵活的语音系统，支持多种语音提供商和交互模式：
+
+1. **语音输入（STT）**：将用户的语音转换为文本
+2. **语音输出（TTS）**：将代理的文本响应转换为语音
+3. **实时语音交互**：支持连续的对话式语音交互
+
+这种架构允许代理在各种场景中使用语音，从简单的命令响应到复杂的对话系统。
+
+## 使用单一提供商 ✅
+
+为代理添加语音功能的最简单方法是使用单一提供商同时处理语音输入和输出：
+
+```kotlin
+import ai.kastrax.core.agent.Agent
+import ai.kastrax.core.agent.AgentConfig
+import ai.kastrax.core.llm.DeepSeekProvider
+import ai.kastrax.voice.DeepSeekVoice
+import java.io.File
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    // 使用默认设置初始化语音提供商
+    val voice = DeepSeekVoice(
+        apiKey = "your-deepseek-api-key",
+        defaultVoice = "female-1"  // 默认语音
+    )
+    
+    // 创建具有语音功能的代理
+    val agent = Agent(
+        config = AgentConfig(
+            name = "语音助手",
+            description = "一个具有语音交互能力的助手",
+            instructions = "你是一个有语音输入和输出能力的助手。",
+            llmProvider = DeepSeekProvider(apiKey = "your-deepseek-api-key"),
+            voice = voice
+        )
+    )
+    
+    // 代理现在可以使用语音进行交互
+    val audioStream = agent.voice.speak("你好，我是你的AI助手！", 
+        options = SpeakOptions(format = AudioFormat.MP3)
+    )
+    
+    // 保存音频到文件
+    val outputFile = File("assistant_greeting.mp3")
+    audioStream.use { input ->
+        outputFile.outputStream().use { output ->
+            input.copyTo(output)
+        }
+    }
+    
+    // 从文件读取音频并转录
+    try {
+        val inputFile = File("user_input.mp3")
+        val transcription = agent.voice.listen(
+            inputFile.inputStream(),
+            options = ListenOptions(format = AudioFormat.MP3)
+        )
+        println("转录结果: $transcription")
+    } catch (e: Exception) {
+        println("音频转录错误: ${e.message}")
+    }
+}
+```
+
+## 使用多个提供商 ✅
+
+为了获得更大的灵活性，您可以使用 `CompositeVoice` 类为语音输入和输出使用不同的提供商：
+
+```kotlin
+import ai.kastrax.core.agent.Agent
+import ai.kastrax.core.agent.AgentConfig
+import ai.kastrax.core.llm.DeepSeekProvider
+import ai.kastrax.voice.CompositeVoice
+import ai.kastrax.voice.DeepSeekVoice
+import ai.kastrax.voice.ElevenLabsVoice
+
+// 创建具有多提供商语音功能的代理
+val agent = Agent(
+    config = AgentConfig(
+        name = "多语音提供商助手",
+        description = "一个使用多种语音服务的助手",
+        instructions = "你是一个有语音输入和输出能力的助手。",
+        llmProvider = DeepSeekProvider(apiKey = "your-deepseek-api-key"),
+        
+        // 创建组合语音服务，使用DeepSeek进行语音识别，使用ElevenLabs进行语音合成
+        voice = CompositeVoice(
+            input = DeepSeekVoice(apiKey = "your-deepseek-api-key"),
+            output = ElevenLabsVoice(apiKey = "your-elevenlabs-api-key")
+        )
+    )
+)
+```
+
+## 处理音频流 ✅
+
+`speak()` 和 `listen()` 方法使用 Kotlin 的 `InputStream` 和 `OutputStream` 处理音频数据。以下是如何保存和加载音频文件：
+
+### 保存语音输出
+
+`speak` 方法返回一个输入流，您可以将其保存到文件或发送到扬声器：
+
+```kotlin
+import java.io.File
+import kotlinx.coroutines.runBlocking
+
+fun saveAgentSpeech() = runBlocking {
+    // 生成语音并保存到文件
+    val audioStream = agent.voice.speak("你好，世界！")
+    val outputFile = File("agent_speech.mp3")
+    
+    audioStream.use { input ->
+        outputFile.outputStream().use { output ->
+            input.copyTo(output)
+        }
+    }
+    
+    println("语音已保存到: ${outputFile.absolutePath}")
+}
+```
+
+### 转录音频输入
+
+`listen` 方法接收来自麦克风或文件的音频数据流：
+
+```kotlin
+import java.io.File
+import kotlinx.coroutines.runBlocking
+
+fun transcribeAudioFile() = runBlocking {
+    // 读取音频文件并转录
+    val audioFile = File("user_input.mp3")
+    
+    try {
+        println("正在转录音频文件...")
+        val transcription = agent.voice.listen(
+            audioFile.inputStream(),
+            options = ListenOptions(format = AudioFormat.MP3)
+        )
+        println("转录结果: $transcription")
+    } catch (e: Exception) {
+        println("音频转录错误: ${e.message}")
+    }
+}
+```
+
+## 语音到语音的交互 ✅
+
+对于更动态和交互式的语音体验，您可以使用支持实时语音到语音功能的提供商：
+
+```kotlin
+import ai.kastrax.core.agent.Agent
+import ai.kastrax.core.agent.AgentConfig
+import ai.kastrax.core.llm.DeepSeekProvider
+import ai.kastrax.voice.realtime.RealtimeVoice
+import ai.kastrax.voice.realtime.RealtimeVoiceConfig
+import ai.kastrax.tools.SearchTool
+import ai.kastrax.tools.CalculatorTool
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    // 初始化实时语音提供商
+    val realtimeVoice = RealtimeVoice(
+        config = RealtimeVoiceConfig(
+            apiKey = "your-api-key",
+            model = "deepseek-chat",
+            voice = "female-1"
+        )
+    )
+    
+    // 创建具有语音到语音功能的代理
+    val agent = Agent(
+        config = AgentConfig(
+            name = "实时语音助手",
+            description = "一个支持实时语音交互的助手",
+            instructions = "你是一个支持语音到语音交互的助手。",
+            llmProvider = DeepSeekProvider(apiKey = "your-deepseek-api-key"),
+            tools = listOf(
+                SearchTool(),
+                CalculatorTool()
+            ),
+            voice = realtimeVoice
+        )
+    )
+    
+    // 建立WebSocket连接
+    agent.voice.connect()
+    
+    // 开始对话
+    agent.voice.speak("你好，我是你的AI助手！")
+    
+    // 从麦克风获取音频流
+    val microphoneStream = getMicrophoneStream()
+    agent.voice.send(microphoneStream)
+    
+    // 当对话结束时
+    // agent.voice.close()
+}
+```
+
+### 事件系统
+
+实时语音提供商会发出几个您可以监听的事件：
+
+```kotlin
+// 监听从语音提供商发送的语音音频数据
+agent.voice.on(VoiceEvent.SPEAKING) { event ->
+    val audio = event.audio
+    // audio 包含可读流或 Int16Array 音频数据
+}
+
+// 监听从语音提供商和用户发送的转录文本
+agent.voice.on(VoiceEvent.WRITING) { event ->
+    println("${event.role} 说: ${event.text}")
+}
+
+// 监听错误
+agent.voice.on(VoiceEvent.ERROR) { event ->
+    println("语音错误: ${event.error}")
+}
+```
+
+## 支持的语音提供商 ✅
+
+Kastrax 支持多种语音提供商，用于文本到语音 (TTS) 和语音到文本 (STT) 功能：
+
+| 提供商 | 包名 | 功能 | 参考文档 |
+|----------|---------|----------|-----------|
+| DeepSeek | `ai.kastrax.voice.DeepSeekVoice` | TTS, STT | [文档](/reference/voice/deepseek) |
+| DeepSeek实时 | `ai.kastrax.voice.realtime.DeepSeekRealtimeVoice` | 实时语音到语音 | [文档](/reference/voice/deepseek-realtime) |
+| ElevenLabs | `ai.kastrax.voice.ElevenLabsVoice` | 高质量TTS | [文档](/reference/voice/elevenlabs) |
+| Google | `ai.kastrax.voice.GoogleVoice` | TTS, STT | [文档](/reference/voice/google) |
+| Azure | `ai.kastrax.voice.AzureVoice` | TTS, STT | [文档](/reference/voice/azure) |
+| Whisper | `ai.kastrax.voice.WhisperVoice` | STT | [文档](/reference/voice/whisper) |
+
+有关语音功能的更多详细信息，请参阅[语音API参考文档](/reference/voice/kastrax-voice)。
+
+## 与Actor模型集成 ✅
+
+Kastrax 的一个独特功能是将语音系统与 Actor 模型集成，实现分布式语音处理：
+
+```kotlin
+import ai.kastrax.actor.ActorSystem
+import ai.kastrax.actor.Props
+import ai.kastrax.voice.VoiceActor
+import ai.kastrax.voice.DeepSeekVoice
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    // 创建Actor系统
+    val system = ActorSystem("voice-system")
+    
+    // 创建语音Actor
+    val voiceActor = system.actorOf(
+        Props.create(VoiceActor::class.java, DeepSeekVoice(apiKey = "your-api-key")),
+        "voice-actor"
+    )
+    
+    // 发送语音合成消息
+    val result = system.ask<VoiceResult>(
+        voiceActor,
+        SpeakMessage("你好，我是一个语音Actor！")
+    )
+    
+    // 处理结果
+    when (result) {
+        is VoiceResult.Success -> {
+            val audioData = result.audio
+            // 处理音频数据...
+        }
+        is VoiceResult.Error -> {
+            println("语音处理错误: ${result.message}")
+        }
+    }
+}
+```
+
+这种集成使您能够构建复杂的多代理系统，其中语音处理可以分布在不同的节点上并并行执行。
