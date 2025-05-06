@@ -1,81 +1,140 @@
 ---
-title: "Local Project Structure | Getting Started | Kastrax Docs"
-description: Guide on organizing folders and files in Kastrax, including best practices and recommended structures.
+title: "Kastrax AI Agent Project Structure | Getting Started | Kastrax Docs"
+description: Guide on organizing Kastrax AI Agent projects, including best practices and recommended structures for building intelligent agent systems.
 ---
 
 import { FileTree } from 'nextra/components';
 
-# Project Structure ✅
+# Kastrax AI Agent Project Structure ✅
 
-This page provides a guide for organizing folders and files in Kastrax. Kastrax is a modular framework, and you can use any of the modules separately or together.
+This page provides a guide for organizing your Kastrax AI Agent projects. Kastrax is a powerful Kotlin-based AI Agent framework that combines the actor model with advanced AI capabilities, allowing you to build sophisticated, distributed agent systems.
 
-You could write everything in a single file (as we showed in the quick start), or separate each agent, tool, and workflow into their own files.
+Kastrax offers a modular architecture where you can use components separately or together to create intelligent agent systems that can reason, learn, and interact with their environment.
 
-We don't enforce a specific folder structure, but we do recommend some best practices, and the CLI will scaffold a project with a sensible structure.
+You can structure your project according to your specific needs, but we recommend following certain patterns to maximize maintainability and scalability of your AI agent systems.
 
-## Using the CLI ✅
+## Project Setup with Gradle ✅
 
-`kastrax init` is an interactive CLI that allows you to:
+Kastrax AI Agent projects are typically set up using Gradle, the preferred build system for Kotlin projects. To create a new Kastrax project, you'll need to configure your `build.gradle.kts` file with the appropriate dependencies.
 
-- **Choose a directory for Kastrax files**: Specify where you want the Kastrax files to be placed (default is `src/kastrax`).
-- **Select components to install**: Choose which components you want to include in your project:
-  - Agents
-  - Tools
-  - Workflows
-- **Select a default LLM provider**: Choose from supported providers like OpenAI, Anthropic, Groq, Google or Cerebras.
-- **Include example code**: Decide whether to include example code to help you get started.
-- **Install Kastrax docs MCP server**: Make your AI IDE a Kastrax expert
+```kotlin
+plugins {
+    kotlin("jvm") version "1.9.0"
+    kotlin("plugin.serialization") version "1.9.0"
+}
 
-### Example Project Structure
+dependencies {
+    // Kastrax Core - provides the fundamental AI agent capabilities
+    implementation("ai.kastrax:kastrax-core:1.0.0")
 
-Assuming you select all components and include example code, your project structure will look like this:
+    // Kastrax Actor - provides the actor model implementation
+    implementation("ai.kastrax:kastrax-actor:1.0.0")
+
+    // Kastrax Memory - for agent memory and persistence
+    implementation("ai.kastrax:kastrax-memory:1.0.0")
+
+    // Kastrax Tools - standard tools for your agents
+    implementation("ai.kastrax:kastrax-tools:1.0.0")
+
+    // Kastrax LLM providers
+    implementation("ai.kastrax:kastrax-llm-deepseek:1.0.0") // For DeepSeek integration
+    // Other LLM providers are available as separate dependencies
+}
+```
+
+You can customize your dependencies based on which components you need for your AI agent system:
+
+### Recommended Project Structure
+
+A typical Kastrax AI Agent project follows a structure that separates different components of your agent system. Here's a recommended structure for a comprehensive Kastrax project:
 
 <FileTree>
-  <FileTree.Folder name="root" defaultOpen>
+  <FileTree.Folder name="project-root" defaultOpen>
     <FileTree.Folder name="src" defaultOpen>
-      <FileTree.Folder name="kastrax" defaultOpen>
-        <FileTree.Folder name="agents" defaultOpen>
-          <FileTree.File name="index.ts" />
+      <FileTree.Folder name="main" defaultOpen>
+        <FileTree.Folder name="kotlin" defaultOpen>
+          <FileTree.Folder name="ai/yourcompany/project" defaultOpen>
+            <FileTree.Folder name="agents" defaultOpen>
+              <FileTree.File name="AssistantAgent.kt" />
+              <FileTree.File name="ResearchAgent.kt" />
+              <FileTree.File name="PlannerAgent.kt" />
+            </FileTree.Folder>
+            <FileTree.Folder name="actors" defaultOpen>
+              <FileTree.File name="AgentActor.kt" />
+              <FileTree.File name="SupervisorActor.kt" />
+            </FileTree.Folder>
+            <FileTree.Folder name="tools" defaultOpen>
+              <FileTree.File name="SearchTool.kt" />
+              <FileTree.File name="DatabaseTool.kt" />
+              <FileTree.File name="CalculatorTool.kt" />
+            </FileTree.Folder>
+            <FileTree.Folder name="memory" defaultOpen>
+              <FileTree.File name="AgentMemory.kt" />
+              <FileTree.File name="ConversationHistory.kt" />
+            </FileTree.Folder>
+            <FileTree.Folder name="config" defaultOpen>
+              <FileTree.File name="AppConfig.kt" />
+              <FileTree.File name="LLMConfig.kt" />
+            </FileTree.Folder>
+            <FileTree.File name="Main.kt" />
+            <FileTree.File name="Application.kt" />
+          </FileTree.Folder>
         </FileTree.Folder>
-        <FileTree.Folder name="tools" defaultOpen>
-          <FileTree.File name="index.ts" />
+      </FileTree.Folder>
+      <FileTree.Folder name="test" defaultOpen>
+        <FileTree.Folder name="kotlin" defaultOpen>
+          <FileTree.Folder name="ai/yourcompany/project" defaultOpen>
+            <FileTree.File name="AgentTests.kt" />
+            <FileTree.File name="ActorTests.kt" />
+            <FileTree.File name="ToolTests.kt" />
+          </FileTree.Folder>
         </FileTree.Folder>
-        <FileTree.Folder name="workflows" defaultOpen>
-          <FileTree.File name="index.ts" />
-        </FileTree.Folder>
-        <FileTree.File name="index.ts" />
       </FileTree.Folder>
     </FileTree.Folder>
-    <FileTree.File name=".env" />
+    <FileTree.File name="build.gradle.kts" />
+    <FileTree.File name="settings.gradle.kts" />
+    <FileTree.File name="gradle.properties" />
+    <FileTree.File name="application.conf" />
   </FileTree.Folder>
 </FileTree>
-{/* 
-```
-root/
-├── src/
-│   └── kastrax/
-│       ├── agents/
-│       │   └── index.ts
-│       ├── tools/
-│       │   └── index.ts
-│       ├── workflows/
-│       │   └── index.ts
-│       ├── index.ts
-├── .env
-``` */}
 
-### Top-level Folders
+### Key Project Components
 
-| Folder                 | Description                          |
-| ---------------------- | ------------------------------------ |
-| `src/kastrax`           | Core application folder              |
-| `src/kastrax/agents`    | Agent configurations and definitions |
-| `src/kastrax/tools`     | Custom tool definitions              |
-| `src/kastrax/workflows` | Workflow definitions                 |
+| Component            | Description                                                                                                |
+| -------------------- | ---------------------------------------------------------------------------------------------------------- |
+| `agents/`            | Contains agent definitions with different capabilities and purposes                                        |
+| `actors/`            | Contains actor implementations that enable distributed, concurrent agent execution                         |
+| `tools/`             | Custom tools that agents can use to interact with external systems and perform specialized tasks            |
+| `memory/`            | Components for agent memory, including conversation history, knowledge bases, and persistent storage       |
+| `config/`            | Configuration classes for the application, LLM providers, and other system settings                        |
 
-### Top-level Files
+### Key Configuration Files
 
-| File                  | Description                        |
-| --------------------- | ---------------------------------- |
-| `src/kastrax/index.ts` | Main configuration file for Kastrax |
-| `.env`                | Environment variables              |
+| File                  | Description                                                                                            |
+| --------------------- | ------------------------------------------------------------------------------------------------------ |
+| `build.gradle.kts`    | Gradle build configuration with dependencies and build settings                                         |
+| `application.conf`    | HOCON configuration file for application settings, API keys, and environment-specific configurations    |
+| `Main.kt`             | Entry point for the application that initializes the agent system                                       |
+| `Application.kt`      | Core application class that sets up the agent environment and coordinates components                    |
+
+## Agent System Architecture
+
+Kastrax AI Agent systems typically follow a layered architecture:
+
+1. **Core Layer**: Provides fundamental AI capabilities through the Kastrax Core module
+2. **Actor Layer**: Implements the actor model for distributed, concurrent agent execution
+3. **Agent Layer**: Defines specialized agents with different capabilities and responsibilities
+4. **Tool Layer**: Provides tools that agents can use to interact with external systems
+5. **Memory Layer**: Manages agent memory, conversation history, and knowledge bases
+
+This architecture allows for building sophisticated AI agent systems that can scale from simple assistants to complex multi-agent networks capable of collaborative problem-solving.
+
+## Best Practices
+
+- **Separate Concerns**: Keep agent definitions, tools, and configuration in separate modules
+- **Use Dependency Injection**: Inject dependencies like LLM clients and tools into agents
+- **Implement Proper Error Handling**: AI systems can fail in unexpected ways, so implement robust error handling
+- **Test Thoroughly**: Write unit and integration tests for your agents and tools
+- **Monitor Performance**: Implement logging and monitoring to track agent performance and behavior
+- **Version Your Models**: Keep track of which LLM versions your agents are using
+- **Secure API Keys**: Store API keys securely and never commit them to version control

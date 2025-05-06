@@ -1,288 +1,616 @@
 ---
-title: "Agent Tool Selection | Agent Documentation | Kastrax"
-description: Tools are typed functions that can be executed by agents or workflows, with built-in integration access and parameter validation. Each tool has a schema that defines its inputs, an executor function that implements its logic, and access to configured integrations.
+title: "Kastrax AI Agent Tools System | Agent Documentation | Kastrax"
+description: Comprehensive guide to implementing and using tools with Kastrax AI Agents. Learn how to create custom tools, integrate with external systems, and enhance your agents' capabilities.
 ---
 
-# Agent Tool Selection ✅
+# Kastrax AI Agent Tools System ✅
 
-Tools are typed functions that can be executed by agents or workflows, with built-in integration access and parameter validation. Each tool has a schema that defines its inputs, an executor function that implements its logic, and access to configured integrations.
+Tools are a fundamental component of the Kastrax AI Agent framework that extend agents' capabilities beyond conversation. They allow agents to perform specific actions, access external systems, process data, and interact with the world. In Kastrax, tools are implemented as strongly-typed Kotlin functions with well-defined input/output schemas, execution logic, and error handling.
 
-## Creating Tools ✅
+## Tool Architecture in Kastrax ✅
 
-In this section, we'll walk through the process of creating a tool that can be used by your agents. Let's create a simple tool that fetches current weather information for a given city.
+Kastrax implements a robust tool system with several key components:
 
-```typescript filename="src/kastrax/tools/weatherInfo.ts" copy
-import { createTool } from "@kastrax/core/tools";
-import { z } from "zod";
+1. **Tool Definition**: A strongly-typed interface that defines the tool's inputs, outputs, and metadata
+2. **Tool Implementation**: The actual execution logic that performs the tool's function
+3. **Tool Registry**: A central registry that makes tools available to agents
+4. **Tool Invocation**: The mechanism by which agents call tools during execution
 
-const getWeatherInfo = async (city: string) => {
-  // Replace with an actual API call to a weather service
-  const data = await fetch(`https://api.example.com/weather?city=${city}`).then(
-    (r) => r.json(),
-  );
-  return data;
-};
+This architecture ensures type safety, proper error handling, and seamless integration with the agent system.
 
-export const weatherInfo = createTool({
-  id: "Get Weather Information",
-  inputSchema: z.object({
-    city: z.string(),
-  }),
-  description: `Fetches the current weather information for a given city`,
-  execute: async ({ context: { city } }) => {
-    console.log("Using tool to fetch weather information for", city);
-    return await getWeatherInfo(city);
-  },
-});
+## Creating Basic Tools ✅
+
+Let's create a simple weather information tool that demonstrates the basic structure of Kastrax tools:
+
+```kotlin filename="src/main/kotlin/ai/kastrax/tools/WeatherTool.kt"
+import ai.kastrax.core.tool.Tool
+import ai.kastrax.core.tool.ToolDefinition
+import ai.kastrax.core.tool.ToolResult
+import kotlinx.serialization.Serializable
+
+// Define the input parameters for the tool
+@Serializable
+data class WeatherToolInput(
+    val city: String,
+    val units: String = "metric" // Optional parameter with default value
+)
+
+// Define the output structure
+@Serializable
+data class WeatherToolOutput(
+    val temperature: Double,
+    val conditions: String,
+    val humidity: Int,
+    val windSpeed: Double
+)
+
+// Implement the tool
+class WeatherTool : Tool<WeatherToolInput, WeatherToolOutput> {
+    // Define tool metadata
+    override val definition = ToolDefinition(
+        name = "get_weather",
+        description = "Fetches current weather information for a specified city",
+        inputType = WeatherToolInput::class,
+        outputType = WeatherToolOutput::class
+    )
+
+    // Implement the execution logic
+    override suspend fun execute(input: WeatherToolInput): ToolResult<WeatherToolOutput> {
+        return try {
+            // In a real implementation, this would call a weather API
+            val weatherData = fetchWeatherData(input.city, input.units)
+
+            ToolResult.Success(
+                WeatherToolOutput(
+                    temperature = weatherData.temperature,
+                    conditions = weatherData.conditions,
+                    humidity = weatherData.humidity,
+                    windSpeed = weatherData.windSpeed
+                )
+            )
+        } catch (e: Exception) {
+            ToolResult.Error("Failed to fetch weather data: ${e.message}")
+        }
+    }
+
+    // Helper method to fetch weather data (would be implemented with actual API calls)
+    private suspend fun fetchWeatherData(city: String, units: String): WeatherData {
+        // This would be an actual API call in a real implementation
+        // For demonstration, we're returning mock data
+        return WeatherData(22.5, "Sunny", 65, 10.2)
+    }
+
+    // Internal data class for the API response
+    private data class WeatherData(
+        val temperature: Double,
+        val conditions: String,
+        val humidity: Int,
+        val windSpeed: Double
+    )
+}
 ```
 
 ## Adding Tools to an Agent ✅
 
-Now we'll add the tool to an agent. We'll create an agent that can answer questions about the weather and configure it to use our `weatherInfo` tool.
+Once you've created your tools, you need to register them with your agent. In Kastrax, this is done by adding the tools to the agent's configuration:
 
-```typescript filename="src/kastrax/agents/weatherAgent.ts"
-import { Agent } from "@kastrax/core/agent";
-import { openai } from "@ai-sdk/openai";
-import * as tools from "../tools/weatherInfo";
+```kotlin filename="src/main/kotlin/ai/kastrax/agents/WeatherAgent.kt"
+import ai.kastrax.core.agent.Agent
+import ai.kastrax.core.agent.AgentConfig
+import ai.kastrax.core.llm.DeepSeekProvider
+import ai.kastrax.tools.WeatherTool
 
-export const weatherAgent = new Agent<typeof tools>({
-  name: "Weather Agent",
-  instructions:
-    "You are a helpful assistant that provides current weather information. When asked about the weather, use the weather information tool to fetch the data.",
-  model: openai("gpt-4o-mini"),
-  tools: {
-    weatherInfo: tools.weatherInfo,
-  },
-});
+class WeatherAgent {
+    // Create an instance of the weather tool
+    private val weatherTool = WeatherTool()
+
+    // Create the agent with the tool
+    val agent = Agent(
+        config = AgentConfig(
+            name = "WeatherAssistant",
+            description = "An assistant that can provide weather information for cities around the world",
+            instructions = """
+                You are a helpful weather assistant that provides accurate weather information.
+                When asked about the weather in a specific location, use the get_weather tool to fetch current data.
+                Present the information in a clear, concise format including temperature, conditions, humidity, and wind speed.
+                Always specify whether temperatures are in Celsius (metric) or Fahrenheit (imperial) based on the units used.
+            """.trimIndent(),
+            llmProvider = DeepSeekProvider(apiKey = "your-deepseek-api-key"),
+            tools = listOf(weatherTool)
+        )
+    )
+}
 ```
 
-## Registering the Agent ✅
+## Registering Tools in the Application ✅
 
-We need to initialize Kastrax with our agent.
+In a larger application, you might want to register your tools centrally so they can be used by multiple agents:
 
-```typescript filename="src/index.ts"
-import { Kastrax } from "@kastrax/core";
-import { weatherAgent } from "./agents/weatherAgent";
+```kotlin filename="src/main/kotlin/ai/kastrax/Application.kt"
+import ai.kastrax.core.KastraxSystem
+import ai.kastrax.tools.WeatherTool
+import ai.kastrax.tools.CalculatorTool
+import ai.kastrax.tools.SearchTool
+import ai.kastrax.agents.WeatherAgent
 
-export const kastrax = new Kastrax({
-  agents: { weatherAgent },
-});
+class Application {
+    // Initialize the Kastrax system
+    private val system = KastraxSystem()
+
+    // Register tools centrally
+    init {
+        // Register individual tools
+        system.registerTool(WeatherTool())
+        system.registerTool(CalculatorTool())
+        system.registerTool(SearchTool())
+
+        // Register agents
+        system.registerAgent(WeatherAgent().agent)
+    }
+
+    fun start() {
+        // Start the application
+        system.start()
+    }
+}
 ```
 
-This registers your agent with Kastrax, making it available for use.
+This approach allows you to maintain a central registry of tools that can be shared across different agents in your application.
 
-## Abort Signals ✅
+## Handling Cancellation ✅
 
-The abort signals from `generate` and `stream` (text generation) are forwarded to the tool execution. You can access them in the second parameter of the execute function and e.g. abort long-running computations or forward them to fetch calls inside tools.
+Kastrax supports cancellation of tool execution through Kotlin's built-in cancellation mechanism. This allows you to gracefully handle situations where a tool execution needs to be stopped:
 
-```typescript
-import { Agent } from "@kastrax/core/agent";
-import { createTool } from "@kastrax/core/tools";
-import { z } from "zod";
+```kotlin
+import ai.kastrax.core.tool.Tool
+import ai.kastrax.core.tool.ToolResult
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.Dispatchers
 
-const agent = new Agent({
-  name: "Weather agent",
-  tools: {
-    weather: createTool({
-      id: "Get Weather Information",
-      description: "Get the weather in a location",
-      inputSchema: z.object({ location: z.string() }),
-      execute: async ({ context: { location } }, { abortSignal }) => {
-        return fetch(
-          `https://api.weatherapi.com/v1/current.json?q=${location}`,
-          { signal: abortSignal }, // forward the abort signal to fetch
-        );
-      },
-    }),
-  },
-});
+class LongRunningTool : Tool<LongRunningToolInput, LongRunningToolOutput> {
+    // Tool definition omitted for brevity
 
-const result = await agent.generate("What is the weather in San Francisco?", {
-  abortSignal: myAbortSignal, // signal that will be forwarded to tools
-});
+    override suspend fun execute(input: LongRunningToolInput): ToolResult<LongRunningToolOutput> {
+        return try {
+            // Set a timeout for the operation
+            withTimeout(30000) { // 30 seconds timeout
+                withContext(Dispatchers.IO) {
+                    // Check for cancellation periodically
+                    kotlinx.coroutines.ensureActive()
+
+                    // Perform long-running operation
+                    val result = performLongRunningTask(input)
+
+                    // Check again before returning
+                    kotlinx.coroutines.ensureActive()
+
+                    ToolResult.Success(result)
+                }
+            }
+        } catch (e: CancellationException) {
+            // Handle cancellation gracefully
+            ToolResult.Error("Operation was cancelled")
+        } catch (e: Exception) {
+            ToolResult.Error("Operation failed: ${e.message}")
+        }
+    }
+}
 ```
 
-## Injecting Request/User-Specific Variables ✅
+When using the agent, you can provide a cancellation handler:
 
-We support dependency injection for tools and workflows. You can pass a runtimeContext directly to your `generate` or `stream` function calls, or inject it using [server middleware](/docs/deployment/server#Middleware).
-
-Here's an example where we change the temperature scale between Fahrenheit and Celsius:
-
-```typescript filename="src/agents/weather-agent.ts"
-import { Agent } from "@kastrax/core/agent";
-import { createTool } from "@kastrax/core/tools";
-import { z } from "zod";
-
-export const agent = new Agent({
-  name: "Weather agent",
-  tools: {
-    weather: createTool({
-      id: "Get Weather Information",
-      description: "Get the weather in a location",
-      inputSchema: z.object({ location: z.string() }),
-      execute: async ({ context: { location }, runtimeContext }) => {
-        const scale = runtimeContext.get("temperature-scale");
-
-        const result = await fetch(
-          `https://api.weatherapi.com/v1/current.json?q=${location}`,
-        );
-
-        const json = await result.json();
-
-        return {
-          temperature: scale === "celsius" ? json.temp_c : json.temp_f,
-        };
-      },
-    }),
-  },
-});
-```
-
-```typescript
-import { agent } from "./agents/weather";
-
-type MyRuntimeContext = {"temperature-scale", "celsius" | "farenheit"}
-
-const runtimeContext = new RuntimeContext<MyRuntimeContext>();
-runtimeContext.set("temperature-scale", "celsius");
-
-const result = await agent.generate("What is the weather in San Francisco?", {
-  runtimeContext,
-});
-```
-
-## Debugging Tools ✅
-
-You can test tools using Vitest or any other testing framework. Writing unit tests for your tools ensures they behave as expected and helps catch errors early.
-
-## Calling an Agent with a Tool ✅
-
-Now we can call the agent, and it will use the tool to fetch the weather information.
-
-## Example: Interacting with the Agent ✅
-
-```typescript filename="src/index.ts"
-import { kastrax } from "./index";
-
-async function main() {
-  const agent = kastrax.getAgent("weatherAgent");
-  const response = await agent.generate(
-    "What's the weather like in New York City today?",
-  );
-
-  console.log(response.text);
+```kotlin
+val job = kotlinx.coroutines.launch {
+    agent.generate(
+        input = "Perform a long-running analysis",
+        sessionId = "user-123",
+        conversationId = "analysis-session"
+    )
 }
 
-main();
+// Cancel the operation after some condition
+if (userRequestedCancellation) {
+    job.cancel()
+}
 ```
 
-The agent will use the `weatherInfo` tool to get the current weather in New York City and respond accordingly.
+## Context and Configuration Injection ✅
 
-## Vercel AI SDK Tool Format ✅
+Kastrax allows you to inject context and configuration into tools, making them more flexible and adaptable to different scenarios:
 
-Kastrax supports tools created using the Vercel AI SDK format. You can import and use these tools directly:
+```kotlin
+import ai.kastrax.core.tool.Tool
+import ai.kastrax.core.tool.ToolContext
+import ai.kastrax.core.tool.ToolResult
 
-```typescript filename="src/kastrax/tools/vercelTool.ts" copy
-import { tool } from "ai";
-import { z } from "zod";
+class ConfigurableWeatherTool : Tool<WeatherToolInput, WeatherToolOutput> {
+    // Tool definition omitted for brevity
 
-export const weatherInfo = tool({
-  description: "Fetches the current weather information for a given city",
-  parameters: z.object({
-    city: z.string().describe("The city to get weather for"),
-  }),
-  execute: async ({ city }) => {
-    // Replace with actual API call
-    const data = await fetch(`https://api.example.com/weather?city=${city}`);
-    return data.json();
-  },
-});
+    override suspend fun execute(
+        input: WeatherToolInput,
+        context: ToolContext = ToolContext()
+    ): ToolResult<WeatherToolOutput> {
+        // Get user preferences from context
+        val temperatureUnit = context.getPreference("temperature_unit") ?: "celsius"
+        val language = context.getPreference("language") ?: "en"
+
+        // Get API configuration from context
+        val apiKey = context.getConfig("weather_api_key")
+            ?: return ToolResult.Error("Weather API key not configured")
+
+        return try {
+            // Use the context information in the API call
+            val weatherData = fetchWeatherData(
+                city = input.city,
+                units = if (temperatureUnit == "celsius") "metric" else "imperial",
+                language = language,
+                apiKey = apiKey
+            )
+
+            ToolResult.Success(weatherData.toOutput())
+        } catch (e: Exception) {
+            ToolResult.Error("Failed to fetch weather data: ${e.message}")
+        }
+    }
+}
 ```
 
-You can use Vercel tools alongside Kastrax tools in your agents:
+When using the tool, you can provide the context:
 
-```typescript filename="src/kastrax/agents/weatherAgent.ts"
-import { Agent } from "@kastrax/core/agent";
-import { openai } from "@ai-sdk/openai";
-import { weatherInfo } from "../tools/vercelTool";
-import * as kastraxTools from "../tools/kastraxTools";
+```kotlin
+// Create a tool context with user preferences and configuration
+val toolContext = ToolContext().apply {
+    // User preferences
+    setPreference("temperature_unit", "fahrenheit")
+    setPreference("language", "en-US")
 
-export const weatherAgent = new Agent({
-  name: "Weather Agent",
-  instructions:
-    "You are a helpful assistant that provides weather information.",
-  model: openai("gpt-4"),
-  tools: {
-    weatherInfo, // Vercel tool
-    ...kastraxTools, // Kastrax tools
-  },
-});
+    // System configuration
+    setConfig("weather_api_key", "your-api-key-here")
+}
+
+// Use the context when generating a response
+val response = agent.generate(
+    input = "What's the weather in Tokyo?",
+    sessionId = "user-456",
+    conversationId = "weather-session",
+    toolContext = toolContext
+)
 ```
 
-Both tool formats will work seamlessly within your agent's workflow.
+## Testing and Debugging Tools ✅
+
+Kastrax provides robust support for testing and debugging tools. Here's how to write tests for your tools using Kotlin's testing frameworks:
+
+```kotlin filename="src/test/kotlin/ai/kastrax/tools/WeatherToolTest.kt"
+import ai.kastrax.core.tool.ToolResult
+import ai.kastrax.tools.WeatherTool
+import ai.kastrax.tools.WeatherToolInput
+import kotlinx.coroutines.runBlocking
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertTrue
+
+class WeatherToolTest {
+    private val weatherTool = WeatherTool()
+
+    @Test
+    fun `test successful weather retrieval`() = runBlocking {
+        // Arrange
+        val input = WeatherToolInput(city = "Tokyo", units = "metric")
+
+        // Act
+        val result = weatherTool.execute(input)
+
+        // Assert
+        assertTrue(result is ToolResult.Success)
+        if (result is ToolResult.Success) {
+            val output = result.value
+            assertEquals("Sunny", output.conditions)
+            // Add more assertions as needed
+        }
+    }
+
+    @Test
+    fun `test error handling for invalid city`() = runBlocking {
+        // Arrange
+        val input = WeatherToolInput(city = "", units = "metric")
+
+        // Act
+        val result = weatherTool.execute(input)
+
+        // Assert
+        assertTrue(result is ToolResult.Error)
+        if (result is ToolResult.Error) {
+            assertTrue(result.message.contains("city"))
+        }
+    }
+}
+```
+
+## Using Tools in Practice ✅
+
+Let's see a complete example of how to use a tool with an agent in a real application:
+
+```kotlin filename="src/main/kotlin/ai/kastrax/examples/WeatherAssistantExample.kt"
+import ai.kastrax.agents.WeatherAgent
+import ai.kastrax.core.tool.ToolContext
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    // Create the weather agent
+    val weatherAgent = WeatherAgent().agent
+
+    // Create a tool context with necessary configuration
+    val toolContext = ToolContext().apply {
+        setConfig("weather_api_key", System.getenv("WEATHER_API_KEY") ?: "demo-key")
+        setPreference("temperature_unit", "celsius")
+    }
+
+    // Generate a response using the agent and its tools
+    val response = weatherAgent.generate(
+        input = "What's the current weather in Paris, France?",
+        sessionId = "user-789",
+        conversationId = "weather-inquiry",
+        toolContext = toolContext
+    )
+
+    // Print the response
+    println("Agent response: ${response.text}")
+
+    // The agent will automatically use the WeatherTool to fetch and include
+    // current weather information for Paris in its response
+}
+```
+
+The agent will use the `WeatherTool` to fetch the current weather in Paris and incorporate that information into its response.
+
+## Integration with External Systems ✅
+
+Kastrax tools can integrate with various external systems and APIs. Here's an example of a tool that integrates with a database:
+
+```kotlin filename="src/main/kotlin/ai/kastrax/tools/DatabaseTool.kt"
+import ai.kastrax.core.tool.Tool
+import ai.kastrax.core.tool.ToolDefinition
+import ai.kastrax.core.tool.ToolResult
+import kotlinx.serialization.Serializable
+import java.sql.Connection
+import java.sql.DriverManager
+
+@Serializable
+data class QueryInput(
+    val query: String,
+    val limit: Int = 10
+)
+
+@Serializable
+data class QueryResult(
+    val columns: List<String>,
+    val rows: List<List<String>>
+)
+
+class DatabaseTool : Tool<QueryInput, QueryResult> {
+    override val definition = ToolDefinition(
+        name = "database_query",
+        description = "Execute a SQL query against the database to retrieve information",
+        inputType = QueryInput::class,
+        outputType = QueryResult::class
+    )
+
+    private var connection: Connection? = null
+
+    private fun getConnection(context: ToolContext): Connection {
+        if (connection == null || connection?.isClosed == true) {
+            val jdbcUrl = context.getConfig("jdbc_url")
+                ?: throw IllegalStateException("Database URL not configured")
+            val username = context.getConfig("db_username") ?: ""
+            val password = context.getConfig("db_password") ?: ""
+
+            connection = DriverManager.getConnection(jdbcUrl, username, password)
+        }
+        return connection!!
+    }
+
+    override suspend fun execute(input: QueryInput, context: ToolContext): ToolResult<QueryResult> {
+        return try {
+            // Sanitize and validate the query for security
+            val sanitizedQuery = sanitizeQuery(input.query, input.limit)
+
+            // Execute the query
+            val conn = getConnection(context)
+            val statement = conn.createStatement()
+            val resultSet = statement.executeQuery(sanitizedQuery)
+
+            // Process the results
+            val metadata = resultSet.metaData
+            val columnCount = metadata.columnCount
+
+            // Extract column names
+            val columns = (1..columnCount).map { metadata.getColumnName(it) }
+
+            // Extract rows
+            val rows = mutableListOf<List<String>>()
+            while (resultSet.next() && rows.size < input.limit) {
+                val row = (1..columnCount).map {
+                    resultSet.getString(it) ?: "null"
+                }
+                rows.add(row)
+            }
+
+            ToolResult.Success(QueryResult(columns, rows))
+        } catch (e: Exception) {
+            ToolResult.Error("Database query failed: ${e.message}")
+        }
+    }
+
+    private fun sanitizeQuery(query: String, limit: Int): String {
+        // Implement query sanitization and validation
+        // This is a simplified example - in production, use prepared statements
+        // and more sophisticated validation
+        if (!query.lowercase().startsWith("select")) {
+            throw IllegalArgumentException("Only SELECT queries are allowed")
+        }
+
+        return if (query.lowercase().contains(" limit ")) {
+            query
+        } else {
+            "$query LIMIT $limit"
+        }
+    }
+}
+```
 
 ## Tool Design Best Practices ✅
 
-When creating tools for your agents, following these guidelines will help ensure reliable and intuitive tool usage:
+When creating tools for your Kastrax agents, follow these guidelines to ensure reliable and intuitive tool usage:
 
 ### Tool Descriptions
 
-Your tool's main description should focus on its purpose and value:
+Your tool's description should focus on its purpose and value:
 
 - Keep descriptions simple and focused on **what** the tool does
 - Emphasize the tool's primary use case
 - Avoid implementation details in the main description
 - Focus on helping the agent understand **when** to use the tool
 
-```typescript
-createTool({
-  id: "documentSearch",
-  description:
-    "Access the knowledge base to find information needed to answer user questions",
-  // ... rest of tool configuration
-});
+```kotlin
+ToolDefinition(
+    name = "document_search",
+    description = "Search the knowledge base to find information needed to answer user questions",
+    inputType = SearchInput::class,
+    outputType = SearchResult::class
+)
 ```
 
-### Parameter Schemas
+### Input and Output Types
 
-Technical details belong in the parameter schemas, where they help the agent use the tool correctly:
+Design clear, well-structured input and output types:
 
-- Make parameters self-documenting with clear descriptions
-- Include default values and their implications
-- Provide examples where helpful
-- Describe the impact of different parameter choices
+- Make parameters self-documenting with clear names
+- Include default values for optional parameters
+- Use appropriate types for each parameter
+- Document the purpose of each field
 
-```typescript
-inputSchema: z.object({
-  query: z.string().describe("The search query to find relevant information"),
-  limit: z.number().describe(
-    "Number of results to return. Higher values provide more context, lower values focus on best matches"
-  ),
-  options: z.string().describe(
-    "Optional configuration. Example: '{'filter': 'category=news'}'"
-  ),
-}),
+```kotlin
+@Serializable
+data class SearchInput(
+    val query: String,  // The search query to find relevant information
+    val limit: Int = 10,  // Number of results to return
+    val filters: Map<String, String> = mapOf()  // Optional filters to apply
+)
 ```
 
-### Agent Interaction Patterns
+### Error Handling
 
-Tools are more likely to be used effectively when:
+Implement robust error handling in your tools:
 
-- Queries or tasks are complex enough to clearly require tool assistance
-- Agent instructions provide clear guidance on tool usage
-- Parameter requirements are well-documented in the schema
-- The tool's purpose aligns with the query's needs
+- Return clear error messages that explain what went wrong
+- Handle expected failure cases gracefully
+- Provide guidance on how to fix the issue when possible
+- Log detailed error information for debugging
 
-### Common Pitfalls
+### Security Considerations
 
-- Overloading the main description with technical details
-- Mixing implementation details with usage guidance
-- Unclear parameter descriptions or missing examples
+Ensure your tools are secure:
 
-Following these practices helps ensure your tools are discoverable and usable by agents while maintaining clean separation between purpose (main description) and implementation details (parameter schemas).
+- Validate and sanitize all inputs
+- Use prepared statements for database queries
+- Implement proper authentication and authorization
+- Limit access to sensitive operations
+- Don't expose sensitive information in error messages
 
-## Model Context Protocol (MCP) Tools ✅
+## Advanced Tool Features ✅
 
-Kastrax also supports tools from MCP-compatible servers through the `@kastrax/mcp` package. MCP provides a standardized way for AI models to discover and interact with external tools and resources. This makes it easy to integrate third-party tools into your agents without writing custom integrations.
+Kastrax supports several advanced tool features:
 
-For detailed information about using MCP tools, including configuration options and best practices, see our [MCP guide](/docs/agents/mcp-guide).
+### Tool Composition
+
+You can compose multiple tools together to create more complex functionality:
+
+```kotlin
+class CompositeSearchTool(
+    private val webSearchTool: WebSearchTool,
+    private val databaseTool: DatabaseTool,
+    private val documentTool: DocumentTool
+) : Tool<CompositeSearchInput, CompositeSearchResult> {
+    // Implementation that uses multiple tools together
+}
+```
+
+### Tool Versioning
+
+Implement versioning for your tools to maintain backward compatibility:
+
+```kotlin
+class WeatherToolV2 : Tool<WeatherToolInputV2, WeatherToolOutputV2> {
+    override val definition = ToolDefinition(
+        name = "get_weather_v2",
+        description = "Enhanced weather information tool with additional data",
+        inputType = WeatherToolInputV2::class,
+        outputType = WeatherToolOutputV2::class,
+        version = "2.0"
+    )
+    // Implementation
+}
+```
+
+### Tool Metrics and Monitoring
+
+Implement metrics collection for your tools:
+
+```kotlin
+class MonitoredTool<I : Any, O : Any>(private val delegate: Tool<I, O>) : Tool<I, O> {
+    override val definition = delegate.definition
+
+    override suspend fun execute(input: I, context: ToolContext): ToolResult<O> {
+        val startTime = System.currentTimeMillis()
+        try {
+            val result = delegate.execute(input, context)
+            val duration = System.currentTimeMillis() - startTime
+            recordMetrics(definition.name, duration, result is ToolResult.Success)
+            return result
+        } catch (e: Exception) {
+            val duration = System.currentTimeMillis() - startTime
+            recordMetrics(definition.name, duration, false)
+            throw e
+        }
+    }
+
+    private fun recordMetrics(toolName: String, durationMs: Long, success: Boolean) {
+        // Record metrics to your monitoring system
+    }
+}
+```
+
+## Integration with Actor Model ✅
+
+One of Kastrax's unique features is the integration of tools with the actor model, allowing for distributed tool execution:
+
+```kotlin
+import ai.kastrax.actor.ActorRef
+import ai.kastrax.actor.ActorSystem
+import ai.kastrax.tools.WeatherTool
+
+class ToolActorSystem(private val system: ActorSystem) {
+    // Create actor references for tools
+    val weatherToolActor: ActorRef = system.actorOf(WeatherToolActor.props(WeatherTool()))
+    val databaseToolActor: ActorRef = system.actorOf(DatabaseToolActor.props(DatabaseTool()))
+
+    // Tool actor message types
+    data class ToolRequest<I>(val input: I, val replyTo: ActorRef)
+    data class ToolResponse<O>(val result: ToolResult<O>)
+
+    // Example of using a tool through the actor system
+    suspend fun getWeather(city: String): ToolResult<WeatherToolOutput> {
+        val input = WeatherToolInput(city = city)
+        val response = system.ask<ToolResponse<WeatherToolOutput>>(
+            weatherToolActor,
+            ToolRequest(input, system.selfRef())
+        )
+        return response.result
+    }
+}
+```
+
+This integration enables building sophisticated multi-agent systems where tools can be distributed across different nodes and executed concurrently.
