@@ -1,43 +1,321 @@
 ---
-title: "Adding to an Existing Project | Kastrax Local Development Docs"
-description: "Add Kastrax to your existing Node.js applications"
+title: "Adding Kastrax to an Existing Project | Local Development | Kastrax Docs"
+description: "Learn how to integrate Kastrax AI Agent capabilities into your existing Kotlin applications with step-by-step instructions and examples."
 ---
 
-# Adding to an Existing Project ✅
+# Adding Kastrax to an Existing Project ✅
 
-You can add Kastrax to an existing project using the CLI:
+Kastrax can be easily integrated into existing Kotlin applications, allowing you to add AI agent capabilities to your projects without starting from scratch. This guide covers different approaches to integrating Kastrax, from using the CLI to manual dependency configuration.
 
-```bash npm2yarn copy
-npm install -g kastrax@latest 
+## Using the Kastrax CLI ✅
+
+The simplest way to add Kastrax to an existing project is using the Kastrax CLI tool:
+
+```bash
+# Install the CLI if you haven't already
+brew install kastrax/tap/kastrax-cli
+
+# Navigate to your project directory
+cd your-existing-project
+
+# Initialize Kastrax in your project
 kastrax init
 ```
 
-Changes made to project:
-1. Creates `src/kastrax` directory with entry point
-2. Adds required dependencies
-3. Configures TypeScript compiler options
+The CLI will make the following changes to your project:
+
+1. Add Kastrax dependencies to your `build.gradle.kts` file
+2. Create a basic agent implementation in your source directory
+3. Configure necessary resources and properties files
+4. Add example code to help you get started (optional)
 
 
 ## Interactive Setup ✅
 
-Running commands without arguments starts a CLI prompt for:
+When you run `kastrax init` without additional arguments, the CLI will guide you through an interactive setup process:
 
-1. Component selection
-2. LLM provider configuration
-3. API key setup
-4. Example code inclusion
+1. **Module Selection**: Choose which Kastrax modules to include (core, RAG, tools, workflows, etc.)
+2. **LLM Provider**: Select your preferred LLM provider (OpenAI, DeepSeek, Anthropic, etc.)
+3. **Vector Database**: Choose a vector database for RAG applications (if applicable)
+4. **API Key Configuration**: Set up API keys for selected services
+5. **Example Code**: Decide whether to include example implementations
+6. **Integration Point**: Specify where to add Kastrax code in your project structure
 
 ## Non-Interactive Setup ✅
 
-To initialize kastrax in non-interactive mode use the following command arguments:
+For automated or scripted setups, you can use command-line arguments to bypass the interactive prompts:
 
 ```bash
-Arguments:
-  --components     Specify components: agents, tools, workflows
-  --llm            LLM provider: openai, anthropic, groq, google or cerebras
-  --llm-api-key    Provider API key
-  --example        Include example implementation
-  --dir            Directory for Kastrax files (defaults to src/)
+kastrax init \
+  --modules core,rag,tools \
+  --llm-provider deepseek \
+  --vector-db pinecone \
+  --include-examples true \
+  --source-dir src/main/kotlin/com/example/ai \
+  --config-dir src/main/resources
 ```
 
-For more details, refer to the [kastrax init CLI documentation](../../reference/cli/init).
+Available arguments:
+
+| Argument | Description | Options |
+|----------|-------------|--------|
+| `--modules` | Kastrax modules to include | `core`, `rag`, `tools`, `workflows`, `monitoring` |
+| `--llm-provider` | LLM provider | `openai`, `deepseek`, `anthropic`, `google`, `local` |
+| `--vector-db` | Vector database | `pinecone`, `qdrant`, `pgvector`, `chroma`, `none` |
+| `--include-examples` | Include examples | `true`, `false` |
+| `--source-dir` | Directory for Kastrax source files | Any valid directory path |
+| `--config-dir` | Directory for configuration files | Any valid directory path |
+
+For more details, refer to the [Kastrax CLI documentation](../../reference/cli/init).
+
+## Manual Integration ✅
+
+If you prefer to integrate Kastrax manually or need more control over the integration process, you can add the necessary dependencies and code yourself.
+
+### Adding Dependencies
+
+Add the Kastrax dependencies to your `build.gradle.kts` file:
+
+```kotlin filename="build.gradle.kts"
+// Add the Kastrax repository
+repositories {
+    mavenCentral()
+    maven { url = uri("https://repo.kastrax.ai/repository/maven-public/") }
+}
+
+// Add Kastrax dependencies
+dependencies {
+    // Core Kastrax library (required)
+    implementation("ai.kastrax:kastrax-core:1.0.0")
+
+    // Optional modules based on your needs
+    implementation("ai.kastrax:kastrax-rag:1.0.0")         // For RAG capabilities
+    implementation("ai.kastrax:kastrax-tools:1.0.0")       // For tool integration
+    implementation("ai.kastrax:kastrax-workflow:1.0.0")    // For workflow orchestration
+    implementation("ai.kastrax:kastrax-monitoring:1.0.0")  // For agent monitoring
+
+    // LLM provider integrations (choose at least one)
+    implementation("ai.kastrax:kastrax-openai:1.0.0")      // For OpenAI integration
+    implementation("ai.kastrax:kastrax-deepseek:1.0.0")    // For DeepSeek integration
+    implementation("ai.kastrax:kastrax-anthropic:1.0.0")   // For Anthropic integration
+
+    // Vector database integrations (for RAG applications)
+    implementation("ai.kastrax:kastrax-pinecone:1.0.0")    // For Pinecone integration
+    implementation("ai.kastrax:kastrax-pgvector:1.0.0")    // For PostgreSQL/pgvector integration
+
+    // Actor system integration (for distributed agents)
+    implementation("ai.kastrax:kastrax-actor:1.0.0")       // For actor model integration
+}
+```
+
+### Configuration Files
+
+Create a configuration file for your LLM provider API keys and other settings:
+
+```properties filename="src/main/resources/kastrax.properties"
+# LLM Provider Configuration
+kastrax.llm.provider=deepseek
+kastrax.llm.api-key=your-api-key-here
+
+# Vector Database Configuration (for RAG applications)
+kastrax.vectordb.provider=pinecone
+kastrax.vectordb.api-key=your-pinecone-api-key
+kastrax.vectordb.environment=gcp-starter
+
+# Agent Configuration
+kastrax.agent.default-model=deepseek-chat
+kastrax.agent.temperature=0.7
+kastrax.agent.max-tokens=2000
+
+# Actor System Configuration (for distributed agents)
+kastrax.actor.system-name=kastrax-system
+kastrax.actor.mailbox-size=100
+```
+
+## Example Integration ✅
+
+Here's a complete example of integrating a simple Kastrax agent into an existing application:
+
+```kotlin filename="src/main/kotlin/com/example/MyApplication.kt"
+import ai.kastrax.core.kastrax
+import ai.kastrax.core.agent.agent
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.runBlocking
+
+class MyApplication {
+    // Create KastraX instance using DSL
+    private val kastraxInstance = kastrax {
+        // Configure agent
+        agent("assistant") {
+            name("MyAssistant")
+            description("A helpful assistant integrated into the MyApplication system")
+
+            // Configure model
+            model = deepSeek {
+                apiKey("your-deepseek-api-key")
+                model(DeepSeekModel.DEEPSEEK_CHAT)
+                temperature(0.7)
+            }
+
+            // Configure instructions
+            instructions = """
+                You are a helpful assistant integrated into the MyApplication system.
+                You can provide information, answer questions, and help users with their tasks.
+                Always be concise, accurate, and helpful in your responses.
+            """.trimIndent()
+        }
+    }
+
+    // Get the agent from KastraX instance
+    private val assistant = kastraxInstance.getAgent("assistant")
+
+    // Process user queries
+    fun processUserQuery(query: String): String = runBlocking {
+        // Use the Kastrax agent to process the user's query
+        val response = assistant.generate(query)
+        return response.text
+    }
+
+    // Other application methods...
+}
+```
+
+### Integration with Spring Boot
+
+If you're using Spring Boot, you can create a Kastrax configuration class:
+
+```kotlin filename="src/main/kotlin/com/example/config/KastraxConfig.kt"
+import ai.kastrax.core.KastraX
+import ai.kastrax.core.kastrax
+import ai.kastrax.core.agent.Agent
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import org.springframework.context.annotation.Bean
+import org.springframework.context.annotation.Configuration
+
+@Configuration
+class KastraxConfig {
+
+    @Bean
+    fun kastraxInstance(): KastraX {
+        return kastrax {
+            // Configure agent
+            agent("assistant") {
+                name("AssistantAgent")
+                description("A helpful assistant")
+
+                // Configure model
+                model = deepSeek {
+                    apiKey("your-deepseek-api-key")
+                    model(DeepSeekModel.DEEPSEEK_CHAT)
+                    temperature(0.7)
+                }
+
+                // Configure instructions
+                instructions = "You are a helpful assistant."
+            }
+        }
+    }
+
+    @Bean
+    fun assistantAgent(kastraxInstance: KastraX): Agent {
+        return kastraxInstance.getAgent("assistant")
+    }
+}
+```
+
+Then use the agent in your service:
+
+```kotlin filename="src/main/kotlin/com/example/service/AssistantService.kt"
+import ai.kastrax.core.agent.Agent
+import kotlinx.coroutines.runBlocking
+import org.springframework.stereotype.Service
+
+@Service
+class AssistantService(private val assistantAgent: Agent) {
+
+    fun getResponse(query: String): String = runBlocking {
+        val response = assistantAgent.generate(query)
+        return response.text
+    }
+}
+```
+
+### Actor Model Integration
+
+Kastrax provides powerful integration with the actor model for building distributed AI agent systems. Here's how to integrate the actor system:
+
+```kotlin filename="src/main/kotlin/com/example/ActorIntegration.kt"
+import ai.kastrax.core.kastrax
+import ai.kastrax.core.agent.agent
+import ai.kastrax.actor.actorSystem
+import ai.kastrax.actor.actor
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    // Create an actor system
+    val system = actorSystem("kastrax-system") {
+        // Configure mailbox size and other settings
+        mailboxSize = 100
+    }
+
+    // Create KastraX instance with actor integration
+    val kastraxInstance = kastrax {
+        // Configure agent
+        agent("assistant") {
+            name("AssistantAgent")
+            description("A helpful assistant")
+
+            // Configure model
+            model = deepSeek {
+                apiKey("your-deepseek-api-key")
+                model(DeepSeekModel.DEEPSEEK_CHAT)
+                temperature(0.7)
+            }
+
+            // Configure instructions
+            instructions = "You are a helpful assistant."
+        }
+
+        // Integrate with actor system
+        actorSystem = system
+    }
+
+    // Create an actor that uses the agent
+    val assistantActor = system.actor("assistant-actor") {
+        // Get the agent from KastraX instance
+        val agent = kastraxInstance.getAgent("assistant")
+
+        // Define message handling
+        onMessage<String> { message ->
+            // Process the message using the agent
+            val response = agent.generate(message)
+            // Send the response back
+            sender?.tell(response.text)
+        }
+    }
+
+    // Send a message to the actor and get the response
+    val response = assistantActor.ask<String>("Tell me about Kastrax AI agents.")
+    println("Response: $response")
+
+    // Shutdown the actor system when done
+    system.shutdown()
+}
+```
+
+## Next Steps ✅
+
+After integrating Kastrax into your project:
+
+1. **Configure your LLM provider**: Ensure your API keys are properly set up
+2. **Test the integration**: Verify that Kastrax is working correctly in your application
+3. **Customize the agent**: Modify the instructions, model settings, and other parameters to suit your needs
+4. **Add more capabilities**: Integrate additional Kastrax features like RAG, tools, or workflows
+5. **Explore actor model**: Consider using the actor model for building distributed agent systems
+6. **Implement error handling**: Add proper error handling and retry mechanisms for API calls
+
+For more detailed information on developing with Kastrax, see the [Agent Development](../agents/agent-development.mdx), [Tool Integration](../tools/tool-integration.mdx), and [Actor Model](../actor/actor-model.mdx) guides.

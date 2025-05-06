@@ -1,7 +1,7 @@
 const meta = {
-  init: "mastra init",
-  dev: "mastra dev",
-  build: "mastra build",
+  init: "kastrax init",
+  dev: "kastrax dev",
+  build: "kastrax build",
 };
 
 export default meta;

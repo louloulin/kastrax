@@ -1,5 +1,5 @@
 const meta = {
-  "mastra-class": "Mastra Class",
+  "kastrax-class": "Kastrax Class",
 };
 
 export default meta;

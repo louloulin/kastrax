@@ -121,7 +121,7 @@ export const ShowcaseGrid = () => {
       title: "TravelAI",
       description: "Travel assistant that helps you plan your next trip",
       image: travelAiImg,
-      link: "https://mastra-eight.vercel.app/",
+      link: "https://kastrax-eight.vercel.app/",
     },
     {
       title: "Excalidraw app",
@@ -140,7 +140,7 @@ export const ShowcaseGrid = () => {
       title: "Text-to-SQL",
       description: "Generate SQL queries from natural language",
       image: textToSqlImg,
-      link: "https://mastra-text-to-sql.vercel.app/",
+      link: "https://kastrax-text-to-sql.vercel.app/",
     },
   ];
 

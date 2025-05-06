@@ -9,7 +9,7 @@ const meta = {
   rag: "RAG",
   "local-dev": "Local Dev",
   deployment: "Deployment",
-  "mastra-cloud": "Mastra Cloud",
+  "kastrax-cloud": "Kastrax Cloud",
   observability: "Observability",
   evals: "Evals",
   storage: "Storage",

@@ -23,24 +23,24 @@ export const ReferenceCards = () => {
         Core: [
           {
             title: "Kastrax Class",
-            href: "/reference/core/mastra-class",
+            href: "/reference/core/kastrax-class",
           },
         ],
         CLI: [
           {
-            title: "mastra init",
+            title: "kastrax init",
             href: "/reference/cli/init",
           },
           {
-            title: "mastra dev",
+            title: "kastrax dev",
             href: "/reference/cli/dev",
           },
           {
-            title: "mastra deploy",
+            title: "kastrax deploy",
             href: "/reference/cli/deploy",
           },
           {
-            title: "mastra build",
+            title: "kastrax build",
             href: "/reference/cli/build",
           },
         ],

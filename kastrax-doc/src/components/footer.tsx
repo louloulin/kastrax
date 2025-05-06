@@ -13,7 +13,7 @@ const links = [
   },
   {
     text: "Book",
-    url: "https://mastra.ai/book",
+    url: "https://kastrax.ai/book",
   },
   {
     text: "llms.txt",
@@ -25,7 +25,7 @@ const links = [
   },
   {
     text: "MCP Registry Registry",
-    url: "https://mastra.ai/mcp-registry-registry",
+    url: "https://kastrax.ai/mcp-registry-registry",
   },
 ];
 
