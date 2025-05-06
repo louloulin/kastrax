@@ -1,81 +1,139 @@
 ---
-title: "Retrieval, Semantic Search, Reranking | RAG | Kastrax Docs"
-description: Guide on retrieval processes in Kastrax's RAG systems, including semantic search, filtering, and re-ranking.
+title: "Retrieval in Kastrax RAG Systems | RAG | Kastrax Docs"
+description: "Learn how to implement advanced retrieval strategies in Kastrax RAG systems, including semantic search, metadata filtering, reranking, and hybrid retrieval approaches."
 ---
 
 import { Tabs } from "nextra/components";
 
-## Retrieval in RAG Systems ✅
+# Retrieval in Kastrax RAG Systems ✅
 
-After storing embeddings, you need to retrieve relevant chunks to answer user queries. 
+Retrieval is the critical middle step in any RAG (Retrieval-Augmented Generation) system, responsible for finding the most relevant information to answer user queries. Kastrax provides a comprehensive retrieval system with multiple strategies to ensure high-quality, relevant results.
 
-Kastrax provides flexible retrieval options with support for semantic search, filtering, and re-ranking.
+## Retrieval Architecture ✅
+
+Kastrax's retrieval system is built on a flexible, multi-layered architecture that enables sophisticated information retrieval:
+
+1. **Query Processing**: Transforms user queries into vector embeddings and structured search parameters
+2. **Vector Search**: Performs similarity search against embedded documents in vector databases
+3. **Metadata Filtering**: Applies structured filters to narrow down results based on document attributes
+4. **Reranking**: Refines initial results using more sophisticated relevance algorithms
+5. **Result Processing**: Formats and prepares retrieved information for generation
+
+This architecture allows for a range of retrieval strategies, from simple vector similarity search to complex hybrid approaches combining multiple retrieval methods.
 
 ## How Retrieval Works ✅
 
-1. The user's query is converted to an embedding using the same model used for document embeddings
-2. This embedding is compared to stored embeddings using vector similarity
-3. The most similar chunks are retrieved and can be optionally:
-  - Filtered by metadata
-  - Re-ranked for better relevance
-  - Processed through a knowledge graph
+The retrieval process in Kastrax follows these key steps:
+
+1. **Query Embedding**: The user's query is converted to a vector embedding using the same model used for document embeddings
+2. **Vector Similarity**: This embedding is compared to stored document embeddings using vector similarity metrics (cosine, dot product, or Euclidean distance)
+3. **Result Ranking**: The most similar chunks are retrieved and ranked by similarity score
+4. **Optional Processing**: Retrieved chunks can be further processed through:
+   - Metadata filtering to narrow results based on document attributes
+   - Reranking to improve relevance using more sophisticated algorithms
+   - Hybrid retrieval combining vector search with keyword or graph-based approaches
 
 ## Basic Retrieval ✅
 
-The simplest approach is direct semantic search. This method uses vector similarity to find chunks that are semantically similar to the query:
+The simplest approach is direct semantic search, which uses vector similarity to find chunks that are semantically similar to the query:
 
-```ts showLineNumbers copy
-import { openai } from "@ai-sdk/openai";
-import { embed } from "ai";
-import { PgVector } from "@kastrax/pg";
+```kotlin filename="BasicRetrieval.kt" showLineNumbers
+import ai.kastrax.rag.embedding.OpenAIEmbedder
+import ai.kastrax.rag.vectordb.PgVectorAdapter
+import ai.kastrax.rag.retrieval.RetrievalOptions
 
-// Convert query to embedding
-const { embedding } = await embed({
-  value: "What are the main points in the article?",
-  model: openai.embedding('text-embedding-3-small'),
-});
+// Create an embedder for query embedding
+val embedder = OpenAIEmbedder(
+    options = EmbeddingOptions(
+        modelName = "text-embedding-3-small",
+        apiKey = System.getenv("OPENAI_API_KEY")
+    )
+)
 
-// Query vector store
-const pgVector = new PgVector(process.env.POSTGRES_CONNECTION_STRING);
-const results = await pgVector.query({
-  indexName: "embeddings",
-  queryVector: embedding,
-  topK: 10,
-});
+// Generate embedding for the query
+val query = "What are the main points in the article?"
+val queryEmbedding = embedder.embedText(query)
 
-// Display results
-console.log(results);
+// Create a vector database adapter
+val vectorDB = PgVectorAdapter(
+    connectionString = System.getenv("POSTGRES_CONNECTION_STRING")
+)
+
+// Perform semantic search
+val results = vectorDB.search(
+    indexName = "document_embeddings",
+    embedding = queryEmbedding,
+    limit = 10,
+    minScore = 0.7  // Only return results with similarity score >= 0.7
+)
+
+// Process the results
+results.forEach { result ->
+    println("Score: ${result.score}")
+    println("Content: ${result.chunk.content.take(100)}...")
+    println("Metadata: ${result.chunk.metadata}")
+    println()
+}
 ```
 
-Results include both the text content and a similarity score:
+Results include both the document content and a similarity score:
 
-```ts showLineNumbers copy
-[
-  {
-    text: "Climate change poses significant challenges...",
-    score: 0.89,
-    metadata: { source: "article1.txt" }
-  },
-  {
-    text: "Rising temperatures affect crop yields...",
-    score: 0.82,
-    metadata: { source: "article1.txt" }
-  }
-  // ... more results
-]
+```kotlin
+// Example search result
+SearchResult(
+    chunk = EmbeddedChunk(
+        content = "Climate change poses significant challenges...",
+        embedding = floatArrayOf(...),  // Vector embedding
+        metadata = mapOf(
+            "source" to "article1.txt",
+            "page" to 1,
+            "category" to "environment"
+        )
+    ),
+    score = 0.89  // Similarity score (0.0-1.0)
+)
 ```
 
-For an example of how to use the basic retrieval method, see the [Retrieve Results](../../examples/rag/query/retrieve-results.mdx) example.
+### Using the Retrieval Engine
 
-## Advanced Retrieval options ✅
+Kastrax provides a high-level `RetrievalEngine` that simplifies the retrieval process:
+
+```kotlin filename="RetrievalEngine.kt" showLineNumbers
+import ai.kastrax.rag.retrieval.RetrievalEngine
+import ai.kastrax.rag.retrieval.RetrievalOptions
+
+// Create a retrieval engine with the vector database
+val retrievalEngine = RetrievalEngine(
+    vectorDB = vectorDB,
+    embedder = embedder
+)
+
+// Retrieve relevant chunks for a query
+val retrievedChunks = retrievalEngine.retrieve(
+    query = "What are the main points in the article?",
+    options = RetrievalOptions(
+        indexName = "document_embeddings",
+        limit = 5,
+        minScore = 0.7
+    )
+)
+
+// Process the retrieved chunks
+retrievedChunks.forEach { result ->
+    println("Score: ${result.score}")
+    println("Content: ${result.chunk.content}")
+}
+```
+
+The `RetrievalEngine` handles query embedding and search in a single operation, making it easier to implement retrieval in your applications.
+
+## Advanced Retrieval Strategies ✅
 
 ### Metadata Filtering
 
-Filter results based on metadata fields to narrow down the search space. This is useful when you have documents from different sources, time periods, or with specific attributes. Kastrax provides a unified MongoDB-style query syntax that works across all supported vector stores.
+Metadata filtering allows you to narrow down search results based on document attributes. This is particularly useful when you have documents from different sources, time periods, or with specific characteristics. Kastrax provides a unified MongoDB-style query syntax that works across all supported vector databases.
 
-For detailed information about available operators and syntax, see the [Metadata Filters Reference](/reference/rag/metadata-filters).
-
-Basic filtering examples:
+Here are examples of different filtering approaches:
 
 ```ts showLineNumbers copy
 // Simple equality filter
@@ -136,7 +194,7 @@ const results = await pgVector.query({
     ]
   }
 });
-``` 
+```
 
 Common use cases for metadata filtering:
 - Filter by document source or type
@@ -171,7 +229,7 @@ For detailed configuration options and advanced usage, see the [Vector Query Too
 
 ### Vector Store Prompts
 
-Vector store prompts define query patterns and filtering capabilities for each vector database implementation. 
+Vector store prompts define query patterns and filtering capabilities for each vector database implementation.
 When implementing filtering, these prompts are required in the agent's instructions to specify valid operators and syntax for each vector store implementation.
 
 <Tabs items={['Pg Vector', 'Pinecone', 'Qdrant', 'Chroma', 'Astra', 'LibSQL', 'Upstash', 'Cloudflare', 'MongoDB']}>
