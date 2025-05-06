@@ -1,127 +1,277 @@
 ---
-title: "Serverless Deployment"
-description: "Build and deploy Kastrax applications using platform-specific deployers or standard HTTP servers"
+title: "Deploying Kastrax Applications"
+description: "Learn how to deploy Kastrax AI Agent applications to various environments including cloud platforms, Kubernetes, and standalone servers"
 ---
 
-# Serverless Deployment ✅
+# Deploying Kastrax Applications ✅
 
-This guide covers deploying Kastrax to Cloudflare Workers, Vercel, and Netlify using platform-specific deployers
+This guide covers various deployment options for Kastrax applications, from cloud platforms to self-hosted solutions. Kastrax supports multiple deployment models to fit your specific requirements and infrastructure.
 
-For self-hosted Node.js server deployment, see the [Creating A Kastrax Server](/docs/deployment/server) guide.
+For detailed information on setting up a self-hosted Kastrax server, see the [Creating A Kastrax Server](/docs/deployment/server) guide.
 
 ## Prerequisites ✅
 
 Before you begin, ensure you have:
 
-- **Node.js** installed (version 18 or higher is recommended)
-- If using a platform-specific deployer:
+- **JDK 11 or higher** installed (JDK 17 is recommended)
+- **Gradle 7.0+** for building your application
+- If using a cloud platform:
   - An account with your chosen platform
   - Required API keys or credentials
 
-## Serverless Platform Deployers ✅
+## Deployment Options ✅
 
-Platform-specific deployers handle configuration and deployment for:
-- **[Cloudflare Workers](/reference/deployer/cloudflare)**
-- **[Vercel](/reference/deployer/vercel)**
-- **[Netlify](/reference/deployer/netlify)**
+Kastrax supports multiple deployment options to fit different requirements:
 
-As of April 2025, Kastrax also offers [Kastrax Cloud](https://kastrax.ai/cloud-beta), a serverless agent environment with atomic deployments. You can sign up for the waitlist [here](https://kastrax.ai/cloud-beta).
+- **[Kastrax Cloud](#kastrax-cloud)**: Managed serverless platform for AI agents
+- **[Docker Containers](#docker-deployment)**: Containerized deployment for any environment
+- **[Kubernetes](#kubernetes-deployment)**: Scalable, orchestrated deployment
+- **[Standalone JVM](#standalone-jvm-deployment)**: Traditional Java application deployment
+- **[GraalVM Native Image](#graalvm-native-image)**: Compiled native executables for maximum performance
 
-### Installing Deployers
+As of April 2025, Kastrax offers [Kastrax Cloud](https://kastrax.ai/cloud-beta), a managed service specifically designed for AI agent deployments. You can sign up for the waitlist [here](https://kastrax.ai/cloud-beta).
 
-```bash copy
-# For Cloudflare ✅
-npm install @kastrax/deployer-cloudflare@latest
+## Kastrax Cloud ✅
 
-# For Vercel ✅
-npm install @kastrax/deployer-vercel@latest
+Kastrax Cloud is a fully managed platform for deploying AI agents with:
 
-# For Netlify ✅
-npm install @kastrax/deployer-netlify@latest
+- Automatic scaling
+- Built-in monitoring and observability
+- Secure API key management
+- Version control and rollback capabilities
+
+To deploy to Kastrax Cloud:
+
+```bash
+# Install the Kastrax CLI
+brew install kastrax/tap/kastrax-cli
+
+# Login to Kastrax Cloud
+kastrax cloud login
+
+# Deploy your application
+kastrax cloud deploy
 ```
 
-### Configuring Deployers
+For more details, see the [Kastrax Cloud documentation](/docs/kastrax-cloud/overview).
 
-Configure the deployer in your entry file:
+## Docker Deployment ✅
 
-```typescript copy showLineNumbers
-import { Kastrax, createLogger } from '@kastrax/core';
-import { CloudflareDeployer } from '@kastrax/deployer-cloudflare';
+Kastrax applications can be easily containerized using Docker. Here's a sample `Dockerfile`:
 
-export const kastrax = new Kastrax({
-  agents: { /* your agents here */ },
-  logger: createLogger({ name: 'MyApp', level: 'debug' }),
-  deployer: new CloudflareDeployer({
-    scope: 'your-cloudflare-scope',
-    projectName: 'your-project-name',
-    // See complete configuration options in the reference docs
-  }),
-});
+```dockerfile filename="Dockerfile"
+FROM gradle:7.6.1-jdk17 AS build
+WORKDIR /app
+COPY . .
+RUN gradle build --no-daemon
+
+FROM openjdk:17-slim
+WORKDIR /app
+COPY --from=build /app/build/libs/*.jar app.jar
+EXPOSE 8080
+CMD ["java", "-jar", "app.jar"]
 ```
 
-### Deployer Configuration
+Build and run your Docker container:
 
-Each deployer has specific configuration options. Below are basic examples, but refer to the reference documentation for complete details.
+```bash
+# Build the Docker image
+docker build -t kastrax-app .
 
-#### Cloudflare Deployer
-
-```typescript copy showLineNumbers
-new CloudflareDeployer({
-  scope: 'your-cloudflare-account-id',
-  projectName: 'your-project-name',
-  // For complete configuration options, see the reference documentation
-})
+# Run the container
+docker run -p 8080:8080 \
+  -e OPENAI_API_KEY=your-api-key \
+  -e KASTRAX_SERVER_PORT=8080 \
+  kastrax-app
 ```
 
-[View Cloudflare Deployer Reference →](/reference/deployer/cloudflare)
+## Kubernetes Deployment ✅
 
-#### Vercel Deployer
+For production environments, Kubernetes provides scalability and resilience. Here's a basic Kubernetes deployment manifest:
 
-```typescript copy showLineNumbers
-new VercelDeployer({
-  teamSlug: 'your-vercel-team-slug',
-  projectName: 'your-project-name',
-  token: 'your-vercel-token'
-  // For complete configuration options, see the reference documentation
-})
+```yaml filename="kastrax-deployment.yaml"
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kastrax-agent
+  labels:
+    app: kastrax-agent
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: kastrax-agent
+  template:
+    metadata:
+      labels:
+        app: kastrax-agent
+    spec:
+      containers:
+      - name: kastrax-agent
+        image: your-registry/kastrax-app:latest
+        ports:
+        - containerPort: 8080
+        env:
+        - name: OPENAI_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: kastrax-secrets
+              key: openai-api-key
+        - name: KASTRAX_SERVER_PORT
+          value: "8080"
+        resources:
+          limits:
+            cpu: "1"
+            memory: "1Gi"
+          requests:
+            cpu: "500m"
+            memory: "512Mi"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kastrax-agent-service
+spec:
+  selector:
+    app: kastrax-agent
+  ports:
+  - port: 80
+    targetPort: 8080
+  type: LoadBalancer
 ```
 
-[View Vercel Deployer Reference →](/reference/deployer/vercel)
+Apply the deployment to your Kubernetes cluster:
 
-#### Netlify Deployer
-
-```typescript copy showLineNumbers
-new NetlifyDeployer({
-  scope: 'your-netlify-team-slug',
-  projectName: 'your-project-name',
-  token: 'your-netlify-token'
-})
+```bash
+kubectl apply -f kastrax-deployment.yaml
 ```
 
-[View Netlify Deployer Reference →](/reference/deployer/netlify)
+## Standalone JVM Deployment ✅
+
+Kastrax applications can be deployed as standalone JVM applications on any server that supports Java:
+
+```kotlin filename="Application.kt"
+import ai.kastrax.core.kastrax
+import ai.kastrax.server.server
+
+fun main() {
+    // Create a Kastrax instance with server configuration
+    val kastraxInstance = kastrax {
+        // Configure server
+        server {
+            port = 8080
+            host = "0.0.0.0"
+            enableSwagger = true
+        }
+
+        // Configure agents, tools, etc.
+        agent("assistant") {
+            // Agent configuration
+        }
+    }
+
+    // Start the server
+    kastraxInstance.startServer()
+}
+```
+
+Build your application as a fat JAR using Gradle:
+
+```bash
+./gradlew shadowJar
+```
+
+Deploy and run the JAR on your server:
+
+```bash
+java -jar build/libs/your-app-all.jar
+```
+
+## GraalVM Native Image ✅
+
+For maximum performance and minimal startup time, you can compile your Kastrax application to a native executable using GraalVM:
+
+1. Add GraalVM Native Image support to your `build.gradle.kts`:
+
+```kotlin filename="build.gradle.kts"
+plugins {
+    kotlin("jvm") version "1.9.20"
+    id("org.graalvm.buildtools.native") version "0.9.28"
+    id("com.github.johnrengelman.shadow") version "8.1.1"
+}
+
+graalvmNative {
+    binaries {
+        named("main") {
+            imageName.set("kastrax-app")
+            mainClass.set("com.example.ApplicationKt")
+            buildArgs.add("--no-fallback")
+            buildArgs.add("-H:+ReportExceptionStackTraces")
+        }
+    }
+}
+```
+
+2. Build the native image:
+
+```bash
+./gradlew nativeCompile
+```
+
+3. Deploy and run the native executable:
+
+```bash
+./build/native/nativeCompile/kastrax-app
+```
 
 ## Environment Variables ✅
 
-Required variables:
+Kastrax applications use the following environment variables:
 
-1. Platform deployer variables (if using platform deployers):
-   - Platform credentials
-2. Agent API keys:
-   - `OPENAI_API_KEY`
-   - `ANTHROPIC_API_KEY`
-3. Server configuration (for universal deployment):
-   - `PORT`: HTTP server port (default: 3000)
-   - `HOST`: Server host (default: 0.0.0.0)
+1. LLM provider API keys:
+   - `OPENAI_API_KEY`: For OpenAI integration
+   - `DEEPSEEK_API_KEY`: For DeepSeek integration
+   - `ANTHROPIC_API_KEY`: For Anthropic integration
 
-## Build Kastrax Project ✅
+2. Server configuration:
+   - `KASTRAX_SERVER_PORT`: HTTP server port (default: 8080)
+   - `KASTRAX_SERVER_HOST`: Server host (default: 0.0.0.0)
+   - `KASTRAX_LOG_LEVEL`: Logging level (default: INFO)
 
-To build your Kastrax project for your target platform run:
+3. Vector database configuration (for RAG applications):
+   - `PINECONE_API_KEY`: For Pinecone integration
+   - `PGVECTOR_CONNECTION_STRING`: For PostgreSQL/pgvector integration
+
+## Building for Deployment ✅
+
+To build your Kastrax project for deployment:
 
 ```bash
-npx kastrax build
+# For JAR deployment
+./gradlew shadowJar
+
+# For native image deployment
+./gradlew nativeCompile
+
+# For Docker deployment
+docker build -t kastrax-app .
 ```
 
-When a Deployer is used, the build output is automatically prepared for the target platform.
-You can then deploy the build output `.kastrax/output` via your platform's (Vercel, netlify, cloudfare e.t.c) 
-CLI/UI.
+## Deployment Checklist ✅
 
+Before deploying to production, ensure you have:
+
+1. **Secured API Keys**: Store API keys securely using environment variables or secrets management
+2. **Configured Logging**: Set up appropriate logging levels and destinations
+3. **Set Resource Limits**: Configure memory and CPU limits for your application
+4. **Enabled Monitoring**: Set up health checks and performance monitoring
+5. **Tested Thoroughly**: Verify all functionality in a staging environment
+6. **Documented Endpoints**: Document all API endpoints for consumers
+7. **Implemented Rate Limiting**: Protect your APIs from abuse
+8. **Set Up Backup Strategy**: Ensure data persistence and recovery options
+
+## Next Steps ✅
+
+- Learn about [Monitoring and Observability](/docs/deployment/monitoring)
+- Explore [Kastrax Cloud](/docs/kastrax-cloud/overview) for managed deployments
+- Set up [CI/CD Pipelines](/docs/deployment/ci-cd) for automated deployments

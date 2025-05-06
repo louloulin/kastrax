@@ -1,122 +1,263 @@
 ---
 title: "Creating A Kastrax Server"
-description: "Configure and customize the Kastrax server with middleware and other options"
+description: "Configure and customize the Kastrax server with routing, middleware, and other options for your AI agent applications"
 ---
 
 # Creating A Kastrax Server ✅
 
-While developing or when you deploy a Kastrax application, it runs as an HTTP server that exposes your agents, workflows, and other functionality as API endpoints. This page explains how to configure and customize the server behavior.
+When developing or deploying a Kastrax application, it runs as an HTTP server that exposes your agents, workflows, and other functionality as API endpoints. This page explains how to configure and customize the server behavior.
 
 ## Server Architecture ✅
 
-Kastrax uses [Hono](https://hono.dev) as its underlying HTTP server framework. When you build a Kastrax application using `kastrax build`, it generates a Hono-based HTTP server in the `.kastrax` directory.
+Kastrax uses [Ktor](https://ktor.io) as its underlying HTTP server framework. Ktor is a lightweight, high-performance framework specifically designed for Kotlin applications. When you build a Kastrax application, it configures a Ktor-based HTTP server with all the necessary components.
 
 The server provides:
 
-- API endpoints for all registered agents
+- REST API endpoints for all registered agents
 - API endpoints for all registered workflows
-- Custom api route supports
-- Custom middleware support
-- Configuration of timeout
-- Configuration of port
+- WebSocket support for real-time agent interactions
+- Custom route configuration
+- Flexible middleware pipeline
+- Comprehensive configuration options
+- Authentication and authorization support
+- CORS configuration
 
-## Server configuration ✅
+## Server Configuration ✅
 
-You can configure server `port` and `timeout` in the Kastrax instance.
+You can configure the server using the Kastrax DSL. The server configuration is specified within the `server` block of your Kastrax instance:
 
-```typescript copy showLineNumbers
-import { Kastrax } from "@kastrax/core";
+```kotlin filename="ServerConfig.kt" showLineNumbers
+import ai.kastrax.core.kastrax
+import ai.kastrax.server.server
 
-export const kastrax = new Kastrax({
-  server: {
-    port: 3000, // Defaults to 4111
-    timeout: 10000, // Defaults to 30000 (30s)
-  },
-});
+// Create a Kastrax instance with server configuration
+val kastraxInstance = kastrax {
+    // Configure server
+    server {
+        port = 8080                // Default: 8080
+        host = "0.0.0.0"           // Default: 0.0.0.0
+        callTimeout = 30000        // Default: 30000 (30s)
+        requestTimeout = 60000     // Default: 60000 (60s)
+        enableSwagger = true       // Default: false
+        enableOpenAPI = true       // Default: false
+        enableCompression = true   // Default: true
+        enableMetrics = true       // Default: false
+        enableTracing = true       // Default: false
+    }
+
+    // Other Kastrax configuration...
+}
+```
+
+You can also configure the server using environment variables:
+
+```properties filename="application.conf"
+kastrax {
+    server {
+        port = ${?KASTRAX_SERVER_PORT}
+        host = ${?KASTRAX_SERVER_HOST}
+        callTimeout = ${?KASTRAX_SERVER_CALL_TIMEOUT}
+        requestTimeout = ${?KASTRAX_SERVER_REQUEST_TIMEOUT}
+    }
+}
 ```
 
 ## Custom API Routes ✅
 
-Kastrax provides a list of api routes that are automatically generated based on the registered agents and workflows. You can also define custom api routes on the Kastrax instance.
+Kastrax automatically generates API routes for all registered agents and workflows. You can also define custom routes to extend the functionality of your server.
 
-These routes can live in the same file as the Kastrax instance or in a separate file. We recommend keeping them in a separate file to keep the Kastrax instance clean.
+Custom routes can be defined within the `server` block using the `routing` function:
 
-```typescript copy showLineNumbers
-import { Kastrax } from "@kastrax/core";
-import { registerApiRoute } from "@kastrax/core/server";
+```kotlin filename="CustomRoutes.kt" showLineNumbers
+import ai.kastrax.core.kastrax
+import ai.kastrax.server.server
+import io.ktor.http.*
+import io.ktor.server.application.*
+import io.ktor.server.request.*
+import io.ktor.server.response.*
+import io.ktor.server.routing.*
 
-export const kastrax = new Kastrax({
-  server: {
-    apiRoutes: [
-      registerApiRoute("/my-custom-route", {
-        method: "GET",
-        handler: async (c) => {
-          // you have access to kastrax instance here
-          const kastrax = c.get("kastrax");
+val kastraxInstance = kastrax {
+    server {
+        // Configure server settings
+        port = 8080
 
-          // you can use the kastrax instance to get agents, workflows, etc.
-          const agents = await kastrax.getAgent("my-agent");
+        // Define custom routes
+        routing {
+            // Simple GET endpoint
+            get("/api/status") {
+                call.respond(HttpStatusCode.OK, mapOf("status" to "running"))
+            }
 
-          return c.json({ message: "Hello, world!" });
-        },
-      }),
-    ],
-  },
-  // Other configuration options
-});
-```
+            // Route with path parameters
+            get("/api/agents/{agentId}/info") {
+                val agentId = call.parameters["agentId"]
+                val agent = kastraxInstance.getAgent(agentId ?: "")
 
-## Custom CORS Config ✅
+                if (agent != null) {
+                    call.respond(HttpStatusCode.OK, mapOf(
+                        "name" to agent.name,
+                        "description" to agent.description
+                    ))
+                } else {
+                    call.respond(HttpStatusCode.NotFound, mapOf("error" to "Agent not found"))
+                }
+            }
 
-Kastrax allows you to configure CORS (Cross-Origin Resource Sharing) settings for your server.
+            // POST endpoint with request body
+            post("/api/custom-generate") {
+                val request = call.receive<CustomGenerateRequest>()
+                val agent = kastraxInstance.getAgent(request.agentId)
 
-```typescript copy showLineNumbers
-import { Kastrax } from '@kastrax/core';
-
-export const kastrax = new Kastrax({
-  server: {
-    cors: {
-      origin: ['https://example.com'], // Allow specific origins or '*' for all
-      allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-      allowHeaders: ['Content-Type', 'Authorization'],
-      credentials: false,
+                if (agent != null) {
+                    val response = agent.generate(request.prompt)
+                    call.respond(HttpStatusCode.OK, response)
+                } else {
+                    call.respond(HttpStatusCode.NotFound, mapOf("error" to "Agent not found"))
+                }
+            }
+        }
     }
-  }
-});
+
+    // Other Kastrax configuration...
+}
+
+// Request data class
+data class CustomGenerateRequest(
+    val agentId: String,
+    val prompt: String
+)
 ```
 
-## Middleware ✅
+You can also define routes in a separate file and include them in your server configuration:
 
-Kastrax allows you to configure custom middleware functions that will be applied to API routes. This is useful for adding authentication, logging, CORS, or other HTTP-level functionality to your API endpoints.
+```kotlin filename="Routes.kt" showLineNumbers
+import ai.kastrax.core.KastraX
+import io.ktor.server.application.*
+import io.ktor.server.response.*
+import io.ktor.server.routing.*
 
-```typescript copy showLineNumbers
-import { Kastrax } from '@kastrax/core';
-
-export const kastrax = new Kastrax({
-  // Other configuration options
-  server: {
-    middleware: [
-    {
-      handler: async (c, next) => {
-        // Example: Add authentication check
-        const authHeader = c.req.header('Authorization');
-        if (!authHeader) {
-          return new Response('Unauthorized', { status: 401 });
+// Define routes in a separate function
+fun Application.configureRoutes(kastraxInstance: KastraX) {
+    routing {
+        get("/api/custom/health") {
+            call.respond(mapOf("status" to "healthy"))
         }
 
-        // Continue to the next middleware or route handler
-        await next();
-      },
-      path: '/api/*'
-    },
-    // add middleware to all routes
-    async (c, next) => {
-      // Example: Add request logging
-      console.log(`${c.req.method} ${c.req.url}`);
-      await next();
-    },
-  ]
-});
+        // More routes...
+    }
+}
+```
+
+Then include them in your server configuration:
+
+```kotlin filename="ServerConfig.kt" showLineNumbers
+import ai.kastrax.core.kastrax
+import ai.kastrax.server.server
+
+val kastraxInstance = kastrax {
+    server {
+        // Include custom routes
+        install { application ->
+            application.configureRoutes(kastraxInstance)
+        }
+    }
+}
+```
+
+## CORS Configuration ✅
+
+Kastrax allows you to configure CORS (Cross-Origin Resource Sharing) settings for your server. This is important when your frontend application is hosted on a different domain than your API server.
+
+```kotlin filename="CorsConfig.kt" showLineNumbers
+import ai.kastrax.core.kastrax
+import ai.kastrax.server.server
+import io.ktor.http.*
+
+val kastraxInstance = kastrax {
+    server {
+        // Configure CORS
+        cors {
+            allowHost("https://example.com")
+            allowHost("https://app.example.com")
+            allowMethod(HttpMethod.Get)
+            allowMethod(HttpMethod.Post)
+            allowMethod(HttpMethod.Options)
+            allowHeader(HttpHeaders.ContentType)
+            allowHeader(HttpHeaders.Authorization)
+            exposeHeader(HttpHeaders.ContentLength)
+            maxAgeInSeconds = 3600
+            allowCredentials = true
+        }
+    }
+
+    // Other Kastrax configuration...
+}
+```
+
+## Middleware Configuration ✅
+
+Kastrax allows you to add custom middleware to the server pipeline. Middleware functions are executed in the order they are defined and can perform tasks like logging, authentication, and request transformation.
+
+```kotlin filename="MiddlewareConfig.kt" showLineNumbers
+import ai.kastrax.core.kastrax
+import ai.kastrax.server.server
+import io.ktor.server.application.*
+import io.ktor.server.plugins.callloging.*
+import io.ktor.server.plugins.compression.*
+import io.ktor.server.plugins.defaultheaders.*
+import io.ktor.server.plugins.ratelimit.*
+import org.slf4j.event.Level
+
+val kastraxInstance = kastrax {
+    server {
+        // Install middleware plugins
+        install { application ->
+            // Add default headers
+            application.install(DefaultHeaders) {
+                header("X-Engine", "Kastrax")
+                header("X-Version", "1.0.0")
+            }
+
+            // Add call logging
+            application.install(CallLogging) {
+                level = Level.INFO
+                filter { call -> call.request.path().startsWith("/api") }
+            }
+
+            // Add compression
+            application.install(Compression) {
+                gzip()
+                deflate()
+            }
+
+            // Add rate limiting
+            application.install(RateLimit) {
+                global {
+                    rateLimiter(limit = 100, refillPeriod = 60000)
+                }
+
+                register(RateLimitName("critical-endpoints")) {
+                    rateLimiter(limit = 10, refillPeriod = 60000)
+                }
+            }
+
+            // Custom authentication middleware
+            application.intercept(ApplicationCallPipeline.Plugins) {
+                val authHeader = call.request.headers["Authorization"]
+                if (call.request.path().startsWith("/api/protected") &&
+                    (authHeader == null || !authHeader.startsWith("Bearer "))) {
+                    throw UnauthorizedException("Invalid or missing authentication token")
+                }
+            }
+        }
+    }
+
+    // Other Kastrax configuration...
+}
+
+// Custom exception
+class UnauthorizedException(message: String) : RuntimeException(message)
 ```
 
 if you want to add a middleware to a single route, you can also specify that in the registerApiRoute using `registerApiRoute`.
@@ -153,24 +294,49 @@ Each middleware function:
 - Can optionally specify a path pattern (defaults to '/api/\*')
 - Inject request specific data for agent tool calling or workflows
 
-### Common Middleware Use Cases
+## Authentication ✅
 
-#### Authentication
+Kastrax supports various authentication methods through Ktor's authentication features:
 
-```typescript copy
-{
-  handler: async (c, next) => {
-    const authHeader = c.req.header('Authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return new Response('Unauthorized', { status: 401 });
+```kotlin filename="AuthConfig.kt" showLineNumbers
+import ai.kastrax.core.kastrax
+import ai.kastrax.server.server
+import io.ktor.server.application.*
+import io.ktor.server.auth.*
+import io.ktor.server.auth.jwt.*
+
+val kastraxInstance = kastrax {
+    server {
+        // Configure authentication
+        auth {
+            // Basic authentication
+            basic("auth-basic") {
+                realm = "Kastrax Server"
+                validate { credentials ->
+                    if (credentials.name == "admin" && credentials.password == "password") {
+                        UserIdPrincipal(credentials.name)
+                    } else {
+                        null
+                    }
+                }
+            }
+
+            // JWT authentication
+            jwt("auth-jwt") {
+                realm = "Kastrax Server"
+                verifier(JwtConfig.verifier)
+                validate { credential ->
+                    if (credential.payload.getClaim("username").asString() != "") {
+                        JWTPrincipal(credential.payload)
+                    } else {
+                        null
+                    }
+                }
+            }
+        }
     }
 
-    const token = authHeader.split(' ')[1];
-    // Validate token here
-
-    await next();
-  },
-  path: '/api/*',
+    // Other Kastrax configuration...
 }
 ```
 
@@ -267,24 +433,46 @@ The build process:
 
 See [`kastrax build`](/reference/cli/build) for all options.
 
-### Running the Server
+## Starting the Server ✅
 
-Start the HTTP server:
+To start the server, you can use the `kastrax dev` command during development or deploy your application using one of the deployment methods described in the [Deployment](/docs/deployment/deployment) guide.
 
-```bash copy
-node .kastrax/output/index.mjs
+```kotlin filename="StartServer.kt" showLineNumbers
+import ai.kastrax.core.kastrax
+import ai.kastrax.server.server
+
+fun main() {
+    // Create and configure Kastrax instance
+    val kastraxInstance = kastrax {
+        server {
+            port = 8080
+            host = "0.0.0.0"
+        }
+
+        // Configure agents, tools, etc.
+        agent("assistant") {
+            // Agent configuration
+        }
+    }
+
+    // Start the server
+    kastraxInstance.startServer()
+
+    // The server is now running and will block the current thread
+    // until the application is stopped
+}
 ```
 
-### Enable Telemetry for build output
+During development, you can use the `kastrax dev` command, which will automatically restart the server when you make changes to your code.
 
-Load instrumentation for the build output like so:
+## Deployment Options ✅
 
-```bash copy
-node --import=./.kastrax/output/instrumentation.mjs  .kastrax/output/index.mjs
-```
+Kastrax supports multiple deployment options:
 
-## Serverless Deployment ✅
+1. **Standalone JVM Application**: Deploy as a traditional Java application on any server
+2. **Docker Container**: Package your application as a Docker container
+3. **Kubernetes**: Deploy to a Kubernetes cluster for scalability and resilience
+4. **GraalVM Native Image**: Compile to a native executable for maximum performance
+5. **Kastrax Cloud**: Use the managed Kastrax Cloud service
 
-Kastrax also supports serverless deployment on Cloudflare Workers, Vercel, and Netlify.
-
-See our [Serverless Deployment](/docs/deployment/deployment) guide for setup instructions.
+See [Deployment Options](/docs/deployment/deployment) for detailed instructions on each deployment method.
