@@ -132,6 +132,7 @@ fun main(args: Array<String>) {
             "config" -> showConfig()
             "deepseek" -> startDeepSeekAgent()
             "real-deepseek" -> startRealDeepSeekAgent()
+            "--test-serialization" -> testSerialization()
             else -> printHelp()
         }
     } catch (e: DeepSeekException) {
@@ -309,6 +310,125 @@ private fun startRealDeepSeekAgent() {
 }
 
 /**
+ * 测试序列化功能
+ *
+ * 这个函数用于测试在 GraalVM 原生镜像中的序列化和反序列化功能
+ */
+private fun testSerialization() {
+    println("===== 开始测试序列化功能 =====\n")
+
+    // 获取 JSON 实例
+    val json = ai.kastrax.graal.serialization.SerializationInitializer.json
+
+    try {
+        // 1. 测试 DeepSeekChatCompletionRequest 序列化
+        println("1. 测试 DeepSeekChatCompletionRequest 序列化")
+        val request = ai.kastrax.integrations.deepseek.DeepSeekChatCompletionRequest(
+            model = "deepseek-chat",
+            messages = listOf(
+                ai.kastrax.integrations.deepseek.DeepSeekMessage(
+                    role = "user",
+                    content = "Hello, how are you?"
+                )
+            ),
+            temperature = 0.7,
+            maxTokens = 100
+        )
+
+        val requestJson = json.encodeToString(ai.kastrax.integrations.deepseek.DeepSeekChatCompletionRequest.serializer(), request)
+        println("\u5e8f列化结果: $requestJson")
+
+        val deserializedRequest = json.decodeFromString(ai.kastrax.integrations.deepseek.DeepSeekChatCompletionRequest.serializer(), requestJson)
+        println("\u53cd序列化结果: $deserializedRequest")
+        println("\u6d4b试通过: ${deserializedRequest.model == request.model && deserializedRequest.messages.size == request.messages.size}\n")
+
+        // 2. 测试 DeepSeekChatCompletionResponse 序列化
+        println("2. 测试 DeepSeekChatCompletionResponse 序列化")
+        val response = ai.kastrax.integrations.deepseek.DeepSeekChatCompletionResponse(
+            id = "resp-123456",
+            model = "deepseek-chat",
+            choices = listOf(
+                ai.kastrax.integrations.deepseek.DeepSeekChoice(
+                    index = 0,
+                    message = ai.kastrax.integrations.deepseek.DeepSeekMessage(
+                        role = "assistant",
+                        content = "I'm doing well, thank you for asking!"
+                    ),
+                    finishReason = "stop"
+                )
+            ),
+            usage = ai.kastrax.integrations.deepseek.DeepSeekUsage(
+                promptTokens = 10,
+                completionTokens = 15,
+                totalTokens = 25
+            )
+        )
+
+        val responseJson = json.encodeToString(ai.kastrax.integrations.deepseek.DeepSeekChatCompletionResponse.serializer(), response)
+        println("\u5e8f列化结果: $responseJson")
+
+        val deserializedResponse = json.decodeFromString(ai.kastrax.integrations.deepseek.DeepSeekChatCompletionResponse.serializer(), responseJson)
+        println("\u53cd序列化结果: $deserializedResponse")
+        println("\u6d4b试通过: ${deserializedResponse.id == response.id && deserializedResponse.model == response.model}\n")
+
+        // 3. 测试 DeepSeekEmbeddingRequest 序列化
+        println("3. 测试 DeepSeekEmbeddingRequest 序列化")
+        val embeddingRequest = ai.kastrax.integrations.deepseek.DeepSeekEmbeddingRequest(
+            model = "deepseek-embedding",
+            input = listOf("Hello, world!")
+        )
+
+        val embeddingRequestJson = json.encodeToString(ai.kastrax.integrations.deepseek.DeepSeekEmbeddingRequest.serializer(), embeddingRequest)
+        println("\u5e8f列化结果: $embeddingRequestJson")
+
+        val deserializedEmbeddingRequest = json.decodeFromString(ai.kastrax.integrations.deepseek.DeepSeekEmbeddingRequest.serializer(), embeddingRequestJson)
+        println("\u53cd序列化结果: $deserializedEmbeddingRequest")
+        println("\u6d4b试通过: ${deserializedEmbeddingRequest.model == embeddingRequest.model && deserializedEmbeddingRequest.input.size == embeddingRequest.input.size}\n")
+
+        // 4. 测试 JSON 基本类型序列化
+        println("4. 测试 JSON 基本类型序列化")
+        val jsonObject = kotlinx.serialization.json.JsonObject(
+            mapOf(
+                "string" to kotlinx.serialization.json.JsonPrimitive("value"),
+                "number" to kotlinx.serialization.json.JsonPrimitive(42),
+                "boolean" to kotlinx.serialization.json.JsonPrimitive(true),
+                "array" to kotlinx.serialization.json.JsonArray(listOf(kotlinx.serialization.json.JsonPrimitive(1), kotlinx.serialization.json.JsonPrimitive(2))),
+                "nested" to kotlinx.serialization.json.JsonObject(mapOf("key" to kotlinx.serialization.json.JsonPrimitive("value")))
+            )
+        )
+
+        val jsonObjectString = json.encodeToString(kotlinx.serialization.json.JsonObject.serializer(), jsonObject)
+        println("\u5e8f列化结果: $jsonObjectString")
+
+        val deserializedJsonObject = json.decodeFromString(kotlinx.serialization.json.JsonObject.serializer(), jsonObjectString)
+        println("\u53cd序列化结果: $deserializedJsonObject")
+        println("\u6d4b试通过: ${deserializedJsonObject.size == jsonObject.size}\n")
+
+        // 5. 测试应用配置序列化
+        println("5. 测试应用配置序列化")
+        val appConfig = AppConfig(
+            appName = "Test App",
+            version = "1.0.0",
+            logging = AppConfig.Logging(level = "DEBUG"),
+            apiKeys = AppConfig.ApiKeys(deepseek = "test-key")
+        )
+
+        val appConfigJson = json.encodeToString(AppConfig.serializer(), appConfig)
+        println("\u5e8f列化结果: $appConfigJson")
+
+        val deserializedAppConfig = json.decodeFromString(AppConfig.serializer(), appConfigJson)
+        println("\u53cd序列化结果: $deserializedAppConfig")
+        println("\u6d4b试通过: ${deserializedAppConfig.appName == appConfig.appName && deserializedAppConfig.version == appConfig.version}\n")
+
+        println("===== 所有序列化测试已通过 =====\n")
+    } catch (e: Exception) {
+        println("\u5e8f列化测试失败: ${e.message}")
+        e.printStackTrace()
+        println("\n===== 序列化测试失败 =====\n")
+    }
+}
+
+/**
  * 打印帮助信息
  */
 private fun printHelp() {
@@ -319,12 +439,13 @@ private fun printHelp() {
           kastrax [命令]
 
         命令:
-          server        启动服务器模式
-          cli           启动命令行界面模式
-          config        显示当前配置
-          deepseek      启动 DeepSeek Agent 示例
-          real-deepseek 启动真实的 DeepSeek Agent（使用 agent DSL）
-          help          显示帮助信息
+          server              启动服务器模式
+          cli                 启动命令行界面模式
+          config              显示当前配置
+          deepseek            启动 DeepSeek Agent 示例
+          real-deepseek       启动真实的 DeepSeek Agent（使用 agent DSL）
+          --test-serialization 测试序列化功能
+          help                显示帮助信息
 
         CLI 模式命令:
           calc      进入计算器模式
