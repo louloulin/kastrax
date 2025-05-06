@@ -522,7 +522,9 @@ fun main() = runBlocking {
                     val nestedSteps = stepResult.nestedSteps
                     println("Nested workflow steps: ${nestedSteps?.keys}")
                 } else {
-                    println("Step ${stepResult.stepId} completed with status: ${stepResult.status}")
+                    val stepId = stepResult.stepId
+                    val status = stepResult.status
+                    println("Step $stepId completed with status: $status")
                 }
             },
 
@@ -539,7 +541,10 @@ fun main() = runBlocking {
     // Analyze execution metrics
     val metrics = workflowMonitor.getExecutionMetrics(result.executionId)
     println("Total execution time: ${metrics.totalExecutionTimeMs} ms")
-    println("Nested workflow execution time: ${metrics.stepExecutionTimes["process-data"]} ms")
+    println("Nested workflow execution time: ${metrics.stepExecutionTimes.get("process-data")} ms")
+    // Or alternatively:
+    // val executionTime = metrics.stepExecutionTimes["process-data"]
+    // println("Nested workflow execution time: $executionTime ms")
 }
 ```
 
@@ -584,16 +589,23 @@ val reviewWorkflow = workflow {
             val content = context.getVariable("$.input.content") as? String ?: ""
             val analysis = context.getVariable("$.steps.analyze-content.output.analysis") as? Map<*, *> ?: emptyMap<String, Any>()
 
-            """
-            Please review the following content:
+            // Format the analysis as a string first
+            val analysisText = analysis.entries.joinToString("\n") { entry ->
+                // Format each entry
+                val key = entry.key
+                val value = entry.value
+                "$key: $value"
+            }
 
-            $content
+            // Then use it in the template
+            """Please review the following content:
 
-            Analysis:
-            ${analysis.entries.joinToString("\n") { "${it.key}: ${it.value}" }}
+$content
 
-            Approve or suggest changes.
-            """.trimIndent()
+Analysis:
+$analysisText
+
+Approve or suggest changes.""".trimIndent()
         }
     }
 
@@ -852,7 +864,8 @@ val documentProcessingWorkflow = workflow {
             mapOf(
                 "report" to "Document Analysis Report:\n" +
                           "Sentiment: $sentiment\n" +
-                          "Topics: ${topics.joinToString(", ")}\n" +
+                          // Join topics with comma separator
+                          "Topics: " + topics.joinToString(", ") + "\n" +
                           "Summary: $summary",
                 "sentimentScore" to sentiment,
                 "topTopics" to topics.take(3)
@@ -977,8 +990,10 @@ val options = WorkflowExecuteOptions(
 
         // Log execution time for nested workflows
         if (stepResult.nestedSteps != null) {
-            println("Nested workflow ${stepResult.stepId} completed in $duration ms")
-            println("Nested steps: ${stepResult.nestedSteps.size}")
+            val stepId = stepResult.stepId
+            val stepsSize = stepResult.nestedSteps?.size ?: 0
+            println("Nested workflow $stepId completed in $duration ms")
+            println("Nested steps: $stepsSize")
         }
     },
 
@@ -1260,15 +1275,14 @@ val publishingWorkflow = workflow {
             val content = context.getVariable("$.steps.create-content.output.editedContent.content") as? String ?: ""
             val title = context.getVariable("$.steps.create-content.output.editedContent.title") as? String ?: ""
 
-            """
-            Please review the following content:
+            // Using triple quotes for multiline string
+            """Please review the following content:
 
-            Title: $title
+Title: $title
 
-            $content
+$content
 
-            Approve or suggest changes.
-            """.trimIndent()
+Approve or suggest changes.""".trimIndent()
         }
     }
 
@@ -1360,8 +1374,13 @@ fun main() = runBlocking {
         // Check the final result
         if (resumeResult.success) {
             println("Content published successfully!")
-            println("Title: ${resumeResult.output["title"]}")
-            println("Published URL: ${resumeResult.output["publishedUrl"]}")
+            println("Title: ${resumeResult.output.get("title")}")
+            println("Published URL: ${resumeResult.output.get("publishedUrl")}")
+            // Or alternatively:
+            // val title = resumeResult.output["title"]
+            // val url = resumeResult.output["publishedUrl"]
+            // println("Title: $title")
+            // println("Published URL: $url")
         } else {
             println("Workflow failed: ${resumeResult.error}")
         }

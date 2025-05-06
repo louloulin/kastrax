@@ -1,154 +1,595 @@
 ---
-title: "Runtime variables - dependency injection | Workflows | Kastrax Docs"
-description: Learn how to use Kastrax's dependency injection system to provide runtime configuration to workflows and steps.
+title: "Runtime Variables in Kastrax AI Workflows | Kastrax Docs"
+description: "Learn how to use Kastrax's powerful runtime variable system to dynamically configure AI workflows and agents, enabling flexible and adaptable behavior at execution time."
 ---
 
-# Workflow Runtime Variables ✅
+# Runtime Variables in Kastrax AI Workflows ✅
 
-Kastrax provides a powerful dependency injection system that enables you to configure your workflows and steps with runtime variables. This feature is essential for creating flexible and reusable workflows that can adapt their behavior based on runtime configuration.
+Kastrax provides a sophisticated runtime variable system that enables you to dynamically configure workflows and agents at execution time. This powerful feature allows you to create flexible, reusable AI workflows that can adapt their behavior based on runtime conditions without modifying the underlying workflow definition.
 
-## Overview ✅
+## Runtime Variable Architecture ✅
 
-The dependency injection system allows you to:
+Kastrax's runtime variable system is built on a robust architecture that includes:
 
-1. Pass runtime configuration variables to workflows through a type-safe runtimeContext
-2. Access these variables within step execution contexts
-3. Modify workflow behavior without changing the underlying code
-4. Share configuration across multiple steps within the same workflow
+1. **Runtime Context**: A type-safe container for variables that can be accessed throughout the workflow
+2. **Variable Scoping**: Control over which variables are accessible to which components
+3. **Type Safety**: Strong typing for runtime variables to prevent errors
+4. **Dependency Injection**: Automatic provision of runtime variables to steps and agents
+5. **Validation**: Runtime checking of variable presence and correctness
+
+This architecture enables several key capabilities:
+
+- **Dynamic Configuration**: Adapt workflow behavior based on execution-time parameters
+- **Environment-Specific Settings**: Configure workflows differently across environments
+- **External Integration**: Pass variables from external systems into workflows
+- **Agent Customization**: Dynamically configure AI agents with different parameters
+- **Cross-Step Communication**: Share runtime state between different workflow components
 
 ## Basic Usage ✅
 
-```typescript
-const myWorkflow = kastrax.getWorkflow("myWorkflow");
-const { runId, start, resume } = myWorkflow.createRun();
+Kastrax makes it easy to use runtime variables in your workflows:
 
-// Define your runtimeContext's type structure
-type WorkflowRuntimeContext = {
-  multiplier: number;
-};
+```kotlin filename="BasicRuntimeVariables.kt"
+import ai.kastrax.core.KastraxSystem
+import ai.kastrax.core.workflow.WorkflowExecuteOptions
+import ai.kastrax.core.workflow.runtime.RuntimeContext
+import kotlinx.coroutines.runBlocking
 
-const runtimeContext = new RuntimeContext<WorkflowRuntimeContext>();
-runtimeContext.set("multiplier", 5);
+fun main() = runBlocking {
+    // Initialize the Kastrax system
+    val kastraxSystem = KastraxSystem()
 
-// Start the workflow execution with runtimeContext
-await start({
-  triggerData: { inputValue: 45 },
-  runtimeContext,
-});
+    // Get a reference to the workflow engine
+    val workflowEngine = kastraxSystem.workflowEngine
+
+    // Create a runtime context with variables
+    val runtimeContext = RuntimeContext().apply {
+        // Add various types of runtime variables
+        set("multiplier", 5)
+        set("apiKey", "sk-your-api-key-here")
+        set("maxTokens", 1000)
+        set("temperature", 0.7)
+        set("enableLogging", true)
+    }
+
+    // Execute the workflow with runtime variables
+    val result = workflowEngine.executeWorkflow(
+        workflowId = "data-processing-workflow",
+        input = mapOf("inputValue" to 45),
+        options = WorkflowExecuteOptions(
+            runtimeContext = runtimeContext
+        )
+    )
+
+    // Access the workflow result
+    // Print the result
+    val output = result.output
+    println("Workflow execution result: $output")
+}
 ```
 
-## Using with REST API ✅
+In this example, we:
 
-Here's how to dynamically set a multiplier value from an HTTP header:
+1. Create a `RuntimeContext` to hold our runtime variables
+2. Add various variables with different types (numbers, strings, booleans)
+3. Pass the runtime context to the workflow when executing it
+4. The workflow and its steps can then access these variables during execution
 
-```typescript filename="src/index.ts"
-import { Kastrax } from "@kastrax/core";
-import { RuntimeContext } from "@kastrax/core/di";
-import { workflow as myWorkflow } from "./workflows";
+## Integration with Web Services ✅
 
-// Define runtimeContext type with clear, descriptive types
-type WorkflowRuntimeContext = {
-  multiplier: number;
-};
+Kastrax makes it easy to integrate runtime variables with web services, allowing you to dynamically configure workflows based on HTTP requests:
 
-export const kastrax = new Kastrax({
-  workflows: {
-    myWorkflow,
-  },
-  server: {
-    middleware: [
-      async (c, next) => {
-        const multiplier = c.req.header("x-multiplier");
-        const runtimeContext = c.get<WorkflowRuntimeContext>("runtimeContext");
+```kotlin filename="WebServiceIntegration.kt"
+import ai.kastrax.core.KastraxSystem
+import ai.kastrax.core.workflow.runtime.RuntimeContext
+import io.ktor.server.application.*
+import io.ktor.server.engine.*
+import io.ktor.server.netty.*
+import io.ktor.server.routing.*
+import io.ktor.server.request.*
+import io.ktor.server.response.*
 
-        // Parse and validate the multiplier value
-        const multiplierValue = parseInt(multiplier || "1", 10);
-        if (isNaN(multiplierValue)) {
-          throw new Error("Invalid multiplier value");
+fun main() {
+    // Initialize the Kastrax system
+    val kastraxSystem = KastraxSystem()
+
+    // Start a web server
+    embeddedServer(Netty, port = 8080) {
+        // Configure routing
+        routing {
+            // Endpoint to execute workflows with runtime variables
+            post("/workflows/{workflowId}/execute") {
+                // Get the workflow ID from the path
+                val workflowId = call.parameters["workflowId"]!!
+
+                // Get request parameters
+                val requestBody = call.receive<Map<String, Any>>()
+                val input = requestBody["input"] as? Map<String, Any> ?: emptyMap()
+
+                // Extract configuration from headers
+                val apiKey = call.request.header("X-API-Key") ?: ""
+                val modelName = call.request.header("X-Model-Name") ?: "default-model"
+                val temperature = call.request.header("X-Temperature")?.toDoubleOrNull() ?: 0.7
+                val maxTokens = call.request.header("X-Max-Tokens")?.toIntOrNull() ?: 1000
+
+                // Create a runtime context with variables from headers
+                val runtimeContext = RuntimeContext().apply {
+                    // Set variables from headers
+                    set("apiKey", apiKey)
+                    set("modelName", modelName)
+                    set("temperature", temperature)
+                    set("maxTokens", maxTokens)
+
+                    // Add additional configuration from request body
+                    (requestBody["config"] as? Map<String, Any>)?.forEach { (key, value) ->
+                        set(key, value)
+                    }
+                }
+
+                // Execute the workflow with runtime variables
+                val result = kastraxSystem.workflowEngine.executeWorkflow(
+                    workflowId = workflowId,
+                    input = input,
+                    options = WorkflowExecuteOptions(
+                        runtimeContext = runtimeContext
+                    )
+                )
+
+                // Return the result
+                call.respond(result.output)
+            }
+        }
+    }.start(wait = true)
+}
+```
+
+This example demonstrates:
+
+1. Creating a web server that exposes an endpoint for executing workflows
+2. Extracting configuration from HTTP headers and request body
+3. Creating a runtime context with these variables
+4. Executing the workflow with the runtime context
+5. Returning the workflow result to the client
+
+## Accessing Runtime Variables in Steps ✅
+
+Kastrax makes it easy to access runtime variables within workflow steps:
+
+```kotlin filename="StepRuntimeVariables.kt"
+import ai.kastrax.core.workflow.workflow
+import ai.kastrax.core.workflow.variable
+
+// Create a workflow with steps that use runtime variables
+val calculationWorkflow = workflow {
+    name = "calculation-workflow"
+    description = "Perform calculations using runtime variables"
+
+    // Define input parameters
+    input {
+        variable("inputValue", Int::class, required = true)
+    }
+
+    // Step that uses runtime variables
+    step(calculationAgent) {
+        id = "calculate"
+        name = "Calculate Result"
+        description = "Perform calculation using runtime variables"
+        variables = mutableMapOf(
+            "inputValue" to variable("$.input.inputValue")
+        )
+
+        // Custom execution with runtime variable access
+        execute { context, runtimeContext ->
+            try {
+                // Get the input value
+                val inputValue = context.getVariable("inputValue") as? Int
+                    ?: throw IllegalArgumentException("Input value not provided")
+
+                // Get runtime variables with type checking
+                val multiplier = runtimeContext.get("multiplier") as? Int
+                    ?: throw IllegalArgumentException("Multiplier not configured in runtime context")
+
+                val useAdvancedFormula = runtimeContext.get("useAdvancedFormula") as? Boolean ?: false
+
+                // Perform calculation based on runtime configuration
+                val result = if (useAdvancedFormula) {
+                    // Get additional parameters from runtime context
+                    val offset = runtimeContext.get("offset") as? Int ?: 0
+                    val factor = runtimeContext.get("factor") as? Double ?: 1.0
+
+                    // Apply advanced formula
+                    ((inputValue * multiplier) + offset) * factor
+                } else {
+                    // Apply simple formula
+                    inputValue * multiplier
+                }
+
+                // Return the result
+                mapOf(
+                    "result" to result,
+                    "formula" to if (useAdvancedFormula) "advanced" else "simple",
+                    "multiplier" to multiplier
+                )
+            } catch (e: Exception) {
+                // Log the error
+                // Log the error message
+                val errorMessage = e.message
+                println("Error in calculate step: $errorMessage")
+
+                // Return error information
+                mapOf(
+                    "error" to e.message,
+                    "errorType" to e.javaClass.simpleName
+                )
+            }
+        }
+    }
+
+    // Output mapping
+    output {
+        "calculationResult" from "$.steps.calculate.output.result"
+        "formula" from "$.steps.calculate.output.formula"
+        "multiplier" from "$.steps.calculate.output.multiplier"
+    }
+}
+```
+
+In this example:
+
+1. The step's `execute` function receives both the step context and the runtime context
+2. Runtime variables are accessed using the `runtimeContext.get()` method
+3. Type checking and validation are performed on the runtime variables
+4. The step's behavior changes based on the runtime configuration
+5. Error handling is implemented to handle missing or invalid runtime variables
+
+## Type-Safe Runtime Variables ✅
+
+Kastrax provides strong type safety for runtime variables through typed contexts and validation:
+
+```kotlin filename="TypeSafeRuntimeVariables.kt"
+import ai.kastrax.core.workflow.runtime.TypedRuntimeContext
+import ai.kastrax.core.workflow.runtime.RuntimeVariable
+import kotlinx.serialization.Serializable
+
+// Define a data class for type-safe runtime configuration
+@Serializable
+data class LLMConfiguration(
+    val modelName: String,
+    val temperature: Double,
+    val maxTokens: Int,
+    val topP: Double = 1.0,
+    val presencePenalty: Double = 0.0,
+    val frequencyPenalty: Double = 0.0
+)
+
+// Define a typed runtime context interface
+interface AgentRuntimeContext {
+    val llmConfig: LLMConfiguration
+    val apiKey: String
+    val enableLogging: Boolean
+    val retryCount: Int
+}
+
+// Create a workflow with type-safe runtime variables
+val typeSafeWorkflow = workflow {
+    name = "type-safe-workflow"
+    description = "Workflow with type-safe runtime variables"
+
+    // Define runtime context type
+    runtimeContextType<AgentRuntimeContext>()
+
+    // Step that uses typed runtime context
+    step(llmAgent) {
+        id = "generate-content"
+        name = "Generate Content"
+        description = "Generate content using LLM with typed configuration"
+        variables = mutableMapOf(
+            "prompt" to variable("$.input.prompt")
+        )
+
+        // Access typed runtime context
+        execute { context, runtimeContext ->
+            // Get the typed runtime context
+            val typedContext = runtimeContext as TypedRuntimeContext<AgentRuntimeContext>
+
+            // Access strongly-typed configuration
+            val llmConfig = typedContext.get { llmConfig }
+            val apiKey = typedContext.get { apiKey }
+            val enableLogging = typedContext.get { enableLogging }
+
+            // Use the configuration
+            if (enableLogging) {
+                // Log the configuration
+                val model = llmConfig.modelName
+                val temp = llmConfig.temperature
+                val tokens = llmConfig.maxTokens
+                println("Generating content with model: $model")
+                println("Temperature: $temp")
+                println("Max tokens: $tokens")
+            }
+
+            // Generate content using the configuration
+            val content = generateContent(
+                prompt = context.getVariable("prompt") as String,
+                modelName = llmConfig.modelName,
+                temperature = llmConfig.temperature,
+                maxTokens = llmConfig.maxTokens,
+                apiKey = apiKey
+            )
+
+            // Return the result
+            mapOf("content" to content)
+        }
+    }
+}
+```
+
+## Executing with Typed Runtime Context ✅
+
+Here's how to execute a workflow with a typed runtime context:
+
+```kotlin filename="ExecuteWithTypedContext.kt"
+import ai.kastrax.core.KastraxSystem
+import ai.kastrax.core.workflow.WorkflowExecuteOptions
+import ai.kastrax.core.workflow.runtime.TypedRuntimeContext
+import kotlinx.coroutines.runBlocking
+
+// Execute the workflow with typed runtime context
+fun executeWithTypedContext() = runBlocking {
+    val kastraxSystem = KastraxSystem()
+
+    // Create a typed runtime context
+    val runtimeContext = TypedRuntimeContext.create<AgentRuntimeContext> {
+        // Set the LLM configuration
+        set({ llmConfig }, LLMConfiguration(
+            modelName = "gpt-4",
+            temperature = 0.7,
+            maxTokens = 1000,
+            topP = 0.95
+        ))
+
+        // Set other variables
+        set({ apiKey }, "sk-your-api-key-here")
+        set({ enableLogging }, true)
+        set({ retryCount }, 3)
+    }
+
+    // Execute the workflow with the typed runtime context
+    val result = kastraxSystem.workflowEngine.executeWorkflow(
+        workflowId = typeSafeWorkflow.id,
+        input = mapOf("prompt" to "Write a story about AI"),
+        options = WorkflowExecuteOptions(
+            runtimeContext = runtimeContext
+        )
+    )
+
+    // Print the generated content
+    val generatedContent = result.output.get("content")
+    println("Generated content: $generatedContent")
+}
+
+// Helper function to simulate content generation
+fun generateContent(prompt: String, modelName: String, temperature: Double, maxTokens: Int, apiKey: String): String {
+    // In a real implementation, this would call an LLM API
+    return "Generated content based on prompt: $prompt using model $modelName"
+}
+```
+
+This example demonstrates:
+
+1. Defining a strongly-typed runtime context interface
+2. Creating data classes for complex configuration objects
+3. Using the typed context in workflow steps
+4. Accessing typed variables with compile-time safety
+5. Creating and populating a typed runtime context for workflow execution
+
+## Best Practices for Runtime Variables ✅
+
+### 1. Use Type-Safe Contexts
+
+Define interfaces for your runtime contexts to ensure type safety:
+
+```kotlin
+// Define a typed context interface
+interface AgentRuntimeContext {
+    val apiKey: String
+    val modelName: String
+    val temperature: Double
+    val maxTokens: Int
+}
+
+// Use the typed context in your workflow
+runtimeContextType<AgentRuntimeContext>()
+```
+
+### 2. Validate Variables
+
+Always validate runtime variables before using them:
+
+```kotlin
+// Validate runtime variables
+val temperature = runtimeContext.get("temperature") as? Double
+    ?: throw IllegalArgumentException("Temperature not configured")
+
+if (temperature < 0.0 || temperature > 1.0) {
+    throw IllegalArgumentException("Temperature must be between 0.0 and 1.0")
+}
+```
+
+### 3. Provide Default Values
+
+Use default values for optional runtime variables:
+
+```kotlin
+// Get runtime variable with default value
+val maxTokens = runtimeContext.get("maxTokens") as? Int ?: 1000
+val temperature = runtimeContext.get("temperature") as? Double ?: 0.7
+val enableLogging = runtimeContext.get("enableLogging") as? Boolean ?: false
+```
+
+### 4. Document Runtime Variables
+
+Clearly document the runtime variables your workflow expects:
+
+```kotlin
+/**
+ * Content Generation Workflow
+ *
+ * Runtime Variables:
+ * - apiKey (String): The API key for the LLM service
+ * - modelName (String): The name of the model to use
+ * - temperature (Double): The temperature parameter (0.0-1.0)
+ * - maxTokens (Int): The maximum number of tokens to generate
+ * - enableLogging (Boolean): Whether to enable detailed logging
+ */
+val contentGenerationWorkflow = workflow {
+    // Workflow definition...
+}
+```
+
+### 5. Use Environment-Specific Contexts
+
+Create different runtime contexts for different environments:
+
+```kotlin
+// Development context
+val devContext = RuntimeContext().apply {
+    set("apiKey", "sk-dev-key")
+    set("environment", "development")
+    set("enableLogging", true)
+    set("debugMode", true)
+}
+
+// Production context
+val prodContext = RuntimeContext().apply {
+    set("apiKey", System.getenv("PROD_API_KEY"))
+    set("environment", "production")
+    set("enableLogging", false)
+    set("debugMode", false)
+}
+```
+
+## Advanced Usage ✅
+
+### Dynamic Agent Configuration
+
+Runtime variables are particularly useful for dynamically configuring AI agents based on the execution context:
+
+```kotlin filename="DynamicAgentConfiguration.kt"
+import ai.kastrax.core.workflow.workflow
+import ai.kastrax.core.workflow.variable
+import ai.kastrax.core.agent.Agent
+import ai.kastrax.core.agent.AgentConfiguration
+
+// Create a workflow with dynamically configured agents
+val dynamicAgentWorkflow = workflow {
+    name = "dynamic-agent-workflow"
+    description = "Workflow with dynamically configured agents"
+
+    // Define input parameters
+    input {
+        variable("prompt", String::class, required = true)
+    }
+
+    // Step with a dynamically configured agent
+    step {
+        id = "generate-content"
+        name = "Generate Content"
+        description = "Generate content with a dynamically configured agent"
+
+        // Dynamic agent creation based on runtime variables
+        agent { runtimeContext ->
+            // Get agent configuration from runtime context
+            val modelName = runtimeContext.get("modelName") as? String ?: "gpt-3.5-turbo"
+            val temperature = runtimeContext.get("temperature") as? Double ?: 0.7
+            val apiKey = runtimeContext.get("apiKey") as? String
+                ?: throw IllegalArgumentException("API key not provided in runtime context")
+
+            // Create agent with dynamic configuration
+            Agent.create(
+                type = "llm",
+                configuration = AgentConfiguration(
+                    provider = "openai",
+                    modelName = modelName,
+                    apiKey = apiKey,
+                    parameters = mapOf(
+                        "temperature" to temperature,
+                        "max_tokens" to runtimeContext.get("maxTokens") as? Int ?: 1000,
+                        "top_p" to runtimeContext.get("topP") as? Double ?: 1.0
+                    )
+                )
+            )
         }
 
-        runtimeContext.set("multiplier", multiplierValue);
-
-        await next(); // Don't forget to call next()
-      },
-    ],
-  },
-});
-```
-
-## Creating Steps with Variables ✅
-
-Steps can access runtimeContext variables and must conform to the workflow's runtimeContext type:
-
-```typescript
-import { Step } from "@kastrax/core/workflow";
-import { z } from "zod";
-
-// Define step input/output types
-interface StepInput {
-  inputValue: number;
-}
-
-interface StepOutput {
-  incrementedValue: number;
-}
-
-const stepOne = new Step({
-  id: "stepOne",
-  description: "Multiply the input value by the configured multiplier",
-  execute: async ({ context, runtimeContext }) => {
-    try {
-      // Type-safe access to runtimeContext variables
-      const multiplier = runtimeContext.get("multiplier");
-      if (multiplier === undefined) {
-        throw new Error("Multiplier not configured in runtimeContext");
-      }
-
-      // Get and validate input
-      const inputValue =
-        context.getStepResult<StepInput>("trigger")?.inputValue;
-      if (inputValue === undefined) {
-        throw new Error("Input value not provided");
-      }
-
-      const result: StepOutput = {
-        incrementedValue: inputValue * multiplier,
-      };
-
-      return result;
-    } catch (error) {
-      console.error(`Error in stepOne: ${error.message}`);
-      throw error;
+        // Variables for the step
+        variables = mutableMapOf(
+            "prompt" to variable("$.input.prompt")
+        )
     }
-  },
-});
-```
 
-## Error Handling ✅
-
-When working with runtime variables in workflows, it's important to handle potential errors:
-
-1. **Missing Variables**: Always check if required variables exist in the runtimeContext
-2. **Type Mismatches**: Use TypeScript's type system to catch type errors at compile time
-3. **Invalid Values**: Validate variable values before using them in your steps
-
-```typescript
-// Example of defensive programming with runtimeContext variables
-const multiplier = runtimeContext.get("multiplier");
-if (multiplier === undefined) {
-  throw new Error("Multiplier not configured in runtimeContext");
-}
-
-// Type and value validation
-if (typeof multiplier !== "number" || multiplier <= 0) {
-  throw new Error(`Invalid multiplier value: ${multiplier}`);
+    // Output mapping
+    output {
+        "content" from "$.steps.generate-content.output.content"
+        "model" from "$.steps.generate-content.output.model"
+    }
 }
 ```
 
-## Best Practices ✅
+### Runtime Variable Providers
 
-1. **Type Safety**: Always define proper types for your runtimeContext and step inputs/outputs
-2. **Validation**: Validate all inputs and runtimeContext variables before using them
-3. **Error Handling**: Implement proper error handling in your steps
-4. **Documentation**: Document the expected runtimeContext variables for each workflow
-5. **Default Values**: Provide sensible defaults when possible
+Kastrax supports runtime variable providers that can dynamically load variables from various sources:
+
+```kotlin filename="RuntimeVariableProviders.kt"
+import ai.kastrax.core.workflow.runtime.RuntimeVariableProvider
+import ai.kastrax.core.workflow.runtime.RuntimeContext
+
+// Define a custom runtime variable provider
+class EnvironmentVariableProvider : RuntimeVariableProvider {
+    override fun provideVariables(context: RuntimeContext) {
+        // Load variables from environment
+        System.getenv().forEach { (key, value) ->
+            if (key.startsWith("KASTRAX_")) {
+                val variableName = key.removePrefix("KASTRAX_").lowercase()
+                context.set(variableName, value)
+            }
+        }
+    }
+}
+
+// Define a database configuration provider
+class DatabaseConfigProvider(private val dataSource: DataSource) : RuntimeVariableProvider {
+    override fun provideVariables(context: RuntimeContext) {
+        // Load configuration from database
+        dataSource.connection.use { connection ->
+            val statement = connection.prepareStatement("SELECT key, value FROM workflow_config")
+            val resultSet = statement.executeQuery()
+
+            while (resultSet.next()) {
+                val key = resultSet.getString("key")
+                val value = resultSet.getString("value")
+                context.set(key, value)
+            }
+        }
+    }
+}
+
+// Register providers with the Kastrax system
+fun configureRuntimeProviders(kastraxSystem: KastraxSystem) {
+    kastraxSystem.registerRuntimeVariableProvider(EnvironmentVariableProvider())
+    kastraxSystem.registerRuntimeVariableProvider(DatabaseConfigProvider(dataSource))
+}
+```
+
+## Conclusion ✅
+
+Runtime variables provide a powerful mechanism for dynamically configuring Kastrax AI workflows and agents. By leveraging runtime variables, you can create flexible, adaptable workflows that can be configured differently based on the execution context, environment, or external parameters.
+
+Key benefits of runtime variables include:
+
+- **Flexibility**: Configure workflows differently without changing their definition
+- **Reusability**: Create generic workflows that can be specialized at runtime
+- **Integration**: Connect workflows with external systems and configuration sources
+- **Type Safety**: Ensure configuration correctness with Kotlin's type system
+- **Separation of Concerns**: Keep workflow logic separate from configuration
+
+By following the best practices outlined in this guide, you can create robust, configurable AI workflows that adapt to different environments and use cases.
