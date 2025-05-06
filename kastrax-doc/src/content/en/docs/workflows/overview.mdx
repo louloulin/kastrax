@@ -1,170 +1,516 @@
 ---
-title: "Handling Complex LLM Operations | Workflows | Kastrax"
-description: "Workflows in Kastrax help you orchestrate complex sequences of operations with features like branching, parallel execution, resource suspension, and more."
+title: "Kastrax AI Workflow System | Workflows | Kastrax"
+description: "The Kastrax Workflow System provides a powerful framework for orchestrating complex AI agent operations with features like branching, parallel execution, resource suspension, and more."
 ---
 
-# Handling Complex LLM Operations with Workflows
+# Kastrax AI Workflow System
 
-Workflows in Kastrax help you orchestrate complex sequences of operations with features like branching, parallel execution, resource suspension, and more.
+The Kastrax Workflow System provides a powerful framework for orchestrating complex AI agent operations. Built on Kotlin's concurrency model, it enables you to define sophisticated workflows with features like branching, parallel execution, resource suspension, and more. This system is designed to handle the complex, multi-step processes that are common in AI applications.
 
-## When to use workflows
+## When to Use Workflows
 
-Most AI applications need more than a single call to a language model. You may want to run multiple steps, conditionally skip certain paths, or even pause execution altogether until you receive user input. Sometimes your agent tool calling is not accurate enough.
+Workflows are essential when your AI application requires orchestrating multiple operations in a structured manner. Consider using workflows when:
+
+- **Complex Multi-step Processes**: Your application needs to execute a sequence of AI operations with dependencies between steps
+- **Conditional Logic**: You need to implement branching paths based on intermediate results
+- **Parallel Processing**: Multiple operations need to be executed concurrently
+- **User Interaction**: Workflows need to pause and wait for user input before continuing
+- **Error Handling**: You need sophisticated error recovery mechanisms for AI operations
+- **Observability**: You want detailed tracking and monitoring of each step in your AI process
 
 Kastrax's workflow system provides:
 
-- A standardized way to define steps and link them together.
-- Support for both simple (linear) and advanced (branching, parallel) paths.
-- Debugging and observability features to track each workflow run.
+- A type-safe, Kotlin-based DSL for defining workflows and their steps
+- Support for both simple (linear) and advanced (branching, parallel) execution paths
+- Variable passing between steps with powerful reference resolution
+- Suspension and resumption capabilities for long-running or user-interactive workflows
+- Comprehensive error handling and recovery mechanisms
+- Detailed observability and debugging features to track each workflow run
 
-## Example
+## Workflow Architecture
 
-To create a workflow, you define one or more steps, link them, and then commit the workflow before starting it.
+The Kastrax Workflow System is built on a modular architecture with several key components:
 
-### Breaking Down the Workflow
+1. **Workflow Interface**: Defines the core operations for workflow execution
+2. **Workflow Steps**: Individual units of work that can be combined into a workflow
+3. **Workflow Context**: Maintains state and data during workflow execution
+4. **Variable References**: Mechanism for passing data between steps
+5. **Workflow Engine**: Orchestrates the execution of steps according to defined dependencies
 
-Let's examine each part of the workflow creation process:
+This architecture enables flexible, maintainable, and observable workflow definitions.
 
-#### 1. Creating the Workflow
+## Example Workflow
 
-Here's how you define a workflow in Kastrax. The `name` field determines the workflow's API endpoint (`/workflows/$NAME/`), while the `triggerSchema` defines the structure of the workflow's trigger data:
+Let's examine a simple workflow that processes content creation with research, writing, and editing steps:
 
-```ts filename="src/kastrax/workflow/index.ts"
-const myWorkflow = new Workflow({
-  name: "my-workflow",
-  triggerSchema: z.object({
-    inputValue: z.number(),
-  }),
-});
-```
+### Creating a Basic Workflow
 
-#### 2. Defining Steps
+Here's how to define a workflow using Kastrax's Kotlin DSL:
 
-Now, we'll define the workflow's steps. Each step can have its own input and output schemas. Here, `stepOne` doubles an input value, and `stepTwo` increments that result if `stepOne` was successful. (To keep things simple, we aren't making any LLM calls in this example):
+```kotlin filename="ContentCreationWorkflow.kt"
+import ai.kastrax.core.agent.Agent
+import ai.kastrax.core.workflow.workflow
+import ai.kastrax.core.workflow.variable
 
-```ts filename="src/kastrax/workflow/index.ts"
-const stepOne = new Step({
-  id: "stepOne",
-  outputSchema: z.object({
-    doubledValue: z.number(),
-  }),
-  execute: async ({ context }) => {
-    const doubledValue = context.triggerData.inputValue * 2;
-    return { doubledValue };
-  },
-});
+// Assume we have these agents defined elsewhere
+val researchAgent: Agent = /* ... */
+val writingAgent: Agent = /* ... */
+val editingAgent: Agent = /* ... */
 
-const stepTwo = new Step({
-  id: "stepTwo",
-  execute: async ({ context }) => {
-    const doubledValue = context.getStepResult(stepOne)?.doubledValue;
-    if (!doubledValue) {
-      return { incrementedValue: 0 };
+// Create the workflow
+val contentWorkflow = workflow {
+    name = "content-creation"
+    description = "Create content about a topic"
+
+    // Research step
+    step(researchAgent) {
+        id = "research"
+        name = "Research"
+        description = "Research the topic"
+        variables = mutableMapOf(
+            "topic" to variable("$.input.topic")
+        )
     }
-    return {
-      incrementedValue: doubledValue + 1,
-    };
-  },
-});
+
+    // Writing step (depends on research)
+    step(writingAgent) {
+        id = "writing"
+        name = "Writing"
+        description = "Write an article based on research"
+        after("research")  // This step runs after the research step
+        variables = mutableMapOf(
+            "research" to variable("$.steps.research.output.text")
+        )
+    }
+
+    // Editing step (depends on writing)
+    step(editingAgent) {
+        id = "editing"
+        name = "Editing"
+        description = "Edit the article"
+        after("writing")  // This step runs after the writing step
+        variables = mutableMapOf(
+            "draft" to variable("$.steps.writing.output.text")
+        )
+    }
+
+    // Define output mapping
+    output {
+        "researchSummary" from "$.steps.research.output.text"
+        "finalArticle" from "$.steps.editing.output.text"
+        "wordCount" from {
+            "$.steps.editing.output.text" to { text ->
+                (text as? String)?.split(" ")?.size ?: 0
+            }
+        }
+    }
+}
 ```
 
-#### 3. Linking Steps
+This workflow defines three steps (research, writing, and editing) with dependencies between them, and maps the final outputs.
 
-Now, let's create the control flow, and "commit" (finalize the workflow). In this case, `stepOne` runs first and is followed by `stepTwo`.
+### Registering the Workflow
 
-```ts filename="src/kastrax/workflow/index.ts"
-myWorkflow.step(stepOne).then(stepTwo).commit();
+Register your workflow with the Kastrax system to enable execution, logging, and telemetry:
+
+```kotlin filename="KastraxSetup.kt"
+import ai.kastrax.core.KastraxSystem
+
+// Create a Kastrax system instance
+val kastraxSystem = KastraxSystem()
+
+// Register the workflow
+kastraxSystem.registerWorkflow(contentWorkflow)
+
+// You can also register multiple workflows
+kastraxSystem.registerWorkflows(
+    contentWorkflow,
+    otherWorkflow,
+    anotherWorkflow
+)
 ```
 
-### Register the Workflow
+You can also create dynamic workflows at runtime using the workflow engine:
 
-Register your workflow with Kastrax to enable logging and telemetry:
+```kotlin filename="DynamicWorkflowCreation.kt"
+import ai.kastrax.core.workflow.dynamic.DynamicWorkflowGenerator
 
-```ts showLineNumbers filename="src/kastrax/index.ts"
-import { Kastrax } from "@kastrax/core";
+// Create a dynamic workflow generator
+val workflowGenerator = DynamicWorkflowGenerator(kastraxSystem)
 
-export const kastrax = new Kastrax({
-  workflows: { myWorkflow },
-});
-```
+// Create a workflow dynamically
+val dynamicWorkflow = workflowGenerator.createWorkflow(
+    workflowName = "dynamic-workflow",
+    description = "Dynamically created workflow"
+) {
+    // Define steps and flow here
+    step(someAgent) {
+        id = "dynamic-step"
+        // ... step configuration
+    }
 
-The workflow can also have the kastrax instance injected into the context in the case where you need to create dynamic workflows:
+    // ... more steps and configuration
+}
 
-```ts filename="src/kastrax/workflow/index.ts"
-import { Kastrax } from "@kastrax/core";
-
-const kastrax = new Kastrax();
-
-const myWorkflow = new Workflow({
-  name: "my-workflow",
-  kastrax,
-});
+// Register the dynamic workflow
+kastraxSystem.registerWorkflow(dynamicWorkflow)
 ```
 
 ### Executing the Workflow
 
-Execute your workflow programmatically or via API:
+Execute your workflow programmatically:
 
-```ts showLineNumbers filename="src/kastrax/run-workflow.ts" copy
-import { kastrax } from "./index";
+```kotlin filename="ExecuteWorkflow.kt"
+import ai.kastrax.core.workflow.WorkflowExecuteOptions
+import kotlinx.coroutines.runBlocking
 
-// Get the workflow
-const myWorkflow = kastrax.getWorkflow("myWorkflow");
-const { runId, start } = myWorkflow.createRun();
+fun main() = runBlocking {
+    // Get the workflow engine
+    val workflowEngine = kastraxSystem.workflowEngine
 
-// Start the workflow execution
-await start({ triggerData: { inputValue: 45 } });
+    // Execute the workflow
+    val result = workflowEngine.executeWorkflow(
+        workflowId = "content-creation",
+        input = mapOf("topic" to "Artificial Intelligence in Healthcare"),
+        options = WorkflowExecuteOptions(
+            maxSteps = 10,  // Maximum number of steps to execute
+            timeout = 60000, // Timeout in milliseconds
+            onStepFinish = { stepResult ->
+                println("Step ${stepResult.stepId} completed")
+            },
+            onStepError = { stepId, error ->
+                println("Error in step $stepId: ${error.message}")
+            }
+        )
+    )
+
+    // Process the result
+    if (result.success) {
+        println("Workflow completed successfully")
+        println("Final article: ${result.output["finalArticle"]}")
+        println("Word count: ${result.output["wordCount"]}")
+    } else {
+        println("Workflow failed: ${result.error}")
+    }
+}
 ```
 
-Or use the API (requires running `kastrax dev`):
-
-// Create workflow run
+You can also execute workflows via the Kastrax HTTP API (when running a Kastrax server):
 
 ```bash
-curl --location 'http://localhost:4111/api/workflows/myWorkflow/start-async' \
+curl --location 'http://localhost:8080/api/workflows/content-creation/execute' \
      --header 'Content-Type: application/json' \
      --data '{
-       "inputValue": 45
+       "topic": "Artificial Intelligence in Healthcare"
      }'
 ```
 
-This example shows the essentials: define your workflow, add steps, commit the workflow, then execute it.
+This example demonstrates the essentials: define your workflow with steps, register it with the Kastrax system, then execute it with input data.
 
-## Defining Steps
+## Workflow Step Types
 
-The basic building block of a workflow [is a step](./steps.mdx). Steps are defined using schemas for inputs and outputs, and can fetch prior step results.
+Kastrax supports various types of workflow steps to handle different scenarios:
 
-## Control Flow
+### Agent Steps
 
-Workflows let you define a [control flow](./control-flow.mdx) to chain steps together in with parallel steps, branching paths, and more.
+Agent steps use AI agents to perform tasks:
 
-## Workflow Variables
-
-When you need to map data between steps or create dynamic data flows, [workflow variables](./variables.mdx) provide a powerful mechanism for passing information from one step to another and accessing nested properties within step outputs.
-
-## Suspend and Resume
-
-When you need to pause execution for external data, user input, or asynchronous events, Kastrax [supports suspension at any step](./suspend-and-resume.mdx), persisting the state of the workflow so you can resume it later.
-
-## Observability and Debugging
-
-Kastrax workflows automatically [log the input and output of each step within a workflow run](../../reference/observability/otel-config.mdx), allowing you to send this data to your preferred logging, telemetry, or observability tools.
-
-You can:
-
-- Track the status of each step (e.g., `success`, `error`, or `suspended`).
-- Store run-specific metadata for analysis.
-- Integrate with third-party observability platforms like Datadog or New Relic by forwarding logs.
-
+```kotlin
+step(agent) {
+    id = "agent-step"
+    name = "Agent Processing"
+    description = "Use an agent to process data"
+    variables = mutableMapOf(
+        "input" to variable("$.input.data")
+    )
+}
 ```
+
+### Tool Steps
+
+Tool steps execute specific tools or functions:
+
+```kotlin
+toolStep {
+    id = "data-processing"
+    name = "Process Data"
+    description = "Process data using a specific tool"
+    tool = DataProcessingTool()
+    variables = mutableMapOf(
+        "data" to variable("$.input.rawData")
+    )
+}
+```
+
+### Conditional Steps
+
+Conditional steps execute based on conditions:
+
+```kotlin
+conditionalStep {
+    id = "quality-check"
+    name = "Quality Check"
+    description = "Check if the content meets quality standards"
+
+    condition { context ->
+        val wordCount = context.getVariable("$.steps.writing.output.wordCount") as? Int ?: 0
+        wordCount > 500
+    }
+
+    onTrue {
+        step(qualityAgent) {
+            id = "quality-review"
+            // ... configuration
+        }
+    }
+
+    onFalse {
+        step(revisionAgent) {
+            id = "content-revision"
+            // ... configuration
+        }
+    }
+}
+```
+
+### Human-in-the-Loop Steps
+
+Steps that require human input or approval:
+
+```kotlin
+humanStep {
+    id = "human-review"
+    name = "Human Review"
+    description = "Get human approval for the content"
+
+    prompt { context ->
+        val content = context.getVariable("$.steps.editing.output.text") as? String ?: ""
+        "Please review the following content:\n\n$content\n\nApprove or suggest changes."
+    }
+
+    timeoutMs = 86400000  // 24 hours in milliseconds
+
+    onTimeout {
+        // Handle timeout case
+        step(notificationAgent) {
+            id = "timeout-notification"
+            // ... configuration
+        }
+    }
+}
+```
+
+## Advanced Workflow Features
+
+### Parallel Execution
+
+Execute multiple steps concurrently:
+
+```kotlin
+parallelSteps {
+    step(researchAgent1) {
+        id = "research-source1"
+        // ... configuration
+    }
+
+    step(researchAgent2) {
+        id = "research-source2"
+        // ... configuration
+    }
+
+    step(researchAgent3) {
+        id = "research-source3"
+        // ... configuration
+    }
+}
+
+// Continue with a step that uses results from all parallel steps
+step(synthesisAgent) {
+    id = "research-synthesis"
+    after("research-source1", "research-source2", "research-source3")
+    variables = mutableMapOf(
+        "source1" to variable("$.steps.research-source1.output.text"),
+        "source2" to variable("$.steps.research-source2.output.text"),
+        "source3" to variable("$.steps.research-source3.output.text")
+    )
+}
+```
+
+### Error Handling
+
+Implement sophisticated error handling:
+
+```kotlin
+step(riskAgent) {
+    id = "risk-analysis"
+    // ... configuration
+
+    onError { error ->
+        // Log the error
+        println("Error in risk analysis: ${error.message}")
+
+        // Execute fallback step
+        step(fallbackAgent) {
+            id = "risk-analysis-fallback"
+            variables = mutableMapOf(
+                "error" to variable(error.message)
+            )
+        }
+    }
+}
+```
+
+### Workflow Variables
+
+Workflow variables provide a powerful mechanism for passing data between steps:
+
+```kotlin
+// Define a workflow with variables
+val workflowWithVariables = workflow {
+    name = "data-processing-workflow"
+
+    // Define input variables
+    input {
+        variable("dataSource", String::class)
+        variable("processingLevel", Int::class, defaultValue = 1)
+    }
+
+    // Use variables in steps
+    step(dataAgent) {
+        id = "data-extraction"
+        variables = mutableMapOf(
+            "source" to variable("$.input.dataSource"),
+            "level" to variable("$.input.processingLevel")
+        )
+    }
+
+    // Use JSONPath expressions to access nested properties
+    step(analysisAgent) {
+        id = "data-analysis"
+        after("data-extraction")
+        variables = mutableMapOf(
+            "rawData" to variable("$.steps.data-extraction.output.data"),
+            "metadata" to variable("$.steps.data-extraction.output.metadata.timestamp")
+        )
+    }
+}
+```
+
+### Observability and Monitoring
+
+Kastrax workflows provide comprehensive observability features:
+
+```kotlin
+// Configure workflow monitoring
+val monitoredWorkflow = workflow {
+    name = "monitored-workflow"
+    // ... workflow configuration
+
+    monitoring {
+        onStart { workflowId, input ->
+            println("Workflow $workflowId started with input: $input")
+        }
+
+        onStepStart { workflowId, stepId ->
+            println("Step $stepId in workflow $workflowId started")
+        }
+
+        onStepComplete { workflowId, stepId, output ->
+            println("Step $stepId in workflow $workflowId completed with output: $output")
+        }
+
+        onComplete { workflowId, output ->
+            println("Workflow $workflowId completed with output: $output")
+        }
+
+        onError { workflowId, error ->
+            println("Workflow $workflowId failed with error: ${error.message}")
+        }
+    }
+}
+```
+
+## Integration with Actor Model
+
+One of Kastrax's unique features is the integration of the workflow system with the actor model, enabling distributed workflow execution:
+
+```kotlin
+import ai.kastrax.actor.ActorSystem
+import ai.kastrax.actor.Props
+import ai.kastrax.workflow.WorkflowActor
+import ai.kastrax.workflow.messages.*
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    // Create an actor system
+    val system = ActorSystem("workflow-system")
+
+    // Create a workflow actor
+    val workflowActor = system.actorOf(
+        Props.create(WorkflowActor::class.java, contentWorkflow),
+        "workflow-actor"
+    )
+
+    // Send a workflow execution message
+    val result = system.ask<WorkflowResult>(
+        workflowActor,
+        ExecuteWorkflowMessage(input = mapOf("topic" to "AI in Healthcare"))
+    )
+
+    // Process the result
+    when (result) {
+        is WorkflowResult.Success -> {
+            println("Workflow executed successfully")
+            println("Final article: ${result.output["finalArticle"]}")
+        }
+        is WorkflowResult.Error -> {
+            println("Workflow execution failed: ${result.error}")
+        }
+    }
+
+    // Shutdown the actor system when done
+    system.terminate()
+}
+```
+
+This integration enables building sophisticated multi-agent systems where workflows can be distributed across different nodes and executed concurrently.
+
+## Real-World Use Cases
+
+Kastrax workflows are ideal for a variety of AI agent applications:
+
+### Content Creation Pipeline
+
+Orchestrate a complete content creation process:
+- Research step gathers information from multiple sources
+- Planning step creates an outline based on research
+- Writing step generates the initial content
+- Editing step refines and improves the content
+- Review step (human-in-the-loop) gets final approval
+
+### Customer Support Automation
+
+Handle complex customer inquiries:
+- Classification step determines the type of inquiry
+- Information retrieval step gathers relevant knowledge base articles
+- Response generation step creates a personalized response
+- Escalation step (conditional) routes complex issues to human agents
+
+### Data Analysis Workflow
+
+Process and analyze large datasets:
+- Data collection step gathers information from multiple sources
+- Preprocessing step cleans and normalizes the data
+- Analysis step extracts insights from the data
+- Visualization step creates charts and graphs
+- Reporting step generates a comprehensive report
 
 ## More Resources
 
-- The [Workflow Guide](../guides/ai-recruiter.mdx) in the Guides section is a tutorial that covers the main concepts.
+- The [Workflow Guide](../guides/ai-recruiter.mdx) in the Guides section is a tutorial that covers the main concepts
 - [Sequential Steps workflow example](../../examples/workflows/sequential-steps.mdx)
 - [Parallel Steps workflow example](../../examples/workflows/parallel-steps.mdx)
 - [Branching Paths workflow example](../../examples/workflows/branching-paths.mdx)
 - [Workflow Variables example](../../examples/workflows/workflow-variables.mdx)
 - [Cyclical Dependencies workflow example](../../examples/workflows/cyclical-dependencies.mdx)
 - [Suspend and Resume workflow example](../../examples/workflows/suspend-and-resume.mdx)
-```

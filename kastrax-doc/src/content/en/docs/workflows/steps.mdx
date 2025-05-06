@@ -1,108 +1,482 @@
 ---
-title: "Creating Steps and Adding to Workflows | Kastrax Docs"
-description: "Steps in Kastrax workflows provide a structured way to manage operations by defining inputs, outputs, and execution logic."
+title: "Creating Steps in Kastrax AI Workflows | Kastrax Docs"
+description: "Learn how to define and configure workflow steps in Kastrax, including agent steps, tool steps, conditional steps, and human-in-the-loop steps."
 ---
 
-# Defining Steps in a Workflow ✅
+# Defining Steps in Kastrax AI Workflows ✅
 
-When you build a workflow, you typically break down operations into smaller tasks that can be linked and reused. Steps provide a structured way to manage these tasks by defining inputs, outputs, and execution logic.
+Steps are the fundamental building blocks of Kastrax workflows. They represent discrete units of work that can be orchestrated, linked, and reused. Kastrax provides a type-safe, flexible API for defining various types of steps, from simple agent interactions to complex conditional logic and human-in-the-loop processes.
 
-The code below shows how to define these steps inline or separately.
+This guide explains how to create and configure different types of steps in your Kastrax workflows.
 
-## Inline Step Creation ✅
+## Step Types in Kastrax ✅
 
-You can create steps directly within your workflow using `.step()` and `.then()`. This code shows how to define, link, and execute two steps in sequence.
+Kastrax supports several types of steps to handle different scenarios in AI workflows:
 
-```typescript showLineNumbers filename="src/kastrax/workflows/index.ts" copy
-import { Step, Workflow, Kastrax } from "@kastrax/core";
-import { z } from "zod";
+### Agent Steps ✅
 
-export const myWorkflow = new Workflow({
-  name: "my-workflow",
-  triggerSchema: z.object({
-    inputValue: z.number(),
-  }),
-});
+Agent steps use AI agents to perform tasks. They're the most common type of step in Kastrax workflows and allow you to leverage the full capabilities of your AI agents.
 
-myWorkflow
-  .step(
-    new Step({
-      id: "stepOne",
-      outputSchema: z.object({
-        doubledValue: z.number(),
-      }),
-      execute: async ({ context }) => ({
-        doubledValue: context.triggerData.inputValue * 2,
-      }),
-    }),
-  )
-  .then(
-    new Step({
-      id: "stepTwo",
-      outputSchema: z.object({
-        incrementedValue: z.number(),
-      }),
-      execute: async ({ context }) => {
-        if (context.steps.stepOne.status !== "success") {
-          return { incrementedValue: 0 };
+```kotlin filename="AgentStepExample.kt"
+import ai.kastrax.core.agent.Agent
+import ai.kastrax.core.workflow.workflow
+import ai.kastrax.core.workflow.variable
+
+// Assume we have these agents defined elsewhere
+val researchAgent: Agent = /* ... */
+val writingAgent: Agent = /* ... */
+
+// Create a workflow with agent steps
+val contentWorkflow = workflow {
+    name = "content-creation"
+    description = "Create content about a topic"
+
+    // Research step using an agent
+    step(researchAgent) {
+        id = "research"
+        name = "Research"
+        description = "Research the topic thoroughly"
+        variables = mutableMapOf(
+            "topic" to variable("$.input.topic"),
+            "depth" to variable("$.input.researchDepth", defaultValue = "medium")
+        )
+    }
+
+    // Writing step using another agent
+    step(writingAgent) {
+        id = "writing"
+        name = "Content Writing"
+        description = "Write content based on research"
+        after("research")  // This step runs after the research step
+        variables = mutableMapOf(
+            "research" to variable("$.steps.research.output.text"),
+            "style" to variable("$.input.writingStyle", defaultValue = "informative")
+        )
+    }
+}
+```
+
+### Tool Steps ✅
+
+Tool steps execute specific functions or tools without requiring a full agent. They're useful for data processing, API calls, or other operations that don't need the full reasoning capabilities of an agent.
+
+```kotlin filename="ToolStepExample.kt"
+import ai.kastrax.core.workflow.workflow
+import ai.kastrax.core.workflow.variable
+import ai.kastrax.tools.DataProcessingTool
+import ai.kastrax.tools.ApiTool
+
+// Create a workflow with tool steps
+val dataWorkflow = workflow {
+    name = "data-processing"
+    description = "Process and analyze data"
+
+    // Data processing tool step
+    toolStep {
+        id = "data-processing"
+        name = "Process Data"
+        description = "Clean and normalize the data"
+        tool = DataProcessingTool()
+        variables = mutableMapOf(
+            "rawData" to variable("$.input.data"),
+            "options" to variable("$.input.processingOptions")
+        )
+    }
+
+    // API call tool step
+    toolStep {
+        id = "api-call"
+        name = "External API Call"
+        description = "Fetch additional data from external API"
+        tool = ApiTool()
+        after("data-processing")  // This step runs after data processing
+        variables = mutableMapOf(
+            "endpoint" to variable("$.input.apiEndpoint"),
+            "parameters" to variable("$.steps.data-processing.output.apiParameters")
+        )
+    }
+}
+```
+
+### Conditional Steps ✅
+
+Conditional steps allow you to implement branching logic in your workflows. They evaluate a condition and execute different steps based on the result.
+
+```kotlin filename="ConditionalStepExample.kt"
+import ai.kastrax.core.workflow.workflow
+import ai.kastrax.core.workflow.variable
+
+// Create a workflow with conditional steps
+val reviewWorkflow = workflow {
+    name = "content-review"
+    description = "Review and process content based on quality"
+
+    // Initial content analysis step
+    step(analysisAgent) {
+        id = "content-analysis"
+        name = "Content Analysis"
+        description = "Analyze content quality"
+        variables = mutableMapOf(
+            "content" to variable("$.input.content")
+        )
+    }
+
+    // Conditional step based on content quality
+    conditionalStep {
+        id = "quality-check"
+        name = "Quality Check"
+        description = "Check if the content meets quality standards"
+        after("content-analysis")
+
+        // Define the condition to evaluate
+        condition { context ->
+            val score = context.getVariable("$.steps.content-analysis.output.qualityScore") as? Double ?: 0.0
+            score >= 8.0  // Content is high quality if score is 8.0 or higher
         }
 
-        return { incrementedValue: context.steps.stepOne.output.doubledValue + 1 };
-      },
-    }),
-  ).commit();
+        // Steps to execute if condition is true (high quality)
+        onTrue {
+            step(publishAgent) {
+                id = "publish"
+                name = "Publish Content"
+                description = "Publish the high-quality content"
+                variables = mutableMapOf(
+                    "content" to variable("$.input.content"),
+                    "platform" to variable("$.input.publishPlatform")
+                )
+            }
+        }
 
-  // Register the workflow with Kastrax
-  export const kastrax = new Kastrax({
-    workflows: { myWorkflow },
-  });
-```
-
-## Creating Steps Separately ✅
-
-If you prefer to manage your step logic in separate entities, you can define steps outside and then add them to your workflow. This code shows how to define steps independently and link them afterward.
-
-```typescript showLineNumbers filename="src/kastrax/workflows/index.ts" copy
-import { Step, Workflow, Kastrax } from "@kastrax/core";
-import { z } from "zod";
-
-// Define steps separately
-const stepOne = new Step({
-  id: "stepOne",
-  outputSchema: z.object({
-    doubledValue: z.number(),
-  }),
-  execute: async ({ context }) => ({
-    doubledValue: context.triggerData.inputValue * 2,
-  }),
-});
-
-const stepTwo = new Step({
-  id: "stepTwo",
-  outputSchema: z.object({
-    incrementedValue: z.number(),
-  }),
-  execute: async ({ context }) => {
-    if (context.steps.stepOne.status !== "success") {
-      return { incrementedValue: 0 };
+        // Steps to execute if condition is false (low quality)
+        onFalse {
+            step(revisionAgent) {
+                id = "revision"
+                name = "Content Revision"
+                description = "Revise the low-quality content"
+                variables = mutableMapOf(
+                    "content" to variable("$.input.content"),
+                    "analysis" to variable("$.steps.content-analysis.output.feedback")
+                )
+            }
+        }
     }
-    return { incrementedValue: context.steps.stepOne.output.doubledValue + 1 };
-  },
-});
-
-// Build the workflow
-const myWorkflow = new Workflow({
-  name: "my-workflow",
-  triggerSchema: z.object({
-    inputValue: z.number(),
-  }),
-});
-
-myWorkflow.step(stepOne).then(stepTwo);
-myWorkflow.commit();
-
-// Register the workflow with Kastrax
-export const kastrax = new Kastrax({
-  workflows: { myWorkflow },
-});
+}
 ```
+
+### Human-in-the-Loop Steps ✅
+
+Human-in-the-loop steps allow you to incorporate human feedback or approval into your workflows. These steps pause the workflow execution until human input is received.
+
+```kotlin filename="HumanStepExample.kt"
+import ai.kastrax.core.workflow.workflow
+import ai.kastrax.core.workflow.variable
+
+// Create a workflow with human-in-the-loop steps
+val approvalWorkflow = workflow {
+    name = "content-approval"
+    description = "Create content with human approval"
+
+    // Generate content step
+    step(contentAgent) {
+        id = "content-generation"
+        name = "Content Generation"
+        description = "Generate initial content"
+        variables = mutableMapOf(
+            "topic" to variable("$.input.topic"),
+            "style" to variable("$.input.style")
+        )
+    }
+
+    // Human review step
+    humanStep {
+        id = "human-review"
+        name = "Human Review"
+        description = "Get human approval for the content"
+        after("content-generation")
+
+        // Define the prompt to show to the human reviewer
+        prompt { context ->
+            val content = context.getVariable("$.steps.content-generation.output.text") as? String ?: ""
+            """
+            Please review the following content:
+
+            $content
+
+            Approve or suggest changes.
+            """.trimIndent()
+        }
+
+        // Set timeout for human response (24 hours)
+        timeoutMs = 86400000
+
+        // Define what happens if the timeout is reached
+        onTimeout {
+            step(notificationAgent) {
+                id = "timeout-notification"
+                name = "Timeout Notification"
+                description = "Notify about review timeout"
+                variables = mutableMapOf(
+                    "content" to variable("$.steps.content-generation.output.text"),
+                    "recipient" to variable("$.input.notificationEmail")
+                )
+            }
+        }
+    }
+
+    // Final processing based on human input
+    step(finalizationAgent) {
+        id = "finalization"
+        name = "Content Finalization"
+        description = "Finalize content based on human feedback"
+        after("human-review")
+        variables = mutableMapOf(
+            "originalContent" to variable("$.steps.content-generation.output.text"),
+            "humanFeedback" to variable("$.steps.human-review.output.feedback"),
+            "approved" to variable("$.steps.human-review.output.approved")
+        )
+    }
+}
+```
+
+## Creating Reusable Step Templates ✅
+
+For complex workflows, you can create reusable step templates that can be added to multiple workflows:
+
+```kotlin filename="ReusableStepTemplates.kt"
+import ai.kastrax.core.agent.Agent
+import ai.kastrax.core.workflow.StepTemplate
+import ai.kastrax.core.workflow.workflow
+import ai.kastrax.core.workflow.variable
+
+// Create reusable step templates
+class ContentGenerationStep(private val contentAgent: Agent) : StepTemplate {
+    override fun configure() = stepConfig {
+        id = "content-generation"
+        name = "Content Generation"
+        description = "Generate content based on topic"
+        agent = contentAgent
+        variables = mutableMapOf(
+            "topic" to variable("$.input.topic"),
+            "style" to variable("$.input.style", defaultValue = "informative")
+        )
+    }
+}
+
+class ContentReviewStep(private val reviewAgent: Agent) : StepTemplate {
+    override fun configure() = stepConfig {
+        id = "content-review"
+        name = "Content Review"
+        description = "Review and improve content"
+        agent = reviewAgent
+        variables = mutableMapOf(
+            "content" to variable("$.steps.content-generation.output.text"),
+            "criteria" to variable("$.input.reviewCriteria")
+        )
+    }
+}
+
+// Use the templates in a workflow
+val templateWorkflow = workflow {
+    name = "template-workflow"
+    description = "Workflow using reusable step templates"
+
+    // Add steps from templates
+    addStep(ContentGenerationStep(contentAgent))
+    addStep(ContentReviewStep(reviewAgent)) {
+        after("content-generation")  // Configure dependencies
+    }
+
+    // Add additional steps
+    step(publishAgent) {
+        id = "publish"
+        name = "Publish Content"
+        description = "Publish the reviewed content"
+        after("content-review")
+        variables = mutableMapOf(
+            "content" to variable("$.steps.content-review.output.text"),
+            "platform" to variable("$.input.publishPlatform")
+        )
+    }
+}
+```
+
+## Step Configuration Options ✅
+
+Kastrax provides numerous configuration options for workflow steps to customize their behavior:
+
+### Step Dependencies
+
+Specify when a step should execute relative to other steps:
+
+```kotlin
+// Basic dependency - run after another step
+step(agent) {
+    id = "step-id"
+    after("previous-step-id")
+}
+
+// Multiple dependencies - run after multiple steps complete
+step(agent) {
+    id = "step-id"
+    after("step-one", "step-two", "step-three")
+}
+
+// Conditional dependency - run after a step only if it succeeded
+step(agent) {
+    id = "step-id"
+    afterSuccessful("previous-step-id")
+}
+```
+
+### Error Handling
+
+Configure how steps handle errors:
+
+```kotlin
+step(agent) {
+    id = "step-id"
+
+    // Define error handling
+    onError { error ->
+        // Log the error
+        println("Error in step: ${error.message}")
+
+        // Return a fallback result
+        mapOf("result" to "fallback value")
+    }
+
+    // Set retry behavior
+    retry {
+        maxAttempts = 3
+        backoffMs = 1000  // Initial backoff in milliseconds
+        backoffFactor = 2.0  // Exponential backoff factor
+    }
+}
+```
+
+### Timeouts
+
+Set execution time limits for steps:
+
+```kotlin
+step(agent) {
+    id = "step-id"
+
+    // Set a timeout for the step execution
+    timeoutMs = 30000  // 30 seconds
+
+    // Define what happens on timeout
+    onTimeout {
+        // Return a default result
+        mapOf("result" to "timeout occurred")
+    }
+}
+```
+
+## Best Practices for Step Design ✅
+
+### 1. Use Descriptive IDs and Names
+
+Give your steps clear, descriptive IDs and names that indicate their purpose:
+
+```kotlin
+step(agent) {
+    id = "customer-data-extraction"  // Specific, descriptive ID
+    name = "Customer Data Extraction"  // Human-readable name
+    description = "Extract customer information from the input data"  // Detailed description
+}
+```
+
+### 2. Keep Steps Focused
+
+Design steps to perform a single, well-defined task rather than combining multiple operations:
+
+```kotlin
+// Good: Focused steps
+step(dataExtractionAgent) {
+    id = "data-extraction"
+}
+
+step(dataAnalysisAgent) {
+    id = "data-analysis"
+    after("data-extraction")
+}
+
+// Avoid: Overly complex step that does too much
+// step(combinedAgent) {
+//     id = "extract-and-analyze"  // Too many responsibilities
+// }
+```
+
+### 3. Handle Errors Gracefully
+
+Implement proper error handling for each step to ensure workflow resilience:
+
+```kotlin
+step(agent) {
+    id = "api-call"
+
+    onError { error ->
+        when {
+            error is ApiTimeoutException -> {
+                // Handle timeout specifically
+                mapOf("status" to "timeout", "retry" to true)
+            }
+            error.message?.contains("rate limit") == true -> {
+                // Handle rate limiting
+                mapOf("status" to "rate-limited", "retry" to true)
+            }
+            else -> {
+                // Handle other errors
+                mapOf("status" to "error", "message" to error.message)
+            }
+        }
+    }
+}
+```
+
+### 4. Use Variables Effectively
+
+Leverage variables to pass data between steps in a type-safe manner:
+
+```kotlin
+step(agent) {
+    id = "data-processing"
+
+    // Use explicit variable mapping
+    variables = mutableMapOf(
+        // Map from workflow input
+        "inputData" to variable("$.input.data"),
+
+        // Map from previous step with default value
+        "processingLevel" to variable("$.steps.configuration.output.level", defaultValue = "standard"),
+
+        // Map with transformation
+        "timestamp" to variable("$.input.timestamp") { timestamp ->
+            // Convert timestamp to formatted date
+            java.time.Instant.ofEpochMilli((timestamp as? Long) ?: 0)
+                .atZone(java.time.ZoneId.systemDefault())
+                .toLocalDateTime()
+                .toString()
+        }
+    )
+}
+```
+
+### 5. Document Step Behavior
+
+Provide clear documentation for each step to help others understand its purpose and requirements:
+
+```kotlin
+step(agent) {
+    id = "risk-assessment"
+    name = "Risk Assessment"
+    description = """
+        Analyzes customer data to determine risk level.
+        Requires customer financial history and credit score.
+        Returns a risk score between 0-100 and risk category.
+    """.trimIndent()
+}
+```
+
+By following these best practices, you can create well-structured, maintainable, and robust workflow steps that effectively orchestrate your AI agents and tools.

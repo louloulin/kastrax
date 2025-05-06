@@ -1,335 +1,731 @@
 ---
-title: "Branching, Merging, Conditions | Workflows | Kastrax Docs"
-description: "Control flow in Kastrax workflows allows you to manage branching, merging, and conditions to construct workflows that meet your logic requirements."
+title: "Control Flow in Kastrax AI Workflows | Workflows | Kastrax Docs"
+description: "Learn how to orchestrate complex AI agent operations with Kastrax's powerful workflow control flow features, including sequential execution, parallel processing, branching logic, and loops."
 ---
 
-# Control Flow in Workflows: Branching, Merging, and Conditions ✅
+# Control Flow in Kastrax AI Workflows ✅
 
-When you create a multi-step process, you may need to run steps in parallel, chain them sequentially, or follow different paths based on outcomes. This page describes how you can manage branching, merging, and conditions to construct workflows that meet your logic requirements. The code snippets show the key patterns for structuring complex control flow.
+Kastrax's workflow system provides sophisticated control flow capabilities that allow you to orchestrate complex AI agent operations. Whether you need to execute steps sequentially, run operations in parallel, implement conditional branching, or create loops, Kastrax offers a type-safe, declarative API for defining exactly how your workflow should behave.
 
-## Parallel Execution ✅
-
-You can run multiple steps at the same time if they don't depend on each other. This approach can speed up your workflow when steps perform independent tasks. The code below shows how to add two steps in parallel:
-
-```typescript
-myWorkflow.step(fetchUserData).step(fetchOrderData);
-```
-
-See the [Parallel Steps](../../examples/workflows/parallel-steps.mdx) example for more details.
+This guide explains the various control flow patterns available in Kastrax workflows and how to implement them effectively.
 
 ## Sequential Execution ✅
 
-Sometimes you need to run steps in strict order to ensure outputs from one step become inputs for the next. Use .then() to link dependent operations. The code below shows how to chain steps sequentially:
+Sequential execution is the most basic control flow pattern, where steps are executed one after another in a defined order. This ensures that outputs from one step become inputs for the next step.
 
-```typescript
-myWorkflow.step(fetchOrderData).then(validateData).then(processOrder);
-```
+```kotlin filename="SequentialWorkflow.kt"
+import ai.kastrax.core.workflow.workflow
+import ai.kastrax.core.workflow.variable
 
-See the [Sequential Steps](../../examples/workflows/sequential-steps.mdx) example for more details.
+// Create a workflow with sequential steps
+val orderProcessingWorkflow = workflow {
+    name = "order-processing"
+    description = "Process customer orders sequentially"
 
-## Branching and Merging Paths ✅
-
-When different outcomes require different paths, branching is helpful. You can also merge paths later once they complete. The code below shows how to branch after stepA and later converge on stepF:
-
-```typescript
-myWorkflow
-  .step(stepA)
-    .then(stepB)
-    .then(stepD)
-  .after(stepA)
-    .step(stepC)
-    .then(stepE)
-  .after([stepD, stepE])
-    .step(stepF);
-```
-
-In this example:
-
-- stepA leads to stepB, then to stepD.
-- Separately, stepA also triggers stepC, which in turn leads to stepE.
-- Separately, stepF is triggered when both stepD and stepE are completed.
-
-See the [Branching Paths](../../examples/workflows/branching-paths.mdx) example for more details.
-
-## Merging Multiple Branches ✅
-
-Sometimes you need a step to execute only after multiple other steps have completed. Kastrax provides a compound `.after([])` syntax that allows you to specify multiple dependencies for a step.
-
-```typescript
-myWorkflow
-  .step(fetchUserData)
-  .then(validateUserData)
-  .step(fetchProductData)
-  .then(validateProductData)
-  // This step will only run after BOTH validateUserData AND validateProductData have completed
-  .after([validateUserData, validateProductData])
-  .step(processOrder)
-```
-
-In this example:
-- `fetchUserData` and `fetchProductData` run in parallel branches
-- Each branch has its own validation step
-- The `processOrder` step only executes after both validation steps have completed successfully
-
-This pattern is particularly useful for:
-- Joining parallel execution paths
-- Implementing synchronization points in your workflow
-- Ensuring all required data is available before proceeding
-
-You can also create complex dependency patterns by combining multiple `.after([])` calls:
-
-```typescript
-myWorkflow
-  // First branch
-  .step(stepA)
-  .then(stepB)
-  .then(stepC)
-
-  // Second branch
-  .step(stepD)
-  .then(stepE)
-
-  // Third branch
-  .step(stepF)
-  .then(stepG)
-
-  // This step depends on the completion of multiple branches
-  .after([stepC, stepE, stepG])
-  .step(finalStep)
-```
-
-## Cyclical Dependencies and Loops ✅
-
-Workflows often need to repeat steps until certain conditions are met. Kastrax provides two powerful methods for creating loops: `until` and `while`. These methods offer an intuitive way to implement repetitive tasks.
-
-### Using Manual Cyclical Dependencies (Legacy Approach)
-
-In earlier versions, you could create loops by manually defining cyclical dependencies with conditions:
-
-```typescript
-myWorkflow
-  .step(fetchData)
-  .then(processData)
-  .after(processData)
-  .step(finalizeData, {
-    when: { "processData.status": "success" },
-  })
-  .step(fetchData, {
-    when: { "processData.status": "retry" },
-  });
-```
-
-While this approach still works, the newer `until` and `while` methods provide a cleaner and more maintainable way to create loops.
-
-### Using `until` for Condition-Based Loops
-
-The `until` method repeats a step until a specified condition becomes true. It takes these arguments:
-1. A condition that determines when to stop looping
-2. The step to repeat
-3. Optional variables to pass to the repeated step
-
-```typescript
-// Step that increments a counter until target is reached
-const incrementStep = new Step({
-  id: 'increment',
-  inputSchema: z.object({
-    // Current counter value
-    counter: z.number().optional(),
-  }),
-  outputSchema: z.object({
-    // Updated counter value
-    updatedCounter: z.number(),
-  }),
-  execute: async ({ context }) => {
-    const { counter = 0 } = context.inputData;
-    return { updatedCounter: counter + 1 };
-  },
-});
-
-workflow
-  .step(incrementStep)
-  .until(
-    async ({ context }) => {
-      // Stop when counter reaches 10
-      const result = context.getStepResult(incrementStep);
-      return (result?.updatedCounter ?? 0) >= 10;
-    },
-    incrementStep,
-    {
-      // Pass current counter to next iteration
-      counter: {
-        step: incrementStep,
-        path: 'updatedCounter'
-      }
+    // First step: Fetch order data
+    step(fetchOrderAgent) {
+        id = "fetch-order"
+        name = "Fetch Order Data"
+        description = "Retrieve order information from the database"
+        variables = mutableMapOf(
+            "orderId" to variable("$.input.orderId")
+        )
     }
-  )
-  .then(finalStep);
-```
 
-You can also use a reference-based condition:
-
-```typescript
-workflow
-  .step(incrementStep)
-  .until(
-    {
-      ref: { step: incrementStep, path: 'updatedCounter' },
-      query: { $gte: 10 },
-    },
-    incrementStep,
-    {
-      counter: {
-        step: incrementStep,
-        path: 'updatedCounter'
-      }
+    // Second step: Validate order data (runs after fetch-order)
+    step(validationAgent) {
+        id = "validate-order"
+        name = "Validate Order"
+        description = "Validate order data for completeness and correctness"
+        after("fetch-order")  // Explicit dependency
+        variables = mutableMapOf(
+            "orderData" to variable("$.steps.fetch-order.output.data")
+        )
     }
-  )
-  .then(finalStep);
-```
 
-### Using `while` for Condition-Based Loops
-
-The `while` method repeats a step as long as a specified condition remains true. It takes the same arguments as `until`:
-1. A condition that determines when to continue looping
-2. The step to repeat
-3. Optional variables to pass to the repeated step
-
-```typescript
-// Step that increments a counter while below target
-const incrementStep = new Step({
-  id: 'increment',
-  inputSchema: z.object({
-    // Current counter value
-    counter: z.number().optional(),
-  }),
-  outputSchema: z.object({
-    // Updated counter value
-    updatedCounter: z.number(),
-  }),
-  execute: async ({ context }) => {
-    const { counter = 0 } = context.inputData;
-    return { updatedCounter: counter + 1 };
-  },
-});
-
-workflow
-  .step(incrementStep)
-  .while(
-    async ({ context }) => {
-      // Continue while counter is less than 10
-      const result = context.getStepResult(incrementStep);
-      return (result?.updatedCounter ?? 0) < 10;
-    },
-    incrementStep,
-    {
-      // Pass current counter to next iteration
-      counter: {
-        step: incrementStep,
-        path: 'updatedCounter'
-      }
+    // Third step: Process payment (runs after validate-order)
+    step(paymentAgent) {
+        id = "process-payment"
+        name = "Process Payment"
+        description = "Process payment for the validated order"
+        after("validate-order")  // Explicit dependency
+        variables = mutableMapOf(
+            "orderData" to variable("$.steps.fetch-order.output.data"),
+            "validationResult" to variable("$.steps.validate-order.output.result")
+        )
     }
-  )
-  .then(finalStep);
+}
 ```
 
-You can also use a reference-based condition:
+In this example, each step explicitly depends on the previous step using the `after()` function, creating a clear sequential flow.
 
-```typescript
-workflow
-  .step(incrementStep)
-  .while(
-    {
-      ref: { step: incrementStep, path: 'updatedCounter' },
-      query: { $lt: 10 },
-    },
-    incrementStep,
-    {
-      counter: {
-        step: incrementStep,
-        path: 'updatedCounter'
-      }
+## Parallel Execution ✅
+
+Parallel execution allows multiple steps to run simultaneously when they don't depend on each other. This can significantly improve workflow performance for independent operations.
+
+```kotlin filename="ParallelWorkflow.kt"
+import ai.kastrax.core.workflow.workflow
+import ai.kastrax.core.workflow.variable
+
+// Create a workflow with parallel steps
+val dataProcessingWorkflow = workflow {
+    name = "data-processing"
+    description = "Process data from multiple sources in parallel"
+
+    // These steps will run in parallel since they don't have dependencies on each other
+    step(userDataAgent) {
+        id = "fetch-user-data"
+        name = "Fetch User Data"
+        description = "Retrieve user information"
+        variables = mutableMapOf(
+            "userId" to variable("$.input.userId")
+        )
     }
-  )
-  .then(finalStep);
+
+    step(productDataAgent) {
+        id = "fetch-product-data"
+        name = "Fetch Product Data"
+        description = "Retrieve product information"
+        variables = mutableMapOf(
+            "productId" to variable("$.input.productId")
+        )
+    }
+
+    step(inventoryDataAgent) {
+        id = "fetch-inventory-data"
+        name = "Fetch Inventory Data"
+        description = "Retrieve inventory information"
+        variables = mutableMapOf(
+            "productId" to variable("$.input.productId")
+        )
+    }
+
+    // This step will only run after all parallel steps have completed
+    step(analysisAgent) {
+        id = "analyze-data"
+        name = "Analyze Combined Data"
+        description = "Analyze data from all sources"
+        after("fetch-user-data", "fetch-product-data", "fetch-inventory-data")  // Multiple dependencies
+        variables = mutableMapOf(
+            "userData" to variable("$.steps.fetch-user-data.output.data"),
+            "productData" to variable("$.steps.fetch-product-data.output.data"),
+            "inventoryData" to variable("$.steps.fetch-inventory-data.output.data")
+        )
+    }
+}
 ```
 
-### Comparison Operators for Reference Conditions
+In this example, the first three steps run in parallel because they don't have dependencies on each other. The final analysis step only runs after all three parallel steps have completed.
 
-When using reference-based conditions, you can use these comparison operators:
+## Branching and Conditional Paths ✅
 
-| Operator | Description |
-|----------|-------------|
-| `$eq`    | Equal to    |
-| `$ne`    | Not equal to |
-| `$gt`    | Greater than |
-| `$gte`   | Greater than or equal to |
-| `$lt`    | Less than |
-| `$lte`   | Less than or equal to |
+Branching allows your workflow to take different paths based on conditions or results from previous steps. This is essential for implementing decision logic in your workflows.
 
-## Conditions ✅
+```kotlin filename="BranchingWorkflow.kt"
+import ai.kastrax.core.workflow.workflow
+import ai.kastrax.core.workflow.variable
 
-Use the when property to control whether a step runs based on data from previous steps. Below are three ways to specify conditions.
+// Create a workflow with branching paths
+val contentWorkflow = workflow {
+    name = "content-workflow"
+    description = "Create and process content with branching logic"
 
-### Option 1: Function
+    // Initial content analysis step
+    step(analysisAgent) {
+        id = "analyze-content"
+        name = "Content Analysis"
+        description = "Analyze content quality and type"
+        variables = mutableMapOf(
+            "content" to variable("$.input.content")
+        )
+    }
 
-```typescript
-myWorkflow.step(
-  new Step({
-    id: "processData",
-    execute: async ({ context }) => {
-      // Action logic
-    },
-  }),
-  {
-    when: async ({ context }) => {
-      const fetchData = context?.getStepResult<{ status: string }>("fetchData");
-      return fetchData?.status === "success";
-    },
-  },
-);
+    // Conditional branching based on content quality
+    conditionalStep {
+        id = "quality-branch"
+        name = "Quality Branching"
+        description = "Branch based on content quality"
+        after("analyze-content")
+
+        // Define the condition to evaluate
+        condition { context ->
+            val quality = context.getVariable("$.steps.analyze-content.output.qualityScore") as? Double ?: 0.0
+            quality >= 8.0  // High quality if score is 8.0 or higher
+        }
+
+        // Steps to execute if condition is true (high quality)
+        onTrue {
+            step(publishAgent) {
+                id = "publish-content"
+                name = "Publish Content"
+                description = "Publish the high-quality content"
+                variables = mutableMapOf(
+                    "content" to variable("$.input.content")
+                )
+            }
+        }
+
+        // Steps to execute if condition is false (low quality)
+        onFalse {
+            step(revisionAgent) {
+                id = "revise-content"
+                name = "Revise Content"
+                description = "Improve the low-quality content"
+                variables = mutableMapOf(
+                    "content" to variable("$.input.content"),
+                    "feedback" to variable("$.steps.analyze-content.output.feedback")
+                )
+
+                // Continue to publishing after revision
+                onComplete {
+                    step(publishAgent) {
+                        id = "publish-revised-content"
+                        name = "Publish Revised Content"
+                        description = "Publish the revised content"
+                        variables = mutableMapOf(
+                            "content" to variable("$.steps.revise-content.output.revisedContent")
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
 ```
 
-### Option 2: Query Object
+In this example, the workflow branches based on the content quality score. High-quality content goes directly to publishing, while low-quality content goes through a revision step before publishing.
 
-```typescript
-myWorkflow.step(
-  new Step({
-    id: "processData",
-    execute: async ({ context }) => {
-      // Action logic
-    },
-  }),
-  {
-    when: {
-      ref: {
-        step: {
-          id: "fetchData",
-        },
-        path: "status",
-      },
-      query: { $eq: "success" },
-    },
-  },
-);
+## Merging Execution Paths ✅
+
+Merging allows multiple execution paths to converge at a specific step. This is useful when you need to synchronize different branches of your workflow.
+
+```kotlin filename="MergingWorkflow.kt"
+import ai.kastrax.core.workflow.workflow
+import ai.kastrax.core.workflow.variable
+
+// Create a workflow with merging paths
+val researchWorkflow = workflow {
+    name = "research-workflow"
+    description = "Research a topic from multiple sources and synthesize results"
+
+    // These steps run in parallel
+    step(academicResearchAgent) {
+        id = "academic-research"
+        name = "Academic Research"
+        description = "Research from academic sources"
+        variables = mutableMapOf(
+            "topic" to variable("$.input.topic"),
+            "depth" to variable("$.input.academicDepth")
+        )
+    }
+
+    step(newsResearchAgent) {
+        id = "news-research"
+        name = "News Research"
+        description = "Research from news sources"
+        variables = mutableMapOf(
+            "topic" to variable("$.input.topic"),
+            "timeframe" to variable("$.input.newsTimeframe")
+        )
+    }
+
+    step(socialMediaResearchAgent) {
+        id = "social-research"
+        name = "Social Media Research"
+        description = "Research from social media"
+        variables = mutableMapOf(
+            "topic" to variable("$.input.topic"),
+            "platforms" to variable("$.input.socialPlatforms")
+        )
+    }
+
+    // This step merges all research paths
+    step(synthesisAgent) {
+        id = "research-synthesis"
+        name = "Research Synthesis"
+        description = "Synthesize research from all sources"
+        // This step depends on all three research steps
+        after("academic-research", "news-research", "social-research")
+        variables = mutableMapOf(
+            "academicData" to variable("$.steps.academic-research.output.findings"),
+            "newsData" to variable("$.steps.news-research.output.findings"),
+            "socialData" to variable("$.steps.social-research.output.findings")
+        )
+    }
+
+    // Final report generation
+    step(reportAgent) {
+        id = "generate-report"
+        name = "Generate Report"
+        description = "Create a comprehensive report"
+        after("research-synthesis")
+        variables = mutableMapOf(
+            "synthesizedData" to variable("$.steps.research-synthesis.output.synthesizedFindings"),
+            "format" to variable("$.input.reportFormat")
+        )
+    }
+}
 ```
 
-### Option 3: Simple Path Comparison
+In this example, three parallel research paths merge at the synthesis step, which only executes after all three research steps have completed. This ensures that all research data is available before synthesis begins.
 
-```typescript
-myWorkflow.step(
-  new Step({
-    id: "processData",
-    execute: async ({ context }) => {
-      // Action logic
-    },
-  }),
-  {
-    when: {
-      "fetchData.status": "success",
-    },
-  },
-);
+## Loops and Iterative Processing ✅
+
+Kastrax supports iterative processing through loop constructs that allow steps to repeat until certain conditions are met. This is essential for tasks that require multiple iterations or refinement cycles.
+
+### Using Loop Steps
+
+```kotlin filename="LoopWorkflow.kt"
+import ai.kastrax.core.workflow.workflow
+import ai.kastrax.core.workflow.variable
+
+// Create a workflow with a loop
+val contentRefinementWorkflow = workflow {
+    name = "content-refinement"
+    description = "Iteratively refine content until it meets quality standards"
+
+    // Initial content generation
+    step(contentGenerationAgent) {
+        id = "generate-content"
+        name = "Generate Initial Content"
+        description = "Create the first draft of content"
+        variables = mutableMapOf(
+            "topic" to variable("$.input.topic"),
+            "style" to variable("$.input.style")
+        )
+    }
+
+    // Initialize iteration counter
+    step(initializationAgent) {
+        id = "initialize-loop"
+        name = "Initialize Loop Variables"
+        description = "Set up variables for the refinement loop"
+        after("generate-content")
+        execute { context ->
+            mapOf(
+                "currentContent" to context.getVariable("$.steps.generate-content.output.content"),
+                "iterationCount" to 0,
+                "qualityScore" to 0.0
+            )
+        }
+    }
+
+    // Refinement loop
+    loopStep {
+        id = "refinement-loop"
+        name = "Content Refinement Loop"
+        description = "Iteratively improve content until quality threshold is reached"
+        after("initialize-loop")
+
+        // Continue looping while quality is below threshold and iterations are under limit
+        condition { context ->
+            val qualityScore = context.getVariable("$.steps.evaluate-content.output.qualityScore") as? Double ?: 0.0
+            val iterationCount = context.getVariable("$.steps.refine-content.output.iterationCount") as? Int ?: 0
+            qualityScore < 8.5 && iterationCount < 5  // Continue if quality < 8.5 and fewer than 5 iterations
+        }
+
+        // Loop body
+        body {
+            // Evaluate current content
+            step(evaluationAgent) {
+                id = "evaluate-content"
+                name = "Evaluate Content Quality"
+                description = "Assess the quality of the current content"
+                variables = mutableMapOf(
+                    "content" to variable("$.steps.refine-content.output.currentContent",
+                                         defaultValue = variable("$.steps.initialize-loop.output.currentContent"))
+                )
+            }
+
+            // Refine content based on evaluation
+            step(refinementAgent) {
+                id = "refine-content"
+                name = "Refine Content"
+                description = "Improve content based on evaluation feedback"
+                after("evaluate-content")
+                variables = mutableMapOf(
+                    "content" to variable("$.steps.refine-content.output.currentContent",
+                                         defaultValue = variable("$.steps.initialize-loop.output.currentContent")),
+                    "feedback" to variable("$.steps.evaluate-content.output.feedback"),
+                    "qualityScore" to variable("$.steps.evaluate-content.output.qualityScore"),
+                    "iterationCount" to variable("$.steps.refine-content.output.iterationCount", defaultValue = 0)
+                )
+                execute { context ->
+                    val content = context.getVariable("content") as String
+                    val feedback = context.getVariable("feedback") as String
+                    val iterationCount = (context.getVariable("iterationCount") as Int) + 1
+                    val qualityScore = context.getVariable("qualityScore") as Double
+
+                    // In a real implementation, this would use an agent to refine the content
+                    // For this example, we're just simulating refinement
+                    val refinedContent = "$content\n\nRefined in iteration $iterationCount based on: $feedback"
+
+                    mapOf(
+                        "currentContent" to refinedContent,
+                        "iterationCount" to iterationCount,
+                        "qualityScore" to qualityScore
+                    )
+                }
+            }
+        }
+    }
+
+    // Final processing after loop completion
+    step(finalizationAgent) {
+        id = "finalize-content"
+        name = "Finalize Content"
+        description = "Prepare the refined content for publication"
+        after("refinement-loop")
+        variables = mutableMapOf(
+            "content" to variable("$.steps.refine-content.output.currentContent"),
+            "iterationCount" to variable("$.steps.refine-content.output.iterationCount"),
+            "finalQuality" to variable("$.steps.evaluate-content.output.qualityScore")
+        )
+    }
+}
 ```
+
+In this example, the workflow uses a loop to iteratively refine content until it reaches a quality threshold or hits a maximum number of iterations. The loop body contains steps for evaluating and refining the content, with each iteration building on the results of the previous one.
+
+### Using Recursive Patterns
+
+For more complex iterative processes, Kastrax also supports recursive patterns where steps can trigger themselves under certain conditions:
+
+```kotlin filename="RecursiveWorkflow.kt"
+import ai.kastrax.core.workflow.workflow
+import ai.kastrax.core.workflow.variable
+
+// Create a workflow with recursive processing
+val recursiveWorkflow = workflow {
+    name = "recursive-processing"
+    description = "Process data recursively until completion"
+
+    // Initial data processing
+    step(processingAgent) {
+        id = "process-data"
+        name = "Process Data"
+        description = "Process a batch of data"
+        variables = mutableMapOf(
+            "data" to variable("$.input.data"),
+            "batchNumber" to variable("$.input.batchNumber", defaultValue = 1),
+            "totalBatches" to variable("$.input.totalBatches")
+        )
+
+        // Define what happens after this step completes
+        onComplete { result ->
+            val batchNumber = result["batchNumber"] as Int
+            val totalBatches = result["totalBatches"] as Int
+
+            // If there are more batches to process, trigger the next batch
+            if (batchNumber < totalBatches) {
+                step(processingAgent) {
+                    id = "process-data-${batchNumber + 1}"
+                    name = "Process Data Batch ${batchNumber + 1}"
+                    description = "Process the next batch of data"
+                    variables = mutableMapOf(
+                        "data" to variable("$.input.nextBatchData"),
+                        "batchNumber" to (batchNumber + 1),
+                        "totalBatches" to totalBatches
+                    )
+                }
+            } else {
+                // If all batches are processed, move to finalization
+                step(finalizationAgent) {
+                    id = "finalize-processing"
+                    name = "Finalize Processing"
+                    description = "Combine and finalize all processed batches"
+                    variables = mutableMapOf(
+                        "processedBatches" to variable("$.steps", transform = { steps ->
+                            // Collect results from all processing steps
+                            (steps as Map<String, Any>).filter { it.key.startsWith("process-data") }
+                                .map { it.value }
+                        })
+                    )
+                }
+            }
+        }
+    }
+}
+```
+
+This recursive pattern allows for dynamic workflow generation based on the results of previous steps, enabling complex iterative processes that can't be fully defined in advance.
+
+## Conditional Execution ✅
+
+Kastrax provides several ways to conditionally execute steps based on the results of previous steps or external conditions. This allows for dynamic, adaptive workflows that can respond to changing circumstances.
+
+### Using Conditional Steps
+
+The most direct way to implement conditional logic is using conditional steps:
+
+```kotlin filename="ConditionalExecution.kt"
+import ai.kastrax.core.workflow.workflow
+import ai.kastrax.core.workflow.variable
+
+// Create a workflow with conditional execution
+val approvalWorkflow = workflow {
+    name = "approval-workflow"
+    description = "Process content with approval conditions"
+
+    // Initial content creation
+    step(contentAgent) {
+        id = "create-content"
+        name = "Create Content"
+        description = "Generate initial content"
+        variables = mutableMapOf(
+            "topic" to variable("$.input.topic")
+        )
+    }
+
+    // Conditional step for content approval
+    conditionalStep {
+        id = "approval-check"
+        name = "Approval Check"
+        description = "Check if content requires approval"
+        after("create-content")
+
+        // Define the condition to evaluate
+        condition { context ->
+            val contentLength = context.getVariable("$.steps.create-content.output.content")?.toString()?.length ?: 0
+            val sensitiveTopics = context.getVariable("$.steps.create-content.output.sensitiveTopicsDetected") as? Boolean ?: false
+
+            // Content requires approval if it's long or contains sensitive topics
+            contentLength > 1000 || sensitiveTopics
+        }
+
+        // Steps to execute if approval is required
+        onTrue {
+            step(approvalAgent) {
+                id = "request-approval"
+                name = "Request Approval"
+                description = "Send content for human approval"
+                variables = mutableMapOf(
+                    "content" to variable("$.steps.create-content.output.content"),
+                    "approver" to variable("$.input.approverEmail")
+                )
+            }
+        }
+
+        // Steps to execute if approval is not required
+        onFalse {
+            step(publishAgent) {
+                id = "auto-publish"
+                name = "Auto-Publish"
+                description = "Automatically publish content without approval"
+                variables = mutableMapOf(
+                    "content" to variable("$.steps.create-content.output.content")
+                )
+            }
+        }
+    }
+}
+```
+
+### Using Step Conditions
+
+You can also add conditions directly to individual steps:
+
+```kotlin
+step(publishAgent) {
+    id = "publish-content"
+    name = "Publish Content"
+    description = "Publish content if approved"
+    after("request-approval")
+
+    // Only execute this step if the approval was granted
+    condition { context ->
+        context.getVariable("$.steps.request-approval.output.approved") as? Boolean ?: false
+    }
+
+    variables = mutableMapOf(
+        "content" to variable("$.steps.create-content.output.content"),
+        "channel" to variable("$.input.publishChannel")
+    )
+}
+```
+
+### Using Dynamic Step Generation
+
+For more complex conditional logic, you can dynamically generate steps based on runtime conditions:
+
+```kotlin
+step(analysisAgent) {
+    id = "analyze-data"
+    name = "Analyze Data"
+    description = "Analyze input data and determine next steps"
+    variables = mutableMapOf(
+        "data" to variable("$.input.data")
+    )
+
+    // Dynamically determine next steps based on analysis results
+    onComplete { result ->
+        val dataType = result["dataType"] as? String
+
+        when (dataType) {
+            "text" -> {
+                step(textProcessingAgent) {
+                    id = "process-text"
+                    name = "Process Text Data"
+                    description = "Process textual data"
+                    variables = mutableMapOf(
+                        "text" to variable("$.steps.analyze-data.output.extractedText")
+                    )
+                }
+            }
+            "image" -> {
+                step(imageProcessingAgent) {
+                    id = "process-image"
+                    name = "Process Image Data"
+                    description = "Process image data"
+                    variables = mutableMapOf(
+                        "imageUrl" to variable("$.steps.analyze-data.output.imageUrl")
+                    )
+                }
+            }
+            else -> {
+                step(fallbackAgent) {
+                    id = "process-unknown"
+                    name = "Process Unknown Data"
+                    description = "Handle unknown data type"
+                    variables = mutableMapOf(
+                        "rawData" to variable("$.steps.analyze-data.output.rawData")
+                    )
+                }
+            }
+        }
+    }
+}
+```
+
+## Best Practices for Control Flow ✅
+
+When designing workflow control flow, consider these best practices:
+
+### 1. Keep Workflows Readable
+
+Design your workflows to be as readable and maintainable as possible:
+
+```kotlin
+// Good: Clear, descriptive step IDs and logical flow
+workflow {
+    step(dataFetchAgent) { id = "fetch-data" }
+    step(validationAgent) { id = "validate-data"; after("fetch-data") }
+    step(processingAgent) { id = "process-data"; after("validate-data") }
+}
+
+// Avoid: Confusing dependencies and unclear flow
+// workflow {
+//     step(processingAgent) { id = "process" }
+//     step(dataFetchAgent) { id = "fetch" }
+//     step(validationAgent) { id = "validate"; after("fetch") }
+//     step(finalAgent) { id = "final"; after("process", "validate") }
+// }
+```
+
+### 2. Use Explicit Dependencies
+
+Always make dependencies between steps explicit:
+
+```kotlin
+// Good: Explicit dependencies
+step(analysisAgent) {
+    id = "analyze-data"
+    after("fetch-data", "preprocess-data")  // Explicit dependencies
+}
+
+// Avoid: Implicit dependencies through variable references without explicit step dependencies
+// step(analysisAgent) {
+//     id = "analyze-data"
+//     variables = mutableMapOf(
+//         "data" to variable("$.steps.fetch-data.output.data")  // Implicit dependency
+//     )
+// }
+```
+
+### 3. Handle Error Cases
+
+Implement proper error handling in your control flow:
+
+```kotlin
+conditionalStep {
+    id = "data-validation"
+
+    condition { context ->
+        val validationErrors = context.getVariable("$.steps.validate-data.output.errors") as? List<String> ?: emptyList()
+        validationErrors.isEmpty()  // Check if there are no validation errors
+    }
+
+    onTrue {
+        step(processingAgent) { id = "process-data" }
+    }
+
+    onFalse {
+        step(errorHandlingAgent) {
+            id = "handle-validation-errors"
+            variables = mutableMapOf(
+                "errors" to variable("$.steps.validate-data.output.errors")
+            )
+        }
+    }
+}
+```
+
+### 4. Avoid Overly Complex Workflows
+
+Break down complex workflows into smaller, more manageable sub-workflows:
+
+```kotlin
+// Main workflow that orchestrates sub-workflows
+val mainWorkflow = workflow {
+    name = "main-process"
+
+    // Execute data preparation sub-workflow
+    subWorkflowStep {
+        id = "data-preparation"
+        workflowId = "data-prep-workflow"
+        input = mapOf(
+            "rawData" to variable("$.input.data")
+        )
+    }
+
+    // Execute analysis sub-workflow after data preparation
+    subWorkflowStep {
+        id = "data-analysis"
+        after("data-preparation")
+        workflowId = "analysis-workflow"
+        input = mapOf(
+            "preparedData" to variable("$.steps.data-preparation.output.processedData")
+        )
+    }
+}
+```
+
+### 5. Test Complex Control Flows
+
+Thoroughly test workflows with complex control flows to ensure they behave as expected:
+
+```kotlin
+// Test workflow with different input conditions
+fun testWorkflow() = runBlocking {
+    val workflowEngine = kastraxSystem.workflowEngine
+
+    // Test with valid data
+    val validResult = workflowEngine.executeWorkflow(
+        workflowId = "data-processing",
+        input = mapOf("data" to validTestData)
+    )
+    assert(validResult.success)
+
+    // Test with invalid data to verify error handling
+    val invalidResult = workflowEngine.executeWorkflow(
+        workflowId = "data-processing",
+        input = mapOf("data" to invalidTestData)
+    )
+    assert(invalidResult.steps["handle-validation-errors"] != null)
+}
+```
+
+By following these best practices, you can create workflows with clear, maintainable control flow that effectively orchestrates your AI agents and tools.
 
 ## Data Access Patterns ✅
 
