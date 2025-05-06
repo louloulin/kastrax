@@ -1,164 +1,583 @@
 ---
-title: Chunking and Embedding Documents | RAG | Kastrax Docs
-description: Guide on chunking and embedding documents in Kastrax for efficient processing and retrieval.
+title: "Document Chunking and Embedding in Kastrax | RAG | Kastrax Docs"
+description: "Learn how to efficiently process, chunk, and embed documents in Kastrax for high-performance retrieval-augmented generation (RAG) applications."
 ---
 
-## Chunking and Embedding Documents ✅
+# Document Chunking and Embedding in Kastrax ✅
 
-Before processing, create a MDocument instance from your content. You can initialize it from various formats:
+Effective document processing is the foundation of any successful RAG system. Kastrax provides powerful tools for transforming raw documents into optimized chunks and high-quality embeddings that enable accurate retrieval.
 
-```ts showLineNumbers copy
-const docFromText = MDocument.fromText("Your plain text content...");
-const docFromHTML = MDocument.fromHTML("<html>Your HTML content...</html>");
-const docFromMarkdown = MDocument.fromMarkdown("# Your Markdown content...");
-const docFromJSON = MDocument.fromJSON(`{ "key": "value" }`);
+## Document Processing Overview ✅
+
+The document processing pipeline in Kastrax consists of two main steps:
+
+1. **Chunking**: Splitting documents into semantically meaningful segments
+2. **Embedding**: Converting text chunks into vector representations
+
+This process transforms raw documents into a format that can be efficiently stored in vector databases and retrieved based on semantic similarity.
+
+## Creating Documents ✅
+
+Before processing, you need to create a `Document` instance from your content. Kastrax supports multiple document formats:
+
+```kotlin filename="DocumentCreation.kt"
+import ai.kastrax.rag.document.Document
+import ai.kastrax.rag.document.DocumentType
+
+// Create documents from different sources
+fun createDocuments() {
+    // From plain text
+    val textDocument = Document.fromText(
+        content = "Your plain text content...",
+        metadata = mapOf("source" to "text", "author" to "John Doe")
+    )
+
+    // From HTML
+    val htmlDocument = Document.fromHtml(
+        content = "<html><body>Your HTML content...</body></html>",
+        metadata = mapOf("source" to "web", "url" to "https://example.com")
+    )
+
+    // From Markdown
+    val markdownDocument = Document.fromMarkdown(
+        content = "# Your Markdown content...",
+        metadata = mapOf("source" to "github", "repository" to "kastrax/docs")
+    )
+
+    // From JSON
+    val jsonDocument = Document.fromJson(
+        content = "{ \"key\": \"value\" }",
+        metadata = mapOf("source" to "api", "endpoint" to "/data")
+    )
+
+    // From PDF (using the PDF extension)
+    val pdfDocument = Document.fromPdf(
+        filePath = "path/to/document.pdf",
+        metadata = mapOf("source" to "file", "author" to "Jane Smith")
+    )
+
+    // From file (auto-detects format based on extension)
+    val fileDocument = Document.fromFile(
+        filePath = "path/to/document.docx",
+        metadata = mapOf("source" to "file", "department" to "HR")
+    )
+}
 ```
 
-## Step 1: Document Processing ✅
+Each document can include optional metadata that provides context about the document source, author, creation date, or any other relevant information. This metadata is preserved throughout the processing pipeline and can be used for filtering during retrieval.
 
-Use `chunk` to split documents into manageable pieces. Kastrax supports multiple chunking strategies optimized for different document types:
+## Document Chunking ✅
 
-- `recursive`: Smart splitting based on content structure
-- `character`: Simple character-based splits
-- `token`: Token-aware splitting
-- `markdown`: Markdown-aware splitting
-- `html`: HTML structure-aware splitting
-- `json`: JSON structure-aware splitting
-- `latex`: LaTeX structure-aware splitting
+Chunking is the process of splitting documents into smaller, semantically meaningful segments. Kastrax provides multiple chunking strategies optimized for different document types and use cases:
 
-Here's an example of how to use the `recursive` strategy:
+| Strategy | Description | Best For |
+|----------|-------------|----------|
+| `RecursiveChunker` | Smart splitting based on content structure | General purpose, preserves semantic units |
+| `CharacterChunker` | Simple character-based splits | Simple text with uniform structure |
+| `TokenChunker` | Token-aware splitting | LLM-optimized chunks with precise token counts |
+| `MarkdownChunker` | Markdown-aware splitting | Markdown documents, preserves headings and structure |
+| `HtmlChunker` | HTML structure-aware splitting | Web pages, preserves HTML elements |
+| `JsonChunker` | JSON structure-aware splitting | JSON data, preserves object boundaries |
+| `LatexChunker` | LaTeX structure-aware splitting | Academic papers, preserves sections and formulas |
+| `SentenceChunker` | Splits by sentences | Natural language text |
+| `ParagraphChunker` | Splits by paragraphs | Articles and essays |
 
-```ts showLineNumbers copy
-const chunks = await doc.chunk({
-  strategy: "recursive",
-  size: 512,
-  overlap: 50,
-  separator: "\n",
-  extract: {
-    metadata: true, // Optionally extract metadata
-  },
-});
+### Basic Chunking Example
+
+```kotlin filename="BasicChunking.kt"
+import ai.kastrax.rag.document.Document
+import ai.kastrax.rag.chunking.RecursiveChunker
+import ai.kastrax.rag.chunking.ChunkingOptions
+
+// Create a document
+val document = Document.fromText(
+    content = """Climate change poses significant challenges to global agriculture.
+        Rising temperatures and changing precipitation patterns affect crop yields.
+        Farmers must adapt to these changing conditions to ensure food security.
+        New technologies and farming practices can help mitigate these effects.""".trimIndent(),
+    metadata = mapOf("topic" to "climate change", "domain" to "agriculture")
+)
+
+// Create a chunker with specific options
+val chunker = RecursiveChunker(
+    options = ChunkingOptions(
+        chunkSize = 100,          // Target size in tokens
+        chunkOverlap = 20,        // Overlap between chunks
+        separator = "\n",         // Preferred split points
+        keepSeparator = false,    // Whether to include separators in chunks
+        extractMetadata = true    // Whether to extract additional metadata
+    )
+)
+
+// Chunk the document
+val chunks = chunker.chunk(document)
+
+// Process the chunks
+chunks.forEach { chunk ->
+    println("Chunk: ${chunk.content.take(50)}...")
+    println("Size: ${chunk.tokenCount} tokens")
+    println("Metadata: ${chunk.metadata}")
+    println()
+}
 ```
 
-**Note:** Metadata extraction may use LLM calls, so ensure your API key is set.
+### Advanced Chunking Options
 
-We go deeper into chunking strategies in our [chunk documentation](/reference/rag/chunk.mdx).
+Kastrax provides fine-grained control over the chunking process:
 
-## Step 2: Embedding Generation ✅
+```kotlin filename="AdvancedChunking.kt"
+import ai.kastrax.rag.document.Document
+import ai.kastrax.rag.chunking.ChunkerFactory
+import ai.kastrax.rag.chunking.ChunkingOptions
+import ai.kastrax.rag.chunking.ChunkingStrategy
 
-Transform chunks into embeddings using your preferred provider. Kastrax supports many embedding providers, including OpenAI and Cohere:
+// Create a document
+val document = Document.fromMarkdown(
+    content = """# Climate Change and Agriculture
 
-### Using OpenAI
+        ## Introduction
+        Climate change poses significant challenges to global agriculture.
 
-```ts showLineNumbers copy
-import { openai } from "@ai-sdk/openai";
-import { embedMany } from "ai";
+        ## Effects on Crop Yields
+        Rising temperatures and changing precipitation patterns affect crop yields.
 
-const { embeddings } = await embedMany({
-  model: openai.embedding('text-embedding-3-small'),
-  values: chunks.map(chunk => chunk.text),
-});
+        ## Adaptation Strategies
+        Farmers must adapt to these changing conditions to ensure food security.
+
+        ## Technological Solutions
+        New technologies and farming practices can help mitigate these effects.""".trimIndent()
+)
+
+// Create a chunker using the factory with advanced options
+val chunker = ChunkerFactory.create(
+    strategy = ChunkingStrategy.MARKDOWN,
+    options = ChunkingOptions(
+        chunkSize = 150,
+        chunkOverlap = 30,
+        keepSeparator = true,
+        extractMetadata = true,
+        metadataExtractors = listOf(
+            // Custom metadata extractors
+            TitleExtractor(),
+            KeywordsExtractor(),
+            SummaryExtractor()
+        ),
+        customSplitters = mapOf(
+            // Custom splitting rules
+            "##" to SplitBehavior.ALWAYS_SPLIT,
+            "*" to SplitBehavior.NEVER_SPLIT
+        )
+    )
+)
+
+// Chunk the document
+val chunks = chunker.chunk(document)
+```
+
+### Metadata Extraction
+
+Kastrax can automatically extract metadata from chunks to enhance retrieval:
+
+```kotlin filename="MetadataExtraction.kt"
+import ai.kastrax.rag.document.Document
+import ai.kastrax.rag.chunking.ChunkerFactory
+import ai.kastrax.rag.chunking.ChunkingStrategy
+import ai.kastrax.rag.chunking.metadata.LlmMetadataExtractor
+
+// Create a document
+val document = Document.fromText(longArticleText)
+
+// Create a chunker with LLM-based metadata extraction
+val chunker = ChunkerFactory.create(
+    strategy = ChunkingStrategy.RECURSIVE,
+    options = ChunkingOptions(
+        chunkSize = 200,
+        extractMetadata = true,
+        metadataExtractors = listOf(
+            LlmMetadataExtractor(
+                fields = listOf("title", "summary", "keywords", "entities"),
+                llmProvider = "openai",
+                modelName = "gpt-4"
+            )
+        )
+    )
+)
+
+// Chunk the document with metadata extraction
+val chunks = chunker.chunk(document)
+
+// Access the extracted metadata
+chunks.forEach { chunk ->
+    val title = chunk.metadata["title"] as? String
+    val summary = chunk.metadata["summary"] as? String
+    val keywords = chunk.metadata["keywords"] as? List<String>
+
+    println("Title: $title")
+    println("Summary: $summary")
+    println("Keywords: $keywords")
+    println()
+}
+```
+
+**Note:** LLM-based metadata extraction requires an API key for the selected provider.
+
+## Document Embedding ✅
+
+After chunking, the next step is to convert text chunks into vector embeddings. These embeddings capture the semantic meaning of the text and enable similarity-based retrieval. Kastrax provides a flexible embedding system that supports multiple providers and models.
+
+### Embedding Providers
+
+Kastrax supports several embedding providers out of the box:
+
+| Provider | Models | Features |
+|----------|--------|----------|
+| OpenAI | text-embedding-3-small, text-embedding-3-large | High quality, dimension control |
+| DeepSeek | deepseek-embed-base, deepseek-embed-large | Multilingual support |
+| Cohere | embed-english-v3.0, embed-multilingual-v3.0 | Strong multilingual capabilities |
+| HuggingFace | Various open-source models | Self-hosted options |
+| Vertex AI | textembedding-gecko, textembedding-gecko-multilingual | Enterprise-grade |
+| Local | MiniLM, BGE, E5 | No API dependency |
+
+### Basic Embedding Example
+
+```kotlin filename="BasicEmbedding.kt"
+import ai.kastrax.rag.document.Document
+import ai.kastrax.rag.chunking.RecursiveChunker
+import ai.kastrax.rag.embedding.OpenAIEmbedder
+import ai.kastrax.rag.embedding.EmbeddingOptions
+
+// Create a document and chunk it
+val document = Document.fromText("Climate change poses significant challenges...")
+val chunker = RecursiveChunker()
+val chunks = chunker.chunk(document)
+
+// Create an embedder
+val embedder = OpenAIEmbedder(
+    options = EmbeddingOptions(
+        modelName = "text-embedding-3-small",
+        dimensions = 1536,  // Default dimension
+        apiKey = System.getenv("OPENAI_API_KEY")
+    )
+)
+
+// Generate embeddings for all chunks
+val embeddedChunks = embedder.embed(chunks)
+
+// Access the embeddings
+embeddedChunks.forEach { chunk ->
+    val embedding = chunk.embedding
+    println("Chunk: ${chunk.content.take(30)}...")
+    println("Embedding dimensions: ${embedding.size}")
+    println("First 5 values: ${embedding.take(5)}")
+    println()
+}
+```
+
+### Using DeepSeek Embeddings
+
+```kotlin filename="DeepSeekEmbedding.kt"
+import ai.kastrax.rag.embedding.DeepSeekEmbedder
+import ai.kastrax.rag.embedding.EmbeddingOptions
+
+// Create a DeepSeek embedder
+val embedder = DeepSeekEmbedder(
+    options = EmbeddingOptions(
+        modelName = "deepseek-embed-large",
+        apiKey = System.getenv("DEEPSEEK_API_KEY"),
+        batchSize = 10  // Process 10 chunks at a time
+    )
+)
+
+// Generate embeddings
+val embeddedChunks = embedder.embed(chunks)
+```
+
+### Using Local Embeddings
+
+Kastrax supports local embedding models that run without API calls:
+
+```kotlin filename="LocalEmbedding.kt"
+import ai.kastrax.rag.embedding.LocalEmbedder
+import ai.kastrax.rag.embedding.LocalEmbeddingOptions
+
+// Create a local embedder
+val embedder = LocalEmbedder(
+    options = LocalEmbeddingOptions(
+        modelName = "BAAI/bge-small-en-v1.5",
+        cacheDir = "/path/to/model/cache",
+        quantize = true  // Use quantization for faster inference
+    )
+)
+
+// Generate embeddings
+val embeddedChunks = embedder.embed(chunks)
+```
+
+### Configuring Embedding Dimensions
+
+Some embedding models support dimension reduction, which can help:
+
+- Decrease storage requirements in vector databases
+- Reduce computational costs for similarity searches
+- Improve retrieval performance in some cases
+
+```kotlin filename="DimensionControl.kt"
+import ai.kastrax.rag.embedding.OpenAIEmbedder
+import ai.kastrax.rag.embedding.EmbeddingOptions
+
+// Create an embedder with reduced dimensions
+val embedder = OpenAIEmbedder(
+    options = EmbeddingOptions(
+        modelName = "text-embedding-3-small",
+        dimensions = 256,  // Reduced from default 1536
+        apiKey = System.getenv("OPENAI_API_KEY")
+    )
+)
+
+// Generate embeddings with reduced dimensions
+val embeddedChunks = embedder.embed(chunks)
+```
+
+### Batch Processing
+
+For large document collections, Kastrax provides efficient batch processing:
+
+```kotlin filename="BatchEmbedding.kt"
+import ai.kastrax.rag.embedding.EmbeddingBatcher
+import ai.kastrax.rag.embedding.OpenAIEmbedder
+
+// Create an embedder
+val embedder = OpenAIEmbedder()
+
+// Create a batcher for efficient processing
+val batcher = EmbeddingBatcher(
+    embedder = embedder,
+    batchSize = 20,        // Process 20 chunks per batch
+    maxRetries = 3,        // Retry failed batches up to 3 times
+    concurrency = 2        // Process 2 batches concurrently
+)
+
+// Process a large collection of chunks
+val embeddedChunks = batcher.embedBatches(largeChunkCollection)
+```
+
+### Vector Database Compatibility
+
+When storing embeddings in a vector database, ensure that:
+
+1. The vector database index is configured with the same dimensions as your embeddings
+2. The similarity metric (cosine, dot product, euclidean) is consistent between embedding and retrieval
+3. The vector database supports the embedding format (typically float32 arrays)
+
+Kastrax provides utilities to help with vector database integration:
+
+```kotlin filename="VectorDBIntegration.kt"
+import ai.kastrax.rag.vectordb.VectorDBAdapter
+import ai.kastrax.rag.vectordb.PineconeAdapter
+
+// Create a vector database adapter
+val vectorDB = PineconeAdapter(
+    indexName = "document-embeddings",
+    dimensions = 1536,
+    metric = "cosine",
+    apiKey = System.getenv("PINECONE_API_KEY")
+)
+
+// Store embedded chunks
+val ids = vectorDB.upsert(embeddedChunks)
+
+// Later, retrieve similar chunks
+val query = "How does climate change affect agriculture?"
+val queryEmbedding = embedder.embedText(query)
+val similarChunks = vectorDB.search(
+    embedding = queryEmbedding,
+    limit = 5,
+    minScore = 0.7
+)
+```
+
+## Complete RAG Pipeline ✅
+
+Here's a complete example showing the entire document processing pipeline from raw text to vector database storage:
+
+```kotlin filename="CompletePipeline.kt"
+import ai.kastrax.rag.document.Document
+import ai.kastrax.rag.chunking.RecursiveChunker
+import ai.kastrax.rag.chunking.ChunkingOptions
+import ai.kastrax.rag.embedding.OpenAIEmbedder
+import ai.kastrax.rag.embedding.EmbeddingOptions
+import ai.kastrax.rag.vectordb.PineconeAdapter
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    // 1. Create a document from raw text
+    val document = Document.fromText("""
+        # Climate Change and Agriculture
+
+        Climate change poses significant challenges to global agriculture.
+        Rising temperatures and changing precipitation patterns affect crop yields.
+        Farmers must adapt to these changing conditions to ensure food security.
+
+        ## Effects on Crop Yields
+
+        Studies have shown that for each degree Celsius of warming, there is a
+        potential reduction in global yields of wheat by 6%, rice by 3.2%,
+        maize by 7.4%, and soybean by 3.1%.
+
+        ## Adaptation Strategies
+
+        Farmers are implementing various strategies to adapt to climate change:
+        - Drought-resistant crop varieties
+        - Improved irrigation systems
+        - Diversification of crops
+        - Precision agriculture techniques
+
+        ## Technological Solutions
+
+        New technologies can help mitigate the effects of climate change on agriculture:
+        - Weather forecasting systems
+        - Satellite monitoring
+        - AI-powered crop management
+        - Greenhouse innovations
+    """.trimIndent())
+
+    // 2. Configure and create a chunker
+    val chunker = RecursiveChunker(
+        options = ChunkingOptions(
+            chunkSize = 200,
+            chunkOverlap = 50,
+            separator = "\n\n",
+            extractMetadata = true
+        )
+    )
+
+    // 3. Chunk the document
+    val chunks = chunker.chunk(document)
+    println("Created ${chunks.size} chunks from the document")
+
+    // 4. Configure and create an embedder
+    val embedder = OpenAIEmbedder(
+        options = EmbeddingOptions(
+            modelName = "text-embedding-3-small",
+            dimensions = 1536,
+            apiKey = System.getenv("OPENAI_API_KEY")
+        )
+    )
+
+    // 5. Generate embeddings for all chunks
+    val embeddedChunks = embedder.embed(chunks)
+    println("Generated embeddings for ${embeddedChunks.size} chunks")
+
+    // 6. Configure and create a vector database adapter
+    val vectorDB = PineconeAdapter(
+        indexName = "climate-agriculture",
+        dimensions = 1536,
+        metric = "cosine",
+        apiKey = System.getenv("PINECONE_API_KEY")
+    )
+
+    // 7. Store the embedded chunks in the vector database
+    val ids = vectorDB.upsert(embeddedChunks)
+    println("Stored ${ids.size} vectors in the database")
+
+    // 8. Perform a test query
+    val query = "How does climate change affect wheat production?"
+    println("\nQuerying: $query")
+
+    // 9. Generate embedding for the query
+    val queryEmbedding = embedder.embedText(query)
+
+    // 10. Search for similar chunks
+    val searchResults = vectorDB.search(
+        embedding = queryEmbedding,
+        limit = 3,
+        minScore = 0.7,
+        filter = mapOf("domain" to "agriculture")
+    )
+
+    // 11. Display the results
+    println("\nSearch Results:")
+    searchResults.forEachIndexed { index, result ->
+        println("\nResult ${index + 1} (Score: ${result.score})")
+        println("Content: ${result.chunk.content}")
+        println("Metadata: ${result.chunk.metadata}")
+    }
+}
+```
+
+## Alternative Embedding Providers ✅
+
+Kastrax supports multiple embedding providers. Here's how to use different providers in your pipeline:
+
+### Using DeepSeek
+
+```kotlin filename="DeepSeekPipeline.kt"
+// Create a DeepSeek embedder
+val embedder = DeepSeekEmbedder(
+    options = EmbeddingOptions(
+        modelName = "deepseek-embed-large",
+        apiKey = System.getenv("DEEPSEEK_API_KEY")
+    )
+)
+
+// Generate embeddings
+val embeddedChunks = embedder.embed(chunks)
 ```
 
 ### Using Cohere
 
-```ts showLineNumbers copy
-import { cohere } from '@ai-sdk/cohere';
-import { embedMany } from 'ai';
+```kotlin filename="CoherePipeline.kt"
+// Create a Cohere embedder
+val embedder = CohereEmbedder(
+    options = EmbeddingOptions(
+        modelName = "embed-multilingual-v3.0",
+        apiKey = System.getenv("COHERE_API_KEY")
+    )
+)
 
-const { embeddings } = await embedMany({
-  model: cohere.embedding('embed-english-v3.0'),
-  values: chunks.map(chunk => chunk.text),
-});
+// Generate embeddings
+val embeddedChunks = embedder.embed(chunks)
 ```
 
-The embedding functions return vectors, arrays of numbers representing the semantic meaning of your text, ready for similarity searches in your vector database.
+### Using Local Models
 
-### Configuring Embedding Dimensions
+```kotlin filename="LocalModelPipeline.kt"
+// Create a local embedder
+val embedder = LocalEmbedder(
+    options = LocalEmbeddingOptions(
+        modelName = "BAAI/bge-small-en-v1.5",
+        cacheDir = "/path/to/model/cache"
+    )
+)
 
-Embedding models typically output vectors with a fixed number of dimensions (e.g., 1536 for OpenAI's `text-embedding-3-small`). 
-Some models support reducing this dimensionality, which can help:
-- Decrease storage requirements in vector databases
-- Reduce computational costs for similarity searches
-
-Here are some supported models:
-
-OpenAI (text-embedding-3 models):
-  ```ts
-  const { embeddings } = await embedMany({
-    model: openai.embedding('text-embedding-3-small', {
-      dimensions: 256  // Only supported in text-embedding-3 and later
-    }),
-    values: chunks.map(chunk => chunk.text),
-  });
-  ```
-
-Google (text-embedding-004):
-  ```ts
-  const { embeddings } = await embedMany({
-    model: google.textEmbeddingModel('text-embedding-004', {
-      outputDimensionality: 256  // Truncates excessive values from the end
-    }),
-    values: chunks.map(chunk => chunk.text),
-  });
-  ```
-
-### Vector Database Compatibility
-
-When storing embeddings, the vector database index must be configured to match the output size of your embedding model. If the dimensions do not match, you may get errors or data corruption.
-
-## Example: Complete Pipeline ✅
-
-Here's an example showing document processing and embedding generation with both providers:
-
-```ts showLineNumbers copy
-import { embedMany } from "ai";
-import { openai } from "@ai-sdk/openai";
-import { cohere } from "@ai-sdk/cohere";
-
-import { MDocument } from "@kastrax/rag";
-
-// Initialize document
-const doc = MDocument.fromText(`
-  Climate change poses significant challenges to global agriculture.
-  Rising temperatures and changing precipitation patterns affect crop yields.
-`);
-
-// Create chunks
-const chunks = await doc.chunk({
-  strategy: "recursive",
-  size: 256,
-  overlap: 50,
-});
-
-// Generate embeddings with OpenAI
-const { embeddings: openAIEmbeddings } = await embedMany({
-  model: openai.embedding('text-embedding-3-small'),
-  values: chunks.map(chunk => chunk.text),
-});
-
-// OR
-
-// Generate embeddings with Cohere
-const { embeddings: cohereEmbeddings } = await embedMany({
-  model: cohere.embedding('embed-english-v3.0'),
-  values: chunks.map(chunk => chunk.text),
-});
-
-// Store embeddings in your vector database
-await vectorStore.upsert({
-  indexName: "embeddings",
-  vectors: embeddings,
-});
+// Generate embeddings
+val embeddedChunks = embedder.embed(chunks)
 ```
 
-##
-For more examples of different chunking strategies and embedding configurations, see:
+## Best Practices ✅
 
-- [Adjust Chunk Size](/reference/rag/chunk.mdx#adjust-chunk-size)
-- [Adjust Chunk Delimiters](/reference/rag/chunk.mdx#adjust-chunk-delimiters)
-- [Embed Text with Cohere](/reference/rag/embeddings.mdx#using-cohere)
+### Chunking Best Practices
 
-For more details on vector databases and embeddings, see:
-- [Vector Databases](./vector-databases.mdx)
-- [Embedding API Reference](/reference/rag/embeddings.mdx)
+1. **Choose the right chunking strategy** for your document type (recursive for general text, markdown for markdown documents, etc.)
+2. **Experiment with chunk size** - smaller chunks (100-300 tokens) work better for precise retrieval, larger chunks (500-1000 tokens) provide more context
+3. **Use appropriate overlap** (typically 10-20% of chunk size) to prevent information loss at chunk boundaries
+4. **Extract metadata** to enhance retrieval with additional context
+5. **Preserve document structure** by using structure-aware chunkers for formatted documents
+
+### Embedding Best Practices
+
+1. **Choose the right embedding model** based on your language requirements and quality needs
+2. **Consider dimension reduction** for large document collections to reduce storage and computation costs
+3. **Use batch processing** for large collections to optimize throughput
+4. **Cache embeddings** to avoid regenerating them for unchanged documents
+5. **Monitor embedding quality** by testing retrieval performance with representative queries
+
+## Related Resources ✅
+
+For more information on document processing and embeddings in Kastrax, see:
+
+- [Vector Databases](./vector-databases.mdx) - Learn how to store and retrieve embeddings
+- [RAG Retrieval](./retrieval.mdx) - Advanced retrieval techniques for RAG systems
+- [RAG Evaluation](./evaluation.mdx) - Methods to evaluate and optimize your RAG pipeline
+- [Chunking Strategies](../reference/rag/chunking.mdx) - Detailed reference for all chunking strategies
+- [Embedding Models](../reference/rag/embeddings.mdx) - Comprehensive guide to embedding models and providers

@@ -1,210 +1,512 @@
 ---
-title: "Storing Embeddings in A Vector Database | Kastrax Docs"
-description: Guide on vector storage options in Kastrax, including embedded and dedicated vector databases for similarity search.
+title: "Vector Databases in Kastrax | RAG | Kastrax Docs"
+description: "Learn how to store and retrieve vector embeddings in Kastrax using various vector database options for high-performance similarity search in RAG applications."
 ---
 
 import { Tabs } from "nextra/components";
 
-## Storing Embeddings in A Vector Database ✅
+# Vector Databases in Kastrax ✅
 
-After generating embeddings, you need to store them in a database that supports vector similarity search. Kastrax provides a consistent interface for storing and querying embeddings across different vector databases.
+Vector databases are specialized storage systems designed to efficiently store, index, and query high-dimensional vector embeddings. They are a critical component of any RAG system, enabling fast similarity search across large collections of embedded documents.
 
-## Supported Databases ✅
+## Vector Database Architecture ✅
+
+Kastrax provides a unified interface for working with vector databases, abstracting away the differences between various providers while still allowing access to provider-specific features. The architecture consists of:
+
+1. **VectorDB Interface**: A common API for all vector database operations
+2. **Database Adapters**: Provider-specific implementations of the interface
+3. **Query Builders**: Tools for constructing complex vector queries
+4. **Metadata Management**: Systems for storing and retrieving document metadata
+5. **Filtering Capabilities**: Methods for filtering results based on metadata
+
+This architecture enables you to switch between vector database providers with minimal code changes, while still leveraging the unique capabilities of each provider.
+
+## Supported Vector Databases ✅
+
+Kastrax supports a wide range of vector database providers, from self-hosted options to managed cloud services. Each provider has its own strengths and use cases.
 
 <Tabs items={['Pg Vector', 'Pinecone', 'Qdrant', 'Chroma', 'Astra', 'LibSQL', 'Upstash', 'Cloudflare', 'MongoDB']}>
   <Tabs.Tab>
-  ```ts filename="vector-store.ts" showLineNumbers copy
-  import { PgVector } from '@kastrax/pg';
+  ```kotlin filename="PgVectorExample.kt" showLineNumbers
+import ai.kastrax.rag.vectordb.PgVectorAdapter
+import ai.kastrax.rag.vectordb.IndexOptions
+import ai.kastrax.rag.document.EmbeddedChunk
 
-  const store = new PgVector(process.env.POSTGRES_CONNECTION_STRING)
-  await store.createIndex({
-    indexName: "myCollection",
-    dimension: 1536,
-  });
-  await store.upsert({
-    indexName: "myCollection",
-    vectors: embeddings,
-    metadata: chunks.map(chunk => ({ text: chunk.text })),
-  });
+// Create a PostgreSQL vector database adapter
+val vectorDB = PgVectorAdapter(
+    connectionString = System.getenv("POSTGRES_CONNECTION_STRING"),
+    schema = "public"  // Optional: specify schema
+)
 
+// Create an index with the appropriate dimension
+val indexOptions = IndexOptions(
+    indexName = "document_embeddings",
+    dimensions = 1536,
+    metric = "cosine"  // Similarity metric: cosine, dot_product, or euclidean
+)
+vectorDB.createIndex(indexOptions)
+
+// Store embeddings in the database
+vectorDB.upsert(
+    indexName = "document_embeddings",
+    chunks = embeddedChunks  // List of EmbeddedChunk objects
+)
   ```
 
   ### Using PostgreSQL with pgvector
 
-  PostgreSQL with the pgvector extension is a good solution for teams already using PostgreSQL who want to minimize infrastructure complexity. 
+  PostgreSQL with the pgvector extension is a good solution for teams already using PostgreSQL who want to minimize infrastructure complexity. It provides solid performance for small to medium-sized collections and integrates well with existing PostgreSQL workflows.
+
+  Key features:
+  - Supports multiple distance metrics (cosine, dot product, Euclidean)
+  - Efficient indexing with HNSW and IVFFlat algorithms
+  - Familiar SQL interface for complex queries
+  - Transactional guarantees
+
   For detailed setup instructions and best practices, see the [official pgvector repository](https://github.com/pgvector/pgvector).
 </Tabs.Tab>
 <Tabs.Tab>
-  ```ts filename="vector-store.ts" showLineNumbers copy
-  import { PineconeVector } from '@kastrax/pinecone'
+  ```kotlin filename="PineconeExample.kt" showLineNumbers
+import ai.kastrax.rag.vectordb.PineconeAdapter
+import ai.kastrax.rag.vectordb.IndexOptions
 
-  const store = new PineconeVector(process.env.PINECONE_API_KEY)
-  await store.createIndex({
-    indexName: "myCollection",
-    dimension: 1536,
-  });
-  await store.upsert({
-    indexName: "myCollection",
-    vectors: embeddings,
-    metadata: chunks.map(chunk => ({ text: chunk.text })),
-  });
+// Create a Pinecone vector database adapter
+val vectorDB = PineconeAdapter(
+    apiKey = System.getenv("PINECONE_API_KEY"),
+    environment = "gcp-starter"  // Optional: specify environment
+)
+
+// Create an index with the appropriate dimension
+val indexOptions = IndexOptions(
+    indexName = "document_embeddings",
+    dimensions = 1536,
+    metric = "cosine",  // Similarity metric: cosine, dotproduct, or euclidean
+    pods = 1,           // Number of pods (Pinecone-specific)
+    podType = "p1.x1"   // Pod type (Pinecone-specific)
+)
+vectorDB.createIndex(indexOptions)
+
+// Store embeddings in the database
+vectorDB.upsert(
+    indexName = "document_embeddings",
+    chunks = embeddedChunks
+)
   ```
+
+  ### Using Pinecone
+
+  Pinecone is a fully managed vector database designed specifically for vector search at scale. It's a good choice for production applications that require high performance and reliability.
+
+  Key features:
+  - Optimized for low-latency, high-throughput vector search
+  - Automatic scaling and load balancing
+  - Support for metadata filtering
+  - Multiple distance metrics
+  - Global distribution options
 </Tabs.Tab>
 <Tabs.Tab>
-  ```ts filename="vector-store.ts" showLineNumbers copy
-  import { QdrantVector } from '@kastrax/qdrant'
+  ```kotlin filename="QdrantExample.kt" showLineNumbers
+import ai.kastrax.rag.vectordb.QdrantAdapter
+import ai.kastrax.rag.vectordb.IndexOptions
 
-  const store = new QdrantVector({
-    url: process.env.QDRANT_URL,
-    apiKey: process.env.QDRANT_API_KEY
-  })
-  await store.createIndex({
-    indexName: "myCollection",
-    dimension: 1536,
-  });
-  await store.upsert({
-    indexName: "myCollection",
-    vectors: embeddings,
-    metadata: chunks.map(chunk => ({ text: chunk.text })),
-  });
+// Create a Qdrant vector database adapter
+val vectorDB = QdrantAdapter(
+    url = System.getenv("QDRANT_URL"),
+    apiKey = System.getenv("QDRANT_API_KEY")
+)
+
+// Create an index with the appropriate dimension
+val indexOptions = IndexOptions(
+    indexName = "document_embeddings",
+    dimensions = 1536,
+    metric = "cosine",  // Similarity metric: cosine, dot, or euclid
+    // Qdrant-specific options
+    hnsw = HnswConfig(
+        m = 16,           // Number of connections per element
+        efConstruction = 100  // Size of the dynamic candidate list for construction
+    )
+)
+vectorDB.createIndex(indexOptions)
+
+// Store embeddings in the database
+vectorDB.upsert(
+    indexName = "document_embeddings",
+    chunks = embeddedChunks
+)
   ```
+
+  ### Using Qdrant
+
+  Qdrant is a vector database focused on extended filtering, high performance, and ease of use. It can be self-hosted or used as a managed service.
+
+  Key features:
+  - Advanced filtering capabilities
+  - HNSW indexing for fast approximate search
+  - Support for multiple collections and sharding
+  - Optimized for both cloud and on-premises deployments
+  - Active development and community support
 </Tabs.Tab>
 <Tabs.Tab>
-  ```ts filename="vector-store.ts" showLineNumbers copy
-  import { ChromaVector } from '@kastrax/chroma'
+  ```kotlin filename="ChromaExample.kt" showLineNumbers
+import ai.kastrax.rag.vectordb.ChromaAdapter
+import ai.kastrax.rag.vectordb.IndexOptions
 
-  const store = new ChromaVector()
-  await store.createIndex({
-    indexName: "myCollection",
-    dimension: 1536,
-  });
-  await store.upsert({
-    indexName: "myCollection",
-    vectors: embeddings,
-    metadata: chunks.map(chunk => ({ text: chunk.text })),
-  });
+// Create a Chroma vector database adapter
+val vectorDB = ChromaAdapter(
+    url = System.getenv("CHROMA_URL"),
+    apiKey = System.getenv("CHROMA_API_KEY")
+)
+
+// Create an index with the appropriate dimension
+val indexOptions = IndexOptions(
+    indexName = "document_embeddings",
+    dimensions = 1536,
+    metric = "cosine"  // Similarity metric: cosine, dot_product, or l2
+)
+vectorDB.createIndex(indexOptions)
+
+// Store embeddings in the database
+vectorDB.upsert(
+    indexName = "document_embeddings",
+    chunks = embeddedChunks
+)
   ```
+
+  ### Using Chroma
+
+  Chroma is an open-source embedding database designed for ease of use and flexibility. It's a good choice for developers who want a simple, developer-friendly vector database that can be self-hosted.
+
+  Key features:
+  - Simple API and easy setup
+  - Support for multiple embedding models
+  - Persistent and in-memory storage options
+  - Metadata filtering
+  - Active open-source community
 </Tabs.Tab>
 <Tabs.Tab>
-  ```ts filename="vector-store.ts" showLineNumbers copy
-  import { AstraVector } from '@kastrax/astra'
+  ```kotlin filename="AstraExample.kt" showLineNumbers
+import ai.kastrax.rag.vectordb.AstraAdapter
+import ai.kastrax.rag.vectordb.IndexOptions
 
-  const store = new AstraVector({
-    token: process.env.ASTRA_DB_TOKEN,
-    endpoint: process.env.ASTRA_DB_ENDPOINT,
-    keyspace: process.env.ASTRA_DB_KEYSPACE
-  })
-  await store.createIndex({
-    indexName: "myCollection",
-    dimension: 1536,
-  });
-  await store.upsert({
-    indexName: "myCollection",
-    vectors: embeddings,
-    metadata: chunks.map(chunk => ({ text: chunk.text })),
-  });
+// Create an Astra vector database adapter
+val vectorDB = AstraAdapter(
+    token = System.getenv("ASTRA_DB_TOKEN"),
+    endpoint = System.getenv("ASTRA_DB_ENDPOINT"),
+    keyspace = System.getenv("ASTRA_DB_KEYSPACE")
+)
+
+// Create an index with the appropriate dimension
+val indexOptions = IndexOptions(
+    indexName = "document_embeddings",
+    dimensions = 1536,
+    metric = "cosine"  // Similarity metric: cosine, dot, or euclidean
+)
+vectorDB.createIndex(indexOptions)
+
+// Store embeddings in the database
+vectorDB.upsert(
+    indexName = "document_embeddings",
+    chunks = embeddedChunks
+)
   ```
+
+  ### Using DataStax Astra DB
+
+  Astra DB is a cloud-native vector database built on Apache Cassandra, offering a fully managed service with vector search capabilities. It's a good choice for enterprise applications that need scalability and reliability.
+
+  Key features:
+  - Built on Apache Cassandra for high availability
+  - Serverless pricing model
+  - Global distribution
+  - Enterprise-grade security
+  - Integrated with the DataStax ecosystem
 </Tabs.Tab>
 <Tabs.Tab>
-  ```ts filename="vector-store.ts" showLineNumbers copy
-import { LibSQLVector } from "@kastrax/core/vector/libsql";
+  ```kotlin filename="LibSQLExample.kt" showLineNumbers
+import ai.kastrax.rag.vectordb.LibSQLAdapter
+import ai.kastrax.rag.vectordb.IndexOptions
 
-  const store = new LibSQLVector({
-    connectionUrl: process.env.DATABASE_URL,
-    authToken: process.env.DATABASE_AUTH_TOKEN // Optional: for Turso cloud databases
-  })
-  await store.createIndex({
-    indexName: "myCollection",
-    dimension: 1536,
-  });
-  await store.upsert({
-    indexName: "myCollection",
-    vectors: embeddings,
-    metadata: chunks.map(chunk => ({ text: chunk.text })),
-  });
+// Create a LibSQL vector database adapter
+val vectorDB = LibSQLAdapter(
+    connectionUrl = System.getenv("DATABASE_URL"),
+    authToken = System.getenv("DATABASE_AUTH_TOKEN")  // Optional: for Turso cloud databases
+)
+
+// Create an index with the appropriate dimension
+val indexOptions = IndexOptions(
+    indexName = "document_embeddings",
+    dimensions = 1536,
+    metric = "cosine"  // Similarity metric: cosine, dot, or euclidean
+)
+vectorDB.createIndex(indexOptions)
+
+// Store embeddings in the database
+vectorDB.upsert(
+    indexName = "document_embeddings",
+    chunks = embeddedChunks
+)
   ```
+
+  ### Using LibSQL
+
+  LibSQL is a fork of SQLite with additional features, including vector search capabilities. It's a good choice for lightweight applications or edge deployments where a full database server might be overkill.
+
+  Key features:
+  - Lightweight and embeddable
+  - Compatible with SQLite
+  - Simple setup and maintenance
+  - Good for edge computing and local applications
+  - Serverless options via Turso
 </Tabs.Tab>
 <Tabs.Tab>
-  ```ts filename="vector-store.ts" showLineNumbers copy
-  import { UpstashVector } from '@kastrax/upstash'
+  ```kotlin filename="UpstashExample.kt" showLineNumbers
+import ai.kastrax.rag.vectordb.UpstashAdapter
+import ai.kastrax.rag.vectordb.IndexOptions
 
-  const store = new UpstashVector({
-    url: process.env.UPSTASH_URL,
-    token: process.env.UPSTASH_TOKEN
-  })
-  await store.createIndex({
-    indexName: "myCollection",
-    dimension: 1536,
-  });
-  await store.upsert({
-    indexName: "myCollection",
-    vectors: embeddings,
-    metadata: chunks.map(chunk => ({ text: chunk.text })),
-  });
+// Create an Upstash vector database adapter
+val vectorDB = UpstashAdapter(
+    url = System.getenv("UPSTASH_URL"),
+    token = System.getenv("UPSTASH_TOKEN")
+)
+
+// Create an index with the appropriate dimension
+val indexOptions = IndexOptions(
+    indexName = "document_embeddings",
+    dimensions = 1536,
+    metric = "cosine"  // Similarity metric: cosine, dot, or euclidean
+)
+vectorDB.createIndex(indexOptions)
+
+// Store embeddings in the database
+vectorDB.upsert(
+    indexName = "document_embeddings",
+    chunks = embeddedChunks
+)
   ```
+
+  ### Using Upstash
+
+  Upstash provides a serverless vector database built on Redis, offering a simple, pay-per-use model. It's a good choice for applications that need low latency and simple setup.
+
+  Key features:
+  - Serverless architecture
+  - Pay-per-use pricing
+  - Redis compatibility
+  - Low latency
+  - Simple API
 </Tabs.Tab>
 <Tabs.Tab>
-  ```ts filename="vector-store.ts" showLineNumbers copy
-  import { CloudflareVector } from '@kastrax/vectorize'
+  ```kotlin filename="CloudflareExample.kt" showLineNumbers
+import ai.kastrax.rag.vectordb.CloudflareAdapter
+import ai.kastrax.rag.vectordb.IndexOptions
 
-  const store = new CloudflareVector({
-    accountId: process.env.CF_ACCOUNT_ID,
-    apiToken: process.env.CF_API_TOKEN
-  })
-  await store.createIndex({
-    indexName: "myCollection",
-    dimension: 1536,
-  });
-  await store.upsert({
-    indexName: "myCollection",
-    vectors: embeddings,
-    metadata: chunks.map(chunk => ({ text: chunk.text })),
-  });
+// Create a Cloudflare Vectorize adapter
+val vectorDB = CloudflareAdapter(
+    accountId = System.getenv("CF_ACCOUNT_ID"),
+    apiToken = System.getenv("CF_API_TOKEN")
+)
+
+// Create an index with the appropriate dimension
+val indexOptions = IndexOptions(
+    indexName = "document_embeddings",
+    dimensions = 1536,
+    metric = "cosine"  // Similarity metric: cosine, dot, or euclidean
+)
+vectorDB.createIndex(indexOptions)
+
+// Store embeddings in the database
+vectorDB.upsert(
+    indexName = "document_embeddings",
+    chunks = embeddedChunks
+)
   ```
+
+  ### Using Cloudflare Vectorize
+
+  Cloudflare Vectorize is a vector database integrated with Cloudflare Workers, offering edge-based vector search capabilities. It's a good choice for applications already using Cloudflare's ecosystem.
+
+  Key features:
+  - Edge-based vector search
+  - Global distribution via Cloudflare's network
+  - Integration with Cloudflare Workers
+  - Low latency
+  - Serverless architecture
 </Tabs.Tab>
 <Tabs.Tab>
-  ```ts filename="vector-store.ts" showLineNumbers copy
-  import { MongoDBVector } from '@kastrax/mongodb'
+  ```kotlin filename="MongoDBExample.kt" showLineNumbers
+import ai.kastrax.rag.vectordb.MongoDBAdapter
+import ai.kastrax.rag.vectordb.IndexOptions
 
-  const store = new MongoDBVector({
-    url: process.env.MONGODB_URL,
-    database: process.env.MONGODB_DATABASE
-  })
-  await store.createIndex({
-    indexName: "myCollection",
-    dimension: 1536,
-  });
-  await store.upsert({
-    indexName: "myCollection",
-    vectors: embeddings,
-    metadata: chunks.map(chunk => ({ text: chunk.text })),
-  });
+// Create a MongoDB vector database adapter
+val vectorDB = MongoDBAdapter(
+    url = System.getenv("MONGODB_URL"),
+    database = System.getenv("MONGODB_DATABASE")
+)
+
+// Create an index with the appropriate dimension
+val indexOptions = IndexOptions(
+    indexName = "document_embeddings",
+    dimensions = 1536,
+    metric = "cosine"  // Similarity metric: cosine, dot, or euclidean
+)
+vectorDB.createIndex(indexOptions)
+
+// Store embeddings in the database
+vectorDB.upsert(
+    indexName = "document_embeddings",
+    chunks = embeddedChunks
+)
   ```
+
+  ### Using MongoDB Atlas
+
+  MongoDB Atlas offers vector search capabilities through its Atlas Search feature. It's a good choice for applications already using MongoDB that want to add vector search capabilities.
+
+  Key features:
+  - Integration with existing MongoDB data
+  - Familiar MongoDB query language
+  - Scalable and managed service
+  - Combined vector and traditional search
+  - Enterprise features like backups and security
 </Tabs.Tab>
 </Tabs>
 
-## Using Vector Storage ✅
+## Vector Database Operations ✅
 
-Once initialized, all vector stores share the same interface for creating indexes, upserting embeddings, and querying.
+Once you've set up your vector database, you can perform various operations on your embedded documents.
 
 ### Creating Indexes
 
 Before storing embeddings, you need to create an index with the appropriate dimension size for your embedding model:
 
-```ts filename="store-embeddings.ts" showLineNumbers copy
-// Create an index with dimension 1536 (for text-embedding-3-small)
-await store.createIndex({
-  indexName: 'myCollection',
-  dimension: 1536,
-});
+```kotlin filename="CreateIndex.kt" showLineNumbers
+import ai.kastrax.rag.vectordb.VectorDBAdapter
+import ai.kastrax.rag.vectordb.IndexOptions
+
+// Create an index with the appropriate dimension
+val indexOptions = IndexOptions(
+    indexName = "document_embeddings",
+    dimensions = 1536,  // Must match your embedding model's output dimension
+    metric = "cosine",  // Similarity metric: cosine, dot_product, or euclidean
+    // Optional provider-specific settings
+    shards = 1,         // Number of shards (for distributed databases)
+    replicas = 1        // Number of replicas (for high availability)
+)
+
+// Create the index
+vectorDB.createIndex(indexOptions)
 ```
 
 The dimension size must match the output dimension of your chosen embedding model. Common dimension sizes are:
-- OpenAI text-embedding-3-small: 1536 dimensions (or custom, e.g., 256)
-- Cohere embed-multilingual-v3: 1024 dimensions
-- Google `text-embedding-004`: 768 dimensions (or custom)
 
-> **Important**: Index dimensions cannot be changed after creation. To use a different model, delete and recreate the index with the new dimension size.
+- OpenAI text-embedding-3-small: 1536 dimensions (or custom, e.g., 256)
+- DeepSeek embed-base: 1024 dimensions
+- Cohere embed-multilingual-v3: 1024 dimensions
+- Google text-embedding-004: 768 dimensions (or custom)
+
+> **Important**: Index dimensions cannot be changed after creation. To use a different model, you must delete and recreate the index with the new dimension size.
+
+### Similarity Search
+
+The most common operation is similarity search, which finds documents similar to a query embedding:
+
+```kotlin filename="SimilaritySearch.kt" showLineNumbers
+import ai.kastrax.rag.vectordb.VectorDBAdapter
+import ai.kastrax.rag.embedding.OpenAIEmbedder
+
+// Create an embedder for query embedding
+val embedder = OpenAIEmbedder()
+
+// Generate embedding for the query
+val query = "How does climate change affect agriculture?"
+val queryEmbedding = embedder.embedText(query)
+
+// Search for similar documents
+val searchResults = vectorDB.search(
+    indexName = "document_embeddings",
+    embedding = queryEmbedding,
+    limit = 5,  // Return top 5 results
+    minScore = 0.7  // Only return results with similarity score >= 0.7
+)
+
+// Process the results
+searchResults.forEach { result ->
+    println("Score: ${result.score}")
+    println("Content: ${result.chunk.content.take(100)}...")
+    println("Metadata: ${result.chunk.metadata}")
+    println()
+}
+```
+
+### Metadata Filtering
+
+Most vector databases support filtering results based on metadata, allowing you to combine semantic search with traditional filtering:
+
+```kotlin filename="FilteredSearch.kt" showLineNumbers
+// Search with metadata filtering
+val searchResults = vectorDB.search(
+    indexName = "document_embeddings",
+    embedding = queryEmbedding,
+    filter = mapOf(
+        "category" to "science",  // Only return documents with category="science"
+        "year" to mapOf(
+            "$gte" to 2020  // Only return documents with year >= 2020
+        ),
+        "authors" to mapOf(
+            "$in" to listOf("Smith", "Johnson")  // Author must be in this list
+        )
+    ),
+    limit = 5
+)
+```
+
+> **Note**: Filter syntax varies by database provider. Check the specific adapter documentation for details on the supported filter operations.
+
+### Hybrid Search
+
+Some vector databases support hybrid search, combining vector similarity with keyword or full-text search:
+
+```kotlin filename="HybridSearch.kt" showLineNumbers
+// Perform hybrid search (vector + keyword)
+val hybridResults = vectorDB.hybridSearch(
+    indexName = "document_embeddings",
+    embedding = queryEmbedding,
+    text = "climate agriculture drought",  // Keyword search
+    vectorWeight = 0.7,  // Weight for vector similarity (0.0-1.0)
+    textWeight = 0.3,    // Weight for text similarity (0.0-1.0)
+    limit = 5
+)
+```
+
+### CRUD Operations
+
+Vector databases support standard CRUD (Create, Read, Update, Delete) operations:
+
+```kotlin filename="CrudOperations.kt" showLineNumbers
+// Create/Update: Upsert embeddings (already seen above)
+val ids = vectorDB.upsert(
+    indexName = "document_embeddings",
+    chunks = embeddedChunks
+)
+
+// Read: Get specific documents by ID
+val documents = vectorDB.get(
+    indexName = "document_embeddings",
+    ids = listOf("doc1", "doc2", "doc3")
+)
+
+// Delete: Remove documents by ID
+vectorDB.delete(
+    indexName = "document_embeddings",
+    ids = listOf("doc1", "doc2")
+)
+
+// Delete by filter: Remove documents matching criteria
+vectorDB.deleteByFilter(
+    indexName = "document_embeddings",
+    filter = mapOf("category" to "outdated")
+)
+```
 
 ### Naming Rules for Databases
 
@@ -333,15 +635,15 @@ await store.upsert({
     // Basic content
     text: chunk.text,
     id: chunk.id,
-    
+
     // Document organization
     source: chunk.source,
     category: chunk.category,
-    
+
     // Temporal metadata
     createdAt: new Date().toISOString(),
     version: "1.0",
-    
+
     // Custom fields
     language: chunk.language,
     author: chunk.author,
@@ -357,8 +659,97 @@ Key metadata considerations:
 
 ## Best Practices ✅
 
-- Create indexes before bulk insertions
-- Use batch operations for large insertions (the upsert method handles batching automatically)
-- Only store metadata you'll query against
-- Match embedding dimensions to your model (e.g., 1536 for `text-embedding-3-small`)
+### Performance Optimization
 
+1. **Choose the right vector database** for your specific needs:
+   - For small to medium datasets with existing PostgreSQL: Use pgvector
+   - For large-scale production: Consider Pinecone, Qdrant, or MongoDB Atlas
+   - For edge deployment: Consider LibSQL or Chroma
+   - For serverless: Consider Upstash or Cloudflare Vectorize
+
+2. **Optimize index configuration**:
+   - Use appropriate indexing algorithms (HNSW, IVFFlat, etc.) based on your dataset size
+   - Balance recall vs. performance with index parameters
+   - Consider sharding for very large datasets
+
+3. **Batch operations**:
+   - Use batch operations for large insertions (the upsert method handles batching automatically)
+   - Process embeddings in batches to avoid memory issues
+   - Consider async operations for non-blocking performance
+
+### Data Management
+
+1. **Metadata strategy**:
+   - Only store metadata you'll query against
+   - Be consistent with field naming (e.g., 'category' vs 'Category')
+   - Add timestamps (e.g., 'createdAt', 'lastUpdated') to track content freshness
+
+2. **Dimension management**:
+   - Match embedding dimensions to your model (e.g., 1536 for `text-embedding-3-small`)
+   - Consider dimension reduction for large collections
+   - Create indexes before bulk insertions
+
+3. **Data lifecycle**:
+   - Implement TTL (Time-To-Live) for temporary data
+   - Set up regular reindexing for optimal performance
+   - Create backup strategies for critical data
+
+## Integration with RAG Pipeline ✅
+
+Vector databases are a critical component of the RAG pipeline in Kastrax. Here's how they integrate with other components:
+
+```kotlin filename="CompleteRAGPipeline.kt" showLineNumbers
+import ai.kastrax.rag.document.Document
+import ai.kastrax.rag.chunking.RecursiveChunker
+import ai.kastrax.rag.embedding.OpenAIEmbedder
+import ai.kastrax.rag.vectordb.PineconeAdapter
+import ai.kastrax.rag.retrieval.RetrievalEngine
+import ai.kastrax.rag.generation.LLMGenerator
+
+// 1. Document Processing
+val document = Document.fromText("Your document content...")
+val chunker = RecursiveChunker()
+val chunks = chunker.chunk(document)
+
+// 2. Embedding Generation
+val embedder = OpenAIEmbedder()
+val embeddedChunks = embedder.embed(chunks)
+
+// 3. Vector Database Storage
+val vectorDB = PineconeAdapter()
+vectorDB.upsert("document_embeddings", embeddedChunks)
+
+// 4. Retrieval
+val retrievalEngine = RetrievalEngine(vectorDB)
+val query = "How does climate change affect agriculture?"
+val retrievedChunks = retrievalEngine.retrieve(
+    query = query,
+    indexName = "document_embeddings",
+    limit = 5
+)
+
+// 5. Generation
+val generator = LLMGenerator()
+val answer = generator.generate(
+    query = query,
+    context = retrievedChunks.joinToString("\n\n") { it.chunk.content },
+    prompt = "Answer the question based on the provided context."
+)
+
+println("Query: $query")
+println("Answer: $answer")
+```
+
+## Conclusion ✅
+
+Vector databases are a fundamental component of any RAG system, enabling efficient storage and retrieval of vector embeddings. Kastrax provides a unified interface for working with various vector database providers, allowing you to choose the right solution for your specific needs while maintaining a consistent API.
+
+Key takeaways:
+
+1. **Choose the right database** based on your scale, performance requirements, and existing infrastructure
+2. **Configure indexes properly** to match your embedding model dimensions and similarity metrics
+3. **Use metadata effectively** to enable filtering and hybrid search capabilities
+4. **Implement best practices** for performance optimization and data management
+5. **Integrate seamlessly** with the rest of your RAG pipeline
+
+By following these guidelines, you can build a robust and efficient vector storage system that forms the backbone of your RAG applications.
