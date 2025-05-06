@@ -1,38 +1,387 @@
 ---
 title: "Logging | Kastrax Observability Documentation"
-description: Documentation on effective logging in Kastrax, crucial for understanding application behavior and improving AI accuracy.
+description: "Learn how to configure and use logging in your Kastrax applications for better observability and debugging."
 ---
 
-import Image from "next/image";
+import { Tabs } from "nextra/components";
 
 # Logging ✅
 
-In Kastrax, logs can detail when certain functions run, what input data they receive, and how they respond.
+Kastrax 提供了一个灵活的日志系统，帮助你跟踪应用程序行为、调试问题和监控生产环境中的 AI 代理。本指南介绍如何在 Kastrax 应用程序中配置和使用日志。
 
-## Basic Setup ✅
+## 日志基础 ✅
 
-Here's a minimal example that sets up a **console logger** at the `INFO` level. This will print out informational messages and above (i.e., `DEBUG`, `INFO`, `WARN`, `ERROR`) to the console.
+Kastrax 使用结构化日志方法，不仅捕获消息，还捕获上下文信息，使日志更容易理解和分析。日志系统支持多种输出格式和目标。
 
-```typescript filename="kastrax.config.ts" showLineNumbers copy
-import { Kastrax } from "@kastrax/core";
+### 日志级别 ✅
+
+Kastrax 支持以下日志级别，按严重性递增排序：
+
+- **TRACE**：极其详细的信息，用于调试特定问题
+- **DEBUG**：开发过程中有用的详细信息
+- **INFO**：关于应用程序进度的一般信息（默认级别）
+- **WARN**：不会阻止应用程序工作的潜在问题
+- **ERROR**：阻止特定操作正常工作的问题
+- **FATAL**：可能导致应用程序终止的严重问题
+
+## 基本设置 ✅
+
+<Tabs items={["Kotlin", "Java", "JavaScript"]}>
+<Tabs.Tab>
+```kotlin filename="LoggingExample.kt"
+import ai.kastrax.observability.logging.LogLevel
+import ai.kastrax.observability.logging.LoggingConfig
+import ai.kastrax.observability.logging.LoggingSystem
+
+// 配置日志系统
+val loggingConfig = LoggingConfig().apply {
+    // 设置日志级别
+    level = LogLevel.INFO
+
+    // 启用控制台日志
+    console = true
+
+    // 配置文件日志（可选）
+    file = LoggingConfig.FileConfig().apply {
+        enabled = true
+        directory = "logs"
+        filePrefix = "kastrax"
+    }
+}
+
+// 应用日志配置
+loggingConfig.apply()
+
+// 获取日志记录器
+val logger = LoggingSystem.getLogger("MyApplication")
+
+// 记录不同级别的日志
+logger.debug("这是一条调试日志")
+logger.info("这是一条信息日志")
+logger.warn("这是一条警告日志")
+logger.error("这是一条错误日志", Exception("示例异常"))
+```
+</Tabs.Tab>
+<Tabs.Tab>
+```java filename="LoggingExample.java"
+import ai.kastrax.observability.logging.LogLevel;
+import ai.kastrax.observability.logging.Logger;
+import ai.kastrax.observability.logging.LoggingConfig;
+import ai.kastrax.observability.logging.LoggingSystem;
+
+public class LoggingExample {
+    public static void main(String[] args) {
+        // 配置日志系统
+        LoggingConfig loggingConfig = new LoggingConfig();
+
+        // 设置日志级别
+        loggingConfig.setLevel(LogLevel.INFO);
+
+        // 启用控制台日志
+        loggingConfig.setConsole(true);
+
+        // 配置文件日志（可选）
+        LoggingConfig.FileConfig fileConfig = new LoggingConfig.FileConfig();
+        fileConfig.setEnabled(true);
+        fileConfig.setDirectory("logs");
+        fileConfig.setFilePrefix("kastrax");
+        loggingConfig.setFile(fileConfig);
+
+        // 应用日志配置
+        loggingConfig.apply();
+
+        // 获取日志记录器
+        Logger logger = LoggingSystem.getLogger("MyApplication");
+
+        // 记录不同级别的日志
+        logger.debug("这是一条调试日志");
+        logger.info("这是一条信息日志");
+        logger.warn("这是一条警告日志");
+        logger.error("这是一条错误日志", new Exception("示例异常"));
+    }
+}
+```
+</Tabs.Tab>
+<Tabs.Tab>
+```typescript filename="logging-example.ts"
+import { kastrax } from "./kastrax-instance";
 import { createLogger } from "@kastrax/core/logger";
 
-export const kastrax = new Kastrax({
-  // Other Kastrax configuration...
-  logger: createLogger({
-    name: "Kastrax",
-    level: "info",
-  }),
+// 创建日志记录器
+const logger = createLogger({
+  name: "MyApplication",
+  level: "info",
 });
+
+// 记录不同级别的日志
+logger.debug("这是一条调试日志");
+logger.info("这是一条信息日志");
+logger.warn("这是一条警告日志");
+logger.error("这是一条错误日志", new Error("示例异常"));
+```
+</Tabs.Tab>
+</Tabs>
+
+在这个配置中：
+
+- 日志级别设置为 `INFO`，这意味着 `INFO` 及以上级别的日志（`INFO`、`WARN`、`ERROR`、`FATAL`）将被记录
+- 启用了控制台日志，日志将输出到控制台
+- 可选地配置了文件日志，日志将同时写入到文件中
+
+## 日志配置选项 ✅
+
+Kastrax 提供了多种日志配置选项，可以根据你的需求进行自定义：
+
+### 控制台日志 ✅
+
+控制台日志将日志输出到标准输出（stdout）或标准错误（stderr）：
+
+```kotlin
+val loggingConfig = LoggingConfig().apply {
+    // 启用控制台日志
+    console = true
+
+    // 设置日志级别
+    level = LogLevel.DEBUG
+}
 ```
 
-In this configuration:
+### 文件日志 ✅
 
-- `name: "Kastrax"` specifies the name to group logs under.
-- `level: "info"` sets the minimum severity of logs to record.
+文件日志将日志写入到文件中，支持日志轮转：
 
-## Configuration ✅
+```kotlin
+val loggingConfig = LoggingConfig().apply {
+    // 配置文件日志
+    file = LoggingConfig.FileConfig().apply {
+        enabled = true
+        directory = "logs"          // 日志文件目录
+        filePrefix = "kastrax"      // 日志文件前缀
+        maxFileSize = 10 * 1024 * 1024  // 单个日志文件最大大小（10MB）
+        maxFiles = 10               // 最大保留的日志文件数量
+    }
+}
+```
 
-- For more details on the options you can pass to `createLogger()`, see the [createLogger reference documentation](/reference/observability/create-logger.mdx).
-- Once you have a `Logger` instance, you can call its methods (e.g., `.info()`, `.warn()`, `.error()`) in the [Logger instance reference documentation](/reference/observability/logger.mdx).
-- If you want to send your logs to an external service for centralized collection, analysis, or storage, you can configure other logger types such as Upstash Redis. Consult the [createLogger reference documentation](/reference/observability/create-logger.mdx) for details on parameters like `url`, `token`, and `key` when using the `UPSTASH` logger type.
+### JSON 日志 ✅
+
+JSON 日志将日志以 JSON 格式写入到文件中，便于日志分析和处理：
+
+```kotlin
+val loggingConfig = LoggingConfig().apply {
+    // 配置 JSON 日志
+    json = LoggingConfig.JsonConfig().apply {
+        enabled = true
+        directory = "logs"          // 日志文件目录
+        filePrefix = "kastrax-json" // 日志文件前缀
+        maxFileSize = 10 * 1024 * 1024  // 单个日志文件最大大小（10MB）
+        maxFiles = 10               // 最大保留的日志文件数量
+    }
+}
+```
+
+### 组合日志配置 ✅
+
+你可以同时启用多种日志配置，日志将同时输出到所有配置的目标：
+
+```kotlin
+val loggingConfig = LoggingConfig().apply {
+    // 设置日志级别
+    level = LogLevel.INFO
+
+    // 启用控制台日志
+    console = true
+
+    // 配置文件日志
+    file = LoggingConfig.FileConfig().apply {
+        enabled = true
+        directory = "logs"
+        filePrefix = "kastrax"
+    }
+
+    // 配置 JSON 日志
+    json = LoggingConfig.JsonConfig().apply {
+        enabled = true
+        directory = "logs"
+        filePrefix = "kastrax-json"
+    }
+}
+```
+
+## 结构化日志 ✅
+
+Kastrax 支持结构化日志，可以在日志中添加额外的上下文信息：
+
+<Tabs items={["Kotlin", "Java", "JavaScript"]}>
+<Tabs.Tab>
+```kotlin filename="StructuredLoggingExample.kt"
+import ai.kastrax.observability.logging.LogContext
+import ai.kastrax.observability.logging.LoggingSystem
+
+// 获取日志记录器
+val logger = LoggingSystem.getLogger("MyApplication")
+
+// 使用上下文记录日志
+logger.info("处理请求", mapOf(
+    "requestId" to "req-123",
+    "userId" to "user-456",
+    "duration" to 42
+))
+
+// 使用 LogContext 在一段代码块中添加上下文
+LogContext.withContext(
+    mapOf(
+        "requestId" to "req-123",
+        "userId" to "user-456"
+    )
+) {
+    // 这些日志会自动包含上面定义的上下文
+    logger.info("开始处理请求")
+
+    // 处理请求...
+
+    logger.info("请求处理完成", mapOf("duration" to 42))
+}
+```
+</Tabs.Tab>
+<Tabs.Tab>
+```java filename="StructuredLoggingExample.java"
+import ai.kastrax.observability.logging.LogContext;
+import ai.kastrax.observability.logging.Logger;
+import ai.kastrax.observability.logging.LoggingSystem;
+
+import java.util.HashMap;
+import java.util.Map;
+
+public class StructuredLoggingExample {
+    public static void main(String[] args) {
+        // 获取日志记录器
+        Logger logger = LoggingSystem.getLogger("MyApplication");
+
+        // 使用上下文记录日志
+        Map<String, Object> context = new HashMap<>();
+        context.put("requestId", "req-123");
+        context.put("userId", "user-456");
+        context.put("duration", 42);
+        logger.info("处理请求", context);
+
+        // 使用 LogContext 在一段代码块中添加上下文
+        Map<String, Object> blockContext = new HashMap<>();
+        blockContext.put("requestId", "req-123");
+        blockContext.put("userId", "user-456");
+
+        LogContext.withContext(blockContext, () -> {
+            // 这些日志会自动包含上面定义的上下文
+            logger.info("开始处理请求");
+
+            // 处理请求...
+
+            Map<String, Object> resultContext = new HashMap<>();
+            resultContext.put("duration", 42);
+            logger.info("请求处理完成", resultContext);
+        });
+    }
+}
+```
+</Tabs.Tab>
+<Tabs.Tab>
+```typescript filename="structured-logging-example.ts"
+import { createLogger } from "@kastrax/core/logger";
+
+// 创建日志记录器
+const logger = createLogger({
+  name: "MyApplication",
+  level: "info",
+});
+
+// 使用上下文记录日志
+logger.info("处理请求", {
+  requestId: "req-123",
+  userId: "user-456",
+  duration: 42
+});
+
+// 使用 withContext 在一段代码块中添加上下文
+logger.withContext(
+  {
+    requestId: "req-123",
+    userId: "user-456"
+  },
+  () => {
+    // 这些日志会自动包含上面定义的上下文
+    logger.info("开始处理请求");
+
+    // 处理请求...
+
+    logger.info("请求处理完成", { duration: 42 });
+  }
+);
+```
+</Tabs.Tab>
+</Tabs>
+
+## 与可观测性系统集成 ✅
+
+Kastrax 的日志系统是可观测性系统的一部分，可以与指标和跟踪系统集成，提供全面的可观测性解决方案：
+
+```kotlin filename="ObservabilityExample.kt"
+import ai.kastrax.observability.ObservabilityConfig
+import ai.kastrax.observability.ObservabilitySystem
+import ai.kastrax.observability.logging.LogLevel
+import ai.kastrax.observability.logging.LoggingConfig
+
+// 配置可观测性系统
+val config = ObservabilityConfig().apply {
+    // 配置日志系统
+    logging = LoggingConfig().apply {
+        level = LogLevel.DEBUG
+        console = true
+        file = LoggingConfig.FileConfig().apply {
+            enabled = true
+            directory = "logs"
+            filePrefix = "kastrax"
+        }
+    }
+
+    // 配置指标系统
+    metrics.enabled = true
+
+    // 配置跟踪系统
+    tracing.enabled = true
+}
+
+// 初始化可观测性系统
+ObservabilitySystem.init(config)
+```
+
+## 最佳实践 ✅
+
+### 日志级别使用指南
+
+- **TRACE**：用于非常详细的调试信息，通常只在开发环境中启用
+- **DEBUG**：用于调试信息，帮助开发人员理解应用程序的行为
+- **INFO**：用于记录应用程序的正常操作，如请求处理、任务完成等
+- **WARN**：用于记录潜在的问题，但不会导致应用程序失败
+- **ERROR**：用于记录导致操作失败的错误
+- **FATAL**：用于记录导致应用程序崩溃的严重错误
+
+### 结构化日志
+
+- 使用结构化日志记录上下文信息，而不是将所有信息放在日志消息中
+- 使用 `LogContext` 在一段代码块中添加上下文，避免在每条日志中重复添加相同的上下文
+- 为日志添加有意义的标签，如 `requestId`、`userId` 等，便于日志分析和关联
+
+### 性能考虑
+
+- 避免在热路径中生成大量日志，特别是在高并发场景下
+- 使用适当的日志级别，避免生成不必要的日志
+- 考虑使用异步日志记录器，避免日志记录阻塞主线程
+
+### 敏感信息处理
+
+- 避免记录敏感信息，如密码、API 密钥等
+- 如果必须记录包含敏感信息的数据，确保对敏感字段进行脱敏处理
+
+## 总结 ✅
+
+Kastrax 提供了一个灵活、强大的日志系统，支持多种日志格式和目标，可以满足不同场景下的日志需求。通过合理配置和使用日志系统，可以帮助你更好地理解应用程序的行为、调试问题和监控生产环境中的 AI 代理。
