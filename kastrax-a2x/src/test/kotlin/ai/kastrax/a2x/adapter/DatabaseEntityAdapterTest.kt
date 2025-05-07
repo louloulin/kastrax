@@ -25,16 +25,9 @@ class DatabaseEntityAdapterTest {
         // 配置服务器
         server {
             // 使用随机可用端口而不是硬编码的 8080
-            port = findAvailablePort()
+            port = ai.kastrax.core.utils.NetworkUtils.findAvailablePort()
             enableCors = true
         }
-    }
-
-    /**
-     * 查找可用端口
-     */
-    private fun findAvailablePort(): Int {
-        return java.net.ServerSocket(0).use { it.localPort }
     }
 
     /**

@@ -13,6 +13,8 @@ import kotlinx.serialization.json.put
  * 演示MCP的各种功能，包括工具、资源和提示
  */
 fun main() = runBlocking {
+    // 查找可用端口
+    val serverPort = ai.kastrax.core.utils.NetworkUtils.findAvailablePort()
     println("启动全面的MCP示例...")
 
     // 创建MCP服务器
@@ -157,8 +159,8 @@ fun main() = runBlocking {
     }
 
     // 启动服务器
-    server.startSSE(port = 8080)
-    println("MCP服务器已启动在端口8080")
+    server.startSSE(port = serverPort)
+    println("MCP服务器已启动在端口$serverPort")
 
     // 等待服务器启动完成
     Thread.sleep(1000)
@@ -172,7 +174,7 @@ fun main() = runBlocking {
         // 使用本地服务器
         server {
             sse {
-                url = "http://localhost:8080"
+                url = "http://localhost:$serverPort"
             }
         }
     }

@@ -43,9 +43,12 @@ fun main() = runBlocking {
         }
     }
 
+    // 查找可用端口
+    val serverPort = ai.kastrax.core.utils.NetworkUtils.findAvailablePort()
+
     // 启动服务器
-    server.startSSE(port = 8080)
-    println("MCP服务器已启动在端口8080")
+    server.startSSE(port = serverPort)
+    println("MCP服务器已启动在端口$serverPort")
 
     // 等待服务器启动完成
     Thread.sleep(1000)
@@ -57,7 +60,7 @@ fun main() = runBlocking {
 
         server {
             sse {
-                url = "http://localhost:8080"
+                url = "http://localhost:$serverPort"
             }
         }
     }

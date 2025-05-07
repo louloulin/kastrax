@@ -16,6 +16,8 @@ import kotlinx.serialization.json.jsonPrimitive
  * This example demonstrates how to use the Kastrax MCP client to connect to a public weather API.
  */
 fun main() = runBlocking {
+    // 查找可用端口
+    val serverPort = ai.kastrax.core.utils.NetworkUtils.findAvailablePort()
     println("Starting Weather API MCP Example...")
 
     // Create MCP server
@@ -82,8 +84,8 @@ fun main() = runBlocking {
     }
 
     // Start server
-    server.startSSE(port = 8080)
-    println("MCP server started on port 8080")
+    server.startSSE(port = serverPort)
+    println("MCP server started on port $serverPort")
 
     // Wait for server to start
     Thread.sleep(1000)
@@ -97,7 +99,7 @@ fun main() = runBlocking {
         // Use local server
         server {
             sse {
-                url = "http://localhost:8080"
+                url = "http://localhost:$serverPort"
             }
         }
     }

@@ -15,6 +15,8 @@ import kotlinx.serialization.json.jsonPrimitive
  * This example demonstrates how to use the Kastrax MCP client to connect to various public APIs.
  */
 fun main() = runBlocking {
+    // 查找可用端口
+    val serverPort = ai.kastrax.core.utils.NetworkUtils.findAvailablePort()
     println("Starting Public API MCP Example...")
 
     // Create MCP server
@@ -42,28 +44,28 @@ fun main() = runBlocking {
             handler { params ->
                 val category = params["category"] as? String
                 println("Executing get_joke tool, category: $category")
-                
+
                 // Call the JokeAPI
                 val url = if (category != null) {
                     URL("https://v2.jokeapi.dev/joke/$category")
                 } else {
                     URL("https://v2.jokeapi.dev/joke/Any")
                 }
-                
+
                 val connection = url.openConnection() as HttpURLConnection
                 connection.requestMethod = "GET"
-                
+
                 try {
                     val responseCode = connection.responseCode
                     if (responseCode == HttpURLConnection.HTTP_OK) {
                         val response = connection.inputStream.bufferedReader().use { it.readText() }
-                        
+
                         // Parse the JSON response
                         val jsonResponse = Json.parseToJsonElement(response).jsonObject
-                        
+
                         // Extract joke information
                         val type = jsonResponse["type"]?.jsonPrimitive?.content
-                        
+
                         if (type == "single") {
                             val joke = jsonResponse["joke"]?.jsonPrimitive?.content ?: "No joke found"
                             joke
@@ -91,26 +93,26 @@ fun main() = runBlocking {
             // Set execution function
             handler { _ ->
                 println("Executing get_quote tool")
-                
+
                 // Call the QuoteGarden API
                 val url = URL("https://quote-garden.onrender.com/api/v3/quotes/random")
-                
+
                 val connection = url.openConnection() as HttpURLConnection
                 connection.requestMethod = "GET"
-                
+
                 try {
                     val responseCode = connection.responseCode
                     if (responseCode == HttpURLConnection.HTTP_OK) {
                         val response = connection.inputStream.bufferedReader().use { it.readText() }
-                        
+
                         // Parse the JSON response
                         val jsonResponse = Json.parseToJsonElement(response).jsonObject
                         val data = jsonResponse["data"]?.jsonArray?.getOrNull(0)?.jsonObject
-                        
+
                         if (data != null) {
                             val quoteText = data["quoteText"]?.jsonPrimitive?.content ?: "No quote found"
                             val quoteAuthor = data["quoteAuthor"]?.jsonPrimitive?.content ?: "Unknown"
-                            
+
                             "\"$quoteText\" - $quoteAuthor"
                         } else {
                             "No quote found"
@@ -134,22 +136,22 @@ fun main() = runBlocking {
             // Set execution function
             handler { _ ->
                 println("Executing get_fact tool")
-                
+
                 // Call the UselessFacts API
                 val url = URL("https://uselessfacts.jsph.pl/api/v2/facts/random")
-                
+
                 val connection = url.openConnection() as HttpURLConnection
                 connection.requestMethod = "GET"
-                
+
                 try {
                     val responseCode = connection.responseCode
                     if (responseCode == HttpURLConnection.HTTP_OK) {
                         val response = connection.inputStream.bufferedReader().use { it.readText() }
-                        
+
                         // Parse the JSON response
                         val jsonResponse = Json.parseToJsonElement(response).jsonObject
                         val text = jsonResponse["text"]?.jsonPrimitive?.content ?: "No fact found"
-                        
+
                         text
                     } else {
                         "Error: Unable to fetch fact. Response code: $responseCode"
@@ -164,8 +166,8 @@ fun main() = runBlocking {
     }
 
     // Start server
-    server.startSSE(port = 8080)
-    println("MCP server started on port 8080")
+    server.startSSE(port = serverPort)
+    println("MCP server started on port $serverPort")
 
     // Wait for server to start
     Thread.sleep(1000)
@@ -179,7 +181,7 @@ fun main() = runBlocking {
         // Use local server
         server {
             sse {
-                url = "http://localhost:8080"
+                url = "http://localhost:$serverPort"
             }
         }
     }
@@ -205,7 +207,7 @@ fun main() = runBlocking {
         // Call joke tool
         println("\nCalling joke tool...")
         val jokeCategories = listOf("Programming", "Misc", "Pun", "Spooky", "Christmas")
-        
+
         for (category in jokeCategories) {
             val result = client.callTool("get_joke", mapOf("category" to category))
             println("Joke ($category): $result")
@@ -229,10 +231,10 @@ fun main() = runBlocking {
         client.disconnect()
         server.stop()
         println("MCP server and client stopped")
-        
+
         // Add a delay to ensure all resources are released
         kotlinx.coroutines.delay(1000)
-        
+
         // Force exit program
         kotlin.system.exitProcess(0)
     }

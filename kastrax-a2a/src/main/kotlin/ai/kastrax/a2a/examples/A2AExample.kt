@@ -67,6 +67,9 @@ fun main() = runBlocking {
         }
     }
 
+    // 获取随机端口
+    val serverPort = ai.kastrax.core.utils.NetworkUtils.findAvailablePort()
+
     // 创建 A2A 实例
     val a2aInstance = a2a {
         // 注册 kastrax 代理
@@ -108,16 +111,17 @@ fun main() = runBlocking {
 
         // 配置服务器
         server {
-            port = 8080
+            // 使用随机可用端口
+            port = serverPort
             enableCors = true
         }
 
         // 添加服务器到发现服务
-        discovery("http://localhost:8080")
+        discovery("http://localhost:$serverPort")
     }
 
     // 创建 A2A 客户端
-    val client = a2aInstance.createClient("http://localhost:8080")
+    val client = a2aInstance.createClient("http://localhost:$serverPort")
 
     // 获取代理卡片
     val agentCard = client.getAgentCard()

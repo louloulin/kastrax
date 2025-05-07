@@ -9,17 +9,17 @@ import java.util.concurrent.CountDownLatch
  */
 fun main() = runBlocking {
     println("启动MCP服务器示例...")
-    
+
     // 创建MCP服务器
     val server = mcpServer {
         name("ExampleMCPServer")
         version("1.0.0")
-        
+
         // 添加一个简单的工具
         tool {
             name = "echo"
             description = "回显输入的消息"
-            
+
             // 添加参数
             parameters {
                 parameter {
@@ -29,7 +29,7 @@ fun main() = runBlocking {
                     required = true
                 }
             }
-            
+
             // 设置执行函数
             handler { params ->
                 val message = params["message"] as? String ?: "No message provided"
@@ -37,12 +37,12 @@ fun main() = runBlocking {
                 message
             }
         }
-        
+
         // 添加一个计算工具
         tool {
             name = "add"
             description = "将两个数字相加"
-            
+
             // 添加参数
             parameters {
                 parameter {
@@ -51,7 +51,7 @@ fun main() = runBlocking {
                     type = "number"
                     required = true
                 }
-                
+
                 parameter {
                     name = "b"
                     description = "第二个数字"
@@ -59,7 +59,7 @@ fun main() = runBlocking {
                     required = true
                 }
             }
-            
+
             // 设置执行函数
             handler { params ->
                 val a = (params["a"] as? Number)?.toDouble() ?: 0.0
@@ -70,22 +70,25 @@ fun main() = runBlocking {
             }
         }
     }
-    
+
+    // 查找可用端口
+    val serverPort = ai.kastrax.core.utils.NetworkUtils.findAvailablePort()
+
     // 启动服务器
-    server.startSSE(port = 8080)
-    println("MCP服务器已启动在端口8080")
-    
+    server.startSSE(port = serverPort)
+    println("MCP服务器已启动在端口$serverPort")
+
     // 等待用户输入以停止服务器
     val latch = CountDownLatch(1)
     println("按Enter键停止服务器...")
-    
+
     Thread {
         readLine()
         latch.countDown()
     }.start()
-    
+
     latch.await()
-    
+
     // 停止服务器
     server.stop()
     println("MCP服务器已停止")
