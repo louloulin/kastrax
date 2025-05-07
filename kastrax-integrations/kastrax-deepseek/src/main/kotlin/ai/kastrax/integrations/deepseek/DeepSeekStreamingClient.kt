@@ -106,6 +106,7 @@ class DeepSeekStreamingClient(
 
                             // 提取增量内容
                             val content = choice?.delta?.content
+                            val toolCalls = choice?.delta?.toolCalls
 
                             if (content != null && content.isNotEmpty()) {
                                 // 关键改进：将内容拆分为单个字符，确保真正的字符级实时返回
@@ -123,6 +124,21 @@ class DeepSeekStreamingClient(
 
                                     // 添加小延迟，模拟打字效果，但不要太长
                                     delay(5) // 5毫秒延迟，可以根据需要调整
+                                }
+                            }
+
+                            // 处理工具调用
+                            if (toolCalls != null && toolCalls.isNotEmpty()) {
+                                for (toolCall in toolCalls) {
+                                    val function = toolCall.function
+                                    if (function != null) {
+                                        send(DeepSeekStreamChunk.ToolCall(
+                                            id = toolCall.id,
+                                            name = function.name,
+                                            arguments = function.arguments
+                                        ))
+                                        yield()
+                                    }
                                 }
                             }
 
@@ -155,6 +171,17 @@ sealed class DeepSeekStreamChunk {
     @Serializable
     @SerialName("content")
     data class Content(val text: String) : DeepSeekStreamChunk()
+
+    /**
+     * 工具调用块，包含工具调用信息。
+     */
+    @Serializable
+    @SerialName("tool_call")
+    data class ToolCall(
+        val id: String,
+        val name: String,
+        val arguments: String
+    ) : DeepSeekStreamChunk()
 
     /**
      * 完成标记，表示流已结束，并带有结束原因。

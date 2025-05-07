@@ -64,12 +64,36 @@ class DeepSeekProvider(
             .map { chunk ->
                 when (chunk) {
                     is DeepSeekStreamChunk.Content -> chunk.text
+                    is DeepSeekStreamChunk.ToolCall -> "" // 工具调用在文本流中不显示
                     else -> ""
                 }
             }
             .filter { it.isNotEmpty() }
             .catch { e ->
                 logger.error(e) { "Error in stream generation: ${e.message}" }
+                throw e
+            }
+    }
+
+    /**
+     * 流式生成文本完成，包含工具调用。
+     *
+     * @param messages 输入消息列表
+     * @param options 生成选项
+     * @return 完整的流式响应块流
+     */
+    suspend fun streamGenerateWithToolCalls(
+        messages: List<LlmMessage>,
+        options: LlmOptions
+    ): Flow<DeepSeekStreamChunk> {
+        logger.debug { "Streaming completion with tool calls for model: $model" }
+
+        val request = createChatCompletionRequest(messages, options, stream = true)
+
+        // 直接返回原始流，包含工具调用
+        return client.streamChatCompletionEnhanced(request)
+            .catch { e ->
+                logger.error(e) { "Error in stream generation with tool calls: ${e.message}" }
                 throw e
             }
     }

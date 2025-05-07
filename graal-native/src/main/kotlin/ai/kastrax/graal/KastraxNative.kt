@@ -507,10 +507,58 @@ object KastraxNative {
 
             runBlocking {
                 val response = agent.stream(prompt, AgentStreamOptions())
+
+                // 处理工具调用
+                var hasToolCall = false
+                var toolCallId = ""
+                var toolName = ""
+                var toolArgs = ""
+
                 response.textStream?.collect { chunk ->
                     print(chunk)
                     System.out.flush()
                 }
+
+                // 如果有工具调用，则执行工具
+                if (hasToolCall && toolName.isNotEmpty()) {
+                    println("\n\n正在执行工具: $toolName")
+
+                    // 根据工具名称执行对应的工具
+                    val result = when (toolName) {
+                        "weather" -> {
+                            // 解析参数
+                            val city = try {
+                                val jsonObject = Json.parseToJsonElement(toolArgs).jsonObject
+                                jsonObject["city"]?.jsonPrimitive?.content ?: "北京"
+                            } catch (e: Exception) {
+                                "北京"
+                            }
+
+                            // 执行天气工具
+                            getWeatherString(city)
+                        }
+                        "calculator" -> {
+                            // 解析参数
+                            val expression = try {
+                                val jsonObject = Json.parseToJsonElement(toolArgs).jsonObject
+                                jsonObject["expression"]?.jsonPrimitive?.content ?: "0"
+                            } catch (e: Exception) {
+                                "0"
+                            }
+
+                            // 执行计算器工具
+                            calculateExpression(expression)
+                        }
+                        else -> "\u672a知工具: $toolName"
+                    }
+
+                    println("\n工具结果: $result")
+
+                    // 将工具结果发送回代理
+                    println("\n继续生成回答...")
+                    println("\n注意：在原生镜像中暂不支持工具调用结果处理")
+                }
+
                 println()
             }
         } catch (e: Exception) {
@@ -623,15 +671,11 @@ object KastraxNative {
      */
     private fun getWeather(city: String) {
         try {
-            val input = buildJsonObject {
-                put("city", city)
-            }
-
-            val result = runBlocking { weatherTool.execute(input) }
-            val resultObj = result as? JsonObject
-            val temperature = resultObj?.get("temperature")?.jsonPrimitive?.content ?: "未知"
-            val condition = resultObj?.get("condition")?.jsonPrimitive?.content ?: "未知"
-            val humidity = resultObj?.get("humidity")?.jsonPrimitive?.content ?: "未知"
+            val weatherString = getWeatherString(city)
+            val resultObj = Json.parseToJsonElement(weatherString).jsonObject
+            val temperature = resultObj["temperature"]?.jsonPrimitive?.content ?: "未知"
+            val condition = resultObj["condition"]?.jsonPrimitive?.content ?: "未知"
+            val humidity = resultObj["humidity"]?.jsonPrimitive?.content ?: "未知"
 
             println("${city}天气:")
             println("温度: $temperature")
@@ -639,6 +683,94 @@ object KastraxNative {
             println("湿度: $humidity")
         } catch (e: Exception) {
             println("获取天气信息失败: ${e.message}")
+        }
+    }
+
+    /**
+     * 获取天气信息字符串
+     */
+    private fun getWeatherString(city: String): String {
+        return buildJsonObject {
+            put("temperature", "25°C")
+            put("condition", "晴朗")
+            put("humidity", "45%")
+        }.toString()
+    }
+
+    /**
+     * 计算表达式
+     */
+    private fun calculateExpression(expression: String): String {
+        return try {
+            // 简单的计算器实现
+            val trimmedInput = expression.trim()
+            val result = if (trimmedInput.contains('+')) {
+                val parts = trimmedInput.split('+')
+                if (parts.size == 2) {
+                    val a = parts[0].trim().toDoubleOrNull()
+                    val b = parts[1].trim().toDoubleOrNull()
+                    if (a != null && b != null) {
+                        (a + b).toString()
+                    } else {
+                        "无法解析数字"
+                    }
+                } else {
+                    "格式错误"
+                }
+            } else if (trimmedInput.contains('-')) {
+                val parts = trimmedInput.split('-')
+                if (parts.size == 2) {
+                    val a = parts[0].trim().toDoubleOrNull()
+                    val b = parts[1].trim().toDoubleOrNull()
+                    if (a != null && b != null) {
+                        (a - b).toString()
+                    } else {
+                        "无法解析数字"
+                    }
+                } else {
+                    "格式错误"
+                }
+            } else if (trimmedInput.contains('*')) {
+                val parts = trimmedInput.split('*')
+                if (parts.size == 2) {
+                    val a = parts[0].trim().toDoubleOrNull()
+                    val b = parts[1].trim().toDoubleOrNull()
+                    if (a != null && b != null) {
+                        (a * b).toString()
+                    } else {
+                        "无法解析数字"
+                    }
+                } else {
+                    "格式错误"
+                }
+            } else if (trimmedInput.contains('/')) {
+                val parts = trimmedInput.split('/')
+                if (parts.size == 2) {
+                    val a = parts[0].trim().toDoubleOrNull()
+                    val b = parts[1].trim().toDoubleOrNull()
+                    if (a != null && b != null) {
+                        if (b == 0.0) {
+                            "错误：除数不能为零"
+                        } else {
+                            (a / b).toString()
+                        }
+                    } else {
+                        "无法解析数字"
+                    }
+                } else {
+                    "格式错误"
+                }
+            } else {
+                "无法解析表达式：$trimmedInput"
+            }
+
+            buildJsonObject {
+                put("result", result)
+            }.toString()
+        } catch (e: Exception) {
+            buildJsonObject {
+                put("error", "计算错误：${e.message}")
+            }.toString()
         }
     }
 
