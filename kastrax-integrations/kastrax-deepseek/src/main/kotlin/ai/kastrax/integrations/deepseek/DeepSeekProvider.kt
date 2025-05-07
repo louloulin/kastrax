@@ -98,6 +98,47 @@ class DeepSeekProvider(
             }
     }
 
+    /**
+     * 流式生成文本完成，并处理工具调用。
+     *
+     * @param messages 输入消息列表
+     * @param options 生成选项
+     * @return 包含文本和工具调用流的响应
+     */
+    override suspend fun streamGenerateWithTools(
+        messages: List<LlmMessage>,
+        options: LlmOptions
+    ): LlmStreamResponse {
+        logger.debug { "Streaming completion with tools for model: $model" }
+
+        val request = createChatCompletionRequest(messages, options, stream = true)
+
+        // 分离文本和工具调用流
+        val streamChunks = client.streamChatCompletionEnhanced(request)
+
+        // 文本流
+        val textStream = streamChunks
+            .filter { it is DeepSeekStreamChunk.Content }
+            .map { (it as DeepSeekStreamChunk.Content).text }
+
+        // 工具调用流
+        val toolCallStream = streamChunks
+            .filter { it is DeepSeekStreamChunk.ToolCall }
+            .map { chunk ->
+                val toolCall = chunk as DeepSeekStreamChunk.ToolCall
+                LlmToolCall(
+                    id = toolCall.id,
+                    name = toolCall.name,
+                    arguments = toolCall.arguments
+                )
+            }
+
+        return LlmStreamResponse(
+            textStream = textStream,
+            toolCallStream = toolCallStream
+        )
+    }
+
 
 
     /**

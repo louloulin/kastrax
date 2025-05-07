@@ -85,6 +85,8 @@ data class DeepSeekToolCall(
     val id: String,
     /** 工具类型 */
     val type: String,
+    /** 工具调用索引 */
+    val index: Int? = null,
     /** 调用的函数 */
     val function: DeepSeekFunctionCall
 )

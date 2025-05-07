@@ -514,6 +514,21 @@ object KastraxNative {
                 var toolName = ""
                 var toolArgs = ""
 
+                // 收集工具调用信息
+                response.toolCallStream?.collect { toolCall ->
+                    hasToolCall = true
+                    toolCallId = toolCall.id
+                    toolName = toolCall.name
+                    toolArgs = toolCall.arguments
+
+                    println("\n\n检测到工具调用: $toolName (ID: $toolCallId)")
+                    println("参数: $toolArgs")
+
+                    // 立即执行工具调用
+                    executeToolCall(toolName, toolArgs)
+                }
+
+                // 收集文本流
                 response.textStream?.collect { chunk ->
                     print(chunk)
                     System.out.flush()
@@ -523,34 +538,8 @@ object KastraxNative {
                 if (hasToolCall && toolName.isNotEmpty()) {
                     println("\n\n正在执行工具: $toolName")
 
-                    // 根据工具名称执行对应的工具
-                    val result = when (toolName) {
-                        "weather" -> {
-                            // 解析参数
-                            val city = try {
-                                val jsonObject = Json.parseToJsonElement(toolArgs).jsonObject
-                                jsonObject["city"]?.jsonPrimitive?.content ?: "北京"
-                            } catch (e: Exception) {
-                                "北京"
-                            }
-
-                            // 执行天气工具
-                            getWeatherString(city)
-                        }
-                        "calculator" -> {
-                            // 解析参数
-                            val expression = try {
-                                val jsonObject = Json.parseToJsonElement(toolArgs).jsonObject
-                                jsonObject["expression"]?.jsonPrimitive?.content ?: "0"
-                            } catch (e: Exception) {
-                                "0"
-                            }
-
-                            // 执行计算器工具
-                            calculateExpression(expression)
-                        }
-                        else -> "\u672a知工具: $toolName"
-                    }
+                    // 执行工具调用
+                    val result = executeToolCall(toolName, toolArgs)
 
                     println("\n工具结果: $result")
 
@@ -563,8 +552,56 @@ object KastraxNative {
             }
         } catch (e: Exception) {
             println("\n错误: ${e.message}")
+            e.printStackTrace()
         }
     }
+
+    /**
+     * 执行工具调用
+     *
+     * @param toolName 工具名称
+     * @param toolArgs 工具参数
+     * @return 工具执行结果
+     */
+    private fun executeToolCall(toolName: String, toolArgs: String): String {
+        return when (toolName) {
+            "weather" -> {
+                // 解析参数
+                val city = try {
+                    val jsonObject = Json.parseToJsonElement(toolArgs).jsonObject
+                    jsonObject["city"]?.jsonPrimitive?.content ?: "北京"
+                } catch (e: Exception) {
+                    println("\n解析参数错误: ${e.message}")
+                    println("\n原始参数: $toolArgs")
+                    "北京"
+                }
+
+                println("\n获取城市: $city 的天气")
+
+                // 执行天气工具
+                getWeatherString(city)
+            }
+            "calculator" -> {
+                // 解析参数
+                val expression = try {
+                    val jsonObject = Json.parseToJsonElement(toolArgs).jsonObject
+                    jsonObject["expression"]?.jsonPrimitive?.content ?: "0"
+                } catch (e: Exception) {
+                    println("\n解析参数错误: ${e.message}")
+                    println("\n原始参数: $toolArgs")
+                    "0"
+                }
+
+                println("\n计算表达式: $expression")
+
+                // 执行计算器工具
+                calculateExpression(expression)
+            }
+            else -> "\u672a知工具: $toolName"
+        }
+    }
+
+    // 空占位符
 
     /**
      * 启动代理交互模式

@@ -17,6 +17,7 @@ import ai.kastrax.core.memory.toLlmMessage
 import ai.kastrax.core.tools.Tool
 import ai.kastrax.core.tools.ToolCallResult
 import ai.kastrax.memory.api.Memory
+import mu.KotlinLogging
 import ai.kastrax.memory.api.MemoryBuilder
 import ai.kastrax.memory.api.Message
 import ai.kastrax.memory.api.MessageRole
@@ -149,6 +150,20 @@ interface Agent {
         prompt: String,
         options: AgentStreamOptions = AgentStreamOptions()
     ): AgentResponse
+
+    /**
+     * Process a tool call result and continue the conversation.
+     *
+     * @param prompt Original user prompt
+     * @param toolCallResult Result of a tool call
+     * @param options Options for generation
+     * @return Agent response
+     */
+    suspend fun processToolCallResult(
+        prompt: String,
+        toolCallResult: AgentToolCallResult,
+        options: AgentGenerateOptions = AgentGenerateOptions()
+    ): AgentResponse = AgentResponse(text = "Tool call processing not implemented")
 
     /**
      * Reset the agent's state.
@@ -599,6 +614,7 @@ data class StepResult(
  * @property usage Token usage information
  * @property result Structured result (if requested)
  * @property textStream Stream of text chunks (for streaming)
+ * @property toolCallStream Stream of tool calls (for streaming)
  * @property threadId Thread ID (if using memory)
  * @property state Agent state (if using state management)
  * @property sessionInfo Session information (if using session management)
@@ -610,9 +626,23 @@ data class AgentResponse(
     val usage: LlmUsage? = null,
     val result: Any? = null,
     val textStream: Flow<String>? = null,
+    val toolCallStream: Flow<LlmToolCall>? = null,
     val threadId: String? = null,
     val state: AgentState? = null,
     val sessionInfo: SessionInfo? = null
+)
+
+/**
+ * Data class for agent tool call result.
+ *
+ * @property toolCallId ID of the tool call
+ * @property toolName Name of the tool
+ * @property result Result of the tool call
+ */
+data class AgentToolCallResult(
+    val toolCallId: String,
+    val toolName: String,
+    val result: String
 )
 
 /**
@@ -1229,59 +1259,90 @@ class LLMAgent(
     ): AgentResponse {
         // 更新状态为响应中
         updateState(AgentStatus.RESPONDING)
-        // 从LLM流式生成响应
-        val responseStream = model.streamGenerate(messages, llmOptions)
 
-        // 创建响应流，收集完整文本
-        val responseBuilder = StringBuilder()
-        val processedStream = flow {
-            responseStream.collect { chunk ->
-                responseBuilder.append(chunk)
-                emit(chunk)
+        try {
+            // 尝试使用带工具调用的流式生成
+            val streamResponse = model.streamGenerateWithTools(messages, llmOptions)
+
+            // 创建响应流，收集完整文本
+            val responseBuilder = StringBuilder()
+            val processedTextStream = streamResponse.textStream?.let { textStream ->
+                flow {
+                    textStream.collect { chunk ->
+                        responseBuilder.append(chunk)
+                        emit(chunk)
+                    }
+
+                    // 当流完成后，保存助手消息
+                    val content = responseBuilder.toString()
+                    saveAssistantMessage(content, threadId)
+
+                    // 更新状态为空闲
+                    updateState(AgentStatus.IDLE)
+                }
             }
 
-            // 当流完成后，保存助手消息
-            val content = responseBuilder.toString()
+            // 获取当前状态
+            val currentState = getState()
 
-            // 如果有内存系统，保存助手消息
-            if (memory != null) {
-                val assistantMessage = LlmMessage(
-                    role = LlmMessageRole.ASSISTANT,
-                    content = content
-                )
-                memory.saveMessage(assistantMessage.toMessage(), threadId)
+            // 获取会话信息
+            val sessionInfo = if (sessionManager != null && !threadId.isNullOrEmpty()) {
+                sessionManager.getSession(threadId)
+            } else {
+                null
             }
 
-            // 如果有会话管理器，保存助手消息
-            if (sessionManager != null && !threadId.isNullOrEmpty()) {
-                val assistantMessage = LlmMessage(
-                    role = LlmMessageRole.ASSISTANT,
-                    content = content
-                )
-                sessionManager.saveMessage(assistantMessage, threadId)
+            // 创建响应对象
+            return AgentResponse(
+                text = responseBuilder.toString(),
+                textStream = processedTextStream,
+                toolCallStream = streamResponse.toolCallStream,
+                threadId = threadId,
+                state = currentState,
+                sessionInfo = sessionInfo
+            )
+        } catch (e: Exception) {
+            // 如果带工具调用的流式生成失败，回退到普通流式生成
+            logger.warn { "Failed to use streamGenerateWithTools, falling back to streamGenerate: ${e.message}" }
+
+            // 从LLM流式生成响应
+            val responseStream = model.streamGenerate(messages, llmOptions)
+
+            // 创建响应流，收集完整文本
+            val responseBuilder = StringBuilder()
+            val processedStream = flow {
+                responseStream.collect { chunk ->
+                    responseBuilder.append(chunk)
+                    emit(chunk)
+                }
+
+                // 当流完成后，保存助手消息
+                val content = responseBuilder.toString()
+                saveAssistantMessage(content, threadId)
+
+                // 更新状态为空闲
+                updateState(AgentStatus.IDLE)
             }
 
-            // 更新状态为空闲
-            updateState(AgentStatus.IDLE)
+            // 获取当前状态
+            val currentState = getState()
+
+            // 获取会话信息
+            val sessionInfo = if (sessionManager != null && !threadId.isNullOrEmpty()) {
+                sessionManager.getSession(threadId)
+            } else {
+                null
+            }
+
+            // 创建响应对象
+            return AgentResponse(
+                text = responseBuilder.toString(),
+                textStream = processedStream,
+                threadId = threadId,
+                state = currentState,
+                sessionInfo = sessionInfo
+            )
         }
-
-        // 获取当前状态
-        val currentState = getState()
-
-        // 获取会话信息
-        val sessionInfo = if (sessionManager != null && !threadId.isNullOrEmpty()) {
-            sessionManager.getSession(threadId)
-        } else {
-            null
-        }
-
-        // 创建响应对象
-        return AgentResponse(
-            textStream = processedStream,
-            threadId = threadId,
-            state = currentState,
-            sessionInfo = sessionInfo
-        )
     }
 
     /**

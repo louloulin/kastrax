@@ -38,6 +38,21 @@ interface LlmProvider {
     ): Flow<String>
 
     /**
+     * Generate a streaming response with tool calls from the LLM.
+     *
+     * @param messages List of messages to send to the LLM
+     * @param options Options for the generation
+     * @return LlmStreamResponse containing text and tool call streams
+     */
+    suspend fun streamGenerateWithTools(
+        messages: List<LlmMessage>,
+        options: LlmOptions = LlmOptions()
+    ): LlmStreamResponse = LlmStreamResponse(
+        textStream = streamGenerate(messages, options),
+        toolCallStream = null
+    )
+
+    /**
      * Generate embeddings for a text.
      *
      * @param text Text to embed
@@ -149,6 +164,17 @@ data class LlmUsage(
     val promptTokens: Int,
     val completionTokens: Int,
     val totalTokens: Int
+)
+
+/**
+ * Data class for LLM streaming response.
+ *
+ * @property textStream Stream of text chunks
+ * @property toolCallStream Stream of tool calls
+ */
+data class LlmStreamResponse(
+    val textStream: Flow<String>?,
+    val toolCallStream: Flow<LlmToolCall>?
 )
 
 /**
