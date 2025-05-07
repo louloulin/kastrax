@@ -194,7 +194,14 @@ sourceSets {
                 "**/workflow/EnhancedWorkflowExample.kt",
                 "**/EnhancedRagExample.kt",
                 "**/EnhancedRetrievalExample.kt",
-                "**/EnhancedDocumentProcessingExample.kt"
+                "**/EnhancedDocumentProcessingExample.kt",
+                "**/agent/AdaptiveAgentExample.kt",
+                "**/agent/AdvancedAgentExample.kt",
+                "**/agent/AgentStateExample.kt",
+                "**/agent/AgentVersioningExample.kt",
+                "**/agent/GoalOrientedAgentExample.kt",
+                "**/agent/ReflectiveAgentExample.kt",
+                "**/agent/HierarchicalAgentExample.kt"
             )
             // 排除有问题的文件
             exclude(
@@ -227,12 +234,21 @@ sourceSets {
     }
 }
 
+// 注意：此任务已在第 76-83 行定义，此处注释掉以避免重复
+// tasks.register<JavaExec>("runAdaptiveAgentExample") {
+//     group = "application"
+//     description = "Run the AdaptiveAgentExample example"
+//     classpath = sourceSets["main"].runtimeClasspath
+//     mainClass.set("ai.kastrax.examples.agent.AdaptiveAgentExampleKt")
+//     jvmArgs = listOf("-Xms512m", "-Xmx1g")
+// }
+
 // Task to run AdaptiveAgentExample
-tasks.register<JavaExec>("runKastraxAdaptiveAgentExample") {
-    group = "examples"
+tasks.register<JavaExec>("runAdaptiveAgentExampleNew") {
+    group = "application"
     description = "Run the AdaptiveAgentExample example"
     classpath = sourceSets["main"].runtimeClasspath
-    mainClass.set("ai.kastrax.examples.agent.AdaptiveAgentExample")
+    mainClass.set("ai.kastrax.examples.agent.AdaptiveAgentExampleKt")
     jvmArgs = listOf("-Xms512m", "-Xmx1g")
 }
 

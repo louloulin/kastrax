@@ -49,3 +49,4 @@
     ./gradlew :graal-native:buildNativeManually
 
     ./gradlew :graal-native:buildNoReflectionNative
+    继续执行 ex.md未完成的例子
