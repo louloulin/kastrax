@@ -97,9 +97,9 @@ data class DeepSeekToolCall(
 @Serializable
 data class DeepSeekFunctionCall(
     /** 函数名称 */
-    val name: String,
+    val name: String? = null,
     /** 函数参数 */
-    val arguments: String
+    val arguments: String? = null
 )
 
 /**

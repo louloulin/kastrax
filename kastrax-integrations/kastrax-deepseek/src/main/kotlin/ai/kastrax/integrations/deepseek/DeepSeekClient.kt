@@ -151,11 +151,11 @@ class DeepSeekClient(
     suspend fun streamChatCompletionEnhanced(
         request: DeepSeekChatCompletionRequest
     ): Flow<DeepSeekStreamChunk> {
-        // 创建流式客户端，使用与当前客户端相同的 HTTP 客户端
+        // 创建流式客户端，使用新的 HTTP 客户端，确保安装了 SSE 插件
         val streamingClient = DeepSeekStreamingClient(
-            httpClient = httpClient,  // 使用相同的 HTTP 客户端
             baseUrl = baseUrl,
-            apiKey = apiKey
+            apiKey = apiKey,
+            timeout = timeout
         )
 
         logger.debug { "Using enhanced streaming for model: ${request.model}" }
