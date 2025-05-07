@@ -17,8 +17,8 @@ import kotlinx.coroutines.runBlocking
  * 语义搜索示例，展示如何使用语义搜索和相关性排序功能。
  */
 fun main(): kotlin.Unit = runBlocking {
-    // 替换为你的Deepseek API密钥
-    val apiKey = System.getenv("DEEPSEEK_API_KEY") ?: "test-api-key"
+    // 使用硬编码的 API 密钥
+    val apiKey = "sk-85e83081df28490b9ae63188f0cb4f79"
 
     println("KastraX 语义搜索示例 (Deepseek版)")
     println("-------------------")

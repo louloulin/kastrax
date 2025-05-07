@@ -152,6 +152,21 @@ interface Agent {
     ): AgentResponse
 
     /**
+     * Generate a streaming response from the agent.
+     *
+     * @param prompt Text prompt for the agent
+     * @param options Options for streaming
+     * @return Flow of agent stream responses
+     */
+    suspend fun generateStream(
+        prompt: String,
+        options: AgentStreamOptions = AgentStreamOptions()
+    ): Flow<AgentStreamResponse> = flow {
+        val response = stream(prompt, options)
+        emit(AgentStreamResponse(response.text))
+    }
+
+    /**
      * Process a tool call result and continue the conversation.
      *
      * @param prompt Original user prompt

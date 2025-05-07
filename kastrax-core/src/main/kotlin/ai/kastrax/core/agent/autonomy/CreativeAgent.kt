@@ -4,6 +4,7 @@ import ai.kastrax.core.agent.Agent
 import ai.kastrax.core.agent.AgentGenerateOptions
 import ai.kastrax.core.agent.AgentResponse
 import ai.kastrax.core.agent.AgentStreamOptions
+import ai.kastrax.core.agent.AgentStreamResponse
 import ai.kastrax.core.agent.SessionInfo
 import ai.kastrax.core.agent.SessionMessage
 import ai.kastrax.core.agent.AgentStatus
@@ -84,6 +85,17 @@ class CreativeAgent(
 
         // 使用基础Agent流式生成响应
         return baseAgent.stream(autonomousResponse.text, options)
+    }
+
+    /**
+     * 流式生成响应，返回流
+     */
+    override suspend fun generateStream(prompt: String, options: AgentStreamOptions): Flow<AgentStreamResponse> {
+        // 使用自主性管理器生成响应
+        val enhancedPrompt = autonomy.enhancePromptWithAutonomy(prompt)
+
+        // 使用基础Agent流式生成响应
+        return baseAgent.generateStream(enhancedPrompt, options)
     }
 
 
@@ -197,6 +209,54 @@ class CreativeAgent(
     }
 
     /**
+     * 流式生成创意内容
+     */
+    suspend fun generateCreativeContentStream(
+        prompt: String,
+        type: CreativityType = CreativityType.EXPLORATORY,
+        options: AgentStreamOptions = AgentStreamOptions()
+    ): Flow<AgentStreamResponse> {
+        // 使用自主性管理器生成响应
+        val enhancedPrompt = when (type) {
+            CreativityType.COMBINATIONAL -> {
+                """
+                请基于以下提示，创造一个结合多种现有概念的新想法：
+
+                $prompt
+
+                尝试将不同领域的概念结合起来，创造出新颖且有价值的内容。
+                """.trimIndent()
+            }
+            CreativityType.EXPLORATORY -> {
+                """
+                请基于以下提示，探索现有概念空间的边界，创造出新颖的内容：
+
+                $prompt
+
+                在现有规则和约束内，尽可能推动创意的边界。
+                """.trimIndent()
+            }
+            CreativityType.TRANSFORMATIONAL -> {
+                """
+                请基于以下提示，创造一个彻底改变现有概念空间的革命性想法：
+
+                $prompt
+
+                挑战基本假设，改变思考问题的方式，创造出真正突破性的内容。
+                """.trimIndent()
+            }
+        }
+
+        // 设置创造力温度
+        val creativeOptions = options.copy(
+            temperature = options.temperature.coerceAtLeast(0.7) + autonomy.getConfig().creativityLevel * 0.3
+        )
+
+        // 使用基础Agent流式生成响应
+        return baseAgent.generateStream(enhancedPrompt, creativeOptions)
+    }
+
+    /**
      * 自主探索
      */
     suspend fun exploreAutonomously(
@@ -205,6 +265,32 @@ class CreativeAgent(
         options: AgentGenerateOptions = AgentGenerateOptions()
     ): List<String> {
         return autonomy.exploreAutonomously(topic, depth, options)
+    }
+
+    /**
+     * 流式自主探索
+     */
+    suspend fun exploreAutonomouslyStream(
+        topic: String,
+        depth: Int = 1,
+        options: AgentStreamOptions = AgentStreamOptions()
+    ): Flow<AgentStreamResponse> {
+        // 初始探索提示
+        val initialPrompt = """
+            请探索以下主题，提出3-5个值得进一步研究的子主题或问题：
+
+            $topic
+
+            对于每个子主题，简要解释为什么它值得探索。
+        """.trimIndent()
+
+        // 设置探索温度
+        val explorationOptions = options.copy(
+            temperature = options.temperature.coerceAtLeast(0.6) + autonomy.getConfig().explorationRate * 0.3
+        )
+
+        // 流式生成初始探索
+        return baseAgent.generateStream(initialPrompt, explorationOptions)
     }
 
     /**

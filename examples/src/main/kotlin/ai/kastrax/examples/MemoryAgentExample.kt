@@ -22,11 +22,11 @@ fun main() = runBlocking {
         }
 
         // 配置内存系统
-        memory = ai.kastrax.memory.impl.MemoryFactory.createMemory {
-            storage(ai.kastrax.memory.impl.MemoryFactory.createInMemoryStorage())
+        memory(ai.kastrax.memory.impl.memory {
+            storage(ai.kastrax.memory.impl.inMemoryStorage())
             lastMessages(10)
             semanticRecall(true)
-        }
+        })
     }
 
     println("记忆助手示例")
