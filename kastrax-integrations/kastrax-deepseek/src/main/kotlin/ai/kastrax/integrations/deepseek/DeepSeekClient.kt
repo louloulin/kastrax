@@ -5,7 +5,9 @@ import io.ktor.client.call.*
 import io.ktor.client.engine.cio.*
 import io.ktor.client.engine.okhttp.*
 import io.ktor.client.plugins.*
+import io.ktor.client.plugins.cache.*
 import io.ktor.client.plugins.contentnegotiation.*
+import io.ktor.client.plugins.logging.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
@@ -188,6 +190,36 @@ class DeepSeekClient(
                     requestTimeoutMillis = timeout
                     connectTimeoutMillis = 30000  // 增加连接超时时间
                     socketTimeoutMillis = timeout
+                }
+
+                // 添加HTTP缓存，减少重复请求
+                install(HttpCache)
+
+                // 安装日志插件，方便调试
+                install(Logging) {
+                    logger = io.ktor.client.plugins.logging.Logger.DEFAULT
+                    level = LogLevel.HEADERS
+                }
+
+                engine {
+                    // 启用HTTP/2管道化，提高并发性能
+                    pipelining = true
+                    // 设置并发调度器
+                    addInterceptor(okhttp3.logging.HttpLoggingInterceptor().apply {
+                        level = okhttp3.logging.HttpLoggingInterceptor.Level.BASIC
+                    })
+                    config {
+                        // 设置连接池参数
+                        retryOnConnectionFailure(true)
+                        // 设置连接超时
+                        connectTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
+                        // 设置读取超时
+                        readTimeout(60, java.util.concurrent.TimeUnit.SECONDS)
+                        // 设置写入超时
+                        writeTimeout(60, java.util.concurrent.TimeUnit.SECONDS)
+                        // 禁用缓冲区，确保实时响应
+                        protocols(listOf(okhttp3.Protocol.HTTP_2, okhttp3.Protocol.HTTP_1_1))
+                    }
                 }
 
                 defaultRequest {

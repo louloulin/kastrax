@@ -28,6 +28,11 @@ dependencies {
     implementation("io.ktor:ktor-client-okhttp:$ktorVersion")
     implementation("io.ktor:ktor-client-content-negotiation:$ktorVersion")
     implementation("io.ktor:ktor-serialization-kotlinx-json:$ktorVersion")
+    implementation("io.ktor:ktor-client-logging:$ktorVersion")
+    implementation("com.squareup.okhttp3:logging-interceptor:4.12.0")
+
+    // 添加 SSE 支持
+    implementation("io.ktor:ktor-client-core-jvm:$ktorVersion")
 
 
     // Logging

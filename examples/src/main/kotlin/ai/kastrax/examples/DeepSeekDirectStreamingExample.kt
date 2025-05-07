@@ -11,7 +11,8 @@ import kotlinx.coroutines.runBlocking
  * 1. 使用 channelFlow 而非普通 flow，更好地控制背压
  * 2. 添加更多 SSE 相关头部，确保实时响应
  * 3. 去除人为延迟，让网络传输决定速度
- * 4. 每发送一个字符就让出协程，确保实时处理
+ * 4. 每个字符单独发送，确保真正的字符级流式响应
+ * 5. 优化HTTP客户端配置，提高网络传输效率
  */
 fun runDirectStreamingExample() = runBlocking {
     // API 密钥
@@ -75,9 +76,7 @@ fun runDirectStreamingExample() = runBlocking {
                             val utf8Text = String(text.toByteArray(Charsets.UTF_8), Charsets.UTF_8)
                             print(utf8Text)
                             System.out.flush() // 关键：立即刷新输出缓冲区
-
-                            // 添加小延迟，确保字符能够被看到
-                            Thread.sleep(1) // 1毫秒延迟，可以根据需要调整
+                            // 移除了人为延迟，让网络传输决定速度
                         }
                         is DeepSeekStreamChunk.ToolCall -> {
                             // 处理工具调用
