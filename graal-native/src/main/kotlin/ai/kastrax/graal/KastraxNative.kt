@@ -34,17 +34,30 @@ object KastraxNative {
 
         // 设置输入和输出模式
         inputSchema = buildJsonObject {
-            put("type", "string")
-            put("description", "数学表达式，如 2+2")
+            put("type", "object")
+            putJsonObject("properties") {
+                putJsonObject("expression") {
+                    put("type", "string")
+                    put("description", "数学表达式，如 2+2")
+                }
+            }
+            putJsonArray("required") {
+                add(JsonPrimitive("expression"))
+            }
         }
 
         outputSchema = buildJsonObject {
-            put("type", "string")
-            put("description", "计算结果")
+            put("type", "object")
+            putJsonObject("properties") {
+                putJsonObject("result") {
+                    put("type", "string")
+                    put("description", "计算结果")
+                }
+            }
         }
 
         execute = { input ->
-            val inputStr = (input as? JsonPrimitive)?.content ?: ""
+            val inputStr = input.jsonObject["expression"]?.jsonPrimitive?.content ?: ""
             val result = try {
                 // 简单的计算器实现
                 val trimmedInput = inputStr.trim()
@@ -111,7 +124,9 @@ object KastraxNative {
                 "计算错误：${e.message}"
             }
 
-            JsonPrimitive(result)
+            buildJsonObject {
+                put("result", result)
+            }
         }
     }
 
