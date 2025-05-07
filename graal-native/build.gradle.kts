@@ -23,6 +23,7 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.0")
     implementation("io.github.oshai:kotlin-logging-jvm:5.1.0")
     implementation("ch.qos.logback:logback-classic:1.4.11")
+    implementation("io.ktor:ktor-client-okhttp:3.1.2")
 
     // 移除 Kotlin 反射依赖
     // implementation("org.jetbrains.kotlin:kotlin-reflect:2.1.10")
@@ -414,6 +415,60 @@ tasks.register<Exec>("buildSimpleNative2") {
     doFirst {
         println("Building simple native image using: $nativeImage")
         println("Output will be in: $outputDir/kastrax-simple")
+        println("Using classpath: ${classpathString}")
+    }
+}
+
+// 自定义任务，构建完整功能的 KastraX Native Image
+tasks.register<Exec>("buildKastraxNative") {
+    dependsOn(tasks.named("jar"))
+
+    val outputDir = layout.buildDirectory.dir("native/kastrax").get().asFile
+    outputDir.mkdirs()
+
+    val graalVmHome = System.getenv("GRAALVM_HOME") ?: "${System.getProperty("user.home")}/Library/Java/JavaVirtualMachines/graalvm-ce-17.0.9/Contents/Home"
+    val nativeImage = "$graalVmHome/bin/native-image"
+
+    // 收集所有运行时依赖项
+    val runtimeClasspath = configurations.runtimeClasspath.get().files
+
+    // 添加 kastrax-core 模块
+    val coreJar = project(":kastrax-core").tasks.named("jar").get().outputs.files
+
+    // 添加 kastrax-deepseek 模块
+    val deepseekJar = project(":kastrax-integrations:kastrax-deepseek").tasks.named("jar").get().outputs.files
+
+    // 添加当前模块的jar
+    val jarFile = tasks.jar.get().archiveFile.get().asFile
+
+    // 组合所有类路径
+    val classpathFiles = runtimeClasspath + coreJar + deepseekJar + jarFile
+    val classpathString = classpathFiles.joinToString(":")
+
+    commandLine = listOf(
+        nativeImage,
+        "--no-fallback",
+        "-H:+AllowDeprecatedBuilderClassesOnImageClasspath",
+        "--initialize-at-build-time=kotlin",
+        "--initialize-at-run-time=kotlin.reflect,kotlinx.serialization",
+        "--initialize-at-run-time=kotlin.jvm.internal.TypeParameterReference",
+        "--initialize-at-run-time=ai.kastrax.integrations.deepseek.DeepSeekStreamChunk",
+        "--initialize-at-run-time=ai.kastrax.core.agent",
+        "--initialize-at-run-time=ai.kastrax.core.tools",
+        "-H:+ReportExceptionStackTraces",
+        "-H:ResourceConfigurationFiles=${project.projectDir}/src/main/resources/META-INF/native-image/resource-config.json",
+        "-H:SerializationConfigurationResources=META-INF/native-image/serialization-config.json",
+        "-H:+JNI",
+        "-H:+AddAllCharsets",
+        "-O2",
+        "-cp", classpathString,
+        "ai.kastrax.graal.KastraxNative",
+        "-o", "$outputDir/kastrax"
+    )
+
+    doFirst {
+        println("Building KastraX native image using: $nativeImage")
+        println("Output will be in: $outputDir/kastrax")
         println("Using classpath: ${classpathString}")
     }
 }

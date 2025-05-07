@@ -71,6 +71,7 @@ class DeepSeekStreamingClient(
                     header("Accept", "text/event-stream")
                     header("Cache-Control", "no-cache")
                     header("Connection", "keep-alive")
+                    // 使用自动序列化
                     setBody(streamingRequest)
                 }.execute()
 

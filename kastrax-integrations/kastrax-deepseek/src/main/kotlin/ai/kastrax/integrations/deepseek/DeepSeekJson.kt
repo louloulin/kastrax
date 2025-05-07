@@ -20,6 +20,23 @@ object DeepSeekJson {
             subclass(DeepSeekStreamChunk.Finished::class)
             subclass(DeepSeekStreamChunk.Done::class)
         }
+
+        // 显式注册所有需要的序列化器，避免依赖运行时反射
+        contextual(DeepSeekChatCompletionRequest::class, DeepSeekChatCompletionRequest.serializer())
+        contextual(DeepSeekMessage::class, DeepSeekMessage.serializer())
+        contextual(DeepSeekTool::class, DeepSeekTool.serializer())
+        contextual(DeepSeekFunction::class, DeepSeekFunction.serializer())
+        contextual(DeepSeekToolCall::class, DeepSeekToolCall.serializer())
+        contextual(DeepSeekFunctionCall::class, DeepSeekFunctionCall.serializer())
+        contextual(DeepSeekChatCompletionResponse::class, DeepSeekChatCompletionResponse.serializer())
+        contextual(DeepSeekChoice::class, DeepSeekChoice.serializer())
+        contextual(DeepSeekUsage::class, DeepSeekUsage.serializer())
+        contextual(DeepSeekEmbeddingRequest::class, DeepSeekEmbeddingRequest.serializer())
+        contextual(DeepSeekEmbeddingResponse::class, DeepSeekEmbeddingResponse.serializer())
+        contextual(DeepSeekEmbedding::class, DeepSeekEmbedding.serializer())
+        contextual(DeepSeekEmbeddingUsage::class, DeepSeekEmbeddingUsage.serializer())
+        contextual(DeepSeekErrorResponse::class, DeepSeekErrorResponse.serializer())
+        contextual(DeepSeekError::class, DeepSeekError.serializer())
     }
 
     /**

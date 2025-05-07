@@ -44,6 +44,7 @@ class DeepSeekClient(
         return try {
             val response = httpClient.post("$baseUrl/chat/completions") {
                 contentType(ContentType.Application.Json)
+                // 使用自动序列化
                 setBody(nonStreamingRequest)
             }
 
@@ -126,6 +127,7 @@ class DeepSeekClient(
         return try {
             val response = httpClient.post("$baseUrl/embeddings") {
                 contentType(ContentType.Application.Json)
+                // 使用自动序列化
                 setBody(request)
             }
 
@@ -177,6 +179,7 @@ class DeepSeekClient(
         fun createDefaultHttpClient(apiKey: String, timeout: Long = 60000): HttpClient {
             return HttpClient(CIO) {
                 install(ContentNegotiation) {
+                    // 使用我们的自定义序列化器，它预先注册了所有需要的序列化器
                     json(DeepSeekJson.json)
                 }
 
