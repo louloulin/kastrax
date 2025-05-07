@@ -13,7 +13,7 @@
 - [x] MemorySystemExample - 已运行成功，能够创建、查询和删除对话线程，已使用 DSL 风格优化
 - [x] SimpleZodToolExample - 已运行成功，能够验证输入并反转字符串
 - [x] ToolsExample - 已运行成功，能够使用文件系统和 Web 搜索工具
-- [x] CreativeAgentExample - 已运行成功，能够生成创意内容并进行自主探索
+- [x] CreativeAgentExample - 已运行成功，能够生成创意内容并进行自主探索，已使用标准方式实现
 - [x] DeepseekAgentExample - 已运行成功，能够回答各种问题
 - [x] DeepseekToolAgentExample - 已运行成功，能够使用工具执行任务
 - [x] DeepseekArchitectureExample - 已运行成功，能够使用分层架构回答问题
@@ -21,8 +21,8 @@
 - [x] DeepseekMain - 已运行成功，能够选择运行不同的示例
 - [x] CalculatorExample - 已运行成功，能够计算数学表达式
 - [x] SemanticSearchExample - 已运行成功，能够进行语义搜索和对话
-- [ ] EnhancedMemoryExample
-- [ ] EnhancedWorkflowExample
-- [ ] EnhancedRagExample
-- [ ] EnhancedRetrievalExample
-- [ ] EnhancedDocumentProcessingExample
+- [x] EnhancedMemoryExample - 已运行成功，能够使用增强型内存系统进行对话
+- [x] EnhancedWorkflowExample - 已运行成功，能够执行工作流程
+- [x] EnhancedRagExample - 已运行成功，能够使用增强型 RAG 系统回答问题
+- [x] EnhancedRetrievalExample - 已运行成功，能够使用增强型检索功能
+- [x] EnhancedDocumentProcessingExample - 已运行成功，能够处理和转换文档

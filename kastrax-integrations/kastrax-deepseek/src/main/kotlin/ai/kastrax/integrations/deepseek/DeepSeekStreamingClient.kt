@@ -64,13 +64,17 @@ class DeepSeekStreamingClient(
             }
 
             defaultRequest {
-                // 检查 API 密钥是否已经包含 Bearer 前缀
-                val authHeader = if (apiKey.startsWith("Bearer ")) {
-                    apiKey
+                // 确保 API 密钥格式正确
+                // 先移除可能存在的 Bearer 前缀
+                val cleanApiKey = if (apiKey.startsWith("Bearer ")) {
+                    apiKey.substring("Bearer ".length)
                 } else {
-                    "Bearer $apiKey"
+                    apiKey
                 }
-                logger.debug { "Using Authorization header: $authHeader" }
+
+                // 添加正确的 Bearer 前缀
+                val authHeader = "Bearer $cleanApiKey"
+                logger.debug { "Using Authorization header format: Bearer sk-..." }
                 header("Authorization", authHeader)
             }
 
