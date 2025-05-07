@@ -17,8 +17,9 @@ import kotlinx.coroutines.runBlocking
  * 语义搜索示例，展示如何使用语义搜索和相关性排序功能。
  */
 fun main(): kotlin.Unit = runBlocking {
-    // 使用硬编码的 API 密钥
+    // 使用硬编码的 API 密钥，注意不要包含 Bearer 前缀
     val apiKey = "sk-85e83081df28490b9ae63188f0cb4f79"
+    println("Using API key: $apiKey")
 
     println("KastraX 语义搜索示例 (Deepseek版)")
     println("-------------------")

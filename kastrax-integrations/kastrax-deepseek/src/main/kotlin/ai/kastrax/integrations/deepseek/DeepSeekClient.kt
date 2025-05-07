@@ -43,6 +43,7 @@ class DeepSeekClient(
         logger.debug { "Creating chat completion with model: ${request.model}" }
 
         val nonStreamingRequest = request.copy(stream = false)
+        logger.debug { "Request body: $nonStreamingRequest" }
 
         return try {
             val response = httpClient.post("$baseUrl/chat/completions") {
@@ -51,7 +52,16 @@ class DeepSeekClient(
                 setBody(nonStreamingRequest)
             }
 
-            response.body<DeepSeekChatCompletionResponse>()
+            logger.debug { "Response status: ${response.status}" }
+            if (response.status.isSuccess()) {
+                val responseBody = response.body<DeepSeekChatCompletionResponse>()
+                logger.debug { "Response body: $responseBody" }
+                responseBody
+            } else {
+                val errorText = response.bodyAsText()
+                logger.error { "Error response: $errorText" }
+                throw DeepSeekException("Failed to create chat completion: ${response.status} - $errorText")
+            }
         } catch (e: Exception) {
             logger.error(e) { "Error creating chat completion: ${e.message}" }
             throw DeepSeekException("Failed to create chat completion", e)
@@ -223,7 +233,14 @@ class DeepSeekClient(
                 }
 
                 defaultRequest {
-                    header("Authorization", "Bearer $apiKey")
+                    // 检查 API 密钥是否已经包含 Bearer 前缀
+                    val authHeader = if (apiKey.startsWith("Bearer ")) {
+                        apiKey
+                    } else {
+                        "Bearer $apiKey"
+                    }
+                    logger.debug { "Using Authorization header: $authHeader" }
+                    header("Authorization", authHeader)
                 }
 
                 expectSuccess = true

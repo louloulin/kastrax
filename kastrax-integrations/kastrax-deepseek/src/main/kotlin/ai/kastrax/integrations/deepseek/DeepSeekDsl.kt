@@ -1,6 +1,9 @@
 package ai.kastrax.integrations.deepseek
 
 import ai.kastrax.core.llm.LlmProvider
+import mu.KotlinLogging
+
+private val logger = KotlinLogging.logger {}
 
 /**
  * DeepSeek 配置类，用于 DSL 构建。
@@ -113,11 +116,14 @@ fun deepSeek(init: DeepSeekConfig.() -> Unit): LlmProvider {
 
     // 如果 API 密钥为空，尝试从环境变量获取
     val apiKey = if (config.apiKey.isBlank()) {
-        System.getenv("DEEPSEEK_API_KEY") ?: throw IllegalArgumentException(
+        val envApiKey = System.getenv("DEEPSEEK_API_KEY")
+        logger.debug { "Using API key from environment variable: ${envApiKey?.take(10)}..." }
+        envApiKey ?: throw IllegalArgumentException(
             "DeepSeek API key is required. " +
             "Either provide it explicitly or set the DEEPSEEK_API_KEY environment variable."
         )
     } else {
+        logger.debug { "Using explicitly provided API key: ${config.apiKey.take(10)}..." }
         config.apiKey
     }
 

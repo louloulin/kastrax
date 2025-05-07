@@ -20,7 +20,7 @@
 - [x] DeepseekMemoryExample - 已运行成功，能够模拟记忆功能
 - [x] DeepseekMain - 已运行成功，能够选择运行不同的示例
 - [x] CalculatorExample - 已运行成功，能够计算数学表达式
-- [ ] SemanticSearchExample
+- [x] SemanticSearchExample - 已运行成功，能够进行语义搜索和对话
 - [ ] EnhancedMemoryExample
 - [ ] EnhancedWorkflowExample
 - [ ] EnhancedRagExample

@@ -64,7 +64,14 @@ class DeepSeekStreamingClient(
             }
 
             defaultRequest {
-                header("Authorization", "Bearer $apiKey")
+                // 检查 API 密钥是否已经包含 Bearer 前缀
+                val authHeader = if (apiKey.startsWith("Bearer ")) {
+                    apiKey
+                } else {
+                    "Bearer $apiKey"
+                }
+                logger.debug { "Using Authorization header: $authHeader" }
+                header("Authorization", authHeader)
             }
 
             expectSuccess = true
@@ -85,6 +92,9 @@ class DeepSeekStreamingClient(
         request: DeepSeekChatCompletionRequest
     ): Flow<DeepSeekStreamChunk> = flow {
         logger.debug { "Creating chat completion stream with model: ${request.model}" }
+
+        // 输出请求详细信息
+        logger.debug { "Request body: $request" }
 
         // 设置系统属性，确保 UTF-8 编码
         System.setProperty("file.encoding", "UTF-8")
