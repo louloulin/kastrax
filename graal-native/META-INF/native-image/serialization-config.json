@@ -135,6 +135,42 @@
     "allPublicFields": true
   },
   {
+    "name": "ai.kastrax.integrations.deepseek.DeepSeekStreamChunk",
+    "allDeclaredConstructors": true,
+    "allPublicConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicMethods": true,
+    "allDeclaredFields": true,
+    "allPublicFields": true
+  },
+  {
+    "name": "ai.kastrax.integrations.deepseek.DeepSeekStreamChunk$Content",
+    "allDeclaredConstructors": true,
+    "allPublicConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicMethods": true,
+    "allDeclaredFields": true,
+    "allPublicFields": true
+  },
+  {
+    "name": "ai.kastrax.integrations.deepseek.DeepSeekStreamChunk$Finished",
+    "allDeclaredConstructors": true,
+    "allPublicConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicMethods": true,
+    "allDeclaredFields": true,
+    "allPublicFields": true
+  },
+  {
+    "name": "ai.kastrax.integrations.deepseek.DeepSeekStreamChunk$Done",
+    "allDeclaredConstructors": true,
+    "allPublicConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicMethods": true,
+    "allDeclaredFields": true,
+    "allPublicFields": true
+  },
+  {
     "name": "kotlinx.serialization.json.JsonObject",
     "allDeclaredConstructors": true,
     "allPublicConstructors": true,

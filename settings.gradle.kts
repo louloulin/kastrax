@@ -86,8 +86,8 @@ include(":kactor:native-minimal")
 // Native modules - 暂时注释掉，避免构建错误
 // include(":kastrax-native")
 
-// GraalVM Native modules - 暂时注释掉，避免构建错误
-// include(":graal-native")
+// GraalVM Native modules
+include(":graal-native")
 // include(":graal-native:sdk-rust")
 // include(":graal-native:sdk-go")
 // include(":graal-native:sdk-js")

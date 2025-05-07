@@ -346,6 +346,8 @@ private fun testSerialization() {
         println("2. 测试 DeepSeekChatCompletionResponse 序列化")
         val response = ai.kastrax.integrations.deepseek.DeepSeekChatCompletionResponse(
             id = "resp-123456",
+            objectType = "chat.completion",
+            created = System.currentTimeMillis() / 1000,
             model = "deepseek-chat",
             choices = listOf(
                 ai.kastrax.integrations.deepseek.DeepSeekChoice(

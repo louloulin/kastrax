@@ -9,6 +9,8 @@ import io.ktor.utils.io.*
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.yield
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.*
 import mu.KotlinLogging
 import java.net.URLEncoder
@@ -143,19 +145,26 @@ class DeepSeekStreamingClient(
 /**
  * DeepSeek 流式响应块，表示流中的不同类型的事件。
  */
+@Serializable
 sealed class DeepSeekStreamChunk {
     /**
      * 内容块，包含实际的文本内容。
      */
+    @Serializable
+    @SerialName("content")
     data class Content(val text: String) : DeepSeekStreamChunk()
 
     /**
      * 完成标记，表示流已结束，并带有结束原因。
      */
+    @Serializable
+    @SerialName("finished")
     data class Finished(val reason: String) : DeepSeekStreamChunk()
 
     /**
      * 结束标记，表示流已完全结束。
      */
+    @Serializable
+    @SerialName("done")
     object Done : DeepSeekStreamChunk()
 }

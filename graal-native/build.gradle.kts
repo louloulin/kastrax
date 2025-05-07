@@ -33,6 +33,8 @@ dependencies {
     }
 
     testImplementation(kotlin("test"))
+    testImplementation("org.junit.jupiter:junit-jupiter-api:5.9.2")
+    testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.9.2")
 }
 
 graalvmNative {
@@ -74,6 +76,10 @@ tasks.jar {
     }
 }
 
+tasks.test {
+    useJUnitPlatform()
+}
+
 // 自定义任务，手动构建 Native Image
 tasks.register<Exec>("buildNativeManually") {
     dependsOn(tasks.named("jar"))
@@ -102,7 +108,8 @@ tasks.register<Exec>("buildNativeManually") {
         "--no-fallback",
         "-H:+AllowDeprecatedBuilderClassesOnImageClasspath",
         "--initialize-at-build-time=kotlin,kotlin.jvm.internal.TypeParameterReference,ai.kastrax.graal.serialization",
-        "--initialize-at-run-time=kotlin.reflect,kotlinx.datetime.serializers",
+        "--initialize-at-run-time=kotlin.reflect,kotlinx.datetime.serializers,kotlinx.serialization,ai.kastrax.integrations.deepseek.DeepSeekStreamChunk,kotlinx.serialization.json.Json,kotlinx.serialization.modules.SerializersModuleKt",
+        "--trace-class-initialization=kotlin.reflect.KVariance",
         "--report-unsupported-elements-at-runtime",
         "--allow-incomplete-classpath",
         "-H:+ReportExceptionStackTraces",
@@ -153,7 +160,8 @@ tasks.register<Exec>("buildDeepSeekAgentNative") {
         "--no-fallback",
         "-H:+AllowDeprecatedBuilderClassesOnImageClasspath",
         "--initialize-at-build-time=kotlin,kotlin.jvm.internal.TypeParameterReference,ai.kastrax.graal.serialization",
-        "--initialize-at-run-time=kotlinx.datetime.serializers",
+        "--initialize-at-run-time=kotlinx.datetime.serializers,kotlinx.serialization,ai.kastrax.integrations.deepseek.DeepSeekStreamChunk,kotlinx.serialization.json.Json,kotlinx.serialization.modules.SerializersModuleKt",
+        "--trace-class-initialization=kotlin.reflect.KVariance",
         "--report-unsupported-elements-at-runtime",
         "--allow-incomplete-classpath",
         "-H:+ReportExceptionStackTraces",
@@ -300,7 +308,8 @@ tasks.register<Exec>("buildNoReflectionNative") {
         "--no-fallback",
         "-H:+AllowDeprecatedBuilderClassesOnImageClasspath",
         "--initialize-at-build-time=kotlin",
-        "--initialize-at-run-time=kotlin.reflect,kotlinx.serialization",
+        "--initialize-at-run-time=kotlin.reflect,kotlinx.serialization,ai.kastrax.integrations.deepseek.DeepSeekStreamChunk",
+        "--initialize-at-run-time=kotlin.jvm.internal.TypeParameterReference${'$'}Companion${'$'}WhenMappings",
         "-H:+ReportExceptionStackTraces",
         "-H:ResourceConfigurationFiles=${project.projectDir}/src/main/resources/META-INF/native-image/resource-config.json",
         "-H:SerializationConfigurationResources=META-INF/native-image/serialization-config.json",
@@ -361,6 +370,104 @@ tasks.register<Exec>("buildAllInitNative") {
     doFirst {
         println("Building all-init native image using: $nativeImage")
         println("Output will be in: $outputDir/kastrax-all-init")
+        println("Using classpath: ${classpathString}")
+    }
+}
+
+// 自定义任务，使用更简单的方法构建 Native Image
+tasks.register<Exec>("buildSimpleNative2") {
+    dependsOn(tasks.named("jar"))
+
+    val outputDir = layout.buildDirectory.dir("native/simple").get().asFile
+    outputDir.mkdirs()
+
+    val graalVmHome = System.getenv("GRAALVM_HOME") ?: "${System.getProperty("user.home")}/Library/Java/JavaVirtualMachines/graalvm-ce-17.0.9/Contents/Home"
+    val nativeImage = "$graalVmHome/bin/native-image"
+
+    // 收集所有运行时依赖项
+    val runtimeClasspath = configurations.runtimeClasspath.get().files
+
+    // 添加 kastrax-deepseek 模块
+    val deepseekJar = project(":kastrax-integrations:kastrax-deepseek").tasks.named("jar").get().outputs.files
+
+    // 添加当前模块的jar
+    val jarFile = tasks.jar.get().archiveFile.get().asFile
+
+    // 组合所有类路径
+    val classpathFiles = runtimeClasspath + deepseekJar + jarFile
+    val classpathString = classpathFiles.joinToString(":")
+
+    commandLine = listOf(
+        nativeImage,
+        "--no-fallback",
+        "-H:+AllowDeprecatedBuilderClassesOnImageClasspath",
+        "--initialize-at-build-time=kotlin",
+        "--initialize-at-run-time=kotlin.reflect,kotlinx.serialization",
+        "--initialize-at-run-time=kotlin.jvm.internal.TypeParameterReference",
+        "--initialize-at-run-time=ai.kastrax.integrations.deepseek.DeepSeekStreamChunk",
+        "-H:+ReportExceptionStackTraces",
+        "-cp", classpathString,
+        "ai.kastrax.graal.MainNoReflection",
+        "-o", "$outputDir/kastrax-simple"
+    )
+
+    doFirst {
+        println("Building simple native image using: $nativeImage")
+        println("Output will be in: $outputDir/kastrax-simple")
+        println("Using classpath: ${classpathString}")
+    }
+}
+
+// 自定义任务，构建优化版的 Native Image
+tasks.register<Exec>("buildOptimizedNative") {
+    dependsOn(tasks.named("jar"))
+
+    val outputDir = layout.buildDirectory.dir("native/optimized").get().asFile
+    outputDir.mkdirs()
+
+    val graalVmHome = System.getenv("GRAALVM_HOME") ?: "${System.getProperty("user.home")}/Library/Java/JavaVirtualMachines/graalvm-ce-17.0.9/Contents/Home"
+    val nativeImage = "$graalVmHome/bin/native-image"
+
+    // 收集所有运行时依赖项
+    val runtimeClasspath = configurations.runtimeClasspath.get().files
+
+    // 添加 kastrax-deepseek 模块
+    val deepseekJar = project(":kastrax-integrations:kastrax-deepseek").tasks.named("jar").get().outputs.files
+
+    // 添加当前模块的jar
+    val jarFile = tasks.jar.get().archiveFile.get().asFile
+
+    // 组合所有类路径
+    val classpathFiles = runtimeClasspath + deepseekJar + jarFile
+    val classpathString = classpathFiles.joinToString(":")
+
+    commandLine = listOf(
+        nativeImage,
+        "--no-fallback",
+        "-H:+AllowDeprecatedBuilderClassesOnImageClasspath",
+        "--initialize-at-build-time=kotlin",
+        "--initialize-at-run-time=kotlin.reflect,kotlinx.serialization",
+        "--initialize-at-run-time=kotlin.jvm.internal.TypeParameterReference",
+        "--initialize-at-run-time=ai.kastrax.integrations.deepseek.DeepSeekStreamChunk",
+        // 性能优化选项
+        "-O3",                          // 最高级别的优化
+        "-march=native",                // 使用本地CPU特性
+        "--gc=serial",                  // 使用串行垃圾收集器，适合小型应用
+        "-R:MaxHeapSize=64m",           // 设置最大堆大小
+        // 减小镜像大小的选项
+        "-H:+RemoveUnusedSymbols",      // 移除未使用的符号
+        "-H:+FoldSecurityManagerGetter", // 折叠SecurityManager getter
+        "-H:+RemoveSaturatedTypeFlows", // 移除饱和类型流
+        "-H:-SpawnIsolates",            // 禁用生成隔离区
+        "-H:+ReportExceptionStackTraces",
+        "-cp", classpathString,
+        "ai.kastrax.graal.MainNoReflection",
+        "-o", "$outputDir/kastrax-optimized"
+    )
+
+    doFirst {
+        println("Building optimized native image using: $nativeImage")
+        println("Output will be in: $outputDir/kastrax-optimized")
         println("Using classpath: ${classpathString}")
     }
 }

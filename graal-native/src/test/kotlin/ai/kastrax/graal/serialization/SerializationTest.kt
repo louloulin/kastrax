@@ -8,23 +8,24 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
+import kotlin.test.assertTrue
 
 /**
  * 序列化测试类
- * 
+ *
  * 用于验证序列化和反序列化功能在 GraalVM 原生镜像中的正确性
  */
 class SerializationTest {
-    
+
     private lateinit var json: kotlinx.serialization.json.Json
-    
+
     @BeforeEach
     fun setup() {
         // 初始化序列化模块
         SerializationInitializer.initialize()
         json = SerializationInitializer.json
     }
-    
+
     @Test
     fun `test DeepSeekChatCompletionRequest serialization`() {
         // 创建请求对象
@@ -39,14 +40,14 @@ class SerializationTest {
             temperature = 0.7,
             maxTokens = 100
         )
-        
+
         // 序列化
         val jsonString = json.encodeToString(DeepSeekChatCompletionRequest.serializer(), request)
         println("Serialized request: $jsonString")
-        
+
         // 反序列化
         val deserializedRequest = json.decodeFromString(DeepSeekChatCompletionRequest.serializer(), jsonString)
-        
+
         // 验证
         assertEquals(request.model, deserializedRequest.model)
         assertEquals(request.messages.size, deserializedRequest.messages.size)
@@ -55,12 +56,14 @@ class SerializationTest {
         assertEquals(request.temperature, deserializedRequest.temperature)
         assertEquals(request.maxTokens, deserializedRequest.maxTokens)
     }
-    
+
     @Test
     fun `test DeepSeekChatCompletionResponse serialization`() {
         // 创建响应对象
         val response = DeepSeekChatCompletionResponse(
             id = "resp-123456",
+            objectType = "chat.completion",
+            created = System.currentTimeMillis() / 1000,
             model = "deepseek-chat",
             choices = listOf(
                 DeepSeekChoice(
@@ -78,27 +81,27 @@ class SerializationTest {
                 totalTokens = 25
             )
         )
-        
+
         // 序列化
         val jsonString = json.encodeToString(DeepSeekChatCompletionResponse.serializer(), response)
         println("Serialized response: $jsonString")
-        
+
         // 反序列化
         val deserializedResponse = json.decodeFromString(DeepSeekChatCompletionResponse.serializer(), jsonString)
-        
+
         // 验证
         assertEquals(response.id, deserializedResponse.id)
         assertEquals(response.model, deserializedResponse.model)
         assertEquals(response.choices.size, deserializedResponse.choices.size)
         assertEquals(response.choices[0].index, deserializedResponse.choices[0].index)
-        assertEquals(response.choices[0].message.role, deserializedResponse.choices[0].message.role)
-        assertEquals(response.choices[0].message.content, deserializedResponse.choices[0].message.content)
+        assertEquals(response.choices[0].message?.role, deserializedResponse.choices[0].message?.role)
+        assertEquals(response.choices[0].message?.content, deserializedResponse.choices[0].message?.content)
         assertEquals(response.choices[0].finishReason, deserializedResponse.choices[0].finishReason)
         assertEquals(response.usage?.promptTokens, deserializedResponse.usage?.promptTokens)
         assertEquals(response.usage?.completionTokens, deserializedResponse.usage?.completionTokens)
         assertEquals(response.usage?.totalTokens, deserializedResponse.usage?.totalTokens)
     }
-    
+
     @Test
     fun `test DeepSeekEmbeddingRequest serialization`() {
         // 创建嵌入请求对象
@@ -106,29 +109,30 @@ class SerializationTest {
             model = "deepseek-embedding",
             input = listOf("Hello, world!")
         )
-        
+
         // 序列化
         val jsonString = json.encodeToString(DeepSeekEmbeddingRequest.serializer(), request)
         println("Serialized embedding request: $jsonString")
-        
+
         // 反序列化
         val deserializedRequest = json.decodeFromString(DeepSeekEmbeddingRequest.serializer(), jsonString)
-        
+
         // 验证
         assertEquals(request.model, deserializedRequest.model)
         assertEquals(request.input.size, deserializedRequest.input.size)
         assertEquals(request.input[0], deserializedRequest.input[0])
     }
-    
+
     @Test
     fun `test DeepSeekEmbeddingResponse serialization`() {
         // 创建嵌入响应对象
         val response = DeepSeekEmbeddingResponse(
+            objectType = "list",
             data = listOf(
                 DeepSeekEmbedding(
                     embedding = listOf(0.1f, 0.2f, 0.3f),
                     index = 0,
-                    object_ = "embedding"
+                    objectType = "embedding"
                 )
             ),
             model = "deepseek-embedding",
@@ -137,24 +141,24 @@ class SerializationTest {
                 totalTokens = 5
             )
         )
-        
+
         // 序列化
         val jsonString = json.encodeToString(DeepSeekEmbeddingResponse.serializer(), response)
         println("Serialized embedding response: $jsonString")
-        
+
         // 反序列化
         val deserializedResponse = json.decodeFromString(DeepSeekEmbeddingResponse.serializer(), jsonString)
-        
+
         // 验证
         assertEquals(response.model, deserializedResponse.model)
         assertEquals(response.data.size, deserializedResponse.data.size)
         assertEquals(response.data[0].index, deserializedResponse.data[0].index)
-        assertEquals(response.data[0].object_, deserializedResponse.data[0].object_)
+        assertEquals(response.data[0].objectType, deserializedResponse.data[0].objectType)
         assertEquals(response.data[0].embedding.size, deserializedResponse.data[0].embedding.size)
         assertEquals(response.usage?.promptTokens, deserializedResponse.usage?.promptTokens)
         assertEquals(response.usage?.totalTokens, deserializedResponse.usage?.totalTokens)
     }
-    
+
     @Test
     fun `test DeepSeekErrorResponse serialization`() {
         // 创建错误响应对象
@@ -166,14 +170,14 @@ class SerializationTest {
                 code = "invalid_api_key"
             )
         )
-        
+
         // 序列化
         val jsonString = json.encodeToString(DeepSeekErrorResponse.serializer(), errorResponse)
         println("Serialized error response: $jsonString")
-        
+
         // 反序列化
         val deserializedErrorResponse = json.decodeFromString(DeepSeekErrorResponse.serializer(), jsonString)
-        
+
         // 验证
         assertNotNull(deserializedErrorResponse.error)
         assertEquals(errorResponse.error.message, deserializedErrorResponse.error.message)
@@ -181,7 +185,38 @@ class SerializationTest {
         assertEquals(errorResponse.error.param, deserializedErrorResponse.error.param)
         assertEquals(errorResponse.error.code, deserializedErrorResponse.error.code)
     }
-    
+
+    @Test
+    fun `test DeepSeekStreamChunk serialization`() {
+        // 创建流式响应块对象
+        val contentChunk = DeepSeekStreamChunk.Content(text = "你好")
+        val finishedChunk = DeepSeekStreamChunk.Finished(reason = "stop")
+        val doneChunk = DeepSeekStreamChunk.Done
+
+        // 序列化
+        val contentJson = json.encodeToString(DeepSeekStreamChunk.serializer(), contentChunk)
+        val finishedJson = json.encodeToString(DeepSeekStreamChunk.serializer(), finishedChunk)
+        val doneJson = json.encodeToString(DeepSeekStreamChunk.serializer(), doneChunk)
+
+        println("Serialized content chunk: $contentJson")
+        println("Serialized finished chunk: $finishedJson")
+        println("Serialized done chunk: $doneJson")
+
+        // 反序列化
+        val deserializedContentChunk = json.decodeFromString(DeepSeekStreamChunk.serializer(), contentJson)
+        val deserializedFinishedChunk = json.decodeFromString(DeepSeekStreamChunk.serializer(), finishedJson)
+        val deserializedDoneChunk = json.decodeFromString(DeepSeekStreamChunk.serializer(), doneJson)
+
+        // 验证
+        assertTrue(deserializedContentChunk is DeepSeekStreamChunk.Content)
+        assertEquals("你好", (deserializedContentChunk as DeepSeekStreamChunk.Content).text)
+
+        assertTrue(deserializedFinishedChunk is DeepSeekStreamChunk.Finished)
+        assertEquals("stop", (deserializedFinishedChunk as DeepSeekStreamChunk.Finished).reason)
+
+        assertTrue(deserializedDoneChunk is DeepSeekStreamChunk.Done)
+    }
+
     @Test
     fun `test JSON basic types serialization`() {
         // 测试 JSON 基本类型的序列化
@@ -194,14 +229,14 @@ class SerializationTest {
                 "nested" to JsonObject(mapOf("key" to JsonPrimitive("value")))
             )
         )
-        
+
         // 序列化
         val jsonString = json.encodeToString(JsonObject.serializer(), jsonObject)
         println("Serialized JSON object: $jsonString")
-        
+
         // 反序列化
         val deserializedJsonObject = json.decodeFromString(JsonObject.serializer(), jsonString)
-        
+
         // 验证
         assertEquals(jsonObject.size, deserializedJsonObject.size)
         assertEquals(jsonObject["string"], deserializedJsonObject["string"])

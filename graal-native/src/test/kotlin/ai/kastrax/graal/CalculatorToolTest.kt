@@ -2,7 +2,7 @@ package ai.kastrax.graal
 
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.JsonPrimitive
-import org.junit.jupiter.api.Test
+import kotlin.test.Test
 import kotlin.test.assertEquals
 
 class CalculatorToolTest {

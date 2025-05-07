@@ -44,3 +44,8 @@
   @doc2.md  按计划实现所有功能 ，更新  @kastrax-doc/src/content ，并在 @doc2.md  标记实现的功能
 
     @doc2.md  按计划实现所有功能 ，更新  @kastrax-doc/src/content ，并在 @doc2.md  标记实现的功能,目的更新kastra-doc的文档内容
+
+
+    ./gradlew :graal-native:buildNativeManually
+
+    ./gradlew :graal-native:buildNoReflectionNative
