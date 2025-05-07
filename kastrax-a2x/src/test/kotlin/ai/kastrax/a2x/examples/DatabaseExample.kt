@@ -13,6 +13,10 @@ import io.mockk.mockk
  * 数据库示例
  */
 fun main() = runBlocking {
+    // 查找可用端口
+    fun findAvailablePort(): Int {
+        return java.net.ServerSocket(0).use { it.localPort }
+    }
     // 创建模拟数据库连接器
     val mockDatabaseConnector = mockk<DatabaseConnector>()
 
@@ -42,7 +46,8 @@ fun main() = runBlocking {
 
         // 配置服务器
         server {
-            port = 8080
+            // 使用随机可用端口
+            port = findAvailablePort()
             enableCors = true
         }
     }

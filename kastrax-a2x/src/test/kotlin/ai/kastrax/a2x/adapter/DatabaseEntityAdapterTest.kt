@@ -24,9 +24,17 @@ class DatabaseEntityAdapterTest {
     private val a2x = a2x {
         // 配置服务器
         server {
-            port = 8080
+            // 使用随机可用端口而不是硬编码的 8080
+            port = findAvailablePort()
             enableCors = true
         }
+    }
+
+    /**
+     * 查找可用端口
+     */
+    private fun findAvailablePort(): Int {
+        return java.net.ServerSocket(0).use { it.localPort }
     }
 
     /**
