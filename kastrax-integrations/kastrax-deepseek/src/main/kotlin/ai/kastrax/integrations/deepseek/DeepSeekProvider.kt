@@ -271,7 +271,7 @@ class DeepSeekProvider(
      */
     private fun DeepSeekToolCall.toLlmToolCall(): LlmToolCall {
         return LlmToolCall(
-            id = id,
+            id = id ?: "",
             name = function.name ?: "",
             arguments = function.arguments ?: "{}"
         )

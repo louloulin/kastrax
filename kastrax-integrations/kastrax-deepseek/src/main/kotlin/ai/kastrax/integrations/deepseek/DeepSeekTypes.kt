@@ -82,9 +82,9 @@ data class DeepSeekFunction(
 @Serializable
 data class DeepSeekToolCall(
     /** 工具调用 ID */
-    val id: String,
+    val id: String? = null,
     /** 工具类型 */
-    val type: String,
+    val type: String? = null,
     /** 工具调用索引 */
     val index: Int? = null,
     /** 调用的函数 */

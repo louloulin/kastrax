@@ -6,10 +6,10 @@
 
 - [x] DeepSeekDirectStreamingExample - 已运行并优化流式响应性能
 - [x] DeepSeekExample - 已运行成功，能够正常回答问题
+- [x] DeepSeekStreamingExample - 已运行成功，能够流式响应，但在工具调用时有序列化问题
 
 ## 待运行示例
-- [ ] DeepSeekStreamingExample
-- [ ] MemoryAgentExample
+- [x] MemoryAgentExample - 已运行成功，能够记忆用户信息并在对话中使用
 - [ ] MemorySystemExample
 - [ ] SimpleZodToolExample
 - [ ] ToolsExample
