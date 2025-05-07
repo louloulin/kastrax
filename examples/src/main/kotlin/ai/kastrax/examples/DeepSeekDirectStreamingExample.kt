@@ -79,6 +79,11 @@ fun runDirectStreamingExample() = runBlocking {
                             // 添加小延迟，确保字符能够被看到
                             Thread.sleep(1) // 1毫秒延迟，可以根据需要调整
                         }
+                        is DeepSeekStreamChunk.ToolCall -> {
+                            // 处理工具调用
+                            println("\n工具调用: ${chunk.name}(${chunk.arguments})")
+                            System.out.flush() // 立即刷新输出缓冲区
+                        }
                         is DeepSeekStreamChunk.Finished -> {
                             // 完成时打印换行
                             println("\n(完成原因: ${chunk.reason})")
