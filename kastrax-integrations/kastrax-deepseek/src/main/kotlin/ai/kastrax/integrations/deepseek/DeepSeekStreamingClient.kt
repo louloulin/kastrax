@@ -59,22 +59,8 @@ class DeepSeekStreamingClient(
             }
 
             install(Logging) {
-                logger = io.ktor.client.plugins.logging.Logger.DEFAULT
+                logger = Logger.DEFAULT
                 level = LogLevel.HEADERS
-            }
-
-            engine {
-                pipelining = true
-                addInterceptor(okhttp3.logging.HttpLoggingInterceptor().apply {
-                    level = okhttp3.logging.HttpLoggingInterceptor.Level.BASIC
-                })
-                config {
-                    retryOnConnectionFailure(true)
-                    connectTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
-                    readTimeout(60, java.util.concurrent.TimeUnit.SECONDS)
-                    writeTimeout(60, java.util.concurrent.TimeUnit.SECONDS)
-                    protocols(listOf(okhttp3.Protocol.HTTP_2, okhttp3.Protocol.HTTP_1_1))
-                }
             }
 
             defaultRequest {
