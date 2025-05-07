@@ -2,6 +2,7 @@ package ai.kastrax.integrations.deepseek
 
 import io.ktor.client.*
 import io.ktor.client.engine.cio.*
+import io.ktor.client.engine.okhttp.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*

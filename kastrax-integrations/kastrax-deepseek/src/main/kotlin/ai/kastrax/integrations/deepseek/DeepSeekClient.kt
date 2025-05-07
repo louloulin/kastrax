@@ -3,6 +3,7 @@ package ai.kastrax.integrations.deepseek
 import io.ktor.client.*
 import io.ktor.client.call.*
 import io.ktor.client.engine.cio.*
+import io.ktor.client.engine.okhttp.*
 import io.ktor.client.plugins.*
 import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.client.request.*
@@ -177,7 +178,7 @@ class DeepSeekClient(
          * @return HTTP 客户端
          */
         fun createDefaultHttpClient(apiKey: String, timeout: Long = 60000): HttpClient {
-            return HttpClient(CIO) {
+            return HttpClient(OkHttp) {
                 install(ContentNegotiation) {
                     // 使用我们的自定义序列化器，它预先注册了所有需要的序列化器
                     json(DeepSeekJson.json)

@@ -24,6 +24,7 @@ dependencies {
     implementation("io.github.oshai:kotlin-logging-jvm:5.1.0")
     implementation("ch.qos.logback:logback-classic:1.4.11")
     implementation("io.ktor:ktor-client-okhttp:3.1.2")
+    implementation("io.ktor:ktor-client-core:3.1.2")
 
     // 移除 Kotlin 反射依赖
     // implementation("org.jetbrains.kotlin:kotlin-reflect:2.1.10")
@@ -455,6 +456,8 @@ tasks.register<Exec>("buildKastraxNative") {
         "--initialize-at-run-time=ai.kastrax.integrations.deepseek.DeepSeekStreamChunk",
         "--initialize-at-run-time=ai.kastrax.core.agent",
         "--initialize-at-run-time=ai.kastrax.core.tools",
+        "--initialize-at-run-time=io.ktor.client.engine.okhttp",
+        "--initialize-at-run-time=okhttp3",
         "-H:+ReportExceptionStackTraces",
         "-H:ResourceConfigurationFiles=${project.projectDir}/src/main/resources/META-INF/native-image/resource-config.json",
         "-H:SerializationConfigurationResources=META-INF/native-image/serialization-config.json",

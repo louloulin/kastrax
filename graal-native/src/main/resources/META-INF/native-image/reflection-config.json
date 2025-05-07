@@ -624,7 +624,7 @@
     "allPublicFields": true
   },
   {
-    "name": "ai.kastrax.graal.http.DeepSeekHttpClient",
+    "name": "okhttp3.OkHttpClient",
     "allDeclaredConstructors": true,
     "allPublicConstructors": true,
     "allDeclaredMethods": true,
@@ -633,7 +633,25 @@
     "allPublicFields": true
   },
   {
-    "name": "ai.kastrax.graal.http.NativeDeepSeekProvider",
+    "name": "okhttp3.OkHttpClient$Builder",
+    "allDeclaredConstructors": true,
+    "allPublicConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicMethods": true,
+    "allDeclaredFields": true,
+    "allPublicFields": true
+  },
+  {
+    "name": "io.ktor.client.engine.okhttp.OkHttpEngine",
+    "allDeclaredConstructors": true,
+    "allPublicConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicMethods": true,
+    "allDeclaredFields": true,
+    "allPublicFields": true
+  },
+  {
+    "name": "io.ktor.client.engine.okhttp.OkHttpConfig",
     "allDeclaredConstructors": true,
     "allPublicConstructors": true,
     "allDeclaredMethods": true,
@@ -652,6 +670,24 @@
   },
   {
     "name": "okhttp3.OkHttpClient$Builder",
+    "allDeclaredConstructors": true,
+    "allPublicConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicMethods": true,
+    "allDeclaredFields": true,
+    "allPublicFields": true
+  },
+  {
+    "name": "okhttp3.ConnectionPool",
+    "allDeclaredConstructors": true,
+    "allPublicConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicMethods": true,
+    "allDeclaredFields": true,
+    "allPublicFields": true
+  },
+  {
+    "name": "okhttp3.Dispatcher",
     "allDeclaredConstructors": true,
     "allPublicConstructors": true,
     "allDeclaredMethods": true,

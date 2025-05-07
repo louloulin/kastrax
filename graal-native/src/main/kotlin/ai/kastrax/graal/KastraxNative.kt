@@ -6,9 +6,8 @@ import ai.kastrax.core.agent.AgentStreamOptions
 import ai.kastrax.core.agent.agent
 import ai.kastrax.core.kastrax
 import ai.kastrax.core.tools.tool
-import ai.kastrax.graal.http.DeepSeekHttpClient
-import ai.kastrax.graal.http.NativeDeepSeekProvider
-import ai.kastrax.integrations.deepseek.*
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import ai.kastrax.integrations.deepseek.deepSeek
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.Serializable
@@ -197,13 +196,19 @@ object KastraxNative {
             始终以友好、专业的方式回答，并提供准确的信息。
         """.trimIndent()
 
-        model = NativeDeepSeekProvider(
-            apiKey = System.getenv("DEEPSEEK_API_KEY") ?: config.apiKeys.deepseek,
-            model = DeepSeekModel.DEEPSEEK_CHAT,
-            temperature = 0.7,
-            maxTokens = 1000,
-            timeout = 120000
-        )
+        model = deepSeek {
+            model(DeepSeekModel.DEEPSEEK_CHAT)
+            apiKey(System.getenv("DEEPSEEK_API_KEY") ?: config.apiKeys.deepseek)
+            timeout(120)
+            temperature(0.7)
+            maxTokens(1000)
+            // 设置系统属性，解决GraalVM原生镜像中的网络问题
+            System.setProperty("io.ktor.client.engine", "okhttp")
+            System.setProperty("io.ktor.client.okhttp.maxRequestsPerHost", "20")
+            System.setProperty("io.ktor.client.okhttp.maxRequests", "100")
+            System.setProperty("io.ktor.client.okhttp.connectionTimeout", "30000")
+            System.setProperty("io.ktor.client.okhttp.socketTimeout", "60000")
+        }
 
         tools {
             tool(calculatorTool)
@@ -227,13 +232,19 @@ object KastraxNative {
             如果你不确定某个问题的答案，坦诚地承认，而不是提供可能不准确的信息。
         """.trimIndent()
 
-        model = NativeDeepSeekProvider(
-            apiKey = System.getenv("DEEPSEEK_API_KEY") ?: config.apiKeys.deepseek,
-            model = DeepSeekModel.DEEPSEEK_CHAT,
-            temperature = 0.3,
-            maxTokens = 2000,
-            timeout = 120000
-        )
+        model = deepSeek {
+            model(DeepSeekModel.DEEPSEEK_CHAT)
+            apiKey(System.getenv("DEEPSEEK_API_KEY") ?: config.apiKeys.deepseek)
+            timeout(120)
+            temperature(0.3)
+            maxTokens(2000)
+            // 设置系统属性，解决GraalVM原生镜像中的网络问题
+            System.setProperty("io.ktor.client.engine", "okhttp")
+            System.setProperty("io.ktor.client.okhttp.maxRequestsPerHost", "20")
+            System.setProperty("io.ktor.client.okhttp.maxRequests", "100")
+            System.setProperty("io.ktor.client.okhttp.connectionTimeout", "30000")
+            System.setProperty("io.ktor.client.okhttp.socketTimeout", "60000")
+        }
 
         defaultGenerateOptions {
             temperature(0.3)
