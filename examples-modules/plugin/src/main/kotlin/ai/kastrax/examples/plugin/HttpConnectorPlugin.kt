@@ -43,23 +43,23 @@ class HttpConnectorPlugin : AbstractConnectorPlugin(
     author = "KastraX Team",
     config = DefaultPluginConfig()
 ) {
-    private val logger = KotlinLogging.logger {}
-    
+    private val pluginLogger = KotlinLogging.logger {}
+
     override fun initialize(context: PluginContext): Boolean {
-        logger.info { "初始化HTTP连接器插件" }
+        pluginLogger.info { "初始化HTTP连接器插件" }
         return true
     }
-    
+
     override fun start(context: PluginContext): Boolean {
-        logger.info { "启动HTTP连接器插件" }
+        pluginLogger.info { "启动HTTP连接器插件" }
         return true
     }
-    
+
     override fun stop(context: PluginContext): Boolean {
-        logger.info { "停止HTTP连接器插件" }
+        pluginLogger.info { "停止HTTP连接器插件" }
         return true
     }
-    
+
     override fun getConnectorTypes(): List<ConnectorType> {
         return listOf(
             ConnectorType(
@@ -140,19 +140,19 @@ class HttpConnectorPlugin : AbstractConnectorPlugin(
             )
         )
     }
-    
+
     override fun createConnector(connectorType: String, config: Map<String, Any?>): Connector? {
         if (connectorType != "http") {
             logger.warn { "不支持的连接器类型: $connectorType" }
             return null
         }
-        
+
         val baseUrl = config["baseUrl"] as? String
             ?: throw IllegalArgumentException("缺少必需的配置: baseUrl")
-        
+
         val headers = config["headers"] as? Map<String, String> ?: emptyMap()
         val timeout = (config["timeout"] as? Number)?.toLong() ?: 30000L
-        
+
         return HttpConnector(
             id = "http-${System.currentTimeMillis()}",
             name = "HTTP Connector",
@@ -177,20 +177,20 @@ class HttpConnector(
 ) : Connector {
     private val logger = KotlinLogging.logger {}
     private var client: HttpClient? = null
-    
+
     override val type: String = "http"
     override val config: Map<String, Any?> = mapOf(
         "baseUrl" to baseUrl,
         "headers" to headers,
         "timeout" to timeout
     )
-    
+
     override var status: ConnectorStatus = ConnectorStatus.CREATED
         private set
-    
+
     private val createdAt = System.currentTimeMillis()
     private var lastConnectedAt: Long? = null
-    
+
     override suspend fun connect(): Boolean {
         try {
             client = HttpClient(CIO) {
@@ -204,10 +204,10 @@ class HttpConnector(
                     requestTimeout = timeout
                 }
             }
-            
+
             status = ConnectorStatus.CONNECTED
             lastConnectedAt = System.currentTimeMillis()
-            
+
             logger.info { "连接到HTTP服务: $baseUrl" }
             return true
         } catch (e: Exception) {
@@ -216,14 +216,14 @@ class HttpConnector(
             return false
         }
     }
-    
+
     override suspend fun disconnect(): Boolean {
         try {
             client?.close()
             client = null
-            
+
             status = ConnectorStatus.DISCONNECTED
-            
+
             logger.info { "断开与HTTP服务的连接: $baseUrl" }
             return true
         } catch (e: Exception) {
@@ -232,7 +232,7 @@ class HttpConnector(
             return false
         }
     }
-    
+
     override suspend fun testConnection(): ConnectorTestResult {
         return try {
             val client = this.client ?: HttpClient(CIO) {
@@ -246,13 +246,13 @@ class HttpConnector(
                     requestTimeout = timeout
                 }
             }
-            
+
             val response = client.get("$baseUrl/")
-            
+
             if (this.client == null) {
                 client.close()
             }
-            
+
             ConnectorTestResult(
                 success = response.status.value in 200..299,
                 message = "HTTP status: ${response.status.value}",
@@ -263,7 +263,7 @@ class HttpConnector(
             )
         } catch (e: Exception) {
             logger.error(e) { "测试HTTP连接失败: $baseUrl" }
-            
+
             ConnectorTestResult(
                 success = false,
                 message = "连接失败: ${e.message}",
@@ -274,29 +274,28 @@ class HttpConnector(
             )
         }
     }
-    
+
     override suspend fun execute(operation: String, parameters: Map<String, Any?>): JsonElement {
         val client = this.client ?: throw IllegalStateException("连接器未连接")
-        
+
         return when (operation) {
             "get" -> {
                 val path = parameters["path"] as? String
                     ?: throw IllegalArgumentException("缺少必需的参数: path")
-                
+
                 val queryParams = parameters["queryParams"] as? Map<String, String> ?: emptyMap()
-                
+
                 val url = buildUrl(path, queryParams)
-                
+
                 val response = client.get(url) {
-                    headers.forEach { (name, value) ->
-                        headers {
-                            append(name, value)
-                        }
+                    val headerMap = parameters["headers"] as? Map<String, String> ?: emptyMap()
+                    headerMap.forEach { (name, value) ->
+                        headers.append(name, value)
                     }
                 }
-                
+
                 val responseText = response.bodyAsText()
-                
+
                 try {
                     Json.parseToJsonElement(responseText)
                 } catch (e: Exception) {
@@ -310,21 +309,20 @@ class HttpConnector(
             "post" -> {
                 val path = parameters["path"] as? String
                     ?: throw IllegalArgumentException("缺少必需的参数: path")
-                
+
                 val body = parameters["body"]
                 val contentType = parameters["contentType"] as? String ?: "application/json"
-                
+
                 val url = buildUrl(path)
-                
+
                 val response = client.post(url) {
-                    headers.forEach { (name, value) ->
-                        headers {
-                            append(name, value)
-                        }
+                    val headerMap = parameters["headers"] as? Map<String, String> ?: emptyMap()
+                    headerMap.forEach { (name, value) ->
+                        headers.append(name, value)
                     }
-                    
+
                     contentType(ContentType.parse(contentType))
-                    
+
                     if (body != null) {
                         when (body) {
                             is JsonElement -> setBody(body)
@@ -334,9 +332,9 @@ class HttpConnector(
                         }
                     }
                 }
-                
+
                 val responseText = response.bodyAsText()
-                
+
                 try {
                     Json.parseToJsonElement(responseText)
                 } catch (e: Exception) {
@@ -350,12 +348,12 @@ class HttpConnector(
             else -> throw IllegalArgumentException("不支持的操作: $operation")
         }
     }
-    
+
     override suspend fun executeStream(operation: String, parameters: Map<String, Any?>): Flow<JsonElement> = flow {
         val result = execute(operation, parameters)
         emit(result)
     }
-    
+
     override fun getOperations(): List<ConnectorOperation> {
         return listOf(
             ConnectorOperation(
@@ -405,7 +403,7 @@ class HttpConnector(
             )
         )
     }
-    
+
     override fun getMetadata(): ConnectorMetadata {
         return ConnectorMetadata(
             id = id,
@@ -423,7 +421,7 @@ class HttpConnector(
             operations = getOperations()
         )
     }
-    
+
     /**
      * 构建URL。
      *
@@ -434,24 +432,24 @@ class HttpConnector(
     private fun buildUrl(path: String, queryParams: Map<String, String> = emptyMap()): String {
         val baseUrl = if (this.baseUrl.endsWith("/")) this.baseUrl else "${this.baseUrl}/"
         val pathWithoutLeadingSlash = if (path.startsWith("/")) path.substring(1) else path
-        
+
         val url = baseUrl + pathWithoutLeadingSlash
-        
+
         if (queryParams.isEmpty()) {
             return url
         }
-        
+
         val queryString = queryParams.entries.joinToString("&") { (key, value) ->
             "$key=${value.encodeUrl()}"
         }
-        
+
         return if (url.contains("?")) {
             "$url&$queryString"
         } else {
             "$url?$queryString"
         }
     }
-    
+
     /**
      * URL编码。
      */

@@ -2,15 +2,16 @@ rootProject.name = "examples-modules"
 
 // 包含所有子模块
 include(
-    // 启用模块
+    // 已修复的模块
     "memory",
-    "other"
-    // 暂时排除其他模块
-    // "workflow",
-    // "rag",
-    // "tools",
-    // "agent",
-    // "plugin"
+    "other",
+    // 需要修复的模块
+    "workflow",
+    "tools",
+    "agent",
+    "plugin"
+    // 暂时排除的模块
+    // "rag"
 )
 
 // 包含主项目的模块

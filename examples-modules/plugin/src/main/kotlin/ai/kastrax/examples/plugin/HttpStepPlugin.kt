@@ -39,7 +39,7 @@ class HttpStepPlugin : AbstractStepPlugin(
     author = "KastraX Team",
     config = DefaultPluginConfig()
 ) {
-    private val logger = KotlinLogging.logger {}
+    private val pluginLogger = KotlinLogging.logger {}
     private val httpClient = HttpClient(CIO) {
         install(ContentNegotiation) {
             json(Json {
@@ -48,23 +48,23 @@ class HttpStepPlugin : AbstractStepPlugin(
             })
         }
     }
-    
+
     override fun initialize(context: PluginContext): Boolean {
-        logger.info { "初始化HTTP步骤插件" }
+        pluginLogger.info { "初始化HTTP步骤插件" }
         return true
     }
-    
+
     override fun start(context: PluginContext): Boolean {
-        logger.info { "启动HTTP步骤插件" }
+        pluginLogger.info { "启动HTTP步骤插件" }
         return true
     }
-    
+
     override fun stop(context: PluginContext): Boolean {
-        logger.info { "停止HTTP步骤插件" }
+        pluginLogger.info { "停止HTTP步骤插件" }
         httpClient.close()
         return true
     }
-    
+
     override fun getStepTypes(): List<StepType> {
         return listOf(
             StepType(
@@ -208,16 +208,16 @@ class HttpStepPlugin : AbstractStepPlugin(
             )
         )
     }
-    
+
     override fun createStep(stepType: String, config: Map<String, Any?>): WorkflowStep? {
         return when (stepType) {
             "http-get" -> {
                 val url = config["url"] as? String
                     ?: throw IllegalArgumentException("缺少必需的配置: url")
-                
+
                 val headers = config["headers"] as? Map<String, String> ?: emptyMap()
                 val timeout = (config["timeout"] as? Number)?.toLong() ?: 30000L
-                
+
                 HttpGetStep(
                     id = "http-get-${System.currentTimeMillis()}",
                     name = "HTTP GET",
@@ -232,11 +232,11 @@ class HttpStepPlugin : AbstractStepPlugin(
             "http-post" -> {
                 val url = config["url"] as? String
                     ?: throw IllegalArgumentException("缺少必需的配置: url")
-                
+
                 val headers = config["headers"] as? Map<String, String> ?: emptyMap()
                 val contentType = config["contentType"] as? String ?: "application/json"
                 val timeout = (config["timeout"] as? Number)?.toLong() ?: 30000L
-                
+
                 HttpPostStep(
                     id = "http-post-${System.currentTimeMillis()}",
                     name = "HTTP POST",
@@ -271,35 +271,18 @@ class HttpGetStep(
     private val timeout: Long
 ) : WorkflowStep {
     private val logger = KotlinLogging.logger {}
-    
-    override val config: StepConfig? = object : StepConfig {
-        override fun getProperty(key: String): Any? {
-            return when (key) {
-                "url" -> url
-                "headers" -> headers
-                "timeout" -> timeout
-                else -> null
-            }
-        }
-        
-        override fun getAllProperties(): Map<String, Any?> {
-            return mapOf(
-                "url" to url,
-                "headers" to headers,
-                "timeout" to timeout
-            )
-        }
-    }
-    
+
+    override val config: StepConfig? = null
+
     override suspend fun execute(context: WorkflowContext): WorkflowStepResult {
         try {
             // 获取输入参数
             val inputUrl = context.input["url"] as? String ?: url
             val inputHeaders = context.input["headers"] as? Map<String, String> ?: emptyMap()
-            
+
             // 合并headers
             val mergedHeaders = headers + inputHeaders
-            
+
             // 创建HTTP客户端
             val client = HttpClient(CIO) {
                 install(ContentNegotiation) {
@@ -312,30 +295,28 @@ class HttpGetStep(
                     requestTimeout = timeout
                 }
             }
-            
+
             // 执行请求
             val response = client.get(inputUrl) {
                 mergedHeaders.forEach { (name, value) ->
-                    headers {
-                        append(name, value)
-                    }
+                    headers.append(name, value)
                 }
             }
-            
+
             // 解析响应
             val responseText = response.bodyAsText()
             val responseHeaders = response.headers.entries().associate { it.key to it.value }
-            
+
             // 解析JSON响应
             val responseBody = try {
                 Json.parseToJsonElement(responseText)
             } catch (e: Exception) {
                 JsonPrimitive(responseText)
             }
-            
+
             // 关闭客户端
             client.close()
-            
+
             // 返回结果
             return WorkflowStepResult(
                 stepId = id,
@@ -349,7 +330,7 @@ class HttpGetStep(
             )
         } catch (e: Exception) {
             logger.error(e) { "执行HTTP GET请求失败: $url" }
-            
+
             return WorkflowStepResult(
                 stepId = id,
                 success = false,
@@ -379,28 +360,9 @@ class HttpPostStep(
     private val timeout: Long
 ) : WorkflowStep {
     private val logger = KotlinLogging.logger {}
-    
-    override val config: StepConfig? = object : StepConfig {
-        override fun getProperty(key: String): Any? {
-            return when (key) {
-                "url" -> url
-                "headers" -> headers
-                "contentType" -> contentType
-                "timeout" -> timeout
-                else -> null
-            }
-        }
-        
-        override fun getAllProperties(): Map<String, Any?> {
-            return mapOf(
-                "url" to url,
-                "headers" to headers,
-                "contentType" to contentType,
-                "timeout" to timeout
-            )
-        }
-    }
-    
+
+    override val config: StepConfig? = null
+
     override suspend fun execute(context: WorkflowContext): WorkflowStepResult {
         try {
             // 获取输入参数
@@ -409,10 +371,10 @@ class HttpPostStep(
                 ?: throw IllegalArgumentException("缺少必需的输入: body")
             val inputHeaders = context.input["headers"] as? Map<String, String> ?: emptyMap()
             val inputContentType = context.input["contentType"] as? String ?: contentType
-            
+
             // 合并headers
             val mergedHeaders = headers + inputHeaders
-            
+
             // 创建HTTP客户端
             val client = HttpClient(CIO) {
                 install(ContentNegotiation) {
@@ -425,17 +387,15 @@ class HttpPostStep(
                     requestTimeout = timeout
                 }
             }
-            
+
             // 执行请求
             val response = client.post(inputUrl) {
                 mergedHeaders.forEach { (name, value) ->
-                    headers {
-                        append(name, value)
-                    }
+                    headers.append(name, value)
                 }
-                
+
                 contentType(ContentType.parse(inputContentType))
-                
+
                 when (inputBody) {
                     is JsonElement -> setBody(inputBody)
                     is Map<*, *> -> setBody(inputBody)
@@ -443,21 +403,21 @@ class HttpPostStep(
                     else -> setBody(inputBody.toString())
                 }
             }
-            
+
             // 解析响应
             val responseText = response.bodyAsText()
             val responseHeaders = response.headers.entries().associate { it.key to it.value }
-            
+
             // 解析JSON响应
             val responseBody = try {
                 Json.parseToJsonElement(responseText)
             } catch (e: Exception) {
                 JsonPrimitive(responseText)
             }
-            
+
             // 关闭客户端
             client.close()
-            
+
             // 返回结果
             return WorkflowStepResult(
                 stepId = id,
@@ -471,7 +431,7 @@ class HttpPostStep(
             )
         } catch (e: Exception) {
             logger.error(e) { "执行HTTP POST请求失败: $url" }
-            
+
             return WorkflowStepResult(
                 stepId = id,
                 success = false,
