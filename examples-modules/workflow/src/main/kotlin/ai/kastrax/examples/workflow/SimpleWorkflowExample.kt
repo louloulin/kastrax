@@ -12,8 +12,7 @@ import kotlinx.coroutines.runBlocking
 /**
  * 简单工作流示例
  */
-class SimpleWorkflowExample {
-    fun main() = runBlocking {
+fun main() = runBlocking {
     println("简单工作流示例")
     println("=============")
 
@@ -87,5 +86,4 @@ class SimpleWorkflowExample {
     }
 
     println("\n简单工作流示例完成")
-    }
 }

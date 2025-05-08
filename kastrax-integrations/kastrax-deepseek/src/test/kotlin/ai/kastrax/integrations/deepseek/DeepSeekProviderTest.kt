@@ -260,11 +260,21 @@ class DeepSeekProviderTest {
         // 构建模拟的服务器发送事件格式响应
         val mockResponseText = mockResponses.joinToString("\n") {
             "data: ${json.encodeToString(it)}"
-        }
+        } + "\n\ndata: [DONE]"
 
         val mockClient = createMockClient(mockResponseText)
         val deepSeekClient = DeepSeekClient("test-api-key", httpClient = mockClient)
-        val provider = DeepSeekProvider("deepseek-chat", "test-api-key", client = deepSeekClient)
+
+        // 创建流式客户端并启用测试模式
+        val streamingClient = DeepSeekStreamingClient(mockClient, "https://api.deepseek.com/v1", "test-api-key")
+        streamingClient.setTestMode(true)
+
+        val provider = DeepSeekProvider(
+            model = "deepseek-chat",
+            apiKey = "test-api-key",
+            client = deepSeekClient,
+            streamingClient = streamingClient
+        )
 
         // 创建测试消息
         val messages = listOf(

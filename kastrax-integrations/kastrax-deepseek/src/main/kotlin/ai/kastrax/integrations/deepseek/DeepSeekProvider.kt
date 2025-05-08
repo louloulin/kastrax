@@ -22,7 +22,8 @@ class DeepSeekProvider(
     private val maxTokens: Int? = null,
     private val topP: Double? = null,
     private val timeout: Long = 60000,
-    private val client: DeepSeekClient = DeepSeekClient(apiKey = apiKey, timeout = timeout)
+    private val client: DeepSeekClient = DeepSeekClient(apiKey = apiKey, timeout = timeout),
+    private val streamingClient: DeepSeekStreamingClient? = null
 ) : LlmProvider, KastraXBase(component = "LLM", name = "DeepSeek") {
 
     /**
@@ -59,8 +60,16 @@ class DeepSeekProvider(
 
         val request = createChatCompletionRequest(messages, options, stream = true)
 
-        // 使用增强的流式处理方法
-        return client.streamChatCompletionEnhanced(request)
+        // 使用流式客户端（如果提供）或者默认客户端
+        val streamFlow = if (streamingClient != null) {
+            // 使用专用的流式客户端
+            streamingClient.createChatCompletionStream(request)
+        } else {
+            // 使用普通客户端的增强流式处理
+            client.streamChatCompletionEnhanced(request)
+        }
+
+        return streamFlow
             .map { chunk ->
                 when (chunk) {
                     is DeepSeekStreamChunk.Content -> chunk.text
@@ -90,8 +99,17 @@ class DeepSeekProvider(
 
         val request = createChatCompletionRequest(messages, options, stream = true)
 
+        // 使用流式客户端（如果提供）或者默认客户端
+        val streamFlow = if (streamingClient != null) {
+            // 使用专用的流式客户端
+            streamingClient.createChatCompletionStream(request)
+        } else {
+            // 使用普通客户端的增强流式处理
+            client.streamChatCompletionEnhanced(request)
+        }
+
         // 直接返回原始流，包含工具调用
-        return client.streamChatCompletionEnhanced(request)
+        return streamFlow
             .catch { e ->
                 logger.error(e) { "Error in stream generation with tool calls: ${e.message}" }
                 throw e
