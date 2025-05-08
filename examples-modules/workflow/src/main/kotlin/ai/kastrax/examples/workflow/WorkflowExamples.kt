@@ -23,7 +23,6 @@ fun main() {
         1 -> {
             println("\n运行简单工作流示例...")
             runBlocking {
-                ai.kastrax.examples.workflow.SimpleWorkflowExample().main()
             }
         }
         2 -> {
