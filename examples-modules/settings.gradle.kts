@@ -13,6 +13,7 @@ include(
     "workflow-hello",
     "agent-hello",
     "tools-hello",
+    "hello",
     "hello-fixed"
 )
 

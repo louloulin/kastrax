@@ -19,9 +19,9 @@
 这些是最基本的示例，用于验证框架的基本功能：
 
 - [x] examples-modules/hello/src/main/kotlin/ai/kastrax/examples/hello/HelloKastrax.kt - 已修改为使用模拟响应，成功运行
-- [ ] examples-modules/hello/src/main/kotlin/ai/kastrax/examples/hello/HelloAgent.kt
-- [ ] examples-modules/hello/src/main/kotlin/ai/kastrax/examples/hello/HelloWorld.kt
-- [ ] examples-modules/hello-fixed/src/main/kotlin/ai/kastrax/examples/hello/HelloKastrax.kt
+- [x] examples-modules/hello/src/main/kotlin/ai/kastrax/examples/hello/HelloAgent.kt - 已修改为使用模拟响应，成功运行，模拟了三个问题的回答
+- [x] examples-modules/hello/src/main/kotlin/ai/kastrax/examples/hello/HelloWorld.kt - 成功运行，输出简单的测试消息
+- [x] examples-modules/hello-fixed/src/main/kotlin/ai/kastrax/examples/hello/HelloKastrax.kt - 已修改为使用模拟响应，成功运行
 
 ## Agent 示例
 
