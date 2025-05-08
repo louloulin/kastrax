@@ -50,3 +50,6 @@
 
     ./gradlew :graal-native:buildNoReflectionNative
     继续执行 ex.md未完成的例子
+
+
+    按照 @codex.md 实现kastrax-codex编程助手功能，充分利用kastrax ai agent强大的能力实现，实现后增加测试验证，验证通过更新 @codex.md 标记实现的功能
