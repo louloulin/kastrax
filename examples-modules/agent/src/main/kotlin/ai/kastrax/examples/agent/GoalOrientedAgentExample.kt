@@ -54,7 +54,7 @@ fun main() = runBlocking {
     val goal = goalOrientedAgent.createGoal(
         description = "学习Kotlin协程",
         priority = GoalPriority.HIGH,
-        deadline = Clock.System.now().plus(7, DateTimeUnit.DAY)
+        deadline = Clock.System.now().plus(7, DateTimeUnit.DAY, kotlinx.datetime.TimeZone.currentSystemDefault())
     )
 
     println("创建目标: ${goal.description}, 优先级: ${goal.priority}")

@@ -29,7 +29,8 @@ fun main() {
         }
         2 -> {
             println("\n运行高级Agent示例...")
-            advancedAgentExample()
+            println("此功能尚未实现")
+            // advancedAgentExample()
         }
         3 -> {
             println("\n运行Agent网络示例...")
@@ -61,7 +62,8 @@ fun main() {
         }
         10 -> {
             println("\n运行Zod工具Agent示例...")
-            zodAgentExample()
+            println("Zod工具Agent示例暂未实现")
+            // zodAgentExample()
         }
         else -> {
             println("退出程序")

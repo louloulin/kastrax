@@ -12,7 +12,8 @@ include(
     "plugin",
     "workflow-hello",
     "agent-hello",
-    "tools-hello"
+    "tools-hello",
+    "hello-fixed"
 )
 
 // 包含主项目的模块
