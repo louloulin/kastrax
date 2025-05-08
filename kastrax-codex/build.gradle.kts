@@ -76,6 +76,14 @@ dependencies {
     implementation(project(":codegpt-telemetry"))
     implementation(project(":codegpt-treesitter"))
 
+    // Kastrax 依赖
+    implementation("ai.kastrax:kastrax-core:0.1.0")
+    implementation("ai.kastrax:kastrax-memory-api:0.1.0")
+    implementation("ai.kastrax:kastrax-memory-impl:0.1.0")
+    implementation("ai.kastrax:kastrax-zod:0.1.0")
+    implementation("ai.kastrax:kastrax-integrations:kastrax-deepseek:0.1.0")
+
+    // 原有依赖
     implementation(platform("com.fasterxml.jackson:jackson-bom:2.18.3"))
     implementation("com.fasterxml.jackson.datatype:jackson-datatype-jdk8")
     implementation("com.fasterxml.jackson.datatype:jackson-datatype-jsr310")
@@ -92,7 +100,14 @@ dependencies {
     implementation("io.grpc:grpc-protobuf:1.71.0")
     implementation("io.grpc:grpc-stub:1.71.0")
     implementation("io.grpc:grpc-netty-shaded:1.71.0")
+
+    // 协程支持
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-swing:1.7.3")
+
+    // 测试依赖
     testImplementation(kotlin("test"))
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3")
 }
 
 

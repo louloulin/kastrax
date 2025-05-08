@@ -30,7 +30,10 @@
         <editorFactoryListener implementation="ee.carlrobert.codegpt.CodeGPTEditorFactoryListener"/>
 
         <!-- Kastrax Codex 服务 -->
-        <projectService serviceImplementation="ai.kastrax.codex.service.CodexService"/>
+        <projectService serviceImplementation="ai.kastrax.codex.service.CodexAgentServiceImpl"/>
+        <projectService serviceImplementation="ai.kastrax.codex.tools.CodexToolRegistry"/>
+        <toolWindow id="KastraxAgent" icon="ee.carlrobert.codegpt.Icons.DefaultSmall" anchor="right"
+            factoryClass="ai.kastrax.codex.ui.CodexAgentToolWindowFactory"/>
         <applicationConfigurable id="settings.codegpt" parentId="tools" displayName="ProxyAI"
             instance="ee.carlrobert.codegpt.settings.GeneralSettingsConfigurable"/>
         <applicationConfigurable id="settings.codegpt.services" parentId="settings.codegpt" displayName="Providers"
