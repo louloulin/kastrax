@@ -2,14 +2,14 @@ rootProject.name = "examples-modules"
 
 // 包含所有子模块
 include(
-    // 启用 memory 模块
-    "memory"
+    // 启用模块
+    "memory",
+    "other"
     // 暂时排除其他模块
     // "workflow",
     // "rag",
     // "tools",
     // "agent",
-    // "other",
     // "plugin"
 )
 
@@ -24,6 +24,10 @@ includeBuild("..") {
         substitute(module("ai.kastrax:kastrax-rag")).using(project(":kastrax-rag"))
         substitute(module("ai.kastrax:kastrax-deepseek")).using(project(":kastrax-integrations:kastrax-deepseek"))
         substitute(module("ai.kastrax:kastrax-openai")).using(project(":kastrax-integrations:kastrax-openai"))
+        substitute(module("ai.kastrax:kastrax-anthropic")).using(project(":kastrax-integrations:kastrax-anthropic"))
+        substitute(module("ai.kastrax:kastrax-gemini")).using(project(":kastrax-integrations:kastrax-gemini"))
+        substitute(module("ai.kastrax:kastrax-datasource")).using(project(":kastrax-datasource"))
+        substitute(module("ai.kastrax:kastrax-datasource-common")).using(project(":kastrax-datasource-common"))
         substitute(module("ai.kastrax:fastembed-kotlin")).using(project(":fastembed-kotlin"))
         substitute(module("ai.kastrax:kastrax-actor")).using(project(":kastrax-actor"))
 
