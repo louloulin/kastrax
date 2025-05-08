@@ -72,7 +72,6 @@ include(":kastrax-a2a")
 include(":kastrax-a2x")
 include(":kastrax-actor")
 include(":kactor")
-include(":kastrax-codex")
 
 // Include kactor subprojects
 include(":kactor:proto-mailbox")
