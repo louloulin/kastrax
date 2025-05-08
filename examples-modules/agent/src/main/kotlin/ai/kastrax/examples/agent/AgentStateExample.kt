@@ -11,7 +11,7 @@ import kotlinx.serialization.json.*
 /**
  * Agent状态管理和会话控制示例
  */
-fun main() = runBlocking {
+fun agentStateExample() = runBlocking {
     // 创建会话管理器和状态管理器
     val sessionManager = InMemorySessionManager()
     val stateManager = InMemoryStateManager()

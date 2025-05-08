@@ -9,7 +9,7 @@ import kotlinx.coroutines.runBlocking
 /**
  * Agent版本控制和回滚示例
  */
-fun main() = runBlocking {
+fun agentVersioningExample() = runBlocking {
     println("KastraX Agent版本控制和回滚示例")
     println("----------------------------")
 

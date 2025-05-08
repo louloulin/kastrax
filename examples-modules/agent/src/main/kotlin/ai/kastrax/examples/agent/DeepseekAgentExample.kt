@@ -22,8 +22,8 @@ fun main() {
 fun deepseekAgentExample() = runBlocking {
     // 使用 DSL 创建 Deepseek LLM 提供商
     val llm = deepSeek {
-        // 直接设置 API 密钥
-        apiKey("sk-85e83081df28490b9ae63188f0cb4f79")
+        // 设置 API 密钥
+        apiKey(System.getenv("DEEPSEEK_API_KEY") ?: "your-api-key-here")
 
         // 设置模型
         model(DeepSeekModel.DEEPSEEK_CHAT)

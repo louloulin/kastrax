@@ -11,7 +11,7 @@ import kotlinx.serialization.json.*
 /**
  * Agent网络示例
  */
-fun main() = runBlocking {
+fun agentNetworkExample() = runBlocking {
     // 创建研究代理
     val researchAgent = agent {
         name = "research_agent"

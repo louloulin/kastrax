@@ -5,7 +5,8 @@ import ai.kastrax.core.agent.AgentStreamOptions
 import ai.kastrax.core.agent.ToolChoice
 import ai.kastrax.core.agent.agent
 import ai.kastrax.core.tools.tool
-import ai.kastrax.integrations.openai.openAi
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import ai.kastrax.integrations.deepseek.deepSeek
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.buildJsonObject
@@ -16,7 +17,7 @@ import kotlinx.serialization.json.putJsonObject
 /**
  * 高级Agent示例，展示新增的Agent功能
  */
-fun main() = runBlocking {
+fun advancedAgentExample() = runBlocking {
     // 创建计算器工具
     val calculatorTool = tool {
         id = "calculator"
@@ -73,25 +74,28 @@ fun main() = runBlocking {
     val agent = agent {
         name = "AdvancedAgent"
         instructions = "You are an advanced agent that can help with calculations and weather information."
-        model = openAi("gpt-4o")
-        
+        model = deepSeek {
+            model(DeepSeekModel.DEEPSEEK_CHAT)
+            apiKey(System.getenv("DEEPSEEK_API_KEY") ?: "your-api-key-here")
+        }
+
         // 添加基础工具
         tools {
             tool(calculatorTool)
         }
-        
+
         // 添加工具集
         toolset("weather") {
             tool(weatherTool)
         }
-        
+
         // 配置默认生成选项
         defaultGenerateOptions {
             temperature(0.7)
             maxTokens(500)
             topP(0.9)
         }
-        
+
         // 配置默认流式选项
         defaultStreamOptions {
             temperature(0.6)
@@ -139,7 +143,7 @@ fun main() = runBlocking {
             temperature = 0.8
         )
     )
-    
+
     println("流式响应:")
     val fullText = StringBuilder()
     response4.textStream?.collect { chunk ->

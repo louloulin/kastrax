@@ -20,7 +20,7 @@ import kotlinx.coroutines.runBlocking
 /**
  * 创造性Agent示例
  */
-fun main() = runBlocking {
+fun creativeAgentExample() = runBlocking {
     println("KastraX 创造性Agent示例")
     println("-------------------")
 

@@ -26,7 +26,8 @@ fun deepseekExamples() = runBlocking {
         }
         2 -> {
             println("\n运行 Deepseek Tool Agent 示例...")
-            deepseekToolAgentExample()
+            println("此功能尚未实现")
+            // deepseekToolAgentExample()
         }
         3 -> {
             println("\n运行 Deepseek 架构示例...")
@@ -34,7 +35,8 @@ fun deepseekExamples() = runBlocking {
         }
         4 -> {
             println("\n运行 Deepseek Memory Agent 示例...")
-            deepseekMemoryExample()
+            println("此功能尚未实现")
+            // deepseekMemoryExample()
         }
         else -> {
             println("退出程序")

@@ -12,7 +12,7 @@ import java.io.File
 /**
  * 协作型Agent网络示例，展示上下文感知路由和可视化功能
  */
-fun main() = runBlocking {
+fun collaborativeAgentNetworkExample() = runBlocking {
     // 创建研究代理
     val researchAgent = agent {
         name = "研究代理"
@@ -74,15 +74,15 @@ fun main() = runBlocking {
                     buildJsonObject {
                         put("results", """
                             这是关于"$query"的搜索结果：
-                            
+
                             1. 人工智能在医疗保健中的应用 - 最新研究报告 (2023)
                                来源: https://example.com/ai-healthcare-2023
                                摘要: 该报告详细介绍了AI在诊断、药物开发和个性化医疗方面的最新应用。
-                            
+
                             2. 机器学习如何改变医疗影像分析 - 医学期刊文章
                                来源: https://example.com/ml-medical-imaging
                                摘要: 研究表明，AI辅助诊断系统在某些情况下准确率超过了人类放射科医生。
-                            
+
                             3. 医疗保健中的自然语言处理应用 - 技术评论
                                来源: https://example.com/nlp-healthcare
                                摘要: NLP技术正在帮助医生从电子健康记录中提取有价值的信息。
@@ -137,21 +137,21 @@ fun main() = runBlocking {
                     // 模拟数据分析结果
                     val dataset = input.jsonObject["dataset"]?.jsonPrimitive?.contentOrNull ?: "未知数据集"
                     val analysisType = input.jsonObject["analysis_type"]?.jsonPrimitive?.contentOrNull ?: "趋势分析"
-                    
+
                     buildJsonObject {
                         put("results", """
                             对"$dataset"的"$analysisType"分析结果：
-                            
+
                             1. 主要发现:
                                - AI在医疗诊断中的应用增长率为每年35%
                                - 医疗机构采用AI技术的比例从2020年的15%增加到2023年的42%
                                - 患者对AI辅助诊断的接受度提高了28%
-                            
+
                             2. 趋势分析:
                                - 远程医疗AI应用增长最快，年增长率达到48%
                                - 药物发现中的AI应用投资增加了3倍
                                - 医疗影像分析仍然是最成熟的AI应用领域
-                            
+
                             3. 预测:
                                - 到2025年，约70%的医疗机构将在某种形式上采用AI技术
                                - 个性化医疗将成为AI应用的下一个主要增长点
@@ -175,7 +175,7 @@ fun main() = runBlocking {
             3. 数据分析代理 - 用于分析和解释数据
 
             你的目标是提供全面、准确的研究结果。
-            
+
             使用协作模式来最大化研究质量：
             - 顺序协作：一个代理接一个代理工作
             - 并行协作：多个代理同时工作，然后综合结果
@@ -191,10 +191,10 @@ fun main() = runBlocking {
         agent(researchAgent)
         agent(webSearchAgent)
         agent(dataAnalysisAgent)
-        
+
         // 使用上下文感知路由策略
         useContextAwareRouting()
-        
+
         // 启用交互可视化
         enableVisualization()
     }
@@ -211,7 +211,7 @@ fun main() = runBlocking {
     // 打印代理交互历史
     println("\n代理交互历史:")
     println(researchNetwork.getAgentInteractionSummary())
-    
+
     // 生成并保存可视化
     val visualization = researchNetwork.getAgentInteractionVisualization()
     if (visualization != null) {

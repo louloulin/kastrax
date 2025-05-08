@@ -1,6 +1,7 @@
 plugins {
     kotlin("jvm")
     kotlin("plugin.serialization")
+    application
 }
 
 dependencies {
@@ -22,4 +23,8 @@ dependencies {
     // 其他特定依赖
     implementation(kotlin("stdlib"))
     implementation(kotlin("reflect"))
+}
+
+application {
+    mainClass.set("ai.kastrax.examples.agent.hello.HelloAgentKt")
 }

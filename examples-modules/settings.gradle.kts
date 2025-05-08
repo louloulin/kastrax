@@ -9,7 +9,10 @@ include(
     "workflow",
     "agent",
     "rag",
-    "plugin"
+    "plugin",
+    "workflow-hello",
+    "agent-hello",
+    "tools-hello"
 )
 
 // 包含主项目的模块
