@@ -4,10 +4,25 @@ plugins {
 }
 
 dependencies {
+    // 项目依赖
+    implementation("ai.kastrax:kastrax-core")
+    implementation("ai.kastrax:kastrax-deepseek")
+
     // 其他特定依赖
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
+    implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.4.1")
+
+    // Ktor 依赖
     implementation("io.ktor:ktor-client-core:3.1.2")
+    implementation("io.ktor:ktor-client-cio:3.1.2")
     implementation("io.ktor:ktor-client-okhttp:3.1.2")
+    implementation("io.ktor:ktor-client-content-negotiation:3.1.2")
+    implementation("io.ktor:ktor-serialization-kotlinx-json:3.1.2")
+
+    // 日志
+    implementation("io.github.microutils:kotlin-logging-jvm:3.0.5")
+    implementation("ch.qos.logback:logback-classic:1.4.11")
 }
 
 application {

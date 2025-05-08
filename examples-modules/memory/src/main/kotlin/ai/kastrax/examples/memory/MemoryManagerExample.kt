@@ -137,7 +137,7 @@ fun main() = runBlocking {
             filters = listOf(RoleFilter(roles = listOf(MessageRole.USER)))
         ),
         updates = MessageUpdateOptions(
-            priority = MemoryPriority.VERY_HIGH
+            priority = MemoryPriority.CRITICAL
         )
     )
     println("已更新 $updatedCount 条消息的优先级")

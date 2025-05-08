@@ -1,6 +1,7 @@
 package ai.kastrax.examples.memory
 
 import ai.kastrax.core.agent.agent
+import ai.kastrax.core.agent.AgentGenerateOptions
 import ai.kastrax.integrations.openai.openAi
 import ai.kastrax.memory.api.MemoryTag
 import ai.kastrax.memory.api.MessageRole
@@ -15,32 +16,32 @@ import kotlinx.coroutines.runBlocking
 fun main() = runBlocking {
     println("KastraX 标签和线程共享示例")
     println("-------------------")
-    
+
     // 创建增强型内存，启用标签管理器和线程共享
-    val memory = enhancedMemory {
+    val memoryInstance = enhancedMemory {
         lastMessages(10)
         tagManager(true)
         threadSharing(true)
     }
-    
+
     // 创建使用标签和线程共享的Agent
-    val agent = agent {
+    val agentInstance = agent {
         name = "TagsAndSharingAgent"
         instructions = """
             你是一个具有标签和线程共享能力的助手。你可以使用标签对消息进行分类，并在不同线程之间共享消息。
         """.trimIndent()
         model = openAi("gpt-4o")
-        memory = memory
+        memory = memoryInstance
     }
-    
+
     // 创建两个线程
-    val threadId1 = memory.createThread("Python讨论")
-    val threadId2 = memory.createThread("Java讨论")
-    
+    val threadId1 = memoryInstance.createThread("Python讨论")
+    val threadId2 = memoryInstance.createThread("Java讨论")
+
     println("创建了两个线程:")
     println("线程1: $threadId1 (Python讨论)")
     println("线程2: $threadId2 (Java讨论)")
-    
+
     // 在第一个线程中添加消息
     val pythonMessages = listOf(
         SimpleMessage(
@@ -60,7 +61,7 @@ fun main() = runBlocking {
             content = "Python的主要优势包括：简洁的语法，丰富的库和框架，强大的社区支持，以及在数据科学、机器学习和Web开发等领域的广泛应用。"
         )
     )
-    
+
     // 在第二个线程中添加消息
     val javaMessages = listOf(
         SimpleMessage(
@@ -80,17 +81,17 @@ fun main() = runBlocking {
             content = "Java的主要优势包括：平台独立性，强大的面向对象特性，丰富的API和框架，良好的安全性，以及在企业级应用和Android开发中的广泛应用。"
         )
     )
-    
+
     // 保存消息并添加标签
     println("\n保存消息并添加标签:")
-    
+
     // 保存Python线程消息
     for (message in pythonMessages) {
-        val messageId = memory.saveMessage(message, threadId1)
-        
+        val messageId = memoryInstance.saveMessage(message, threadId1)
+
         // 添加标签
         if (message.role == MessageRole.USER) {
-            (memory as EnhancedMemory).addTagToMessage(
+            (memoryInstance as EnhancedMemory).addTagToMessage(
                 messageId,
                 MemoryTag(
                     name = "language",
@@ -99,9 +100,9 @@ fun main() = runBlocking {
                 )
             )
         }
-        
+
         if (message.content.contains("优势")) {
-            (memory as EnhancedMemory).addTagToMessage(
+            (memoryInstance as EnhancedMemory).addTagToMessage(
                 messageId,
                 MemoryTag(
                     name = "topic",
@@ -111,14 +112,14 @@ fun main() = runBlocking {
             )
         }
     }
-    
+
     // 保存Java线程消息
     for (message in javaMessages) {
-        val messageId = memory.saveMessage(message, threadId2)
-        
+        val messageId = memoryInstance.saveMessage(message, threadId2)
+
         // 添加标签
         if (message.role == MessageRole.USER) {
-            (memory as EnhancedMemory).addTagToMessage(
+            (memoryInstance as EnhancedMemory).addTagToMessage(
                 messageId,
                 MemoryTag(
                     name = "language",
@@ -127,9 +128,9 @@ fun main() = runBlocking {
                 )
             )
         }
-        
+
         if (message.content.contains("优势")) {
-            (memory as EnhancedMemory).addTagToMessage(
+            (memoryInstance as EnhancedMemory).addTagToMessage(
                 messageId,
                 MemoryTag(
                     name = "topic",
@@ -139,64 +140,64 @@ fun main() = runBlocking {
             )
         }
     }
-    
+
     // 根据标签搜索消息
     println("\n根据标签搜索消息:")
-    
+
     // 搜索Python相关消息
-    val pythonTaggedMessages = (memory as EnhancedMemory).searchMessagesByTag(
+    val pythonTaggedMessages = (memoryInstance as EnhancedMemory).searchMessagesByTag(
         threadId1,
         tagName = "language",
         tagValue = "Python"
     )
-    
+
     println("Python相关消息 (${pythonTaggedMessages.size}):")
     pythonTaggedMessages.forEach { message ->
         println("- ${message.message.role}: ${message.message.content}")
     }
-    
+
     // 搜索优势相关消息
-    val advantagesTaggedMessages = (memory as EnhancedMemory).searchMessagesByTag(
+    val advantagesTaggedMessages = (memoryInstance as EnhancedMemory).searchMessagesByTag(
         threadId1,
         tagName = "topic",
         tagValue = "advantages"
-    ) + (memory as EnhancedMemory).searchMessagesByTag(
+    ) + (memoryInstance as EnhancedMemory).searchMessagesByTag(
         threadId2,
         tagName = "topic",
         tagValue = "advantages"
     )
-    
+
     println("\n优势相关消息 (${advantagesTaggedMessages.size}):")
     advantagesTaggedMessages.forEach { message ->
         println("- ${message.message.role}: ${message.message.content}")
     }
-    
+
     // 创建共享线程
     println("\n创建共享线程:")
-    val sharedThreadId = (memory as EnhancedMemory).createSharedThread(
+    val sharedThreadId = (memoryInstance as EnhancedMemory).createSharedThread(
         "编程语言比较",
         listOf(threadId1, threadId2)
     )
     println("共享线程ID: $sharedThreadId")
-    
+
     // 获取共享线程中的消息
-    val sharedMessages = memory.getMessages(sharedThreadId)
+    val sharedMessages = memoryInstance.getMessages(sharedThreadId)
     println("\n共享线程中的消息 (${sharedMessages.size}):")
     sharedMessages.forEach { message ->
         println("- ${message.message.role}: ${message.message.content}")
     }
-    
+
     // 在共享线程中添加新消息
     println("\n在共享线程中添加新消息:")
     val newMessage = SimpleMessage(
         role = MessageRole.USER,
         content = "Python和Java各有优势，选择哪种语言取决于具体的应用场景和需求。"
     )
-    
-    val newMessageId = memory.saveMessage(newMessage, sharedThreadId)
-    
+
+    val newMessageId = memoryInstance.saveMessage(newMessage, sharedThreadId)
+
     // 添加标签
-    (memory as EnhancedMemory).addTagToMessage(
+    (memoryInstance as EnhancedMemory).addTagToMessage(
         newMessageId,
         MemoryTag(
             name = "topic",
@@ -204,23 +205,23 @@ fun main() = runBlocking {
             color = "#4CAF50"
         )
     )
-    
+
     // 生成回复
-    val response = agent.generate(newMessage.content, threadId = sharedThreadId)
-    println("助手: ${response.content}")
-    
+    val response = agentInstance.generate(newMessage.content, AgentGenerateOptions(threadId = sharedThreadId))
+    println("助手: ${response.text}")
+
     // 添加访问控制
     println("\n添加访问控制:")
     val userId1 = "user123"
     val userId2 = "user456"
-    
-    (memory as EnhancedMemory).addUserToThreadAccess(sharedThreadId, userId1)
+
+    (memoryInstance as EnhancedMemory).addUserToThreadAccess(sharedThreadId, userId1)
     println("用户 $userId1 已添加到共享线程的访问控制列表")
-    
+
     // 检查访问权限
-    val hasAccess1 = (memory as EnhancedMemory).hasAccessToThread(sharedThreadId, userId1)
-    val hasAccess2 = (memory as EnhancedMemory).hasAccessToThread(sharedThreadId, userId2)
-    
+    val hasAccess1 = (memoryInstance as EnhancedMemory).hasAccessToThread(sharedThreadId, userId1)
+    val hasAccess2 = (memoryInstance as EnhancedMemory).hasAccessToThread(sharedThreadId, userId2)
+
     println("用户 $userId1 是否有权限访问共享线程: $hasAccess1")
     println("用户 $userId2 是否有权限访问共享线程: $hasAccess2")
 }

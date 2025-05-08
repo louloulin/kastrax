@@ -1,4 +1,4 @@
-package ai.kastrax.examples
+package ai.kastrax.examples.other
 
 import ai.kastrax.integrations.deepseek.*
 import kotlinx.coroutines.runBlocking

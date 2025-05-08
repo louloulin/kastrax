@@ -62,7 +62,7 @@ fun main() = runBlocking {
         agent = deepseekAgent,
         after = listOf("init"),
         variables = mapOf(
-            "prompt" to VariableReference("$.init.message")
+            "prompt" to VariableReference("$.steps.init.output.message")
         ),
         outputMapping = { text -> mapOf("response" to text) }
     )

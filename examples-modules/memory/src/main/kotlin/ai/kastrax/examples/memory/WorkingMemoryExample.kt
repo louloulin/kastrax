@@ -1,12 +1,14 @@
 package ai.kastrax.examples.memory
 
 import ai.kastrax.core.agent.agent
+import ai.kastrax.core.agent.AgentGenerateOptions
 import ai.kastrax.integrations.deepseek.deepSeek
 import ai.kastrax.integrations.deepseek.DeepSeekModel
 import ai.kastrax.memory.api.Message
 import ai.kastrax.memory.api.MessageRole
 import ai.kastrax.memory.api.WorkingMemoryConfig
 import ai.kastrax.memory.api.WorkingMemoryMode
+import ai.kastrax.memory.impl.EnhancedMemory
 import ai.kastrax.memory.impl.EnhancedMemoryBuilder
 import ai.kastrax.memory.impl.InMemoryWorkingMemory
 import ai.kastrax.memory.impl.SimpleMessage
@@ -19,25 +21,26 @@ fun main() = runBlocking {
     println("KastraX 工作内存示例")
     println("-------------------")
 
+    // 定义工作内存配置
+    val workingMemoryConfig = WorkingMemoryConfig(
+        enabled = true,
+        mode = WorkingMemoryMode.TEXT_STREAM,
+        template = """
+            # 用户信息
+            - 姓名: 未知
+            - 位置: 未知
+            - 偏好: 未知
+
+            # 对话上下文
+            - 主题: 人工智能
+            - 目标: 学习
+        """.trimIndent()
+    )
+
     // 创建增强型内存，启用工作内存
     val enhancedMemory = EnhancedMemoryBuilder()
         .lastMessages(10)
-        .workingMemory(
-            WorkingMemoryConfig(
-                enabled = true,
-                mode = WorkingMemoryMode.TEXT_STREAM,
-                template = """
-                    # 用户信息
-                    - 姓名: 未知
-                    - 位置: 未知
-                    - 偏好: 未知
-
-                    # 对话上下文
-                    - 主题: 人工智能
-                    - 目标: 学习
-                """.trimIndent()
-            )
-        )
+        .workingMemory(workingMemoryConfig)
         .build()
 
     // 创建使用工作内存的Agent
@@ -52,6 +55,8 @@ fun main() = runBlocking {
         model = deepSeek {
             model(DeepSeekModel.DEEPSEEK_CHAT)
             apiKey("sk-85e83081df28490b9ae63188f0cb4f79")
+            temperature(0.3)
+            maxTokens(1000)
         }
         memory = enhancedMemory
     }
@@ -81,11 +86,11 @@ fun main() = runBlocking {
         )
 
         // 生成回复
-        val response = agent.generate(userMessage, threadId = threadId)
-        println("助手: ${response.content}")
+        val response = agent.generate(userMessage, AgentGenerateOptions(threadId = threadId))
+        println("助手: ${response.text}")
 
         // 查看当前工作内存
-        val workingMemory = enhancedMemory.getWorkingMemorySystemMessage(threadId)
+        val workingMemory = (enhancedMemory as EnhancedMemory).getWorkingMemorySystemMessage(threadId)
         println("\n当前工作内存:")
         println(workingMemory?.substringAfter("# 工作内存\n以下是你的工作内存，包含关于用户和对话的重要信息。请在回答时参考这些信息。\n\n") ?: "无工作内存")
     }
@@ -94,21 +99,22 @@ fun main() = runBlocking {
     println("\n\n工具调用模式示例")
     println("-------------------")
 
+    // 定义工具调用模式的工作内存配置
+    val toolCallWorkingMemoryConfig = WorkingMemoryConfig(
+        enabled = true,
+        mode = WorkingMemoryMode.TOOL_CALL,
+        template = """
+            # 用户信息
+            - 姓名: 未知
+            - 位置: 未知
+            - 偏好: 未知
+        """.trimIndent()
+    )
+
     // 创建使用工具调用模式的工作内存
     val toolCallMemory = EnhancedMemoryBuilder()
         .lastMessages(10)
-        .workingMemory(
-            WorkingMemoryConfig(
-                enabled = true,
-                mode = WorkingMemoryMode.TOOL_CALL,
-                template = """
-                    # 用户信息
-                    - 姓名: 未知
-                    - 位置: 未知
-                    - 偏好: 未知
-                """.trimIndent()
-            )
-        )
+        .workingMemory(toolCallWorkingMemoryConfig)
         .build()
 
     // 创建使用工具调用模式的Agent
@@ -123,14 +129,16 @@ fun main() = runBlocking {
         model = deepSeek {
             model(DeepSeekModel.DEEPSEEK_CHAT)
             apiKey("sk-85e83081df28490b9ae63188f0cb4f79")
+            temperature(0.3)
+            maxTokens(1000)
         }
         memory = toolCallMemory
 
         // 添加工作内存工具
         tools {
-            val workingMemoryTools = toolCallMemory.getWorkingMemoryTools()
-            workingMemoryTools.forEach { (name, tool) ->
-                tool(name, tool)
+            val workingMemoryTools = (toolCallMemory as EnhancedMemory).getWorkingMemoryTools()
+            workingMemoryTools.forEach { (name, toolObj) ->
+                tool(name, toolObj as ai.kastrax.core.tools.Tool)
             }
         }
     }
@@ -159,11 +167,11 @@ fun main() = runBlocking {
         )
 
         // 生成回复
-        val response = toolCallAgent.generate(userMessage, threadId = toolCallThreadId)
-        println("助手: ${response.content}")
+        val response = toolCallAgent.generate(userMessage, AgentGenerateOptions(threadId = toolCallThreadId))
+        println("助手: ${response.text}")
 
         // 查看当前工作内存
-        val workingMemory = toolCallMemory.getWorkingMemorySystemMessage(toolCallThreadId)
+        val workingMemory = (toolCallMemory as EnhancedMemory).getWorkingMemorySystemMessage(toolCallThreadId)
         println("\n当前工作内存:")
         println(workingMemory?.substringAfter("# 工作内存\n你可以使用update_working_memory工具来更新工作内存。当前工作内存内容：\n\n") ?: "无工作内存")
     }
