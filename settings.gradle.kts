@@ -62,6 +62,7 @@ include(":kastrax-agent-templates")
 include(":kastrax-a2a")
 include(":kastrax-a2x")
 include(":kastrax-actor")
+include(":kastrax-codex") // 添加 kastrax-codex 作为子项目
 include(":kactor")
 
 // Include kactor subprojects
