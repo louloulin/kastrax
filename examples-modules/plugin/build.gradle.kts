@@ -11,7 +11,7 @@ dependencies {
 }
 
 application {
-    mainClass.set("ai.kastrax.examples.plugin.PluginExamplesKt")
+    mainClass.set("ai.kastrax.examples.plugin.HelloPluginKt")
 }
 
 // 为每个示例创建单独的运行任务
@@ -33,4 +33,12 @@ tasks.register<JavaExec>("runHttpStepPluginExample") {
     args = listOf("http-step")
     jvmArgs = listOf("-Xms512m", "-Xmx1g")
     environment("DEEPSEEK_API_KEY", "sk-85e83081df28490b9ae63188f0cb4f79")
+}
+
+tasks.register<JavaExec>("runHelloPlugin") {
+    group = "examples"
+    description = "Run the HelloPlugin example"
+    classpath = sourceSets["main"].runtimeClasspath
+    mainClass.set("ai.kastrax.examples.plugin.HelloPluginKt")
+    jvmArgs = listOf("-Xms512m", "-Xmx1g")
 }

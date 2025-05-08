@@ -66,3 +66,11 @@ tasks.register<JavaExec>("runZodCalculatorToolExample") {
     jvmArgs = listOf("-Xms512m", "-Xmx1g")
     environment("DEEPSEEK_API_KEY", "sk-85e83081df28490b9ae63188f0cb4f79")
 }
+
+tasks.register<JavaExec>("runHelloTools") {
+    group = "examples"
+    description = "Run the HelloTools example"
+    classpath = sourceSets["main"].runtimeClasspath
+    mainClass.set("ai.kastrax.examples.tools.HelloToolsKt")
+    jvmArgs = listOf("-Xms512m", "-Xmx1g")
+}

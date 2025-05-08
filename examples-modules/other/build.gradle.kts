@@ -11,7 +11,7 @@ dependencies {
 }
 
 application {
-    mainClass.set("ai.kastrax.examples.other.OtherExamplesKt")
+    mainClass.set("ai.kastrax.examples.other.HelloOtherKt")
 }
 
 // 为每个示例创建单独的运行任务
@@ -58,4 +58,12 @@ tasks.register<JavaExec>("runGeminiStreamingExample") {
     mainClass.set("ai.kastrax.examples.other.GeminiStreamingExampleKt")
     jvmArgs = listOf("-Xms512m", "-Xmx1g")
     environment("GEMINI_API_KEY", "your-gemini-api-key")
+}
+
+tasks.register<JavaExec>("runHelloOther") {
+    group = "examples"
+    description = "Run the HelloOther example"
+    classpath = sourceSets["main"].runtimeClasspath
+    mainClass.set("ai.kastrax.examples.other.HelloOtherKt")
+    jvmArgs = listOf("-Xms512m", "-Xmx1g")
 }
