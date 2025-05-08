@@ -27,7 +27,7 @@
 
 这些示例展示了 Kastrax 的 Agent 功能：
 
-- [ ] examples-modules/agent/src/main/kotlin/ai/kastrax/examples/agent/HelloAgent.kt
+- [x] examples-modules/agent/src/main/kotlin/ai/kastrax/examples/agent/HelloAgent.kt - 已修改为使用模拟响应，成功运行
 - [ ] examples-modules/agent/src/main/kotlin/ai/kastrax/examples/agent/SimpleAgent.kt
 - [ ] examples-modules/agent/src/main/kotlin/ai/kastrax/examples/agent/DeepseekAgentExample.kt
 - [ ] examples-modules/agent/src/main/kotlin/ai/kastrax/examples/agent/DeepseekArchitectureExample.kt
@@ -40,14 +40,14 @@
 - [ ] examples-modules/agent/src/main/kotlin/ai/kastrax/examples/agent/AgentStateExample.kt
 - [ ] examples-modules/agent/src/main/kotlin/ai/kastrax/examples/agent/AgentVersioningExample.kt
 - [ ] examples-modules/agent/src/main/kotlin/ai/kastrax/examples/agent/AdaptiveAgentExample.kt
-- [ ] examples-modules/agent-hello/src/main/kotlin/ai/kastrax/examples/agent/hello/HelloAgent.kt
-- [ ] examples-modules/agent-simple/src/main/kotlin/ai/kastrax/examples/agent/HelloAgent.kt
+- [x] examples-modules/agent-hello/src/main/kotlin/ai/kastrax/examples/agent/hello/HelloAgent.kt - 成功运行，输出简单的测试消息
+- [x] examples-modules/agent-simple/src/main/kotlin/ai/kastrax/examples/agent/HelloAgent.kt - 已修改为使用模拟响应，成功运行
 
 ## 工具 (Tools) 示例
 
 这些示例展示了 Kastrax 的工具功能：
 
-- [ ] examples-modules/tools/src/main/kotlin/ai/kastrax/examples/tools/HelloTools.kt
+- [x] examples-modules/tools/src/main/kotlin/ai/kastrax/examples/tools/HelloTools.kt - 成功运行，输出简单的测试消息
 - [ ] examples-modules/tools/src/main/kotlin/ai/kastrax/examples/tools/CalculatorExample.kt
 - [ ] examples-modules/tools/src/main/kotlin/ai/kastrax/examples/tools/DateTimeToolExample.kt
 - [ ] examples-modules/tools/src/main/kotlin/ai/kastrax/examples/tools/FileOperationToolExample.kt
@@ -58,8 +58,8 @@
 - [ ] examples-modules/tools/src/main/kotlin/ai/kastrax/examples/tools/ZodAdvancedToolExample.kt
 - [ ] examples-modules/tools/src/main/kotlin/ai/kastrax/examples/tools/ZodAgentExample.kt
 - [ ] examples-modules/tools/src/main/kotlin/ai/kastrax/examples/tools/DeepseekToolAgentExample.kt
-- [ ] examples-modules/tools-hello/src/main/kotlin/ai/kastrax/examples/tools/hello/HelloTools.kt
-- [ ] examples-modules/tools-simple/src/main/kotlin/ai/kastrax/examples/tools/HelloTools.kt
+- [x] examples-modules/tools-hello/src/main/kotlin/ai/kastrax/examples/tools/hello/HelloTools.kt - 成功运行，输出简单的测试消息
+- [x] examples-modules/tools-simple/src/main/kotlin/ai/kastrax/examples/tools/HelloTools.kt - 成功运行，输出简单的测试消息
 
 ## 工作流 (Workflow) 示例
 
@@ -81,8 +81,8 @@
 - [ ] examples-modules/workflow/src/main/kotlin/ai/kastrax/examples/workflow/WorkflowVersioningExample.kt
 - [ ] examples-modules/workflow/src/main/kotlin/ai/kastrax/examples/workflow/WorkflowVisualizationExample.kt
 - [ ] examples-modules/workflow/src/main/kotlin/ai/kastrax/examples/workflow/PerformanceAnalysisExample.kt
-- [ ] examples-modules/workflow-hello/src/main/kotlin/ai/kastrax/examples/workflow/hello/HelloWorkflow.kt
-- [ ] examples-modules/workflow-simple/src/main/kotlin/ai/kastrax/examples/workflow/HelloWorkflow.kt
+- [x] examples-modules/workflow-hello/src/main/kotlin/ai/kastrax/examples/workflow/hello/HelloWorkflow.kt - 成功运行，输出简单的测试消息
+- [x] examples-modules/workflow-simple/src/main/kotlin/ai/kastrax/examples/workflow/HelloWorkflow.kt - 已修改为使用模拟响应，成功运行
 - [ ] examples-modules/workflow-simple/src/main/kotlin/ai/kastrax/examples/workflow/SimpleWorkflow.kt
 - [ ] examples-modules/workflow-simple/src/main/kotlin/ai/kastrax/examples/workflow/ConditionalWorkflow.kt
 - [ ] examples-modules/workflow-simple/src/main/kotlin/ai/kastrax/examples/workflow/ParallelWorkflow.kt
@@ -97,7 +97,7 @@
 - [ ] examples-modules/rag/src/main/kotlin/ai/kastrax/examples/rag/EnhancedRetrievalExample.kt
 - [ ] examples-modules/rag/src/main/kotlin/ai/kastrax/examples/rag/EnhancedDocumentProcessingExample.kt
 - [ ] examples-modules/rag/src/main/kotlin/ai/kastrax/examples/rag/FastEmbedRAGExample.kt
-- [ ] examples-modules/rag-hello/src/main/kotlin/ai/kastrax/examples/rag/hello/HelloRag.kt
+- [x] examples-modules/rag-hello/src/main/kotlin/ai/kastrax/examples/rag/hello/HelloRag.kt - 成功运行，输出简单的测试消息
 
 ## 内存 (Memory) 示例
 

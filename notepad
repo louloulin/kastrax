@@ -40,7 +40,7 @@
  按计划将所有的文档全改成kastrax的文档，内容要分析整个kastrax代码实现，并在dox.md标记实现的功能
 
   按计划将所有的文档全改成kastrax的文档，内容要分析整个kastrax代码实现，并在dox.md标记实现的功能
-
+@ex2.md 按计划验证例子，验证通过后更新 @ex2.md ，标记完成
   @doc2.md  按计划实现所有功能 ，更新  @kastrax-doc/src/content ，并在 @doc2.md  标记实现的功能
 
     @doc2.md  按计划实现所有功能 ，更新  @kastrax-doc/src/content ，并在 @doc2.md  标记实现的功能,目的更新kastra-doc的文档内容
