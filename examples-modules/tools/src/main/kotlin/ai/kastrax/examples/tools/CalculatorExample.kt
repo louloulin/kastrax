@@ -1,4 +1,4 @@
-package ai.kastrax.examples
+package ai.kastrax.examples.tools
 
 import ai.kastrax.core.agent.agent
 import ai.kastrax.core.tools.tool
@@ -63,7 +63,7 @@ fun main() = runBlocking {
         // 使用 Deepseek 模型
         model = deepSeek {
             model(DeepSeekModel.DEEPSEEK_CHAT)
-            apiKey("sk-85e83081df28490b9ae63188f0cb4f79")
+            apiKey(System.getenv("DEEPSEEK_API_KEY") ?: "your-api-key-here")
             temperature(0.7)
             maxTokens(2000)
             timeout(60000) // 60秒超时

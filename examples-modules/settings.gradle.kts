@@ -5,13 +5,11 @@ include(
     // 已修复的模块
     "memory",
     "other",
-    // 需要修复的模块
-    "workflow",
     "tools",
+    "workflow",
     "agent",
+    "rag",
     "plugin"
-    // 暂时排除的模块
-    // "rag"
 )
 
 // 包含主项目的模块

@@ -1,8 +1,11 @@
 package ai.kastrax.examples.workflow
 
 import ai.kastrax.core.agent.agent
+import ai.kastrax.core.workflow.WorkflowStatus
 import ai.kastrax.core.workflow.workflow
 import ai.kastrax.core.workflow.WorkflowExecuteOptions
+import ai.kastrax.core.workflow.VariableReference
+import ai.kastrax.core.workflow.builder.step
 import ai.kastrax.integrations.deepseek.DeepSeekModel
 import ai.kastrax.integrations.deepseek.deepSeek
 import kotlinx.coroutines.flow.collect
@@ -10,7 +13,7 @@ import kotlinx.coroutines.runBlocking
 import kotlin.time.Duration.Companion.minutes
 
 /**
- * 工作流示例：内容创作流程
+ * 简单工作流示例：内容创作流程
  *
  * 这个示例展示了如何使用工作流引擎创建一个内容创作流程，包括研究、写作和编辑三个步骤。
  */
@@ -71,14 +74,13 @@ fun main() = runBlocking {
     val contentCreationWorkflow = workflow {
         name = "content-creation"
         description = "创建高质量内容的工作流"
-        // 注意：超时时间在执行时设置
 
         step(researchAgent) {
             id = "research"
             name = "研究"
             description = "研究指定主题"
             variables = mapOf(
-                "topic" to variable("$.input.topic")
+                "topic" to VariableReference("人工智能在医疗领域的应用")
             )
         }
 
@@ -86,9 +88,9 @@ fun main() = runBlocking {
             id = "writing"
             name = "写作"
             description = "根据研究结果撰写文章"
-            after("research")
+            after = mutableListOf("research")
             variables = mapOf(
-                "research" to variable("$.steps.research.output.text")
+                "research" to VariableReference("$.steps.research.output.text")
             )
         }
 
@@ -96,9 +98,9 @@ fun main() = runBlocking {
             id = "editing"
             name = "编辑"
             description = "编辑和优化文章"
-            after("writing")
+            after = mutableListOf("writing")
             variables = mapOf(
-                "draft" to variable("$.steps.writing.output.text")
+                "draft" to VariableReference("$.steps.writing.output.text")
             )
         }
     }
@@ -106,48 +108,21 @@ fun main() = runBlocking {
     println("=== 内容创作工作流示例 ===")
     println("正在执行工作流...")
 
-    // 流式执行工作流
-    val topic = "人工智能在医疗领域的应用"
-    val input = mapOf("topic" to topic)
-
-    contentCreationWorkflow.streamExecute(input).collect { update ->
-        when (update.status) {
-            ai.kastrax.core.workflow.WorkflowStatus.STARTED -> {
-                println("工作流开始执行")
-            }
-            ai.kastrax.core.workflow.WorkflowStatus.IN_PROGRESS -> {
-                println("正在执行: ${update.stepId} (${update.progress}%)")
-                if (update.result != null) {
-                    println("步骤完成: ${update.stepId}")
-                }
-            }
-            ai.kastrax.core.workflow.WorkflowStatus.COMPLETED -> {
-                println("工作流执行完成 (100%)")
-            }
-            ai.kastrax.core.workflow.WorkflowStatus.FAILED -> {
-                println("工作流执行失败: ${update.message}")
-            }
-        }
-    }
-
     // 执行工作流并获取结果
     val options = WorkflowExecuteOptions(
         timeout = 30.minutes.inWholeMilliseconds // 增加超时时间到 30 分钟
     )
 
-    println("=== 内容创作工作流示例 ===")
-    println("正在执行工作流...")
-
     // 使用流式执行显示进度
     var workflowResult: Map<String, Any?> = emptyMap()
     var workflowSuccess = false
 
-    contentCreationWorkflow.streamExecute(input, options).collect { update ->
+    contentCreationWorkflow.streamExecute(emptyMap(), options).collect { update ->
         when (update.status) {
-            ai.kastrax.core.workflow.WorkflowStatus.STARTED -> {
+            WorkflowStatus.STARTED -> {
                 println("工作流开始执行")
             }
-            ai.kastrax.core.workflow.WorkflowStatus.IN_PROGRESS -> {
+            WorkflowStatus.IN_PROGRESS -> {
                 println("正在执行: ${update.stepId} (${update.progress}%)")
                 if (update.result != null) {
                     println("步骤完成: ${update.stepId}")
@@ -160,12 +135,12 @@ fun main() = runBlocking {
                     }
                 }
             }
-            ai.kastrax.core.workflow.WorkflowStatus.COMPLETED -> {
+            WorkflowStatus.COMPLETED -> {
                 println("工作流执行完成 (100%)")
                 workflowSuccess = true
                 // 工作流已经完成，使用已收集的结果
             }
-            ai.kastrax.core.workflow.WorkflowStatus.FAILED -> {
+            WorkflowStatus.FAILED -> {
                 println("工作流执行失败: ${update.message}")
             }
         }

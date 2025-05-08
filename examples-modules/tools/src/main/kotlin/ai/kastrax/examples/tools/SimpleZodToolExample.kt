@@ -1,4 +1,4 @@
-package ai.kastrax.examples
+package ai.kastrax.examples.tools
 
 import ai.kastrax.core.tools.Tool
 import ai.kastrax.core.tools.zodTool
