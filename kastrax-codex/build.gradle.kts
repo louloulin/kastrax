@@ -9,8 +9,8 @@ import java.util.*
 
 plugins {
     id("codegpt.java-conventions")
-    alias(libs.plugins.changelog)
-    alias(libs.plugins.protobuf)
+    id("org.jetbrains.changelog") version "2.2.1"
+    id("com.google.protobuf") version "0.9.4"
 }
 
 group = "ai.kastrax"
@@ -52,7 +52,7 @@ group = properties("pluginGroup").get()
 version = properties("pluginVersion").get() + "-" + properties("pluginSinceBuild").get()
 
 checkstyle {
-    toolVersion = libs.versions.checkstyle.get()
+    toolVersion = "10.15.0"
 }
 
 repositories {
@@ -76,29 +76,25 @@ dependencies {
     implementation(project(":codegpt-telemetry"))
     implementation(project(":codegpt-treesitter"))
 
-    implementation(platform(libs.jackson.bom))
+    implementation(platform("com.fasterxml.jackson:jackson-bom:2.18.3"))
     implementation("com.fasterxml.jackson.datatype:jackson-datatype-jdk8")
     implementation("com.fasterxml.jackson.datatype:jackson-datatype-jsr310")
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
-    implementation(libs.flexmark.all) {
+    implementation("com.vladsch.flexmark:flexmark-all:0.64.8") {
         // vulnerable transitive dependency
         exclude(group = "org.jsoup", module = "jsoup")
     }
     implementation(kotlin("stdlib"))
     implementation(kotlin("reflect"))
-    implementation(libs.jsoup)
-    implementation(libs.commons.text)
-    implementation(libs.jtokkit)
-    implementation(libs.grpc.protobuf)
-    implementation(libs.grpc.stub)
-    implementation(libs.grpc.netty.shaded)
+    implementation("org.jsoup:jsoup:1.19.1")
+    implementation("org.apache.commons:commons-text:1.13.0")
+    implementation("com.knuddels:jtokkit:1.1.0")
+    implementation("io.grpc:grpc-protobuf:1.71.0")
+    implementation("io.grpc:grpc-stub:1.71.0")
+    implementation("io.grpc:grpc-netty-shaded:1.71.0")
     testImplementation(kotlin("test"))
 }
 
-tasks.register<Exec>("updateSubmodules") {
-    workingDir(rootDir)
-    commandLine("git", "submodule", "update", "--init", "--recursive")
-}
 
 /**
  * Task to run a custom IntelliJ IDEA sandbox.
@@ -168,13 +164,6 @@ tasks {
         })
     }
 
-    prepareSandbox {
-        enabled = true
-        dependsOn("updateSubmodules")
-        from("src/main/cpp/llama.cpp") {
-            into("ProxyAI/llama.cpp")
-        }
-    }
 
     signPlugin {
         enabled = true
@@ -213,11 +202,11 @@ tasks {
 
 protobuf {
     protoc {
-        artifact = libs.protobuf.protoc.get().toString()
+        artifact = "com.google.protobuf:protoc:3.25.1"
     }
     plugins {
         create("grpc") {
-            artifact = libs.protobuf.java.get().toString()
+            artifact = "io.grpc:protoc-gen-grpc-java:1.71.0"
         }
     }
     generateProtoTasks {

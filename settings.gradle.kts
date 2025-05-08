@@ -17,6 +17,15 @@ pluginManagement {
     }
 }
 
+// 为kastrax-codex模块配置版本目录
+dependencyResolutionManagement {
+    versionCatalogs {
+        create("libs") {
+            from(files("kastrax-codex/gradle/libs.versions.toml"))
+        }
+    }
+}
+
 rootProject.name = "kastrax"
 
 include(":kastrax-core")
@@ -63,6 +72,7 @@ include(":kastrax-a2a")
 include(":kastrax-a2x")
 include(":kastrax-actor")
 include(":kactor")
+include(":kastrax-codex")
 
 // Include kactor subprojects
 include(":kactor:proto-mailbox")
