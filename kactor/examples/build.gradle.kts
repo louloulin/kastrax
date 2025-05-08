@@ -5,7 +5,8 @@ plugins {
 }
 
 application {
-    mainClass.set("ai.kastrax.examples.agent.AdaptiveAgentExample")
+    // 设置主类为HelloWorld
+    mainClass.set("ai.kastrax.examples.HelloWorld")
 }
 
 dependencies {
@@ -21,6 +22,8 @@ dependencies {
     add("implementation", project(":kastrax-zod"))
     add("implementation", project(":kastrax-rag"))
     add("implementation", project(":kastrax-integrations:kastrax-deepseek"))
+    add("implementation", project(":kastrax-integrations:kastrax-openai"))
+    add("implementation", project(":fastembed-kotlin"))
 
     // Kactor dependencies
     add("implementation", project(":kactor:proto-actor"))
@@ -32,6 +35,11 @@ dependencies {
 
     // Actor integration
     add("implementation", project(":kastrax-actor"))
+
+    // 添加其他可能需要的依赖
+    add("implementation", "org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.0")
+    add("implementation", "io.ktor:ktor-client-core:3.1.2")
+    add("implementation", "io.ktor:ktor-client-okhttp:3.1.2")
 }
 
 // Task to run ProtobufPersistenceExample
@@ -169,57 +177,33 @@ tasks.register("printClasspath") {
     }
 }
 
+// 通用任务，用于运行任何示例
+tasks.register<JavaExec>("runExample") {
+    group = "examples"
+    description = "Run any example by providing the example name as a parameter"
+    classpath = sourceSets["main"].runtimeClasspath
+
+    // 默认使用DynamicWorkflowExample作为示例
+    val exampleName = project.findProperty("example")?.toString() ?: "workflow.DynamicWorkflowExample"
+    mainClass.set("ai.kastrax.examples.${exampleName}Kt")
+
+    jvmArgs = listOf("-Xms512m", "-Xmx1g")
+
+    // 设置DeepSeek API密钥
+    environment("DEEPSEEK_API_KEY", "sk-85e83081df28490b9ae63188f0cb4f79")
+    // 设置OpenAI API密钥（如果需要）
+    environment("OPENAI_API_KEY", project.findProperty("openaiApiKey")?.toString() ?: "")
+
+    doFirst {
+        println("Running example: $exampleName")
+        println("Using classpath: ${classpath.asPath}")
+    }
+}
+
 sourceSets {
     main {
         kotlin {
-            // 只包含已修复的文件
-            include(
-                "**/DeepSeekExample.kt",
-                "**/DeepSeekStreamingExample.kt",
-                "**/DeepSeekDirectStreamingExample.kt",
-                "**/MemoryAgentExample.kt",
-                "**/MemorySystemExample.kt",
-                "**/SimpleZodToolExample.kt",
-                "**/tools/ToolsExample.kt",
-                "**/agent/CreativeAgentExample.kt",
-                "**/agent/DeepseekAgentExample.kt",
-                "**/agent/DeepseekToolAgentExample.kt",
-                "**/agent/DeepseekArchitectureExample.kt",
-                "**/agent/DeepseekMemoryExample.kt",
-                "**/agent/DeepseekExamples.kt",
-                "**/agent/DeepseekMain.kt",
-                "**/CalculatorExample.kt",
-                "**/memory/SemanticSearchExample.kt",
-                "**/memory/EnhancedMemoryExample.kt",
-                "**/workflow/EnhancedWorkflowExample.kt",
-                "**/EnhancedRagExample.kt",
-                "**/EnhancedRetrievalExample.kt",
-                "**/EnhancedDocumentProcessingExample.kt",
-                "**/agent/AdaptiveAgentExample.kt",
-                "**/agent/AdvancedAgentExample.kt",
-                "**/agent/AgentStateExample.kt",
-                "**/agent/AgentVersioningExample.kt",
-                "**/agent/GoalOrientedAgentExample.kt",
-                "**/agent/ReflectiveAgentExample.kt",
-                "**/agent/HierarchicalAgentExample.kt"
-            )
-            // 排除有问题的文件
-            exclude(
-                "**/AdvancedWorkflowExample.kt",
-                "**/RAGExample.kt",
-                "**/RAGWorkflowExample.kt",
-                "**/WorkflowExample.kt",
-                "**/FastEmbedRAGExample.kt",
-                "**/agent/AgentNetworkExample.kt",
-                "**/DataSourceExample.kt",
-                "**/AdvancedZodToolExample.kt",
-                "**/DataClassZodToolExample.kt",
-                "**/ZodAdvancedToolExample.kt",
-                "**/ZodAgentExample.kt",
-                "**/ZodCalculatorExample.kt",
-                "**/ZodCalculatorToolExample.kt",
-                "**/WorkflowRetryExample.kt"
-            )
+            // 不排除任何文件，允许所有示例编译
         }
     }
 
@@ -280,4 +264,109 @@ tasks.register<JavaExec>("runExamplesState") {
     mainClass.set("ai.kastrax.examples.RunAllAgentExamples")
     args = listOf("state")
     jvmArgs = listOf("-Xms512m", "-Xmx1g")
+}
+
+// Task to run WorkingMemoryExample
+tasks.register<JavaExec>("runWorkingMemoryExample") {
+    group = "examples"
+    description = "Run the WorkingMemoryExample"
+    classpath = sourceSets["main"].runtimeClasspath
+    mainClass.set("ai.kastrax.examples.memory.WorkingMemoryExampleKt")
+    jvmArgs = listOf("-Xms512m", "-Xmx1g")
+    // 设置DeepSeek API密钥
+    environment("DEEPSEEK_API_KEY", "sk-85e83081df28490b9ae63188f0cb4f79")
+    doFirst {
+        println("Running WorkingMemoryExample...")
+        println("Using classpath: ${classpath.asPath}")
+    }
+}
+
+// Task to run RAGExample
+tasks.register<JavaExec>("runRAGExample") {
+    group = "examples"
+    description = "Run the RAGExample"
+    classpath = sourceSets["main"].runtimeClasspath
+    mainClass.set("ai.kastrax.examples.RAGExampleKt")
+    jvmArgs = listOf("-Xms512m", "-Xmx1g")
+    // 设置DeepSeek API密钥
+    environment("DEEPSEEK_API_KEY", "sk-85e83081df28490b9ae63188f0cb4f79")
+    doFirst {
+        println("Running RAGExample...")
+        println("Using classpath: ${classpath.asPath}")
+    }
+}
+
+// Task to run RAGWorkflowExample
+tasks.register<JavaExec>("runRAGWorkflowExample") {
+    group = "examples"
+    description = "Run the RAGWorkflowExample"
+    classpath = sourceSets["main"].runtimeClasspath
+    mainClass.set("ai.kastrax.examples.RAGWorkflowExampleKt")
+    jvmArgs = listOf("-Xms512m", "-Xmx1g")
+    // 设置DeepSeek API密钥
+    environment("DEEPSEEK_API_KEY", "sk-85e83081df28490b9ae63188f0cb4f79")
+    doFirst {
+        println("Running RAGWorkflowExample...")
+        println("Using classpath: ${classpath.asPath}")
+    }
+}
+
+// Task to run FastEmbedRAGExample
+tasks.register<JavaExec>("runFastEmbedRAGExample") {
+    group = "examples"
+    description = "Run the FastEmbedRAGExample"
+    classpath = sourceSets["main"].runtimeClasspath
+    mainClass.set("ai.kastrax.examples.FastEmbedRAGExampleKt")
+    jvmArgs = listOf("-Xms512m", "-Xmx1g")
+    // 设置DeepSeek API密钥
+    environment("DEEPSEEK_API_KEY", "sk-85e83081df28490b9ae63188f0cb4f79")
+    doFirst {
+        println("Running FastEmbedRAGExample...")
+        println("Using classpath: ${classpath.asPath}")
+    }
+}
+
+// Task to run DynamicWorkflowExample
+tasks.register<JavaExec>("runDynamicWorkflowExample") {
+    group = "examples"
+    description = "Run the DynamicWorkflowExample"
+    classpath = sourceSets["main"].runtimeClasspath
+    mainClass.set("ai.kastrax.examples.workflow.DynamicWorkflowExampleKt")
+    jvmArgs = listOf("-Xms512m", "-Xmx1g")
+    // 设置DeepSeek API密钥
+    environment("DEEPSEEK_API_KEY", "sk-85e83081df28490b9ae63188f0cb4f79")
+    doFirst {
+        println("Running DynamicWorkflowExample...")
+        println("Using classpath: ${classpath.asPath}")
+    }
+}
+
+// Task to run WorkflowExample
+tasks.register<JavaExec>("runWorkflowExample") {
+    group = "examples"
+    description = "Run the WorkflowExample"
+    classpath = sourceSets["main"].runtimeClasspath
+    mainClass.set("ai.kastrax.examples.WorkflowExampleKt")
+    jvmArgs = listOf("-Xms512m", "-Xmx1g")
+    // 设置DeepSeek API密钥
+    environment("DEEPSEEK_API_KEY", "sk-85e83081df28490b9ae63188f0cb4f79")
+    doFirst {
+        println("Running WorkflowExample...")
+        println("Using classpath: ${classpath.asPath}")
+    }
+}
+
+// Task to run AdvancedWorkflowExample
+tasks.register<JavaExec>("runAdvancedWorkflowExample") {
+    group = "examples"
+    description = "Run the AdvancedWorkflowExample"
+    classpath = sourceSets["main"].runtimeClasspath
+    mainClass.set("ai.kastrax.examples.workflow.AdvancedWorkflowExampleKt")
+    jvmArgs = listOf("-Xms512m", "-Xmx1g")
+    // 设置DeepSeek API密钥
+    environment("DEEPSEEK_API_KEY", "sk-85e83081df28490b9ae63188f0cb4f79")
+    doFirst {
+        println("Running AdvancedWorkflowExample...")
+        println("Using classpath: ${classpath.asPath}")
+    }
 }
