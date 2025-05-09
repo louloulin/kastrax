@@ -25,8 +25,9 @@ import ai.kastrax.rag.retrieval.SemanticRetriever
 import ai.kastrax.rag.retrieval.SemanticRetrieverConfig
 import ai.kastrax.rag.retrieval.TfIdfKeywordExtractor
 import ai.kastrax.rag.retrieval.TopKRetriever
-import ai.kastrax.rag.vectorstore.SearchResult
+import ai.kastrax.rag.model.SearchResult
 import ai.kastrax.rag.vectorstore.RagVectorStore
+import ai.kastrax.rag.adapter.RagVectorStoreFactory
 import io.github.oshai.kotlinlogging.KotlinLogging
 
 private val logger = KotlinLogging.logger {}
@@ -74,6 +75,26 @@ class RAG(
     private val reranker: Reranker = IdentityReranker(),
     private val defaultOptions: RagProcessOptions = RagProcessOptions()
 ) {
+    /**
+     * 使用 VectorStore 创建 RAG 实例。
+     *
+     * @param vectorStore 向量存储
+     * @param embeddingService 嵌入服务
+     * @param reranker 重排序器
+     * @param defaultOptions 默认的 RAG 处理选项
+     * @return RAG 实例
+     */
+    companion object {
+        fun fromVectorStore(
+            vectorStore: ai.kastrax.store.VectorStore,
+            embeddingService: EmbeddingService,
+            reranker: Reranker = IdentityReranker(),
+            defaultOptions: RagProcessOptions = RagProcessOptions()
+        ): RAG {
+            val ragVectorStore = ai.kastrax.rag.adapter.RagVectorStoreFactory.adaptVectorStore(vectorStore)
+            return RAG(ragVectorStore, embeddingService, reranker, defaultOptions)
+        }
+    }
     /**
      * 从文档加载器加载文档并添加到向量存储。
      *
@@ -155,8 +176,8 @@ class RAG(
      */
     private fun createRetriever(options: RagProcessOptions): ai.kastrax.rag.retriever.Retriever {
         // 创建向量存储检索器
-        val vectorStoreRetriever = RetrieverFactory.createVectorStoreRetriever(
-            vectorStore = RagVectorStoreFactory.fromVectorStore(vectorStore.getVectorStore()),
+        val vectorStoreRetriever = ai.kastrax.rag.retriever.RetrieverFactory.createVectorStoreRetriever(
+            vectorStore = vectorStore,
             embeddingService = embeddingService
         )
 
@@ -176,7 +197,16 @@ class RAG(
                         }
 
                         override suspend fun search(query: String, limit: Int): List<RagDocument> {
-                            return emptyList()
+                            // 使用向量存储的关键词搜索
+                            val keywords = query.split(" ").filter { it.length > 2 }
+                            val results = vectorStore.keywordSearch(keywords, limit)
+                            return results.map { result ->
+                                RagDocument(
+                                    id = result.id,
+                                    content = result.content,
+                                    metadata = result.metadata + ("score" to result.score)
+                                )
+                            }
                         }
 
                         override suspend fun searchWithFilter(query: String, filter: Map<String, Any>, limit: Int): List<RagDocument> {
@@ -192,7 +222,9 @@ class RAG(
                 // 创建混合检索器
                 HybridRetriever(
                     vectorRetriever = vectorStoreRetriever,
-                    keywordRetriever = keywordRetriever
+                    keywordRetriever = keywordRetriever,
+                    vectorWeight = options.hybridOptions.vectorWeight,
+                    keywordWeight = options.hybridOptions.keywordWeight
                 )
             }
             else -> {

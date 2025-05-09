@@ -1,13 +1,12 @@
 package ai.kastrax.rag.document
 
 /**
- * RAG 文档。
- * 表示一个可以用于检索增强生成的文档。
+ * RAG 文档类，表示一个用于检索增强生成的文档。
  *
  * @property id 文档 ID
  * @property content 文档内容
- * @property metadata 文档元数据
- * @property embedding 文档嵌入向量
+ * @property metadata 元数据
+ * @property embedding 嵌入向量
  */
 data class RagDocument(
     val id: String,
@@ -15,15 +14,6 @@ data class RagDocument(
     val metadata: Map<String, Any> = emptyMap(),
     val embedding: FloatArray? = null
 ) {
-    /**
-     * 获取文档的分数。
-     * 如果元数据中包含 score 字段，则返回该字段的值，否则返回 0.0。
-     *
-     * @return 文档分数
-     */
-    val score: Double
-        get() = metadata["score"] as? Double ?: 0.0
-
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (javaClass != other?.javaClass) return false

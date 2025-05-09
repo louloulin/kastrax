@@ -1,6 +1,7 @@
 package ai.kastrax.rag.vectorstore
 
 import ai.kastrax.store.VectorStoreFactory
+import ai.kastrax.rag.adapter.RagVectorStoreAdapter
 import io.github.oshai.kotlinlogging.KotlinLogging
 
 private val logger = KotlinLogging.logger {}
