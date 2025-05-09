@@ -268,6 +268,86 @@ class RAG(
     }
 
     /**
+     * 生成带元数据的上下文。
+     *
+     * @param query 查询文本
+     * @param limit 返回结果的最大数量
+     * @param minScore 最小相似度分数
+     * @param options RAG 处理选项，如果为 null，则使用默认选项
+     * @return 生成的上下文和元数据
+     */
+    suspend fun generateContextWithMetadata(
+        query: String,
+        limit: Int = 5,
+        minScore: Double = 0.0,
+        options: RagProcessOptions? = null
+    ): Pair<String, Map<String, Any>> {
+        try {
+            val opts = options ?: defaultOptions
+
+            // 搜索文档
+            val results = search(query, limit, minScore, opts)
+
+            if (results.isEmpty()) {
+                logger.warn { "No documents found for query: $query" }
+                return Pair("", emptyMap())
+            }
+
+            // 创建上下文构建器
+            val contextBuilder = ContextBuilder(opts.contextOptions)
+
+            // 构建上下文
+            val context = contextBuilder.buildContext(query, results)
+
+            // 收集元数据
+            val metadata = mutableMapOf<String, Any>(
+                "query" to query,
+                "result_count" to results.size,
+                "min_score" to minScore,
+                "max_score" to (results.maxOfOrNull { it.score } ?: 0.0),
+                "avg_score" to (results.map { it.score }.average()),
+                "document_ids" to results.map { it.document.id },
+                "timestamp" to System.currentTimeMillis()
+            )
+
+            return Pair(context, metadata)
+        } catch (e: Exception) {
+            logger.error(e) { "Error generating context with metadata" }
+            return Pair("", emptyMap())
+        }
+    }
+
+    /**
+     * 获取相似度分数。
+     *
+     * @param query 查询文本
+     * @param documentIds 文档 ID 列表
+     * @return 相似度分数映射
+     */
+    suspend fun getSimilarityScores(
+        query: String,
+        documentIds: List<String>
+    ): Map<String, Double> {
+        try {
+            if (documentIds.isEmpty()) {
+                return emptyMap()
+            }
+
+            // 搜索文档
+            val results = search(query, limit = documentIds.size * 2)
+
+            // 创建 ID 到分数的映射
+            val scoreMap = results.associate { it.document.id to it.score }
+
+            // 返回指定文档的分数
+            return documentIds.associateWith { id -> scoreMap[id] ?: 0.0 }
+        } catch (e: Exception) {
+            logger.error(e) { "Error getting similarity scores" }
+            return emptyMap()
+        }
+    }
+
+    /**
      * 创建检索器。
      *
      * @param options RAG 处理选项

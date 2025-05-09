@@ -71,6 +71,18 @@ dependencies {
     implementation("org.graalvm.sdk:graal-sdk:24.2.0")
     implementation("org.graalvm.truffle:truffle-api:24.2.0")
 
+    // PDF processing
+    implementation("org.apache.pdfbox:pdfbox:2.0.29")
+
+    // CSV processing
+    implementation("org.apache.commons:commons-csv:1.10.0")
+
+    // HTML processing
+    implementation("org.jsoup:jsoup:1.16.2")
+
+    // Token counting
+    implementation("com.knuddels:jtokkit:0.6.1")
+
     // FAISS (optional, for vector search)
     // Note: FAISS JNI bindings need to be installed separately
     // Uncomment the following line when FAISS JNI bindings are available
