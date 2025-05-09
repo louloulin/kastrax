@@ -393,7 +393,15 @@ class RagEvaluationTool(
    - GraphEdge
    - GraphRAG
    - GraphRAGTool
-10. 编写了单元测试，测试了各个模块的功能
+10. 实现了 RAG 评估和优化工具
+   - RagEvaluationTool
+   - RagOptimizationTool
+   - RagBenchmarkTool
+11. 编写了集成测试和性能测试
+   - RagIntegrationTest
+   - RagPerformanceTest
+   - RagEndToEndTest
+12. 编写了单元测试，测试了各个模块的功能
    - RAGTest
    - PdfDocumentLoaderTest
    - DocumentCleanerTest
@@ -404,17 +412,15 @@ class RagEvaluationTool(
    - FastEmbedKotlinEmbeddingServiceTest
    - GraphRAGTest
    - GraphRAGToolTest
-11. 编写了示例代码，展示了如何使用 RAG 模块
+13. 编写了示例代码，展示了如何使用 RAG 模块
     - SimpleRagExample
     - FastEmbedKotlinExample
     - GraphRAGExample
+    - AdvancedRagExample
 
 下一步计划：
 
-1. 编写集成测试，测试各个模块之间的交互
-2. 编写性能测试，测试 RAG 系统的性能
-3. 编写端到端测试，测试完整的 RAG 流程
-4. 编写文档，包括 API 文档、使用指南、架构文档和扩展指南
+1. 编写文档，包括 API 文档、使用指南、架构文档和扩展指南
 
 ## 成果总结
 
