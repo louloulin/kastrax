@@ -5,6 +5,7 @@ import ai.kastrax.store.document.Document
 import ai.kastrax.store.document.DocumentSearchResult
 import ai.kastrax.store.document.DocumentVectorStore
 import ai.kastrax.store.VectorStore
+import ai.kastrax.store.VectorStoreFactory
 import ai.kastrax.store.document.RagDocument
 import ai.kastrax.store.document.SearchResult
 import kotlinx.coroutines.runBlocking

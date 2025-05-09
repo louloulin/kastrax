@@ -9,7 +9,7 @@ private val logger = KotlinLogging.logger {}
 /**
  * 多模态嵌入服务接口，支持文本、图像、音频和视频等多种模态的嵌入。
  */
-interface MultimodalEmbeddingService : EmbeddingService {
+interface MultimodalEmbeddingService : ai.kastrax.store.embedding.EmbeddingService {
     /**
      * 生成图像的嵌入向量。
      *
@@ -17,7 +17,7 @@ interface MultimodalEmbeddingService : EmbeddingService {
      * @return 嵌入向量
      */
     suspend fun embedImage(imageUrl: String): FloatArray
-    
+
     /**
      * 生成音频的嵌入向量。
      *
@@ -25,7 +25,7 @@ interface MultimodalEmbeddingService : EmbeddingService {
      * @return 嵌入向量
      */
     suspend fun embedAudio(audioUrl: String): FloatArray
-    
+
     /**
      * 生成视频的嵌入向量。
      *
@@ -33,7 +33,7 @@ interface MultimodalEmbeddingService : EmbeddingService {
      * @return 嵌入向量
      */
     suspend fun embedVideo(videoUrl: String): FloatArray
-    
+
     /**
      * 生成多模态文档的嵌入向量。
      *
@@ -88,7 +88,7 @@ interface MultimodalEmbeddingService : EmbeddingService {
                         else -> FloatArray(0)
                     }
                 }.filter { it.isNotEmpty() }
-                
+
                 if (mediaEmbeddings.isEmpty()) {
                     textEmbedding
                 } else {
@@ -98,7 +98,7 @@ interface MultimodalEmbeddingService : EmbeddingService {
             }
         }
     }
-    
+
     /**
      * 生成多个多模态文档的嵌入向量。
      *
@@ -108,7 +108,7 @@ interface MultimodalEmbeddingService : EmbeddingService {
     suspend fun embedMultimodalDocuments(documents: List<MultimodalDocument>): List<FloatArray> {
         return documents.map { embedMultimodalDocument(it) }
     }
-    
+
     /**
      * 组合两个嵌入向量。
      *
@@ -120,13 +120,13 @@ interface MultimodalEmbeddingService : EmbeddingService {
         // 如果维度不同，需要进行调整
         val dim1 = embedding1.size
         val dim2 = embedding2.size
-        
+
         if (dim1 == dim2) {
             // 简单平均
             val result = FloatArray(dim1) { i ->
                 (embedding1[i] + embedding2[i]) / 2
             }
-            
+
             // 归一化
             val norm = sqrt(result.sumOf { it * it.toDouble() })
             if (norm > 0) {
@@ -134,23 +134,23 @@ interface MultimodalEmbeddingService : EmbeddingService {
                     result[i] = (result[i] / norm).toFloat()
                 }
             }
-            
+
             return result
         } else {
             // 维度不同，使用截断或填充
             val maxDim = maxOf(dim1, dim2)
             val result = FloatArray(maxDim)
-            
+
             // 复制第一个嵌入向量
             for (i in 0 until minOf(dim1, maxDim)) {
                 result[i] = embedding1[i]
             }
-            
+
             // 组合第二个嵌入向量
             for (i in 0 until minOf(dim2, maxDim)) {
                 result[i] = (result[i] + embedding2[i]) / 2
             }
-            
+
             // 归一化
             val norm = sqrt(result.sumOf { it * it.toDouble() })
             if (norm > 0) {
@@ -158,11 +158,11 @@ interface MultimodalEmbeddingService : EmbeddingService {
                     result[i] = (result[i] / norm).toFloat()
                 }
             }
-            
+
             return result
         }
     }
-    
+
     /**
      * 组合多个嵌入向量。
      *
@@ -173,19 +173,19 @@ interface MultimodalEmbeddingService : EmbeddingService {
         if (embeddings.isEmpty()) {
             return FloatArray(0)
         }
-        
+
         if (embeddings.size == 1) {
             return embeddings[0]
         }
-        
+
         var result = embeddings[0]
         for (i in 1 until embeddings.size) {
             result = combineEmbeddings(result, embeddings[i])
         }
-        
+
         return result
     }
-    
+
     /**
      * 判断 URL 是否为图像 URL。
      *
@@ -196,7 +196,7 @@ interface MultimodalEmbeddingService : EmbeddingService {
         val imageExtensions = listOf(".jpg", ".jpeg", ".png", ".gif", ".bmp", ".webp")
         return imageExtensions.any { url.lowercase().endsWith(it) }
     }
-    
+
     /**
      * 判断 URL 是否为音频 URL。
      *
@@ -207,7 +207,7 @@ interface MultimodalEmbeddingService : EmbeddingService {
         val audioExtensions = listOf(".mp3", ".wav", ".ogg", ".flac", ".aac", ".m4a")
         return audioExtensions.any { url.lowercase().endsWith(it) }
     }
-    
+
     /**
      * 判断 URL 是否为视频 URL。
      *

@@ -26,6 +26,8 @@ fun main() = runBlocking {
         val dimensions: Int = 1536
         override suspend fun embed(text: String): FloatArray = ragEmbeddingService.embed(text)
         override suspend fun embedBatch(texts: List<String>): List<FloatArray> = ragEmbeddingService.embedBatch(texts)
+        override fun dimension(): Int = dimensions
+        override fun close() {}
     }
 
     // 创建向量存储

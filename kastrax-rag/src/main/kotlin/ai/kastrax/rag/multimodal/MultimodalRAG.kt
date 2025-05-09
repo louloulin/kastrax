@@ -10,6 +10,8 @@ import ai.kastrax.store.document.DocumentVectorStore
 import ai.kastrax.store.document.Document
 import ai.kastrax.store.document.DocumentSearchResult
 import io.github.oshai.kotlinlogging.KotlinLogging
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 private val logger = KotlinLogging.logger {}
 
@@ -46,9 +48,11 @@ class MultimodalRAG(
         // 加载文档和嵌入向量
         // 创建一个实现 EmbeddingService 接口的对象，返回预计算的嵌入向量
         val precomputedEmbeddingService = object : ai.kastrax.store.embedding.EmbeddingService {
-            override val dimensions: Int = embeddingService.dimensions
-            override suspend fun embed(text: String): FloatArray = FloatArray(dimensions)
+            private val dim: Int = documentStore.dimension
+            override suspend fun embed(text: String): FloatArray = FloatArray(dim)
             override suspend fun embedBatch(texts: List<String>): List<FloatArray> = embeddings
+            override fun dimension(): Int = dim
+            override fun close() {}
         }
         return documentStore.addDocuments(standardDocuments, precomputedEmbeddingService)
     }
@@ -122,7 +126,7 @@ class MultimodalRAG(
 
         // 生成上下文
         val contextBuilder = ContextBuilder(options?.contextOptions ?: defaultOptions.contextOptions)
-        return runBlocking { contextBuilder.buildContext(textQuery, results) }
+        return withContext(Dispatchers.IO) { contextBuilder.buildContext(textQuery, results) }
     }
 
     /**
@@ -153,7 +157,7 @@ class MultimodalRAG(
 
         // 生成上下文
         val contextBuilder = ContextBuilder(options?.contextOptions ?: defaultOptions.contextOptions)
-        val context = runBlocking { contextBuilder.buildContext(textQuery, results) }
+        val context = withContext(Dispatchers.IO) { contextBuilder.buildContext(textQuery, results) }
 
         return RetrieveContextResult(context, results.map { it.document })
     }
@@ -166,21 +170,21 @@ class MultimodalRAG(
      * @param options RAG 处理选项
      * @return 生成的上下文
      */
-    private fun generateContext(
+    private suspend fun generateContext(
         results: List<DocumentSearchResult>,
         query: String,
         options: RagProcessOptions? = null
-    ): String {
+    ): String = withContext(Dispatchers.IO) {
         if (results.isEmpty()) {
             logger.warn { "No documents found for query: $query" }
-            return ""
+            return@withContext ""
         }
 
         // 创建上下文构建器
         val contextBuilder = ContextBuilder(options?.contextOptions ?: defaultOptions.contextOptions)
 
         // 构建上下文
-        return contextBuilder.buildContext(query, results)
+        return@withContext contextBuilder.buildContext(query, results)
     }
 
     /**

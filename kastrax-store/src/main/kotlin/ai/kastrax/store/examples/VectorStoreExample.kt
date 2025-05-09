@@ -111,6 +111,14 @@ object RagIntegrationExample {
             override suspend fun embedBatch(texts: List<String>): List<FloatArray> {
                 return texts.map { embed(it) }
             }
+
+            override fun dimension(): Int {
+                return 3
+            }
+
+            override fun close() {
+                // 无需关闭任何资源
+            }
         }
 
         // 添加文档
