@@ -248,7 +248,7 @@ class RAG(
 
             if (results.isEmpty()) {
                 logger.warn { "No documents found for query: $query" }
-                return RetrieveContextResult("", emptyList())
+                return RetrieveContextResult("", emptyList<Document>())
             }
 
             // 创建上下文构建器
@@ -263,7 +263,7 @@ class RAG(
             return RetrieveContextResult(context, documents)
         } catch (e: Exception) {
             logger.error(e) { "Error retrieving context" }
-            return RetrieveContextResult("", emptyList())
+            return RetrieveContextResult("", emptyList<Document>())
         }
     }
 
