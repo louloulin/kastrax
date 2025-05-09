@@ -1,7 +1,7 @@
 package ai.kastrax.rag.reranker
 
 import ai.kastrax.rag.embedding.EmbeddingService
-import ai.kastrax.rag.vectorstore.SearchResult
+import ai.kastrax.rag.model.SearchResult
 import ai.kastrax.rag.util.cosineSimilarity
 import io.github.oshai.kotlinlogging.KotlinLogging
 
@@ -36,21 +36,46 @@ data class ContextAwareRerankerConfig(
  * @property embeddingService 嵌入服务
  * @property config 重排序器配置
  */
-class ContextAwareReranker(
+/**
+ * 上下文感知重排序器接口。
+ * 用于根据上下文对检索结果进行重排序。
+ */
+interface ContextAwareReranker : Reranker {
+
+    /**
+     * 根据上下文对检索结果进行重排序。
+     *
+     * @param query 查询
+     * @param results 检索结果
+     * @param context 上下文
+     * @return 重排序后的结果
+     */
+    suspend fun rerank(query: String, results: List<SearchResult>, context: Map<String, Any>): List<SearchResult>
+}
+
+/**
+ * 上下文感知重排序器，考虑查询的上下文信息来重排序检索结果。
+ *
+ * @property embeddingService 嵌入服务
+ * @property config 重排序器配置
+ */
+class DefaultContextAwareReranker(
     private val embeddingService: EmbeddingService,
     private val config: ContextAwareRerankerConfig = ContextAwareRerankerConfig()
-) : Reranker {
+) : ContextAwareReranker {
 
     /**
      * 对搜索结果进行重排序，考虑查询的上下文信息。
      *
      * @param query 查询文本
      * @param results 原始搜索结果
-     * @param context 查询的上下文信息，默认为空
+     * @param context 查询的上下文信息
      * @return 重排序后的搜索结果
      */
-    suspend fun rerank(query: String, results: List<SearchResult>, context: String): List<SearchResult> {
-        if (results.isEmpty() || context.isEmpty()) {
+    override suspend fun rerank(query: String, results: List<SearchResult>, context: Map<String, Any>): List<SearchResult> {
+        // 获取上下文字符串
+        val contextStr = context["text"] as? String ?: ""
+        if (results.isEmpty() || contextStr.isEmpty()) {
             return rerank(query, results)
         }
 
@@ -58,10 +83,10 @@ class ContextAwareReranker(
 
         try {
             // 截断上下文，确保不超过最大长度
-            val truncatedContext = if (context.length > config.maxContextLength) {
-                context.substring(0, config.maxContextLength)
+            val truncatedContext = if (contextStr.length > config.maxContextLength) {
+                contextStr.substring(0, config.maxContextLength)
             } else {
-                context
+                contextStr
             }
 
             // 计算查询和上下文的嵌入向量

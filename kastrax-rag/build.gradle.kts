@@ -20,6 +20,7 @@ repositories {
 dependencies {
     // Project dependencies
     implementation(project(":kastrax-core"))
+    implementation(project(":kastrax-store"))
     implementation(project(":fastembed-kotlin"))
     implementation(project(":kastrax-evals"))
     implementation(project(":kastrax-integrations:kastrax-deepseek"))

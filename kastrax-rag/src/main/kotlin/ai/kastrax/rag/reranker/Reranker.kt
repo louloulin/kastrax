@@ -1,6 +1,6 @@
 package ai.kastrax.rag.reranker
 
-import ai.kastrax.rag.vectorstore.SearchResult
+import ai.kastrax.rag.model.SearchResult
 import io.github.oshai.kotlinlogging.KotlinLogging
 
 private val logger = KotlinLogging.logger {}

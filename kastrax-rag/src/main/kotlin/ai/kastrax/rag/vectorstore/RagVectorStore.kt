@@ -7,6 +7,17 @@ import ai.kastrax.rag.embedding.EmbeddingService
  */
 interface RagVectorStore {
     /**
+     * 向量维度。
+     */
+    val dimension: Int
+
+    /**
+     * 获取底层向量存储。
+     *
+     * @return 向量存储
+     */
+    fun getVectorStore(): ai.kastrax.store.VectorStore
+    /**
      * 添加文档到向量存储。
      *
      * @param document 文档
@@ -112,61 +123,61 @@ interface RagVectorStore {
      * @param query 查询文本
      * @param embeddingService 嵌入服务
      * @param limit 返回结果的最大数量
-     * @param minScore 最小相似度分数
-     * @return 搜索结果列表，按相似度降序排序
+     * @return 文档列表，按相似度降序排序
      */
     suspend fun similaritySearch(
         query: String,
         embeddingService: EmbeddingService,
-        limit: Int = 5,
-        minScore: Double = 0.0
-    ): List<SearchResult>
+        limit: Int = 5
+    ): List<ai.kastrax.rag.document.RagDocument>
+
+    /**
+     * 使用嵌入向量进行相似度搜索。
+     *
+     * @param embedding 嵌入向量
+     * @param limit 返回结果的最大数量
+     * @return 文档列表，按相似度降序排序
+     */
+    suspend fun similaritySearch(
+        embedding: FloatArray,
+        limit: Int = 5
+    ): List<ai.kastrax.rag.document.RagDocument>
+
+    /**
+     * 使用嵌入向量和过滤器进行相似度搜索。
+     *
+     * @param embedding 嵌入向量
+     * @param filter 过滤器
+     * @param limit 返回结果的最大数量
+     * @return 文档列表，按相似度降序排序
+     */
+    suspend fun similaritySearchWithFilter(
+        embedding: FloatArray,
+        filter: Map<String, Any>,
+        limit: Int = 5
+    ): List<ai.kastrax.rag.document.RagDocument>
 
     /**
      * 使用关键词进行搜索。
      *
      * @param keywords 关键词列表
      * @param limit 返回结果的最大数量
-     * @return 搜索结果列表，按匹配度降序排序
+     * @return 文档列表，按匹配度降序排序
      */
     suspend fun keywordSearch(
         keywords: List<String>,
         limit: Int = 5
-    ): List<SearchResult>
+    ): List<ai.kastrax.rag.document.RagDocument>
 
     /**
      * 使用元数据过滤器进行搜索。
      *
      * @param filter 元数据过滤器
      * @param limit 返回结果的最大数量
-     * @return 搜索结果列表
+     * @return 文档列表
      */
     suspend fun metadataSearch(
         filter: Map<String, Any>,
         limit: Int = 5
-    ): List<SearchResult>
+    ): List<ai.kastrax.rag.document.RagDocument>
 }
-
-/**
- * RAG 文档模型。
- *
- * @property id 文档 ID
- * @property content 文档内容
- * @property metadata 文档元数据
- */
-data class RagDocument(
-    val id: String,
-    val content: String,
-    val metadata: Map<String, String> = emptyMap()
-)
-
-/**
- * 搜索结果模型。
- *
- * @property document 文档
- * @property score 相似度分数
- */
-data class SearchResult(
-    val document: RagDocument,
-    val score: Double
-)

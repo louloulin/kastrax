@@ -1,6 +1,7 @@
 package ai.kastrax.rag.retrieval
 
 import ai.kastrax.rag.embedding.EmbeddingService
+import ai.kastrax.rag.vectorstore.RagDocument
 import ai.kastrax.rag.vectorstore.RagVectorStore
 import ai.kastrax.rag.vectorstore.SearchResult
 import io.github.oshai.kotlinlogging.KotlinLogging
@@ -54,9 +55,9 @@ class HybridRetriever(
      * @param query 查询文本
      * @param limit 返回结果的最大数量
      * @param minScore 最小相似度分数
-     * @return 检索结果列表，按组合分数降序排序
+     * @return 文档列表，按组合分数降序排序
      */
-    override suspend fun retrieve(query: String, limit: Int, minScore: Double): List<SearchResult> {
+    override suspend fun retrieve(query: String, limit: Int, minScore: Double): List<RagDocument> {
         logger.debug { "Retrieving documents for query: $query, limit: $limit, minScore: $minScore" }
 
         try {
@@ -72,7 +73,7 @@ class HybridRetriever(
 
             // 如果没有关键词或关键词权重为 0，直接返回向量搜索结果
             if (keywords.isEmpty() || config.keywordWeight <= 0) {
-                return vectorResults.take(limit)
+                return vectorResults.take(limit).map { it.document }
             }
 
             // 使用关键词搜索
@@ -84,7 +85,7 @@ class HybridRetriever(
             return combinedResults
         } catch (e: Exception) {
             logger.error(e) { "Error retrieving documents for query: $query" }
-            return emptyList()
+            return emptyList<RagDocument>()
         }
     }
 
@@ -142,7 +143,7 @@ class HybridRetriever(
         }
 
         // 按组合分数降序排序并限制结果数量
-        return combinedResults.sortedByDescending { it.score }.take(limit)
+        return combinedResults.sortedByDescending { it.score }.take(limit).map { it.document }
     }
 
     /**

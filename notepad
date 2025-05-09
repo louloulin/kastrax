@@ -57,3 +57,6 @@
 
         按照 @ax.md 实现kastrax-codex编程助手功能，充分利用kastrax ai agent强大的能力实现，实现后增加测试验证，验证通过更新 @ax.md  标记实现的功能,不要作为子项目，4. 使用composite build（复合构建）
     Gradle的composite build允许您在不创建子模块的情况下包含其他Gradle项目：
+
+
+@vector.md ，参考mastra代码，分析整个vector和rag实现，,改造vector store存储，实现相关功能，实现后增加测试验证，验证通过后 更新 @vector.md 标记实现的功能，中文说明，并按章节编写文档

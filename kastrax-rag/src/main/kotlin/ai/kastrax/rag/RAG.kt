@@ -4,6 +4,7 @@ import ai.kastrax.rag.context.ContextBuilder
 import ai.kastrax.rag.context.ContextBuilderConfig
 import ai.kastrax.rag.document.*
 import ai.kastrax.rag.embedding.EmbeddingService
+import ai.kastrax.rag.model.SearchResult
 import ai.kastrax.rag.query.CompositeQueryTransformer
 import ai.kastrax.rag.query.DecompositionQueryTransformer
 import ai.kastrax.rag.query.NormalizationQueryTransformer
@@ -126,7 +127,9 @@ class RAG(
         val retriever = createRetriever(opts)
 
         // 使用检索器获取初始结果
-        val initialResults = retriever.retrieve(query, limit, minScore)
+        val initialResults = retriever.retrieve(query, limit)
+            .filter { it.score >= minScore }
+            .map { doc -> SearchResult(doc.id, doc.content, doc.score, doc.metadata) }
 
         // 如果需要，应用重排序
         return if (initialResults.isNotEmpty()) {
@@ -150,56 +153,52 @@ class RAG(
      * @param options RAG 处理选项
      * @return 检索器
      */
-    private fun createRetriever(options: RagProcessOptions): Retriever {
-        // 首先创建基础检索器
-        val baseRetriever = when {
-            options.useEnhancedHybridSearch -> {
-                logger.debug { "Using enhanced hybrid retriever with options: ${options.enhancedHybridOptions}" }
-                EnhancedHybridRetriever(
-                    vectorStore = vectorStore,
-                    embeddingService = embeddingService,
-                    keywordExtractor = TfIdfKeywordExtractor(),
-                    config = options.enhancedHybridOptions
-                )
-            }
+    private fun createRetriever(options: RagProcessOptions): ai.kastrax.rag.retriever.Retriever {
+        // 创建向量存储检索器
+        val vectorStoreRetriever = RetrieverFactory.createVectorStoreRetriever(
+            vectorStore = RagVectorStoreFactory.fromVectorStore(vectorStore.getVectorStore()),
+            embeddingService = embeddingService
+        )
+
+        // 根据选项创建检索器
+        return when {
             options.useHybridSearch -> {
-                logger.debug { "Using hybrid retriever with options: ${options.hybridOptions}" }
-                HybridRetriever(
-                    vectorStore = vectorStore,
-                    embeddingService = embeddingService,
-                    keywordExtractor = TfIdfKeywordExtractor(),
-                    config = options.hybridOptions
+                logger.debug { "Using hybrid retriever" }
+                // 创建关键词检索器
+                val keywordRetriever = KeywordRetriever(
+                    keywordIndex = object : KeywordIndex {
+                        override suspend fun addDocuments(documents: List<RagDocument>): Boolean {
+                            return true
+                        }
+
+                        override suspend fun deleteDocuments(ids: List<String>): Boolean {
+                            return true
+                        }
+
+                        override suspend fun search(query: String, limit: Int): List<RagDocument> {
+                            return emptyList()
+                        }
+
+                        override suspend fun searchWithFilter(query: String, filter: Map<String, Any>, limit: Int): List<RagDocument> {
+                            return emptyList()
+                        }
+
+                        override suspend fun searchByMetadata(filter: Map<String, Any>, limit: Int): List<RagDocument> {
+                            return emptyList()
+                        }
+                    }
                 )
-            }
-            options.useSemanticRetrieval -> {
-                logger.debug { "Using semantic retriever with options: ${options.semanticOptions}" }
-                SemanticRetriever(
-                    vectorStore = vectorStore,
-                    embeddingService = embeddingService,
-                    config = options.semanticOptions
+
+                // 创建混合检索器
+                HybridRetriever(
+                    vectorRetriever = vectorStoreRetriever,
+                    keywordRetriever = keywordRetriever
                 )
             }
             else -> {
-                logger.debug { "Using top-k retriever" }
-                TopKRetriever(vectorStore, embeddingService)
+                logger.debug { "Using vector store retriever" }
+                vectorStoreRetriever
             }
-        }
-
-        // 如果启用了查询增强，则包装基础检索器
-        return if (options.useQueryEnhancement) {
-            logger.debug { "Using query enhanced retriever with options: ${options.queryEnhancementOptions}" }
-
-            // 创建查询转换器
-            val queryTransformer = createQueryTransformer()
-
-            // 创建查询增强检索器
-            QueryEnhancedRetriever(
-                baseRetriever = baseRetriever,
-                queryTransformer = queryTransformer,
-                config = options.queryEnhancementOptions
-            )
-        } else {
-            baseRetriever
         }
     }
 
