@@ -4,6 +4,8 @@ import io.github.oshai.kotlinlogging.KotlinLogging
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicLong
 import kotlin.time.Duration
+import kotlin.time.DurationUnit
+import kotlin.time.toDuration
 import kotlin.time.TimeSource
 
 private val logger = KotlinLogging.logger {}
@@ -55,7 +57,12 @@ enum class MetricType {
     /**
      * 列出索引操作。
      */
-    LIST_INDEXES
+    LIST_INDEXES,
+
+    /**
+     * 相似度搜索操作。
+     */
+    SIMILARITY_SEARCH
 }
 
 /**
@@ -78,7 +85,7 @@ data class OperationMetric(
      * 平均耗时。
      */
     val avgDuration: Duration
-        get() = if (count > 0) totalDuration / count else Duration.ZERO
+        get() = if (count > 0) totalDuration.div(count.toInt()) else Duration.ZERO
 }
 
 /**
@@ -108,11 +115,11 @@ object VectorStoreMetrics {
      */
     fun recordOperationEnd(context: OperationContext, isSuccess: Boolean) {
         val duration = context.startTime.elapsedNow()
-        
+
         // 更新全局指标
         val globalMetric = globalMetrics.computeIfAbsent(context.type) { MutableMetric() }
         globalMetric.update(duration, isSuccess)
-        
+
         // 更新索引指标
         if (context.indexName != null) {
             val indexMetrics = metrics.computeIfAbsent(context.indexName) { ConcurrentHashMap() }
@@ -179,7 +186,7 @@ object VectorStoreMetrics {
             count.incrementAndGet()
             val durationNanos = duration.inWholeNanoseconds
             totalDuration.addAndGet(durationNanos)
-            
+
             // 更新最小耗时
             var currentMin = minDuration.get()
             while (durationNanos < currentMin) {
@@ -188,7 +195,7 @@ object VectorStoreMetrics {
                 }
                 currentMin = minDuration.get()
             }
-            
+
             // 更新最大耗时
             var currentMax = maxDuration.get()
             while (durationNanos > currentMax) {
@@ -197,7 +204,7 @@ object VectorStoreMetrics {
                 }
                 currentMax = maxDuration.get()
             }
-            
+
             // 更新错误次数
             if (!isSuccess) {
                 errorCount.incrementAndGet()
@@ -212,9 +219,9 @@ object VectorStoreMetrics {
         fun toOperationMetric(): OperationMetric {
             return OperationMetric(
                 count = count.get(),
-                totalDuration = Duration.nanoseconds(totalDuration.get()),
-                minDuration = if (minDuration.get() == Long.MAX_VALUE) Duration.ZERO else Duration.nanoseconds(minDuration.get()),
-                maxDuration = Duration.nanoseconds(maxDuration.get()),
+                totalDuration = totalDuration.get().toDuration(DurationUnit.NANOSECONDS),
+                minDuration = if (minDuration.get() == Long.MAX_VALUE) Duration.ZERO else minDuration.get().toDuration(DurationUnit.NANOSECONDS),
+                maxDuration = maxDuration.get().toDuration(DurationUnit.NANOSECONDS),
                 errorCount = errorCount.get()
             )
         }

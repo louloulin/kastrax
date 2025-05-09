@@ -1,9 +1,9 @@
 package ai.kastrax.store.metrics
 
 import ai.kastrax.store.IndexStats
-import ai.kastrax.store.QueryResult
 import ai.kastrax.store.SimilarityMetric
 import ai.kastrax.store.VectorStore
+import ai.kastrax.store.model.SearchResult
 import io.github.oshai.kotlinlogging.KotlinLogging
 
 private val logger = KotlinLogging.logger {}
@@ -81,7 +81,7 @@ class MetricsVectorStore(private val delegate: VectorStore) : VectorStore {
         topK: Int,
         filter: Map<String, Any>?,
         includeVectors: Boolean
-    ): List<QueryResult> {
+    ): List<SearchResult> {
         val context = VectorStoreMetrics.recordOperationStart(MetricType.QUERY, indexName)
         return try {
             val result = delegate.query(indexName, queryVector, topK, filter, includeVectors)
@@ -211,6 +211,36 @@ class MetricsVectorStore(private val delegate: VectorStore) : VectorStore {
         val context = VectorStoreMetrics.recordOperationStart(MetricType.BATCH_UPSERT, indexName)
         return try {
             val result = delegate.batchUpsert(indexName, vectors, metadata, ids, batchSize)
+            VectorStoreMetrics.recordOperationEnd(context, true)
+            result
+        } catch (e: Exception) {
+            VectorStoreMetrics.recordOperationEnd(context, false)
+            throw e
+        }
+    }
+
+    /**
+     * 使用查询文本进行相似度搜索。
+     *
+     * @param indexName 索引名称
+     * @param query 查询文本
+     * @param embeddingService 嵌入服务
+     * @param topK 返回结果的最大数量
+     * @param filter 过滤条件
+     * @param minScore 最小相似度分数
+     * @return 搜索结果列表，按相似度降序排序
+     */
+    override suspend fun similaritySearch(
+        indexName: String,
+        query: String,
+        embeddingService: ai.kastrax.store.embedding.EmbeddingService,
+        topK: Int,
+        filter: Map<String, Any>?,
+        minScore: Double
+    ): List<SearchResult> {
+        val context = VectorStoreMetrics.recordOperationStart(MetricType.SIMILARITY_SEARCH, indexName)
+        return try {
+            val result = delegate.similaritySearch(indexName, query, embeddingService, topK, filter, minScore)
             VectorStoreMetrics.recordOperationEnd(context, true)
             result
         } catch (e: Exception) {

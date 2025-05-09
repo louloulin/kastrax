@@ -4,6 +4,8 @@ import ai.kastrax.store.IndexStats
 import ai.kastrax.store.SimilarityMetric
 import ai.kastrax.store.VectorStore
 import io.github.oshai.kotlinlogging.KotlinLogging
+import kotlinx.serialization.Contextual
+import kotlinx.serialization.Serializable as KotlinxSerializable
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -28,8 +30,8 @@ private val logger = KotlinLogging.logger {}
  */
 object VectorStoreBackup {
 
-    private val json = Json { 
-        prettyPrint = true 
+    private val json = Json {
+        prettyPrint = true
         ignoreUnknownKeys = true
     }
 
@@ -70,7 +72,7 @@ object VectorStoreBackup {
                     IndexMetadata(
                         name = indexName,
                         dimension = stats.dimension,
-                        metric = stats.metric.name,
+                        metric = stats.metric?.name ?: "COSINE",
                         count = stats.count
                     )
                 } catch (e: Exception) {
@@ -90,13 +92,13 @@ object VectorStoreBackup {
                 try {
                     // 获取索引数据
                     val indexData = getIndexData(vectorStore, indexName, includeVectors)
-                    
+
                     // 写入索引数据
                     val indexDataJson = json.encodeToString(indexData)
                     zipOut.putNextEntry(ZipEntry("$indexName.json"))
                     zipOut.write(indexDataJson.toByteArray())
                     zipOut.closeEntry()
-                    
+
                     logger.info { "Backed up index $indexName with ${indexData.vectors.size} vectors" }
                 } catch (e: Exception) {
                     logger.error(e) { "Failed to backup index $indexName" }
@@ -129,61 +131,61 @@ object VectorStoreBackup {
             // 读取索引元数据
             val metadataEntry = zipFile.getEntry("index_metadata.json")
                 ?: throw IllegalStateException("Invalid backup file: missing index_metadata.json")
-            
+
             val metadataJson = zipFile.getInputStream(metadataEntry).bufferedReader().use { it.readText() }
             val indexMetadata = json.decodeFromString<List<IndexMetadata>>(metadataJson)
-            
+
             // 过滤要恢复的索引
             val indexesToRestore = if (indexNames != null) {
                 indexMetadata.filter { it.name in indexNames }
             } else {
                 indexMetadata
             }
-            
+
             if (indexesToRestore.isEmpty()) {
                 logger.warn { "No indexes to restore" }
                 return@withContext 0
             }
-            
+
             // 恢复每个索引
             indexesToRestore.forEach { metadata ->
                 try {
                     // 检查索引是否存在
                     val indexExists = vectorStore.listIndexes().contains(metadata.name)
-                    
+
                     // 如果需要重新创建索引或索引不存在，则创建索引
                     if (recreateIndexes || !indexExists) {
                         if (indexExists) {
                             // 删除现有索引
                             vectorStore.deleteIndex(metadata.name)
                         }
-                        
+
                         // 创建新索引
                         val metric = SimilarityMetric.valueOf(metadata.metric)
                         vectorStore.createIndex(metadata.name, metadata.dimension, metric)
                     }
-                    
+
                     // 读取索引数据
                     val dataEntry = zipFile.getEntry("${metadata.name}.json")
                         ?: throw IllegalStateException("Invalid backup file: missing ${metadata.name}.json")
-                    
+
                     val dataJson = zipFile.getInputStream(dataEntry).bufferedReader().use { it.readText() }
                     val indexData = json.decodeFromString<IndexData>(dataJson)
-                    
+
                     // 恢复向量数据
                     if (indexData.vectors.isNotEmpty()) {
                         val vectors = indexData.vectors.map { it.vector }
                         val metadata = indexData.vectors.map { it.metadata }
                         val ids = indexData.vectors.map { it.id }
-                        
+
                         // 批量添加向量
-                        vectorStore.batchUpsert(metadata.name, vectors, metadata, ids)
+                        vectorStore.batchUpsert(indexData.indexName, vectors, metadata, ids)
                     }
-                    
-                    logger.info { "Restored index ${metadata.name} with ${indexData.vectors.size} vectors" }
+
+                    logger.info { "Restored index ${indexData.indexName} with ${indexData.vectors.size} vectors" }
                     restoredCount++
                 } catch (e: Exception) {
-                    logger.error(e) { "Failed to restore index ${metadata.name}" }
+                    logger.error(e) { "Failed to restore index ${indexData.indexName}" }
                 }
             }
         }
@@ -207,20 +209,26 @@ object VectorStoreBackup {
     ): IndexData = coroutineScope {
         // 获取索引信息
         val stats = vectorStore.describeIndex(indexName)
-        
+
         // 如果索引为空，则返回空数据
         if (stats.count == 0) {
-            return@coroutineScope IndexData(indexName, emptyList())
+            val metadata = IndexMetadata(
+                name = indexName,
+                dimension = stats.dimension,
+                metric = stats.metric?.name ?: "COSINE",
+                count = 0
+            )
+            return@coroutineScope IndexData(indexName, metadata, emptyList())
         }
-        
+
         // 查询所有向量
         val batchSize = 1000
         val batches = (0 until stats.count).chunked(batchSize)
-        
+
         // 创建测试向量
         val testVector = FloatArray(stats.dimension) { 0f }
         testVector[0] = 1f
-        
+
         // 并行查询所有向量
         val vectorBatches = batches.map { batchIndices ->
             async {
@@ -233,7 +241,7 @@ object VectorStoreBackup {
                         filter = null,
                         includeVectors = includeVectors
                     )
-                    
+
                     // 转换为向量数据
                     results.map { result ->
                         VectorData(
@@ -248,11 +256,17 @@ object VectorStoreBackup {
                 }
             }
         }.awaitAll()
-        
+
         // 合并所有批次
         val vectors = vectorBatches.flatten()
-        
-        return@coroutineScope IndexData(indexName, vectors)
+
+        val metadata = IndexMetadata(
+            name = indexName,
+            dimension = stats.dimension,
+            metric = stats.metric?.name ?: "COSINE",
+            count = vectors.size
+        )
+        return@coroutineScope IndexData(indexName, metadata, vectors)
     }
 
     /**
@@ -266,7 +280,7 @@ object VectorStoreBackup {
         if (!Files.exists(backupPath)) {
             return emptyList()
         }
-        
+
         return Files.list(backupPath)
             .filter { it.toString().endsWith(".zip") }
             .map { path ->
@@ -287,7 +301,7 @@ object VectorStoreBackup {
                 } catch (e: Exception) {
                     LocalDateTime.ofEpochSecond(file.lastModified() / 1000, 0, java.time.ZoneOffset.UTC)
                 }
-                
+
                 // 读取索引元数据
                 val indexCount = try {
                     ZipFile(file).use { zipFile ->
@@ -303,7 +317,7 @@ object VectorStoreBackup {
                 } catch (e: Exception) {
                     0
                 }
-                
+
                 BackupInfo(
                     file = file.absolutePath,
                     timestamp = timestamp,
@@ -326,7 +340,7 @@ object VectorStoreBackup {
         if (!file.exists() || !file.isFile) {
             return false
         }
-        
+
         return file.delete()
     }
 }
@@ -339,7 +353,7 @@ object VectorStoreBackup {
  * @property metric 相似度度量方式
  * @property count 向量数量
  */
-@Serializable
+@KotlinxSerializable
 data class IndexMetadata(
     val name: String,
     val dimension: Int,
@@ -351,11 +365,13 @@ data class IndexMetadata(
  * 索引数据。
  *
  * @property indexName 索引名称
+ * @property metadata 索引元数据
  * @property vectors 向量数据列表
  */
-@Serializable
+@KotlinxSerializable
 data class IndexData(
     val indexName: String,
+    val metadata: IndexMetadata,
     val vectors: List<VectorData>
 )
 
@@ -366,11 +382,11 @@ data class IndexData(
  * @property vector 向量
  * @property metadata 元数据
  */
-@Serializable
+@KotlinxSerializable
 data class VectorData(
     val id: String,
     val vector: FloatArray,
-    val metadata: Map<String, Any>
+    val metadata: Map<String, @Contextual Any>
 ) {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true

@@ -150,7 +150,8 @@ object AlertExample {
         )
 
         // 评估性能指标
-        AlertManager.evaluatePerformanceMetrics(metrics)
+        val metricsMap = metrics.mapKeys { it.key.name }
+        AlertManager.evaluatePerformanceMetrics(metricsMap)
 
         // 显示触发的告警
         println("\nAlerts after performance evaluation:")

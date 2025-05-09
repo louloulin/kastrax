@@ -86,11 +86,11 @@ object VectorStoreHealthCheck {
      */
     suspend fun checkHealth(vectorStore: VectorStore): HealthCheckResult = withContext(Dispatchers.IO) {
         val startTime = TimeSource.Monotonic.markNow()
-        
+
         try {
             // 列出索引
             val indexes = vectorStore.listIndexes()
-            
+
             if (indexes.isEmpty()) {
                 return@withContext HealthCheckResult(
                     status = HealthStatus.HEALTHY,
@@ -99,13 +99,13 @@ object VectorStoreHealthCheck {
                     duration = startTime.elapsedNow()
                 )
             }
-            
+
             // 检查每个索引的健康状态
             val indexResults = checkIndexesHealth(vectorStore, indexes)
-            
+
             // 计算总体健康状态
             val overallStatus = calculateOverallStatus(indexResults)
-            
+
             return@withContext HealthCheckResult(
                 status = overallStatus,
                 message = getStatusMessage(overallStatus, indexResults),
@@ -117,7 +117,7 @@ object VectorStoreHealthCheck {
             )
         } catch (e: Exception) {
             logger.error(e) { "Error checking vector store health" }
-            
+
             return@withContext HealthCheckResult(
                 status = HealthStatus.UNHEALTHY,
                 message = "Error checking vector store health: ${e.message}",
@@ -158,33 +158,33 @@ object VectorStoreHealthCheck {
         indexName: String
     ): IndexHealthCheckResult = withContext(Dispatchers.IO) {
         val startTime = TimeSource.Monotonic.markNow()
-        
+
         try {
             // 获取索引信息
             val stats = vectorStore.describeIndex(indexName)
-            
+
             // 执行简单查询
             val testVector = FloatArray(stats.dimension) { 0f }
             testVector[0] = 1f
-            
+
             val queryStartTime = TimeSource.Monotonic.markNow()
             val queryResults = vectorStore.query(indexName, testVector, 1)
             val queryDuration = queryStartTime.elapsedNow()
-            
+
             // 检查查询性能
             val status = when {
                 queryDuration > Duration.parse("1s") -> HealthStatus.DEGRADED
                 else -> HealthStatus.HEALTHY
             }
-            
+
             return@withContext IndexHealthCheckResult(
                 indexName = indexName,
                 status = status,
                 message = "Index $indexName is ${status.name.lowercase()}",
-                details = mapOf(
+                details = mapOf<String, Any>(
                     "dimension" to stats.dimension,
                     "count" to stats.count,
-                    "metric" to stats.metric,
+                    "metric" to (stats.metric?.name ?: "COSINE"),
                     "queryDuration" to queryDuration.toString(),
                     "queryResultCount" to queryResults.size
                 ),
@@ -192,7 +192,7 @@ object VectorStoreHealthCheck {
             )
         } catch (e: Exception) {
             logger.error(e) { "Error checking index $indexName health" }
-            
+
             return@withContext IndexHealthCheckResult(
                 indexName = indexName,
                 status = HealthStatus.UNHEALTHY,
@@ -213,9 +213,9 @@ object VectorStoreHealthCheck {
         if (indexResults.isEmpty()) {
             return HealthStatus.UNKNOWN
         }
-        
+
         val statusCounts = indexResults.groupBy { it.status }
-        
+
         return when {
             statusCounts[HealthStatus.UNHEALTHY]?.isNotEmpty() == true -> HealthStatus.UNHEALTHY
             statusCounts[HealthStatus.DEGRADED]?.isNotEmpty() == true -> HealthStatus.DEGRADED
@@ -236,7 +236,7 @@ object VectorStoreHealthCheck {
         indexResults: List<IndexHealthCheckResult>
     ): String {
         val statusCounts = indexResults.groupBy { it.status }
-        
+
         return when (status) {
             HealthStatus.HEALTHY -> "All indexes are healthy"
             HealthStatus.DEGRADED -> {
