@@ -385,6 +385,7 @@ class RagEvaluationTool(
    - RandomEmbeddingService
    - OpenAIEmbeddingService
    - DeepseekEmbeddingService
+   - FastEmbedKotlinEmbeddingService
    - CachedEmbeddingService
    - EmbeddingServiceFactory
 9. 编写了单元测试，测试了各个模块的功能
@@ -395,17 +396,18 @@ class RagEvaluationTool(
    - DiversityRerankerTest
    - RandomEmbeddingServiceTest
    - CachedEmbeddingServiceTest
+   - FastEmbedKotlinEmbeddingServiceTest
 10. 编写了示例代码，展示了如何使用 RAG 模块
     - SimpleRagExample
+    - FastEmbedKotlinExample
 
 下一步计划：
 
 1. 实现图 RAG 功能（GraphRAG）
-2. 运行单元测试，确保所有实现的功能正常工作
-3. 编写集成测试，测试各个模块之间的交互
-4. 编写性能测试，测试 RAG 系统的性能
-5. 编写端到端测试，测试完整的 RAG 流程
-6. 编写文档，包括 API 文档、使用指南、架构文档和扩展指南
+2. 编写集成测试，测试各个模块之间的交互
+3. 编写性能测试，测试 RAG 系统的性能
+4. 编写端到端测试，测试完整的 RAG 流程
+5. 编写文档，包括 API 文档、使用指南、架构文档和扩展指南
 
 ## 成果总结
 

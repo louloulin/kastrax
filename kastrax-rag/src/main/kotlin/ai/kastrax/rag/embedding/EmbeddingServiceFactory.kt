@@ -66,6 +66,23 @@ object EmbeddingServiceFactory {
     }
 
     /**
+     * 创建 FastEmbed Kotlin 嵌入服务。
+     *
+     * @param model 嵌入模型，默认为 BGE_SMALL_ZH（中文小型模型）
+     * @param cacheDir 模型缓存目录，默认为 null（使用系统默认目录）
+     * @param showDownloadProgress 是否显示模型下载进度，默认为 false
+     * @return FastEmbed Kotlin 嵌入服务
+     */
+    fun createFastEmbedKotlinEmbeddingService(
+        model: ai.kastrax.fastembed.EmbeddingModel = ai.kastrax.fastembed.EmbeddingModel.BGE_SMALL_ZH,
+        cacheDir: java.nio.file.Path? = null,
+        showDownloadProgress: Boolean = false
+    ): EmbeddingService {
+        logger.debug { "Creating FastEmbed Kotlin embedding service with model: $model" }
+        return FastEmbedKotlinEmbeddingService.create(model, cacheDir, showDownloadProgress)
+    }
+
+    /**
      * 创建缓存嵌入服务。
      *
      * @param delegate 委托的嵌入服务
