@@ -185,7 +185,7 @@ object VectorStoreBackup {
                     logger.info { "Restored index ${indexData.indexName} with ${indexData.vectors.size} vectors" }
                     restoredCount++
                 } catch (e: Exception) {
-                    logger.error(e) { "Failed to restore index ${indexData.indexName}" }
+                    logger.error(e) { "Failed to restore index ${metadata.name}" }
                 }
             }
         }

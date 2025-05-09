@@ -181,12 +181,29 @@ object VectorStoreFactory {
             override suspend fun addDocuments(documents: List<ai.kastrax.store.document.Document>, embeddingService: ai.kastrax.store.embedding.EmbeddingService): Boolean = true
             override suspend fun addDocuments(documents: List<ai.kastrax.store.document.Document>): Boolean = true
             override suspend fun deleteDocuments(ids: List<String>): Boolean = true
-            override suspend fun similaritySearch(query: String, embeddingService: ai.kastrax.store.embedding.EmbeddingService, limit: Int): List<ai.kastrax.store.document.Document> = emptyList()
-            override suspend fun similaritySearch(embedding: FloatArray, limit: Int): List<ai.kastrax.store.document.Document> = emptyList()
-            override suspend fun similaritySearchWithFilter(embedding: FloatArray, filter: Map<String, Any>, limit: Int): List<ai.kastrax.store.document.Document> = emptyList()
-            override suspend fun keywordSearch(keywords: List<String>, limit: Int): List<ai.kastrax.store.document.Document> = emptyList()
-            override suspend fun metadataSearch(filter: Map<String, Any>, limit: Int): List<ai.kastrax.store.document.Document> = emptyList()
+            override suspend fun similaritySearch(query: String, embeddingService: ai.kastrax.store.embedding.EmbeddingService, limit: Int): List<ai.kastrax.store.document.DocumentSearchResult> = emptyList()
+            override suspend fun similaritySearch(embedding: FloatArray, limit: Int): List<ai.kastrax.store.document.DocumentSearchResult> = emptyList()
+            override suspend fun similaritySearchWithFilter(embedding: FloatArray, filter: Map<String, Any>, limit: Int): List<ai.kastrax.store.document.DocumentSearchResult> = emptyList()
+            override suspend fun keywordSearch(keywords: List<String>, limit: Int): List<ai.kastrax.store.document.DocumentSearchResult> = emptyList()
+            override suspend fun metadataSearch(filter: Map<String, Any>, limit: Int): List<ai.kastrax.store.document.DocumentSearchResult> = emptyList()
         }
+    }
+
+    /**
+     * 将向量存储适配为 RAG 向量存储。
+     *
+     * @param vectorStore 向量存储
+     * @param indexName 索引名称
+     * @param dimension 向量维度
+     * @return RAG 向量存储
+     */
+    fun adaptToRagVectorStore(
+        vectorStore: VectorStore,
+        indexName: String = "document_index",
+        dimension: Int = 1536
+    ): DocumentVectorStore {
+        logger.debug { "Adapting vector store to RAG vector store with indexName=$indexName, dimension=$dimension" }
+        return adaptToDocumentVectorStore(vectorStore, indexName, dimension)
     }
 
     /**

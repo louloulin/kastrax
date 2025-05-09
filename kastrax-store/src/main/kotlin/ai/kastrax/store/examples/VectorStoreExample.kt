@@ -1,6 +1,6 @@
 package ai.kastrax.store.examples
 
-import ai.kastrax.rag.embedding.EmbeddingService
+import ai.kastrax.store.embedding.EmbeddingService
 import ai.kastrax.store.SimilarityMetric
 import ai.kastrax.store.VectorStoreFactory
 import kotlinx.coroutines.runBlocking
@@ -115,19 +115,29 @@ object RagIntegrationExample {
 
         // 添加文档
         val docs = listOf(
-            "The apple is red and sweet.",
-            "Bananas are yellow and nutritious.",
-            "Oranges are rich in vitamin C.",
-            "Apples and oranges are both fruits."
+            ai.kastrax.store.document.Document(
+                id = "doc1",
+                content = "The apple is red and sweet.",
+                metadata = mapOf("fruit" to "apple", "color" to "red")
+            ),
+            ai.kastrax.store.document.Document(
+                id = "doc2",
+                content = "Bananas are yellow and nutritious.",
+                metadata = mapOf("fruit" to "banana", "color" to "yellow")
+            ),
+            ai.kastrax.store.document.Document(
+                id = "doc3",
+                content = "Oranges are rich in vitamin C.",
+                metadata = mapOf("fruit" to "orange", "color" to "orange")
+            ),
+            ai.kastrax.store.document.Document(
+                id = "doc4",
+                content = "Apples and oranges are both fruits.",
+                metadata = mapOf("fruit" to "mixed", "color" to "various")
+            )
         )
-        val metadata = listOf(
-            mapOf("fruit" to "apple", "color" to "red"),
-            mapOf("fruit" to "banana", "color" to "yellow"),
-            mapOf("fruit" to "orange", "color" to "orange"),
-            mapOf("fruit" to "mixed", "color" to "various")
-        )
-        val ids = ragVectorStore.addDocuments(docs, embeddingService, metadata)
-        println("Added documents with IDs: $ids")
+        val added = ragVectorStore.addDocuments(docs, embeddingService)
+        println("Added documents: $added")
 
         // 相似度搜索
         val query = "I like apples"

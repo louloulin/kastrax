@@ -1,15 +1,29 @@
 package ai.kastrax.store.retriever
 
-import ai.kastrax.rag.embedding.EmbeddingService
-import ai.kastrax.rag.retriever.Retriever
-import ai.kastrax.rag.vectorstore.RagDocument
+import ai.kastrax.store.document.Document
+import ai.kastrax.store.document.DocumentVectorStore
+import ai.kastrax.store.embedding.EmbeddingService
 import ai.kastrax.store.VectorStore
-import ai.kastrax.store.adapter.RagVectorStoreAdapter
+import ai.kastrax.store.VectorStoreFactory
 import ai.kastrax.store.hybrid.HybridSearch
 import ai.kastrax.store.hybrid.HybridSearchOptions
 import io.github.oshai.kotlinlogging.KotlinLogging
 
 private val logger = KotlinLogging.logger {}
+
+/**
+ * 检索器接口，定义了检索文档的基本操作。
+ */
+interface Retriever {
+    /**
+     * 检索文档。
+     *
+     * @param query 查询文本
+     * @param limit 返回结果的最大数量
+     * @return 文档列表
+     */
+    suspend fun retrieve(query: String, limit: Int = 5): List<Document>
+}
 
 /**
  * 混合检索器，使用混合搜索来检索文档。
@@ -37,7 +51,7 @@ class HybridRetriever(
      * @param limit 返回结果的最大数量
      * @return 文档列表
      */
-    override suspend fun retrieve(query: String, limit: Int): List<RagDocument> {
+    override suspend fun retrieve(query: String, limit: Int): List<Document> {
         val actualLimit = if (limit <= 0) defaultLimit else limit
 
         // 从查询中提取关键词
@@ -103,7 +117,7 @@ object HybridRetrieverFactory {
     /**
      * 创建混合检索器。
      *
-     * @param ragVectorStore RAG 向量存储
+     * @param documentVectorStore 文档向量存储
      * @param embeddingService 嵌入服务
      * @param options 混合搜索选项
      * @param maxKeywords 最大关键词数量
@@ -112,16 +126,16 @@ object HybridRetrieverFactory {
      * @return 混合检索器
      */
     fun create(
-        ragVectorStore: RagVectorStoreAdapter,
+        documentVectorStore: DocumentVectorStore,
         embeddingService: EmbeddingService,
         options: HybridSearchOptions = HybridSearchOptions(),
         maxKeywords: Int = 5,
         minKeywordLength: Int = 3,
         defaultLimit: Int = 5
     ): Retriever {
-        // 创建一个适配器，将 Retriever 接口适配为 HybridRetriever
+        // 创建一个适配器，将 DocumentVectorStore 适配为 Retriever
         return object : Retriever {
-            override suspend fun retrieve(query: String, limit: Int): List<RagDocument> {
+            override suspend fun retrieve(query: String, limit: Int): List<Document> {
                 val actualLimit = if (limit <= 0) defaultLimit else limit
 
                 // 从查询中提取关键词
@@ -136,7 +150,7 @@ object HybridRetrieverFactory {
                 // 执行混合搜索
                 val results = HybridSearch.search(
                     query = query,
-                    vectorStore = ragVectorStore,
+                    vectorStore = documentVectorStore.getVectorStore(),
                     embeddingService = embeddingService,
                     keywords = keywords,
                     limit = actualLimit,

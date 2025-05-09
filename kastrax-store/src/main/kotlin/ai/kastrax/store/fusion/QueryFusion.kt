@@ -1,7 +1,7 @@
 package ai.kastrax.store.fusion
 
-import ai.kastrax.rag.embedding.EmbeddingService
-import ai.kastrax.store.QueryResult
+import ai.kastrax.store.embedding.EmbeddingService
+import ai.kastrax.store.model.SearchResult
 import ai.kastrax.store.VectorStore
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.async
@@ -73,7 +73,7 @@ object QueryFusion {
         embeddingService: EmbeddingService,
         topK: Int = 5,
         options: FusionOptions = FusionOptions()
-    ): List<QueryResult> = coroutineScope {
+    ): List<SearchResult> = coroutineScope {
         if (queries.isEmpty()) {
             return@coroutineScope emptyList()
         }
@@ -109,7 +109,7 @@ object QueryFusion {
         queryEmbeddings: List<FloatArray>,
         topK: Int = 5,
         options: FusionOptions = FusionOptions()
-    ): List<QueryResult> = coroutineScope {
+    ): List<SearchResult> = coroutineScope {
         if (queryEmbeddings.isEmpty()) {
             return@coroutineScope emptyList()
         }
@@ -167,7 +167,7 @@ object QueryFusion {
         topK: Int,
         depth: Int,
         minScore: Double
-    ): List<QueryResult> = coroutineScope {
+    ): List<SearchResult> = coroutineScope {
         if (depth <= 0 || queryEmbeddings.isEmpty()) {
             return@coroutineScope emptyList()
         }
@@ -232,7 +232,7 @@ object QueryFusion {
         topK: Int,
         weights: List<Double>?,
         minScore: Double
-    ): List<QueryResult> = coroutineScope {
+    ): List<SearchResult> = coroutineScope {
         // 计算权重
         val normalizedWeights = if (weights != null && weights.size == queryEmbeddings.size) {
             val sum = weights.sum()
@@ -251,7 +251,7 @@ object QueryFusion {
         }.awaitAll()
 
         // 合并结果
-        val idToResults = mutableMapOf<String, MutableList<QueryResult>>()
+        val idToResults = mutableMapOf<String, MutableList<SearchResult>>()
         results.flatten().forEach { result ->
             idToResults.getOrPut(result.id) { mutableListOf() }.add(result)
         }
@@ -261,7 +261,7 @@ object QueryFusion {
             val totalScore = resultList.sumOf { it.score }
             val metadata = resultList.firstOrNull()?.metadata
             val vector = resultList.firstOrNull()?.vector
-            QueryResult(id, totalScore, metadata, vector)
+            SearchResult(id, totalScore, vector, metadata ?: emptyMap())
         }
 
         // 过滤、排序并限制结果数量
@@ -287,14 +287,14 @@ object QueryFusion {
         queryEmbeddings: List<FloatArray>,
         topK: Int,
         minScore: Double
-    ): List<QueryResult> = coroutineScope {
+    ): List<SearchResult> = coroutineScope {
         // 并行查询
         val results = queryEmbeddings.map { queryEmbedding ->
             async { vectorStore.query(indexName, queryEmbedding, topK * 2) }
         }.awaitAll()
 
         // 合并结果
-        val idToMaxScore = mutableMapOf<String, QueryResult>()
+        val idToMaxScore = mutableMapOf<String, SearchResult>()
         results.flatten().forEach { result ->
             val existing = idToMaxScore[result.id]
             if (existing == null || existing.score < result.score) {
@@ -325,14 +325,14 @@ object QueryFusion {
         queryEmbeddings: List<FloatArray>,
         topK: Int,
         minScore: Double
-    ): List<QueryResult> = coroutineScope {
+    ): List<SearchResult> = coroutineScope {
         // 并行查询
         val results = queryEmbeddings.map { queryEmbedding ->
             async { vectorStore.query(indexName, queryEmbedding, topK * 2) }
         }.awaitAll()
 
         // 合并结果
-        val idToResults = mutableMapOf<String, MutableList<QueryResult>>()
+        val idToResults = mutableMapOf<String, MutableList<SearchResult>>()
         results.flatten().forEach { result ->
             idToResults.getOrPut(result.id) { mutableListOf() }.add(result)
         }
@@ -342,7 +342,7 @@ object QueryFusion {
             val avgScore = resultList.sumOf { it.score } / resultList.size
             val metadata = resultList.firstOrNull()?.metadata
             val vector = resultList.firstOrNull()?.vector
-            QueryResult(id, avgScore, metadata, vector)
+            SearchResult(id, avgScore, vector, metadata ?: emptyMap())
         }
 
         // 过滤、排序并限制结果数量

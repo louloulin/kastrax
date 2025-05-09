@@ -1,11 +1,10 @@
 package ai.kastrax.store.hybrid
 
-import ai.kastrax.rag.embedding.EmbeddingService
-import ai.kastrax.rag.vectorstore.RagDocument
-import ai.kastrax.rag.vectorstore.RagVectorStore
-import ai.kastrax.rag.vectorstore.SearchResult
+import ai.kastrax.store.document.Document
+import ai.kastrax.store.document.DocumentSearchResult
+import ai.kastrax.store.document.DocumentVectorStore
+import ai.kastrax.store.embedding.EmbeddingService
 import ai.kastrax.store.VectorStore
-import ai.kastrax.store.adapter.RagVectorStoreAdapter
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlin.math.max
 import kotlin.math.min
@@ -38,7 +37,7 @@ data class HybridSearchOptions(
  * @property keywordScore 关键词分数
  */
 data class HybridSearchResult(
-    val document: RagDocument,
+    val document: Document,
     val score: Double,
     val vectorScore: Double,
     val keywordScore: Double
@@ -68,9 +67,9 @@ object HybridSearch {
         limit: Int = 5,
         options: HybridSearchOptions = HybridSearchOptions()
     ): List<HybridSearchResult> {
-        // 创建 RAG 向量存储适配器
-        val ragVectorStore = RagVectorStoreAdapter(vectorStore)
-        return search(query, ragVectorStore, embeddingService, keywords, limit, options)
+        // 创建文档向量存储适配器
+        val documentVectorStore = ai.kastrax.store.VectorStoreFactory.adaptToDocumentVectorStore(vectorStore)
+        return search(query, documentVectorStore, embeddingService, keywords, limit, options)
     }
 
     /**
@@ -86,7 +85,7 @@ object HybridSearch {
      */
     suspend fun search(
         query: String,
-        vectorStore: RagVectorStore,
+        vectorStore: DocumentVectorStore,
         embeddingService: EmbeddingService,
         keywords: List<String>,
         limit: Int = 5,
@@ -96,8 +95,7 @@ object HybridSearch {
         val vectorResults = vectorStore.similaritySearch(
             query = query,
             embeddingService = embeddingService,
-            limit = limit * 2, // 获取更多结果以便后续合并
-            minScore = options.minVectorScore
+            limit = limit * 2 // 获取更多结果以便后续合并
         )
 
         // 如果关键词为空或权重为 0，则直接返回向量搜索结果
@@ -141,8 +139,8 @@ object HybridSearch {
      * @return 混合搜索结果列表
      */
     private fun mergeResults(
-        vectorResults: List<SearchResult>,
-        keywordResults: List<SearchResult>,
+        vectorResults: List<DocumentSearchResult>,
+        keywordResults: List<DocumentSearchResult>,
         vectorWeight: Double,
         keywordWeight: Double,
         useReranking: Boolean,

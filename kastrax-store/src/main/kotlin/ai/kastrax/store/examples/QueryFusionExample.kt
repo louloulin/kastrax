@@ -1,6 +1,6 @@
 package ai.kastrax.store.examples
 
-import ai.kastrax.rag.embedding.EmbeddingService
+import ai.kastrax.store.embedding.EmbeddingService
 import ai.kastrax.store.VectorStoreFactory
 import ai.kastrax.store.fusion.FusionOptions
 import ai.kastrax.store.fusion.FusionStrategy
