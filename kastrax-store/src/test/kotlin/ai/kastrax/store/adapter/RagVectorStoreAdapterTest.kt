@@ -1,7 +1,7 @@
 package ai.kastrax.store.adapter
 
-import ai.kastrax.rag.embedding.EmbeddingService
-import ai.kastrax.rag.vectorstore.RagDocument
+import ai.kastrax.store.embedding.EmbeddingService
+import ai.kastrax.store.document.RagDocument
 import ai.kastrax.store.QueryResult
 import ai.kastrax.store.SimilarityMetric
 import ai.kastrax.store.VectorStore

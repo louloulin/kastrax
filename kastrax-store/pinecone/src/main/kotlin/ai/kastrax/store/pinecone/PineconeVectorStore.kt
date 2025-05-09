@@ -2,7 +2,7 @@ package ai.kastrax.store.pinecone
 
 import ai.kastrax.store.BaseVectorStore
 import ai.kastrax.store.IndexStats
-import ai.kastrax.store.QueryResult
+import ai.kastrax.store.model.SearchResult
 import ai.kastrax.store.SimilarityMetric
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.ktor.client.*
@@ -219,7 +219,7 @@ class PineconeVectorStore(
         topK: Int,
         filter: Map<String, Any>?,
         includeVectors: Boolean
-    ): List<QueryResult> {
+    ): List<SearchResult> {
         try {
             // 获取索引 URL
             val indexUrl = getIndexUrl(indexName)
@@ -273,10 +273,10 @@ class PineconeVectorStore(
 
             if (response.status.isSuccess()) {
                 val responseBody: JsonObject = response.body()
-                
+
                 // 解析响应
                 val matches = responseBody["matches"]?.jsonArray ?: return emptyList()
-                
+
                 // 构建查询结果
                 val results = matches.map { match ->
                     val id = match.jsonObject["id"]?.jsonPrimitive?.content ?: ""
@@ -284,24 +284,24 @@ class PineconeVectorStore(
                     val metadata = match.jsonObject["metadata"]?.jsonObject?.map { (key, value) ->
                         key to when {
                             value.jsonPrimitive.isString -> value.jsonPrimitive.content
-                            value.jsonPrimitive.isBoolean -> value.jsonPrimitive.boolean
+                            value.jsonPrimitive.content.equals("true", ignoreCase = true) || value.jsonPrimitive.content.equals("false", ignoreCase = true) -> value.jsonPrimitive.content.toBoolean()
                             else -> value.jsonPrimitive.double
                         }
                     }?.toMap() ?: emptyMap()
-                    
+
                     val vector = if (includeVectors) {
-                        match.jsonObject["values"]?.jsonArray?.map { 
-                            it.jsonPrimitive.float 
+                        match.jsonObject["values"]?.jsonArray?.map {
+                            it.jsonPrimitive.float
                         }?.toFloatArray()
                     } else {
                         null
                     }
 
-                    QueryResult(
+                    SearchResult(
                         id = id,
                         score = score,
-                        metadata = metadata,
-                        vector = vector
+                        vector = vector,
+                        metadata = metadata
                     )
                 }
 
@@ -401,26 +401,26 @@ class PineconeVectorStore(
 
             if (response.status.isSuccess()) {
                 val responseBody: JsonObject = response.body()
-                
+
                 // 解析响应
                 val database = responseBody["database"]?.jsonObject
                 val dimension = database?.get("dimension")?.jsonPrimitive?.int ?: 0
                 val metricStr = database?.get("metric")?.jsonPrimitive?.content ?: "cosine"
-                
+
                 // 获取向量数量
                 val indexUrl = getIndexUrl(indexName)
                 val statsResponse = client.get("$indexUrl/describe_index_stats") {
                     header("Api-Key", apiKey)
                     contentType(ContentType.Application.Json)
                 }
-                
+
                 val count = if (statsResponse.status.isSuccess()) {
                     val statsBody: JsonObject = statsResponse.body()
                     statsBody["totalVectorCount"]?.jsonPrimitive?.int ?: 0
                 } else {
                     0
                 }
-                
+
                 // 将 Pinecone 相似度度量方式转换为 Kastrax 相似度度量方式
                 val metric = when (metricStr) {
                     "cosine" -> SimilarityMetric.COSINE
@@ -456,9 +456,9 @@ class PineconeVectorStore(
 
             if (response.status.isSuccess()) {
                 val responseBody: JsonArray = response.body()
-                
+
                 // 解析响应
-                val indexes = responseBody.map { 
+                val indexes = responseBody.map {
                     it.jsonObject["name"]?.jsonPrimitive?.content ?: ""
                 }.filter { it.isNotEmpty() }
 
@@ -500,11 +500,11 @@ class PineconeVectorStore(
             // 构建请求体
             val requestBody = buildJsonObject {
                 put("id", id)
-                
+
                 if (vector != null) {
                     put("values", JsonArray(vector.map { JsonPrimitive(it) }))
                 }
-                
+
                 if (metadata != null && metadata.isNotEmpty()) {
                     put("setMetadata", buildJsonObject {
                         metadata.forEach { (key, value) ->

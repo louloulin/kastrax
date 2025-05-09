@@ -1,9 +1,9 @@
 package ai.kastrax.store.hybrid
 
-import ai.kastrax.rag.embedding.EmbeddingService
-import ai.kastrax.rag.vectorstore.RagDocument
-import ai.kastrax.rag.vectorstore.RagVectorStore
-import ai.kastrax.rag.vectorstore.SearchResult
+import ai.kastrax.store.embedding.EmbeddingService
+import ai.kastrax.store.document.RagDocument
+import ai.kastrax.store.document.RagVectorStore
+import ai.kastrax.store.document.SearchResult
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeEach
@@ -70,19 +70,19 @@ class HybridSearchTest {
 
         // 验证结果
         assertEquals(3, results.size)
-        
+
         // 文档1应该排在第一位，因为它在两个结果集中都有高分
         assertEquals("1", results[0].document.id)
         assertTrue(results[0].score > 0.8)
-        
+
         // 验证分数计算
         results.forEach { result ->
             val expectedVectorScore = vectorResults.find { it.document.id == result.document.id }?.score ?: 0.0
             val expectedKeywordScore = keywordResults.find { it.document.id == result.document.id }?.score ?: 0.0
-            
+
             assertEquals(expectedVectorScore, result.vectorScore)
             assertEquals(expectedKeywordScore, result.keywordScore)
-            
+
             // 验证混合分数计算（考虑到重排序可能会有一些调整）
             val baseScore = options.vectorWeight * expectedVectorScore + options.keywordWeight * expectedKeywordScore
             if (expectedVectorScore > 0.0 && expectedKeywordScore > 0.0) {
@@ -135,7 +135,7 @@ class HybridSearchTest {
 
         // 验证结果
         assertEquals(3, results.size)
-        
+
         // 结果应该与向量搜索结果相同
         for (i in results.indices) {
             assertEquals(vectorResults[i].document.id, results[i].document.id)
@@ -150,13 +150,13 @@ class HybridSearchTest {
         // 测试关键词提取
         val query = "This is a test query with some important keywords"
         val keywords = HybridSearch.extractKeywords(query)
-        
+
         // 验证结果
         assertTrue(keywords.contains("test"))
         assertTrue(keywords.contains("query"))
         assertTrue(keywords.contains("important"))
         assertTrue(keywords.contains("keywords"))
-        
+
         // 验证停用词被过滤
         assertFalse(keywords.contains("this"))
         assertFalse(keywords.contains("is"))

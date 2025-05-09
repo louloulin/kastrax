@@ -2,7 +2,7 @@ package ai.kastrax.store.qdrant
 
 import ai.kastrax.store.BaseVectorStore
 import ai.kastrax.store.IndexStats
-import ai.kastrax.store.QueryResult
+import ai.kastrax.store.model.SearchResult
 import ai.kastrax.store.SimilarityMetric
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.ktor.client.*
@@ -196,7 +196,7 @@ class QdrantVectorStore(
         topK: Int,
         filter: Map<String, Any>?,
         includeVectors: Boolean
-    ): List<QueryResult> {
+    ): List<SearchResult> {
         try {
             // 构建过滤器
             val filterJson = if (filter != null && filter.isNotEmpty()) {
@@ -263,7 +263,7 @@ class QdrantVectorStore(
 
             if (response.status.isSuccess()) {
                 val responseBody: JsonObject = response.body()
-                
+
                 // 解析响应
                 val results = responseBody["result"]?.jsonArray?.map { point ->
                     val id = point.jsonObject["id"]?.jsonPrimitive?.content ?: ""
@@ -271,24 +271,24 @@ class QdrantVectorStore(
                     val payload = point.jsonObject["payload"]?.jsonObject?.map { (key, value) ->
                         key to when {
                             value.jsonPrimitive.isString -> value.jsonPrimitive.content
-                            value.jsonPrimitive.isBoolean -> value.jsonPrimitive.boolean
+                            value.jsonPrimitive.content.equals("true", ignoreCase = true) || value.jsonPrimitive.content.equals("false", ignoreCase = true) -> value.jsonPrimitive.content.toBoolean()
                             else -> value.jsonPrimitive.double
                         }
                     }?.toMap() ?: emptyMap()
-                    
+
                     val vector = if (includeVectors) {
-                        point.jsonObject["vector"]?.jsonArray?.map { 
-                            it.jsonPrimitive.float 
+                        point.jsonObject["vector"]?.jsonArray?.map {
+                            it.jsonPrimitive.float
                         }?.toFloatArray()
                     } else {
                         null
                     }
 
-                    QueryResult(
+                    SearchResult(
                         id = id,
                         score = score,
-                        metadata = payload,
-                        vector = vector
+                        vector = vector,
+                        metadata = payload
                     )
                 } ?: emptyList()
 
@@ -391,17 +391,17 @@ class QdrantVectorStore(
 
             if (response.status.isSuccess()) {
                 val responseBody: JsonObject = response.body()
-                
+
                 // 解析响应
                 val result = responseBody["result"]?.jsonObject
                 val config = result?.get("config")?.jsonObject
                 val params = config?.get("params")?.jsonObject
                 val vectors = params?.get("vectors")?.jsonObject
-                
+
                 val dimension = vectors?.get("size")?.jsonPrimitive?.int ?: 0
                 val metricStr = vectors?.get("distance")?.jsonPrimitive?.content ?: "Cosine"
                 val count = result?.get("vectors_count")?.jsonPrimitive?.int ?: 0
-                
+
                 // 将 Qdrant 相似度度量方式转换为 Kastrax 相似度度量方式
                 val metric = when (metricStr) {
                     "Cosine" -> SimilarityMetric.COSINE
@@ -439,9 +439,9 @@ class QdrantVectorStore(
 
             if (response.status.isSuccess()) {
                 val responseBody: JsonObject = response.body()
-                
+
                 // 解析响应
-                val collections = responseBody["result"]?.jsonObject?.get("collections")?.jsonArray?.map { 
+                val collections = responseBody["result"]?.jsonObject?.get("collections")?.jsonArray?.map {
                     it.jsonObject["name"]?.jsonPrimitive?.content ?: ""
                 }?.filter { it.isNotEmpty() } ?: emptyList()
 
@@ -484,7 +484,7 @@ class QdrantVectorStore(
                         put(id, JsonArray(vector.map { JsonPrimitive(it) }))
                     })
                 }
-                
+
                 if (metadata != null && metadata.isNotEmpty()) {
                     put("payload", buildJsonObject {
                         put(id, buildJsonObject {

@@ -18,6 +18,7 @@ dependencies {
     implementation(project(":kastrax-core"))
     implementation(project(":kastrax-rag"))
     implementation(project(":kastrax-evals"))
+    implementation(project(":kastrax-store"))
 
     // Kotlin
     implementation(kotlin("stdlib"))
@@ -82,6 +83,9 @@ tasks.jar {
     from(configurations.runtimeClasspath.get().map { if (it.isDirectory) it else zipTree(it) })
 
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+
+    // Add explicit dependency on kastrax-store:jar
+    dependsOn(":kastrax-store:jar")
 }
 
 publishing {

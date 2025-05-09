@@ -1,7 +1,7 @@
 package ai.kastrax.store.fusion
 
-import ai.kastrax.rag.embedding.EmbeddingService
-import ai.kastrax.store.QueryResult
+import ai.kastrax.store.embedding.EmbeddingService
+import ai.kastrax.store.model.SearchResult
 import ai.kastrax.store.SimilarityMetric
 import ai.kastrax.store.VectorStore
 import kotlinx.coroutines.runBlocking
@@ -38,14 +38,14 @@ class QueryFusionTest {
 
         // 模拟向量存储查询结果
         val query1Results = listOf(
-            QueryResult("1", 0.9, mapOf("name" to "doc1")),
-            QueryResult("2", 0.8, mapOf("name" to "doc2")),
-            QueryResult("3", 0.7, mapOf("name" to "doc3"))
+            SearchResult("1", 0.9, null, mapOf("name" to "doc1")),
+            SearchResult("2", 0.8, null, mapOf("name" to "doc2")),
+            SearchResult("3", 0.7, null, mapOf("name" to "doc3"))
         )
         val query2Results = listOf(
-            QueryResult("2", 0.9, mapOf("name" to "doc2")),
-            QueryResult("3", 0.8, mapOf("name" to "doc3")),
-            QueryResult("4", 0.7, mapOf("name" to "doc4"))
+            SearchResult("2", 0.9, null, mapOf("name" to "doc2")),
+            SearchResult("3", 0.8, null, mapOf("name" to "doc3")),
+            SearchResult("4", 0.7, null, mapOf("name" to "doc4"))
         )
 
         `when`(mockVectorStore.query(indexName, queryEmbeddings[0], topK * 2)).thenReturn(query1Results)
@@ -67,10 +67,10 @@ class QueryFusionTest {
 
         // 验证结果
         assertEquals(topK, results.size)
-        
+
         // 文档2应该排在第一位，因为它在两个查询中都有高分
         assertEquals("2", results[0].id)
-        
+
         // 验证分数计算
         // 文档2的分数应该是 0.8 * 0.6 + 0.9 * 0.4 = 0.48 + 0.36 = 0.84
         assertTrue(Math.abs(results[0].score - 0.84) < 0.01)
@@ -88,14 +88,14 @@ class QueryFusionTest {
 
         // 模拟向量存储查询结果
         val query1Results = listOf(
-            QueryResult("1", 0.9, mapOf("name" to "doc1")),
-            QueryResult("2", 0.7, mapOf("name" to "doc2")),
-            QueryResult("3", 0.5, mapOf("name" to "doc3"))
+            SearchResult("1", 0.9, null, mapOf("name" to "doc1")),
+            SearchResult("2", 0.7, null, mapOf("name" to "doc2")),
+            SearchResult("3", 0.5, null, mapOf("name" to "doc3"))
         )
         val query2Results = listOf(
-            QueryResult("2", 0.8, mapOf("name" to "doc2")),
-            QueryResult("3", 0.6, mapOf("name" to "doc3")),
-            QueryResult("4", 0.7, mapOf("name" to "doc4"))
+            SearchResult("2", 0.8, null, mapOf("name" to "doc2")),
+            SearchResult("3", 0.6, null, mapOf("name" to "doc3")),
+            SearchResult("4", 0.7, null, mapOf("name" to "doc4"))
         )
 
         `when`(mockVectorStore.query(indexName, queryEmbeddings[0], topK * 2)).thenReturn(query1Results)
@@ -113,11 +113,11 @@ class QueryFusionTest {
 
         // 验证结果
         assertEquals(topK, results.size)
-        
+
         // 文档1应该排在第一位，因为它有最高分
         assertEquals("1", results[0].id)
         assertEquals(0.9, results[0].score)
-        
+
         // 文档2应该排在第二位，取其最高分
         assertEquals("2", results[1].id)
         assertEquals(0.8, results[1].score)
@@ -135,14 +135,14 @@ class QueryFusionTest {
 
         // 模拟向量存储查询结果
         val query1Results = listOf(
-            QueryResult("1", 0.9, mapOf("name" to "doc1")),
-            QueryResult("2", 0.7, mapOf("name" to "doc2")),
-            QueryResult("3", 0.5, mapOf("name" to "doc3"))
+            SearchResult("1", 0.9, null, mapOf("name" to "doc1")),
+            SearchResult("2", 0.7, null, mapOf("name" to "doc2")),
+            SearchResult("3", 0.5, null, mapOf("name" to "doc3"))
         )
         val query2Results = listOf(
-            QueryResult("2", 0.8, mapOf("name" to "doc2")),
-            QueryResult("3", 0.6, mapOf("name" to "doc3")),
-            QueryResult("4", 0.7, mapOf("name" to "doc4"))
+            SearchResult("2", 0.8, null, mapOf("name" to "doc2")),
+            SearchResult("3", 0.6, null, mapOf("name" to "doc3")),
+            SearchResult("4", 0.7, null, mapOf("name" to "doc4"))
         )
 
         `when`(mockVectorStore.query(indexName, queryEmbeddings[0], topK * 2)).thenReturn(query1Results)
@@ -160,10 +160,10 @@ class QueryFusionTest {
 
         // 验证结果
         assertEquals(topK, results.size)
-        
+
         // 文档2应该排在第一位，因为它在两个查询中都有高分
         assertEquals("2", results[0].id)
-        
+
         // 验证分数计算
         // 文档2的分数应该是 (0.7 + 0.8) / 2 = 0.75
         assertTrue(Math.abs(results[0].score - 0.75) < 0.01)
@@ -181,16 +181,16 @@ class QueryFusionTest {
 
         // 模拟向量存储查询结果
         val query1Results = listOf(
-            QueryResult("1", 0.9, mapOf("name" to "doc1"), floatArrayOf(0.9f, 0.1f, 0f)),
-            QueryResult("2", 0.7, mapOf("name" to "doc2"), floatArrayOf(0.7f, 0.3f, 0f))
+            SearchResult("1", 0.9, floatArrayOf(0.9f, 0.1f, 0f), mapOf("name" to "doc1")),
+            SearchResult("2", 0.7, floatArrayOf(0.7f, 0.3f, 0f), mapOf("name" to "doc2"))
         )
         val query2Results = listOf(
-            QueryResult("2", 0.8, mapOf("name" to "doc2"), floatArrayOf(0.7f, 0.3f, 0f)),
-            QueryResult("3", 0.6, mapOf("name" to "doc3"), floatArrayOf(0.3f, 0.7f, 0f))
+            SearchResult("2", 0.8, floatArrayOf(0.7f, 0.3f, 0f), mapOf("name" to "doc2")),
+            SearchResult("3", 0.6, floatArrayOf(0.3f, 0.7f, 0f), mapOf("name" to "doc3"))
         )
         val recursiveResults = listOf(
-            QueryResult("1", 0.95, mapOf("name" to "doc1"), floatArrayOf(0.9f, 0.1f, 0f)),
-            QueryResult("2", 0.85, mapOf("name" to "doc2"), floatArrayOf(0.7f, 0.3f, 0f))
+            SearchResult("1", 0.95, floatArrayOf(0.9f, 0.1f, 0f), mapOf("name" to "doc1")),
+            SearchResult("2", 0.85, floatArrayOf(0.7f, 0.3f, 0f), mapOf("name" to "doc2"))
         )
 
         `when`(mockVectorStore.query(indexName, queryEmbeddings[0], topK)).thenReturn(query1Results)
@@ -247,14 +247,14 @@ class QueryFusionTest {
 
         // 模拟向量存储查询结果
         val query1Results = listOf(
-            QueryResult("1", 0.9, mapOf("name" to "doc1")),
-            QueryResult("2", 0.7, mapOf("name" to "doc2")),
-            QueryResult("3", 0.5, mapOf("name" to "doc3"))
+            SearchResult("1", 0.9, null, mapOf("name" to "doc1")),
+            SearchResult("2", 0.7, null, mapOf("name" to "doc2")),
+            SearchResult("3", 0.5, null, mapOf("name" to "doc3"))
         )
         val query2Results = listOf(
-            QueryResult("2", 0.8, mapOf("name" to "doc2")),
-            QueryResult("3", 0.6, mapOf("name" to "doc3")),
-            QueryResult("4", 0.7, mapOf("name" to "doc4"))
+            SearchResult("2", 0.8, null, mapOf("name" to "doc2")),
+            SearchResult("3", 0.6, null, mapOf("name" to "doc3")),
+            SearchResult("4", 0.7, null, mapOf("name" to "doc4"))
         )
 
         `when`(mockVectorStore.query(indexName, queryEmbeddings[0], topK * 2)).thenReturn(query1Results)
