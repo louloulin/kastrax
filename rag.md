@@ -251,17 +251,17 @@ class RagEvaluationTool(
 
 ## 实现步骤
 
-1. 创建基础接口和类
-2. 实现文档处理模块
-3. 实现检索模块
-4. 实现重排序模块
-5. 实现上下文构建模块
-6. 实现 RAG 主类
-7. 实现高级功能模块
-8. 编写单元测试
-9. 编写集成测试
-10. 编写示例代码
-11. 编写文档
+1. 创建基础接口和类 (已完成)
+2. 实现文档处理模块 (已完成 TextFileLoader 和 TextSplitter)
+3. 实现检索模块 (已完成 VectorStoreRetriever, KeywordRetriever 和 HybridRetriever)
+4. 实现重排序模块 (已完成 IdentityReranker)
+5. 实现上下文构建模块 (已完成 ContextBuilder)
+6. 实现 RAG 主类 (已完成)
+7. 实现高级功能模块 (待实现)
+8. 编写单元测试 (已完成 RAGTest)
+9. 编写集成测试 (待实现)
+10. 编写示例代码 (已完成 SimpleRagExample)
+11. 编写文档 (待实现)
 
 ## 测试计划
 
@@ -279,14 +279,35 @@ class RagEvaluationTool(
 
 ## 时间计划
 
-1. 基础接口和类：1 天
-2. 文档处理模块：2 天
-3. 检索模块：2 天
-4. 重排序模块：2 天
-5. 上下文构建模块：1 天
-6. RAG 主类：1 天
-7. 高级功能模块：3 天
-8. 测试：2 天
-9. 文档：1 天
+1. 基础接口和类：1 天 (已完成)
+2. 文档处理模块：2 天 (部分完成)
+3. 检索模块：2 天 (已完成)
+4. 重排序模块：2 天 (部分完成)
+5. 上下文构建模块：1 天 (已完成)
+6. RAG 主类：1 天 (已完成)
+7. 高级功能模块：3 天 (待实现)
+8. 测试：2 天 (部分完成)
+9. 文档：1 天 (待实现)
 
 总计：15 天
+
+## 当前进度
+
+我们已经完成了 RAG 模块的基础功能，包括：
+
+1. 创建了基础接口和类
+2. 实现了文档处理模块的部分功能（TextFileLoader 和 TextSplitter）
+3. 实现了检索模块（VectorStoreRetriever, KeywordRetriever 和 HybridRetriever）
+4. 实现了重排序模块的部分功能（IdentityReranker）
+5. 实现了上下文构建模块（ContextBuilder）
+6. 实现了 RAG 主类
+7. 编写了单元测试（RAGTest）
+8. 编写了示例代码（SimpleRagExample）
+
+下一步计划：
+
+1. 实现更多的文档处理模块（PdfDocumentLoader, CsvDocumentLoader 等）
+2. 实现更多的重排序模块（RelevanceReranker, DiversityReranker 等）
+3. 实现高级功能模块（RealTimeRag, GraphRAG 等）
+4. 编写集成测试
+5. 编写文档

@@ -7,6 +7,8 @@ import ai.kastrax.rag.document.DocumentSplitter
 import ai.kastrax.rag.model.RetrieveContextResult
 import ai.kastrax.rag.reranker.IdentityReranker
 import ai.kastrax.rag.reranker.Reranker
+import ai.kastrax.rag.retriever.Retriever
+import ai.kastrax.rag.retriever.RetrieverFactory
 import ai.kastrax.store.document.Document
 import ai.kastrax.store.document.DocumentSearchResult
 import ai.kastrax.store.document.DocumentVectorStore
@@ -119,8 +121,35 @@ class RAG(
         loader: DocumentLoader,
         splitter: DocumentSplitter? = null
     ): Int {
-        // 将在后续实现
-        return 0
+        try {
+            // 加载文档
+            val documents = loader.load()
+            logger.debug { "Loaded ${documents.size} documents" }
+
+            // 分割文档（如果需要）
+            val processedDocuments = if (splitter != null) {
+                documents.flatMap { document ->
+                    splitter.split(document)
+                }
+            } else {
+                documents
+            }
+            logger.debug { "Processed ${processedDocuments.size} documents after splitting" }
+
+            // 添加文档到向量存储
+            val success = documentStore.addDocuments(processedDocuments, embeddingService)
+
+            if (success) {
+                logger.info { "Added ${processedDocuments.size} documents to vector store" }
+                return processedDocuments.size
+            } else {
+                logger.error { "Failed to add documents to vector store" }
+                return 0
+            }
+        } catch (e: Exception) {
+            logger.error(e) { "Error loading documents" }
+            throw e
+        }
     }
 
     /**
@@ -138,8 +167,25 @@ class RAG(
         minScore: Double = 0.0,
         options: RagProcessOptions? = null
     ): List<DocumentSearchResult> {
-        // 将在后续实现
-        return emptyList()
+        try {
+            val opts = options ?: defaultOptions
+
+            // 创建检索器
+            val retriever = createRetriever(opts)
+
+            // 检索文档
+            val results = retriever.retrieve(query, limit, minScore)
+
+            // 重排序（如果需要）
+            return if (opts.useReranking) {
+                reranker.rerank(query, results)
+            } else {
+                results
+            }
+        } catch (e: Exception) {
+            logger.error(e) { "Error searching documents" }
+            return emptyList()
+        }
     }
 
     /**
@@ -157,8 +203,26 @@ class RAG(
         minScore: Double = 0.0,
         options: RagProcessOptions? = null
     ): String {
-        // 将在后续实现
-        return ""
+        try {
+            val opts = options ?: defaultOptions
+
+            // 搜索文档
+            val results = search(query, limit, minScore, opts)
+
+            if (results.isEmpty()) {
+                logger.warn { "No documents found for query: $query" }
+                return ""
+            }
+
+            // 创建上下文构建器
+            val contextBuilder = ContextBuilder(opts.contextOptions)
+
+            // 构建上下文
+            return contextBuilder.buildContext(query, results)
+        } catch (e: Exception) {
+            logger.error(e) { "Error generating context" }
+            return ""
+        }
     }
 
     /**
@@ -176,7 +240,71 @@ class RAG(
         minScore: Double = 0.0,
         options: RagProcessOptions? = null
     ): RetrieveContextResult {
-        // 将在后续实现
-        return RetrieveContextResult("", emptyList())
+        try {
+            val opts = options ?: defaultOptions
+
+            // 搜索文档
+            val results = search(query, limit, minScore, opts)
+
+            if (results.isEmpty()) {
+                logger.warn { "No documents found for query: $query" }
+                return RetrieveContextResult("", emptyList())
+            }
+
+            // 创建上下文构建器
+            val contextBuilder = ContextBuilder(opts.contextOptions)
+
+            // 构建上下文
+            val context = contextBuilder.buildContext(query, results)
+
+            // 提取文档
+            val documents = results.map { it.document }
+
+            return RetrieveContextResult(context, documents)
+        } catch (e: Exception) {
+            logger.error(e) { "Error retrieving context" }
+            return RetrieveContextResult("", emptyList())
+        }
+    }
+
+    /**
+     * 创建检索器。
+     *
+     * @param options RAG 处理选项
+     * @return 检索器
+     */
+    private fun createRetriever(options: RagProcessOptions): Retriever {
+        // 创建向量存储检索器
+        val vectorStoreRetriever = RetrieverFactory.createVectorStoreRetriever(
+            documentStore = documentStore,
+            embeddingService = embeddingService
+        )
+
+        // 根据选项创建检索器
+        return when {
+            options.useHybridSearch -> {
+                // 创建关键词检索器
+                val keywordRetriever = RetrieverFactory.createKeywordRetriever(
+                    documentStore = documentStore
+                )
+
+                // 创建混合检索器
+                RetrieverFactory.createHybridRetriever(
+                    documentStore = documentStore,
+                    embeddingService = embeddingService,
+                    vectorWeight = options.hybridOptions.vectorWeight,
+                    keywordWeight = options.hybridOptions.keywordWeight
+                )
+            }
+            options.useSemanticRetrieval -> {
+                // 这里可以实现语义检索器
+                // 目前暂时使用向量存储检索器
+                vectorStoreRetriever
+            }
+            else -> {
+                // 默认使用向量存储检索器
+                vectorStoreRetriever
+            }
+        }
     }
 }
