@@ -60,3 +60,5 @@
 
 
 @vector.md ，参考mastra代码，分析整个vector和rag实现，,改造vector store存储，实现相关功能，实现后增加测试验证，验证通过后 更新 @vector.md 标记实现的功能，中文说明，并按章节编写文档
+
+@rag.md 按照这个计划，参考  rag-backup的代码，实现rag的功能，实现后增加测试验证，验证通过后更新 @rag.md 标记实现的功能
