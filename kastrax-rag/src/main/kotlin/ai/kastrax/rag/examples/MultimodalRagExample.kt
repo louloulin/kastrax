@@ -5,6 +5,7 @@ import ai.kastrax.rag.multimodal.MultimodalDocumentType
 import ai.kastrax.rag.multimodal.MultimodalRagFactory
 import kotlinx.coroutines.runBlocking
 import kotlin.system.measureTimeMillis
+import ai.kastrax.store.document.DocumentSearchResult
 
 /**
  * 多模态 RAG 示例，展示如何使用多模态 RAG 系统。
@@ -12,13 +13,13 @@ import kotlin.system.measureTimeMillis
 fun main() = runBlocking {
     println("多模态 RAG 示例")
     println("===========")
-    
+
     // 创建多模态 RAG 实例
     val apiKey = "your-openai-api-key" // 替换为你的 OpenAI API 密钥
     val multimodalRag = MultimodalRagFactory.createOpenAIMultimodalRag(apiKey)
-    
+
     println("创建了多模态 RAG 实例")
-    
+
     // 创建多模态文档
     val documents = listOf(
         MultimodalDocument(
@@ -57,24 +58,24 @@ fun main() = runBlocking {
             metadata = mapOf("source" to "CV百科", "category" to "技术")
         )
     )
-    
+
     println("创建了 ${documents.size} 个多模态文档")
-    
+
     // 加载多模态文档
     val loadTime = measureTimeMillis {
         multimodalRag.loadMultimodalDocuments(documents)
     }
-    
+
     println("加载多模态文档耗时: ${loadTime}ms")
-    
+
     // 测试纯文本查询
     val textQuery = "人工智能的应用"
     println("\n执行纯文本查询: '$textQuery'")
-    
+
     val textSearchTime = measureTimeMillis {
-        val results = multimodalRag.search(textQuery, limit = 3)
+        val results = multimodalRag.multimodalSearch(textQuery, limit = 3) as List<DocumentSearchResult>
         println("结果数量: ${results.size}")
-        
+
         results.forEachIndexed { index, result ->
             println("${index + 1}. ${result.document.content}")
             println("   分数: ${result.score}")
@@ -83,23 +84,23 @@ fun main() = runBlocking {
             println()
         }
     }
-    
+
     println("纯文本查询耗时: ${textSearchTime}ms")
-    
+
     // 测试多模态查询（文本 + 图像）
     val multimodalQuery = "深度学习"
     val imageUrl = "https://example.com/images/neural_network.jpg"
     println("\n执行多模态查询: 文本='$multimodalQuery', 图像=$imageUrl")
-    
+
     val multimodalSearchTime = measureTimeMillis {
         val results = multimodalRag.multimodalSearch(
             textQuery = multimodalQuery,
             imageUrl = imageUrl,
             limit = 3
         )
-        
+
         println("结果数量: ${results.size}")
-        
+
         results.forEachIndexed { index, result ->
             println("${index + 1}. ${result.document.content}")
             println("   分数: ${result.score}")
@@ -108,39 +109,39 @@ fun main() = runBlocking {
             println()
         }
     }
-    
+
     println("多模态查询耗时: ${multimodalSearchTime}ms")
-    
+
     // 生成多模态上下文
     println("\n生成多模态上下文")
-    
+
     val contextTime = measureTimeMillis {
         val context = multimodalRag.generateMultimodalContext(
             textQuery = "机器学习和深度学习的区别",
             imageUrl = "https://example.com/images/ml_vs_dl.jpg",
             limit = 3
         )
-        
+
         println("上下文长度: ${context.length}")
         println("上下文预览: ${context.take(200)}...")
     }
-    
+
     println("生成多模态上下文耗时: ${contextTime}ms")
-    
+
     // 检索多模态上下文
     println("\n检索多模态上下文")
-    
+
     val retrieveTime = measureTimeMillis {
         val result = multimodalRag.retrieveMultimodalContext(
             textQuery = "计算机视觉的应用",
             videoUrl = "https://example.com/videos/cv_applications.mp4",
             limit = 3
         )
-        
+
         println("上下文长度: ${result.context.length}")
         println("上下文预览: ${result.context.take(200)}...")
         println("文档数量: ${result.documents.size}")
-        
+
         result.documents.forEachIndexed { index, document ->
             println("${index + 1}. ${document.content.take(100)}...")
             println("   来源: ${document.metadata["source"]}")
@@ -148,8 +149,8 @@ fun main() = runBlocking {
             println()
         }
     }
-    
+
     println("检索多模态上下文耗时: ${retrieveTime}ms")
-    
+
     println("\n示例完成")
 }

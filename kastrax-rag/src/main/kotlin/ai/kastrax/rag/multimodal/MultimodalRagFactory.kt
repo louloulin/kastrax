@@ -3,10 +3,9 @@ package ai.kastrax.rag.multimodal
 import ai.kastrax.rag.RagProcessOptions
 import ai.kastrax.rag.reranker.IdentityReranker
 import ai.kastrax.rag.reranker.Reranker
-import ai.kastrax.rag.store.DocumentStore
-import ai.kastrax.rag.store.DocumentVectorStoreAdapter
-import ai.kastrax.rag.store.VectorStoreFactory
-import ai.kastrax.store.vector.VectorStore
+import ai.kastrax.store.document.DocumentVectorStore
+import ai.kastrax.store.VectorStore
+import ai.kastrax.store.VectorStoreFactory
 import io.github.oshai.kotlinlogging.KotlinLogging
 
 private val logger = KotlinLogging.logger {}
@@ -15,7 +14,7 @@ private val logger = KotlinLogging.logger {}
  * 多模态 RAG 工厂类，用于创建多模态 RAG 实例。
  */
 object MultimodalRagFactory {
-    
+
     /**
      * 创建基于 OpenAI 的多模态 RAG 实例。
      *
@@ -40,7 +39,7 @@ object MultimodalRagFactory {
         defaultOptions: RagProcessOptions = RagProcessOptions()
     ): MultimodalRAG {
         logger.info { "Creating OpenAI multimodal RAG with embedding model: $embeddingModel, vision model: $visionModel, audio model: $audioModel" }
-        
+
         // 创建多模态嵌入服务
         val embeddingService = OpenAIMultimodalEmbeddingService(
             apiKey = apiKey,
@@ -49,13 +48,13 @@ object MultimodalRagFactory {
             visionModel = visionModel,
             audioModel = audioModel
         )
-        
+
         // 创建向量存储
         val store = vectorStore ?: VectorStoreFactory.createInMemoryVectorStore()
-        
+
         // 创建文档向量存储适配器
-        val documentStore = DocumentVectorStoreAdapter(store)
-        
+        val documentStore = VectorStoreFactory.adaptToDocumentVectorStore(store)
+
         // 创建多模态 RAG 实例
         return MultimodalRAG(
             documentStore = documentStore,
@@ -64,7 +63,7 @@ object MultimodalRagFactory {
             defaultOptions = defaultOptions
         )
     }
-    
+
     /**
      * 创建自定义多模态 RAG 实例。
      *
@@ -76,12 +75,12 @@ object MultimodalRagFactory {
      */
     fun createCustomMultimodalRag(
         embeddingService: MultimodalEmbeddingService,
-        documentStore: DocumentStore,
+        documentStore: DocumentVectorStore,
         reranker: Reranker = IdentityReranker(),
         defaultOptions: RagProcessOptions = RagProcessOptions()
     ): MultimodalRAG {
         logger.info { "Creating custom multimodal RAG" }
-        
+
         // 创建多模态 RAG 实例
         return MultimodalRAG(
             documentStore = documentStore,
@@ -90,7 +89,7 @@ object MultimodalRagFactory {
             defaultOptions = defaultOptions
         )
     }
-    
+
     /**
      * 创建自定义多模态 RAG 实例。
      *
@@ -107,13 +106,13 @@ object MultimodalRagFactory {
         defaultOptions: RagProcessOptions = RagProcessOptions()
     ): MultimodalRAG {
         logger.info { "Creating custom multimodal RAG with vector store" }
-        
+
         // 创建向量存储
         val store = vectorStore ?: VectorStoreFactory.createInMemoryVectorStore()
-        
+
         // 创建文档向量存储适配器
-        val documentStore = DocumentVectorStoreAdapter(store)
-        
+        val documentStore = VectorStoreFactory.adaptToDocumentVectorStore(store)
+
         // 创建多模态 RAG 实例
         return MultimodalRAG(
             documentStore = documentStore,

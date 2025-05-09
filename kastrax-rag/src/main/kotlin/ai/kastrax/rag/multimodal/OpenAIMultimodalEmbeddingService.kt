@@ -7,7 +7,7 @@ import io.ktor.client.call.*
 import io.ktor.client.engine.cio.*
 import io.ktor.client.plugins.*
 import io.ktor.client.plugins.contentnegotiation.*
-import io.ktor.client.plugins.retry.*
+import io.ktor.client.plugins.HttpRequestRetry
 import io.ktor.client.request.*
 import io.ktor.client.request.forms.*
 import io.ktor.client.statement.*
@@ -52,7 +52,7 @@ class OpenAIMultimodalEmbeddingService(
     private val timeout: Long = 30000,
     private val tempDir: String = System.getProperty("java.io.tmpdir")
 ) : MultimodalEmbeddingService {
-    
+
     private val client = HttpClient(CIO) {
         install(ContentNegotiation) {
             json(Json {
@@ -70,7 +70,7 @@ class OpenAIMultimodalEmbeddingService(
             exponentialDelay()
         }
     }
-    
+
     /**
      * 生成文本的嵌入向量。
      *
@@ -211,7 +211,7 @@ class OpenAIMultimodalEmbeddingService(
     override fun dimension(): Int {
         return dimensions
     }
-    
+
     /**
      * 生成图像的嵌入向量。
      *
@@ -221,16 +221,16 @@ class OpenAIMultimodalEmbeddingService(
     override suspend fun embedImage(imageUrl: String): FloatArray = withContext(Dispatchers.IO) {
         try {
             logger.info { "Generating embedding for image: $imageUrl" }
-            
+
             // 下载图像
             val imageFile = downloadFile(imageUrl)
-            
+
             // 使用 OpenAI API 生成图像描述
             val imageDescription = generateImageDescription(imageFile)
-            
+
             // 删除临时文件
             imageFile.delete()
-            
+
             // 使用文本嵌入服务生成嵌入向量
             embed(imageDescription)
         } catch (e: Exception) {
@@ -238,7 +238,7 @@ class OpenAIMultimodalEmbeddingService(
             FloatArray(dimensions) { 0f }
         }
     }
-    
+
     /**
      * 生成音频的嵌入向量。
      *
@@ -248,16 +248,16 @@ class OpenAIMultimodalEmbeddingService(
     override suspend fun embedAudio(audioUrl: String): FloatArray = withContext(Dispatchers.IO) {
         try {
             logger.info { "Generating embedding for audio: $audioUrl" }
-            
+
             // 下载音频
             val audioFile = downloadFile(audioUrl)
-            
+
             // 使用 OpenAI API 转录音频
             val audioTranscription = transcribeAudio(audioFile)
-            
+
             // 删除临时文件
             audioFile.delete()
-            
+
             // 使用文本嵌入服务生成嵌入向量
             embed(audioTranscription)
         } catch (e: Exception) {
@@ -265,7 +265,7 @@ class OpenAIMultimodalEmbeddingService(
             FloatArray(dimensions) { 0f }
         }
     }
-    
+
     /**
      * 生成视频的嵌入向量。
      *
@@ -275,23 +275,23 @@ class OpenAIMultimodalEmbeddingService(
     override suspend fun embedVideo(videoUrl: String): FloatArray = withContext(Dispatchers.IO) {
         try {
             logger.info { "Generating embedding for video: $videoUrl" }
-            
+
             // 下载视频
             val videoFile = downloadFile(videoUrl)
-            
+
             // 提取视频的关键帧
             val keyFrames = extractKeyFrames(videoFile)
-            
+
             // 为每个关键帧生成描述
             val frameDescriptions = keyFrames.map { generateImageDescription(it) }
-            
+
             // 删除临时文件
             videoFile.delete()
             keyFrames.forEach { it.delete() }
-            
+
             // 组合所有描述
             val combinedDescription = frameDescriptions.joinToString("\n\n")
-            
+
             // 使用文本嵌入服务生成嵌入向量
             embed(combinedDescription)
         } catch (e: Exception) {
@@ -299,7 +299,7 @@ class OpenAIMultimodalEmbeddingService(
             FloatArray(dimensions) { 0f }
         }
     }
-    
+
     /**
      * 下载文件。
      *
@@ -308,22 +308,22 @@ class OpenAIMultimodalEmbeddingService(
      */
     private suspend fun downloadFile(url: String): File = withContext(Dispatchers.IO) {
         val tempFile = File.createTempFile("kastrax_", getFileExtension(url), File(tempDir))
-        
+
         try {
             val connection = URL(url).openConnection()
             connection.connect()
-            
+
             connection.getInputStream().use { input ->
                 Files.copy(input, tempFile.toPath(), StandardCopyOption.REPLACE_EXISTING)
             }
-            
+
             tempFile
         } catch (e: Exception) {
             tempFile.delete()
             throw e
         }
     }
-    
+
     /**
      * 获取文件扩展名。
      *
@@ -338,7 +338,7 @@ class OpenAIMultimodalEmbeddingService(
             ""
         }
     }
-    
+
     /**
      * 生成图像描述。
      *
@@ -351,7 +351,7 @@ class OpenAIMultimodalEmbeddingService(
                 append(HttpHeaders.Authorization, "Bearer $apiKey")
                 append(HttpHeaders.ContentType, ContentType.Application.Json.toString())
             }
-            
+
             setBody(
                 buildJsonObject {
                     put("model", visionModel)
@@ -376,15 +376,15 @@ class OpenAIMultimodalEmbeddingService(
                 }
             )
         }
-        
+
         val responseBody = response.bodyAsText()
         val jsonResponse = Json.parseToJsonElement(responseBody).jsonObject
-        
+
         jsonResponse["choices"]?.jsonArray?.firstOrNull()
             ?.jsonObject?.get("message")?.jsonObject
             ?.get("content")?.jsonPrimitive?.content ?: "No description available"
     }
-    
+
     /**
      * 转录音频。
      *
@@ -406,13 +406,13 @@ class OpenAIMultimodalEmbeddingService(
                 append(HttpHeaders.Authorization, "Bearer $apiKey")
             }
         }
-        
+
         val responseBody = response.bodyAsText()
         val jsonResponse = Json.parseToJsonElement(responseBody).jsonObject
-        
+
         jsonResponse["text"]?.jsonPrimitive?.content ?: "No transcription available"
     }
-    
+
     /**
      * 提取视频的关键帧。
      *
@@ -423,11 +423,11 @@ class OpenAIMultimodalEmbeddingService(
         // 这里使用 FFmpeg 提取关键帧
         // 为了简化示例，我们只提取 3 个关键帧
         val keyFrames = mutableListOf<File>()
-        
+
         try {
             val outputDir = File(tempDir, "kastrax_keyframes_${System.currentTimeMillis()}")
             outputDir.mkdirs()
-            
+
             // 使用 FFmpeg 提取关键帧
             val process = ProcessBuilder(
                 "ffmpeg",
@@ -438,21 +438,21 @@ class OpenAIMultimodalEmbeddingService(
                 "-q:v", "2",
                 "${outputDir.absolutePath}/frame_%03d.jpg"
             ).start()
-            
+
             process.waitFor()
-            
+
             // 获取生成的关键帧
             outputDir.listFiles()?.filter { it.name.startsWith("frame_") }?.forEach {
                 keyFrames.add(it)
             }
-            
+
             keyFrames
         } catch (e: Exception) {
             logger.error(e) { "Error extracting key frames from video: ${videoFile.absolutePath}" }
             emptyList()
         }
     }
-    
+
     /**
      * 将字节数组编码为 Base64 字符串。
      *
@@ -461,7 +461,7 @@ class OpenAIMultimodalEmbeddingService(
     private fun ByteArray.encodeBase64(): String {
         return java.util.Base64.getEncoder().encodeToString(this)
     }
-    
+
     /**
      * 关闭资源。
      */

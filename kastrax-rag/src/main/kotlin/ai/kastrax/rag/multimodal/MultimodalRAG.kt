@@ -3,9 +3,10 @@ package ai.kastrax.rag.multimodal
 import ai.kastrax.rag.RAG
 import ai.kastrax.rag.RagProcessOptions
 import ai.kastrax.rag.context.ContextBuilder
+import ai.kastrax.rag.context.ContextBuilderConfig
 import ai.kastrax.rag.model.RetrieveContextResult
 import ai.kastrax.rag.reranker.Reranker
-import ai.kastrax.rag.store.DocumentStore
+import ai.kastrax.store.document.DocumentVectorStore
 import ai.kastrax.store.document.Document
 import ai.kastrax.store.document.DocumentSearchResult
 import io.github.oshai.kotlinlogging.KotlinLogging
@@ -21,12 +22,12 @@ private val logger = KotlinLogging.logger {}
  * @property defaultOptions 默认选项
  */
 class MultimodalRAG(
-    documentStore: DocumentStore,
+    private val documentStore: DocumentVectorStore,
     val embeddingService: MultimodalEmbeddingService,
-    reranker: Reranker,
-    defaultOptions: RagProcessOptions = RagProcessOptions()
-) : RAG(documentStore, embeddingService, reranker, defaultOptions) {
-    
+    private val reranker: Reranker,
+    private val defaultOptions: RagProcessOptions = RagProcessOptions()
+) {
+
     /**
      * 加载多模态文档。
      *
@@ -35,17 +36,23 @@ class MultimodalRAG(
      */
     suspend fun loadMultimodalDocuments(documents: List<MultimodalDocument>): Boolean {
         logger.info { "Loading ${documents.size} multimodal documents" }
-        
+
         // 转换为普通文档
         val standardDocuments = documents.map { it.toDocument() }
-        
+
         // 生成嵌入向量
         val embeddings = embeddingService.embedMultimodalDocuments(documents)
-        
+
         // 加载文档和嵌入向量
-        return documentStore.addDocuments(standardDocuments, embeddings)
+        // 创建一个实现 EmbeddingService 接口的对象，返回预计算的嵌入向量
+        val precomputedEmbeddingService = object : ai.kastrax.store.embedding.EmbeddingService {
+            override val dimensions: Int = embeddingService.dimensions
+            override suspend fun embed(text: String): FloatArray = FloatArray(dimensions)
+            override suspend fun embedBatch(texts: List<String>): List<FloatArray> = embeddings
+        }
+        return documentStore.addDocuments(standardDocuments, precomputedEmbeddingService)
     }
-    
+
     /**
      * 使用多模态查询搜索文档。
      *
@@ -68,16 +75,16 @@ class MultimodalRAG(
         options: RagProcessOptions? = null
     ): List<DocumentSearchResult> {
         logger.info { "Performing multimodal search with text: '$textQuery', image: $imageUrl, audio: $audioUrl, video: $videoUrl" }
-        
+
         // 创建多模态查询文档
         val queryDocument = createQueryDocument(textQuery, imageUrl, audioUrl, videoUrl)
-        
+
         // 生成查询嵌入向量
         val queryEmbedding = embeddingService.embedMultimodalDocument(queryDocument)
-        
+
         // 使用嵌入向量搜索文档
-        val searchResults = documentStore.search(queryEmbedding, limit, minScore)
-        
+        val searchResults = documentStore.similaritySearch(queryEmbedding, limit)
+
         // 应用重排序
         val finalOptions = options ?: defaultOptions
         return if (finalOptions.useReranking) {
@@ -86,7 +93,7 @@ class MultimodalRAG(
             searchResults
         }
     }
-    
+
     /**
      * 使用多模态查询生成上下文。
      *
@@ -109,14 +116,15 @@ class MultimodalRAG(
         options: RagProcessOptions? = null
     ): String {
         logger.info { "Generating multimodal context with text: '$textQuery', image: $imageUrl, audio: $audioUrl, video: $videoUrl" }
-        
+
         // 搜索文档
         val results = multimodalSearch(textQuery, imageUrl, audioUrl, videoUrl, limit, minScore, options)
-        
+
         // 生成上下文
-        return generateContext(results, textQuery, options)
+        val contextBuilder = ContextBuilder(options?.contextOptions ?: defaultOptions.contextOptions)
+        return runBlocking { contextBuilder.buildContext(textQuery, results) }
     }
-    
+
     /**
      * 使用多模态查询检索上下文。
      *
@@ -139,16 +147,17 @@ class MultimodalRAG(
         options: RagProcessOptions? = null
     ): RetrieveContextResult {
         logger.info { "Retrieving multimodal context with text: '$textQuery', image: $imageUrl, audio: $audioUrl, video: $videoUrl" }
-        
+
         // 搜索文档
         val results = multimodalSearch(textQuery, imageUrl, audioUrl, videoUrl, limit, minScore, options)
-        
+
         // 生成上下文
-        val context = generateContext(results, textQuery, options)
-        
+        val contextBuilder = ContextBuilder(options?.contextOptions ?: defaultOptions.contextOptions)
+        val context = runBlocking { contextBuilder.buildContext(textQuery, results) }
+
         return RetrieveContextResult(context, results.map { it.document })
     }
-    
+
     /**
      * 生成上下文。
      *
@@ -166,14 +175,14 @@ class MultimodalRAG(
             logger.warn { "No documents found for query: $query" }
             return ""
         }
-        
+
         // 创建上下文构建器
         val contextBuilder = ContextBuilder(options?.contextOptions ?: defaultOptions.contextOptions)
-        
+
         // 构建上下文
         return contextBuilder.buildContext(query, results)
     }
-    
+
     /**
      * 创建查询文档。
      *
@@ -190,7 +199,7 @@ class MultimodalRAG(
         videoUrl: String?
     ): MultimodalDocument {
         val mediaUrls = listOfNotNull(imageUrl, audioUrl, videoUrl)
-        
+
         val mediaType = when {
             imageUrl != null && audioUrl == null && videoUrl == null -> MultimodalDocumentType.IMAGE
             imageUrl == null && audioUrl != null && videoUrl == null -> MultimodalDocumentType.AUDIO
@@ -198,7 +207,7 @@ class MultimodalRAG(
             mediaUrls.isEmpty() -> MultimodalDocumentType.TEXT
             else -> MultimodalDocumentType.MIXED
         }
-        
+
         return MultimodalDocument(
             id = "query",
             content = textQuery,

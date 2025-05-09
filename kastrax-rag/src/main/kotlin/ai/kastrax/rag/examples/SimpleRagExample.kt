@@ -4,9 +4,10 @@ import ai.kastrax.rag.RAG
 import ai.kastrax.rag.RagProcessOptions
 import ai.kastrax.rag.context.ContextBuilderConfig
 import ai.kastrax.rag.reranker.IdentityReranker
-import ai.kastrax.rag.store.VectorStoreFactory
 import ai.kastrax.rag.embedding.RandomEmbeddingService
-import ai.kastrax.rag.document.Document
+import ai.kastrax.store.embedding.EmbeddingService
+import ai.kastrax.store.VectorStoreFactory
+import ai.kastrax.store.document.Document
 import kotlinx.coroutines.runBlocking
 import java.util.Scanner
 import java.util.UUID
@@ -18,13 +19,20 @@ fun main() = runBlocking {
     println("初始化 RAG 系统...")
 
     // 创建嵌入服务
-    val embeddingService = RandomEmbeddingService(dimensions = 1536)
+    val ragEmbeddingService = RandomEmbeddingService(1536)
+    val embeddingService = object : ai.kastrax.store.embedding.EmbeddingService {
+        // 注意：ai.kastrax.store.embedding.EmbeddingService 接口中没有 dimensions 属性
+        // 我们在这里添加一个属性来存储维度信息
+        val dimensions: Int = 1536
+        override suspend fun embed(text: String): FloatArray = ragEmbeddingService.embed(text)
+        override suspend fun embedBatch(texts: List<String>): List<FloatArray> = ragEmbeddingService.embedBatch(texts)
+    }
 
     // 创建向量存储
     val vectorStore = VectorStoreFactory.createInMemoryVectorStore()
 
     // 创建文档存储
-    val documentStore = VectorStoreFactory.adaptToDocumentStore(vectorStore)
+    val documentStore = VectorStoreFactory.adaptToDocumentVectorStore(vectorStore)
 
     // 创建 RAG 实例
     val rag = RAG(

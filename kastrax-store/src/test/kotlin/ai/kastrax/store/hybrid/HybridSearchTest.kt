@@ -5,6 +5,8 @@ import ai.kastrax.store.document.Document
 import ai.kastrax.store.document.DocumentSearchResult
 import ai.kastrax.store.document.DocumentVectorStore
 import ai.kastrax.store.VectorStore
+import ai.kastrax.store.document.RagDocument
+import ai.kastrax.store.document.SearchResult
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeEach
@@ -16,12 +18,14 @@ class HybridSearchTest {
     private lateinit var mockVectorStore: VectorStore
     private lateinit var mockDocumentVectorStore: DocumentVectorStore
     private lateinit var embeddingService: EmbeddingService
+    private lateinit var mockVectorStoreAdapter: DocumentVectorStore
 
     @BeforeEach
     fun setUp() {
         mockVectorStore = mock(VectorStore::class.java)
         mockDocumentVectorStore = mock(DocumentVectorStore::class.java)
         embeddingService = mock(EmbeddingService::class.java)
+        mockVectorStoreAdapter = VectorStoreFactory.adaptToDocumentVectorStore(mockVectorStore)
     }
 
     @Test
@@ -32,28 +36,28 @@ class HybridSearchTest {
         val limit = 3
 
         // 创建测试文档
-        val doc1 = RagDocument("1", "This is a test document", mapOf("tag" to "test"))
-        val doc2 = RagDocument("2", "Another document for testing", mapOf("tag" to "test"))
-        val doc3 = RagDocument("3", "Document with query term", mapOf("tag" to "query"))
-        val doc4 = RagDocument("4", "Unrelated document", mapOf("tag" to "other"))
+        val doc1 = Document("1", "This is a test document", mapOf("tag" to "test"))
+        val doc2 = Document("2", "Another document for testing", mapOf("tag" to "test"))
+        val doc3 = Document("3", "Document with query term", mapOf("tag" to "query"))
+        val doc4 = Document("4", "Unrelated document", mapOf("tag" to "other"))
 
         // 模拟向量搜索结果
         val vectorResults = listOf(
-            SearchResult(doc1, 0.9),
-            SearchResult(doc2, 0.8),
-            SearchResult(doc4, 0.6)
+            DocumentSearchResult(doc1, 0.9),
+            DocumentSearchResult(doc2, 0.8),
+            DocumentSearchResult(doc4, 0.6)
         )
 
         // 模拟关键词搜索结果
         val keywordResults = listOf(
-            SearchResult(doc1, 0.8),
-            SearchResult(doc3, 0.7)
+            DocumentSearchResult(doc1, 0.8),
+            DocumentSearchResult(doc3, 0.7)
         )
 
         // 设置模拟行为
-        `when`(mockVectorStore.similaritySearch(query, embeddingService, limit * 2, 0.0))
+        `when`(mockVectorStoreAdapter.similaritySearch(eq(query), eq(embeddingService), eq(limit * 2)))
             .thenReturn(vectorResults)
-        `when`(mockVectorStore.keywordSearch(keywords, limit * 2))
+        `when`(mockVectorStoreAdapter.keywordSearch(eq(keywords), eq(limit * 2)))
             .thenReturn(keywordResults)
 
         // 执行混合搜索
@@ -64,7 +68,7 @@ class HybridSearchTest {
         )
         val results = HybridSearch.search(
             query = query,
-            vectorStore = mockVectorStore,
+            vectorStore = mockVectorStoreAdapter,
             embeddingService = embeddingService,
             keywords = keywords,
             limit = limit,
@@ -106,19 +110,19 @@ class HybridSearchTest {
         val limit = 3
 
         // 创建测试文档
-        val doc1 = RagDocument("1", "This is a test document", mapOf("tag" to "test"))
-        val doc2 = RagDocument("2", "Another document for testing", mapOf("tag" to "test"))
-        val doc3 = RagDocument("3", "Document with query term", mapOf("tag" to "query"))
+        val doc1 = Document("1", "This is a test document", mapOf("tag" to "test"))
+        val doc2 = Document("2", "Another document for testing", mapOf("tag" to "test"))
+        val doc3 = Document("3", "Document with query term", mapOf("tag" to "query"))
 
         // 模拟向量搜索结果
         val vectorResults = listOf(
-            SearchResult(doc1, 0.9),
-            SearchResult(doc2, 0.8),
-            SearchResult(doc3, 0.7)
+            DocumentSearchResult(doc1, 0.9),
+            DocumentSearchResult(doc2, 0.8),
+            DocumentSearchResult(doc3, 0.7)
         )
 
         // 设置模拟行为
-        `when`(mockVectorStore.similaritySearch(query, embeddingService, limit * 2, 0.0))
+        `when`(mockVectorStoreAdapter.similaritySearch(eq(query), eq(embeddingService), eq(limit * 2)))
             .thenReturn(vectorResults)
 
         // 执行混合搜索
@@ -129,7 +133,7 @@ class HybridSearchTest {
         )
         val results = HybridSearch.search(
             query = query,
-            vectorStore = mockVectorStore,
+            vectorStore = mockVectorStoreAdapter,
             embeddingService = embeddingService,
             keywords = keywords,
             limit = limit,
