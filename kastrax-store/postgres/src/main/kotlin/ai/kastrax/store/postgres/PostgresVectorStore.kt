@@ -2,7 +2,7 @@ package ai.kastrax.store.postgres
 
 import ai.kastrax.store.BaseVectorStore
 import ai.kastrax.store.IndexStats
-import ai.kastrax.store.QueryResult
+import ai.kastrax.store.model.SearchResult
 import ai.kastrax.store.SimilarityMetric
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
@@ -50,10 +50,10 @@ class PostgresVectorStore(
         dataSource = HikariDataSource(config)
 
         // 初始化数据库
-        transaction(Connection.TRANSACTION_READ_COMMITTED, 3, dataSource) {
+        transaction(Database.connect(dataSource)) {
             // 检查 pgvector 扩展是否已安装
             val extensionExists = exec("SELECT 1 FROM pg_extension WHERE extname = 'vector'") { it.next() }
-            if (!extensionExists) {
+            if (extensionExists == null || !extensionExists) {
                 exec("CREATE EXTENSION IF NOT EXISTS vector")
             }
 
@@ -77,7 +77,7 @@ class PostgresVectorStore(
         metric: SimilarityMetric
     ): Boolean = withContext(Dispatchers.IO) {
         try {
-            transaction(Connection.TRANSACTION_READ_COMMITTED, 3, dataSource) {
+            transaction(Database.connect(dataSource)) {
                 // 检查索引是否已存在
                 val indexExists = IndexInfoTable.select { IndexInfoTable.name eq indexName }.count() > 0
                 if (indexExists) {
@@ -141,7 +141,7 @@ class PostgresVectorStore(
         }
 
         try {
-            transaction(Connection.TRANSACTION_READ_COMMITTED, 3, dataSource) {
+            transaction(Database.connect(dataSource)) {
                 // 获取索引信息
                 val indexInfo = getIndexInfo(indexName)
                     ?: throw IllegalArgumentException("Index $indexName does not exist")
@@ -188,9 +188,7 @@ class PostgresVectorStore(
                 val newCount = exec("SELECT COUNT(*) FROM $schema.$vectorTableName") { rs ->
                     if (rs.next()) rs.getInt(1) else 0
                 }
-                IndexInfoTable.update({ IndexInfoTable.name eq indexName }) {
-                    it[count] = newCount
-                }
+                exec("UPDATE $schema.index_info SET count = $newCount WHERE name = '$indexName'")
 
                 logger.debug { "Upserted ${vectors.size} vectors to index $indexName" }
                 return@transaction vectorIds
@@ -217,9 +215,9 @@ class PostgresVectorStore(
         topK: Int,
         filter: Map<String, Any>?,
         includeVectors: Boolean
-    ): List<QueryResult> = withContext(Dispatchers.IO) {
+    ): List<SearchResult> = withContext(Dispatchers.IO) {
         try {
-            transaction(Connection.TRANSACTION_READ_COMMITTED, 3, dataSource) {
+            transaction(Database.connect(dataSource)) {
                 // 获取索引信息
                 val indexInfo = getIndexInfo(indexName)
                     ?: throw IllegalArgumentException("Index $indexName does not exist")
@@ -266,13 +264,13 @@ class PostgresVectorStore(
                     ORDER BY score
                     LIMIT $topK
                 """) { rs ->
-                    val results = mutableListOf<QueryResult>()
+                    val results = mutableListOf<SearchResult>()
                     while (rs.next()) {
                         val id = rs.getString("id")
                         val score = rs.getDouble("score")
                         val metadataJson = rs.getString("metadata")
                         val metadata = metadataJson.fromJsonString()
-                        
+
                         val vector = if (includeVectors) {
                             val vectorStr = rs.getString("vector")
                                 .trim('[', ']')
@@ -292,19 +290,20 @@ class PostgresVectorStore(
                         }
 
                         results.add(
-                            QueryResult(
+                            SearchResult(
                                 id = id,
                                 score = normalizedScore,
-                                metadata = metadata,
-                                vector = vector
+                                vector = vector,
+                                metadata = metadata
                             )
                         )
                     }
                     results
                 }
 
-                logger.debug { "Query returned ${results.size} results from index $indexName" }
-                return@transaction results
+                val resultList = results?.toList() ?: emptyList()
+                logger.debug { "Query returned ${resultList.size} results from index $indexName" }
+                return@transaction resultList
             }
         } catch (e: Exception) {
             logger.error(e) { "Error querying index $indexName" }
@@ -325,7 +324,7 @@ class PostgresVectorStore(
         }
 
         try {
-            transaction(Connection.TRANSACTION_READ_COMMITTED, 3, dataSource) {
+            transaction(Database.connect(dataSource)) {
                 // 获取索引信息
                 val indexInfo = getIndexInfo(indexName)
                     ?: throw IllegalArgumentException("Index $indexName does not exist")
@@ -333,18 +332,18 @@ class PostgresVectorStore(
                 // 删除向量
                 val vectorTableName = indexInfo.vectorTable
                 val idList = ids.joinToString(", ") { "'$it'" }
-                val deletedCount = exec("DELETE FROM $schema.$vectorTableName WHERE id IN ($idList)") { it.updateCount }
+                val deletedCount = exec("DELETE FROM $schema.$vectorTableName WHERE id IN ($idList)") { rs ->
+                    rs.getInt(1)
+                }
 
                 // 更新索引计数
                 val newCount = exec("SELECT COUNT(*) FROM $schema.$vectorTableName") { rs ->
                     if (rs.next()) rs.getInt(1) else 0
                 }
-                IndexInfoTable.update({ IndexInfoTable.name eq indexName }) {
-                    it[count] = newCount
-                }
+                exec("UPDATE $schema.index_info SET count = $newCount WHERE name = '$indexName'")
 
                 logger.debug { "Deleted $deletedCount vectors from index $indexName" }
-                return@transaction deletedCount > 0
+                return@transaction (deletedCount ?: 0) > 0
             }
         } catch (e: Exception) {
             logger.error(e) { "Error deleting vectors from index $indexName" }
@@ -360,7 +359,7 @@ class PostgresVectorStore(
      */
     override suspend fun deleteIndex(indexName: String): Boolean = withContext(Dispatchers.IO) {
         try {
-            transaction(Connection.TRANSACTION_READ_COMMITTED, 3, dataSource) {
+            transaction(Database.connect(dataSource)) {
                 // 获取索引信息
                 val indexInfo = getIndexInfo(indexName) ?: return@transaction false
 
@@ -388,7 +387,7 @@ class PostgresVectorStore(
      */
     override suspend fun describeIndex(indexName: String): IndexStats = withContext(Dispatchers.IO) {
         try {
-            transaction(Connection.TRANSACTION_READ_COMMITTED, 3, dataSource) {
+            transaction(Database.connect(dataSource)) {
                 // 获取索引信息
                 val indexInfo = getIndexInfo(indexName)
                     ?: throw IllegalArgumentException("Index $indexName does not exist")
@@ -413,7 +412,7 @@ class PostgresVectorStore(
      */
     override suspend fun listIndexes(): List<String> = withContext(Dispatchers.IO) {
         try {
-            transaction(Connection.TRANSACTION_READ_COMMITTED, 3, dataSource) {
+            transaction(Database.connect(dataSource)) {
                 val indexes = IndexInfoTable.selectAll().map { it[IndexInfoTable.name] }
                 logger.debug { "Listed ${indexes.size} indexes" }
                 return@transaction indexes
@@ -444,7 +443,7 @@ class PostgresVectorStore(
         }
 
         try {
-            transaction(Connection.TRANSACTION_READ_COMMITTED, 3, dataSource) {
+            transaction(Database.connect(dataSource)) {
                 // 获取索引信息
                 val indexInfo = getIndexInfo(indexName)
                     ?: throw IllegalArgumentException("Index $indexName does not exist")
@@ -478,10 +477,12 @@ class PostgresVectorStore(
                     UPDATE $schema.$vectorTableName
                     SET $updateClause
                     WHERE id = '$id'
-                """) { it.updateCount }
+                """) { rs ->
+                    rs.getInt(1)
+                }
 
                 logger.debug { "Updated vector $id in index $indexName" }
-                return@transaction updatedCount > 0
+                return@transaction (updatedCount ?: 0) > 0
             }
         } catch (e: Exception) {
             logger.error(e) { "Error updating vector $id in index $indexName" }
