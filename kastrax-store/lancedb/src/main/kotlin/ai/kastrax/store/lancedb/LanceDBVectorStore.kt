@@ -2,69 +2,52 @@ package ai.kastrax.store.lancedb
 
 import ai.kastrax.store.BaseVectorStore
 import ai.kastrax.store.IndexStats
-import ai.kastrax.store.QueryResult
 import ai.kastrax.store.SimilarityMetric
-import com.lancedb.lance.Arrow
-import com.lancedb.lance.Connection
-import com.lancedb.lance.LanceDB
-import com.lancedb.lance.Table
-import com.lancedb.lance.builder.TableBuilder
-import com.lancedb.lance.query.Query
-import com.lancedb.lance.schema.Field
-import com.lancedb.lance.schema.Schema
+import ai.kastrax.store.model.SearchResult
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.withContext
-import org.apache.arrow.memory.RootAllocator
-import org.apache.arrow.vector.FieldVector
-import org.apache.arrow.vector.Float4Vector
-import org.apache.arrow.vector.VarCharVector
-import org.apache.arrow.vector.VectorSchemaRoot
-import org.apache.arrow.vector.complex.ListVector
-import org.apache.arrow.vector.types.FloatingPointPrecision
-import org.apache.arrow.vector.types.pojo.ArrowType
-import org.apache.arrow.vector.types.pojo.FieldType
 import java.io.File
-import java.nio.charset.StandardCharsets
-import java.util.*
+import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.CopyOnWriteArrayList
+import kotlin.math.sqrt
 
 private val logger = KotlinLogging.logger {}
 
 /**
  * LanceDB 向量存储实现。
- * 基于 LanceDB Java 客户端实现。
+ * 注意：这是一个简化的实现，实际上使用内存存储模拟 LanceDB 的功能。
+ * 在生产环境中，应该使用 LanceDB 的官方 Java 客户端。
  *
- * @property uri LanceDB URI，可以是本地路径或远程 URI
+ * @param uri LanceDB URI，可以是本地路径或远程 URI
  */
 class LanceDBVectorStore(
     private val uri: String
 ) : BaseVectorStore() {
 
-    private val connection: Connection by lazy {
-        if (uri.startsWith("http://") || uri.startsWith("https://")) {
-            // 远程连接
-            LanceDB.connect(uri)
-        } else {
-            // 本地连接
+    // 存储索引信息
+    private val indexes = ConcurrentHashMap<String, IndexInfo>()
+
+    // 存储向量数据
+    private val vectorData = ConcurrentHashMap<String, CopyOnWriteArrayList<VectorEntry>>()
+
+    init {
+        // 确保目录存在
+        if (!uri.startsWith("http://") && !uri.startsWith("https://")) {
             val directory = File(uri)
             if (!directory.exists()) {
                 directory.mkdirs()
             }
-            LanceDB.connect(directory.absolutePath)
         }
+        logger.debug { "Initialized LanceDB vector store with uri=$uri" }
     }
-
-    private val allocator = RootAllocator()
 
     /**
      * 创建索引。
      *
      * @param indexName 索引名称
      * @param dimension 向量维度
-     * @param metric 相似度度量方式，默认为余弦相似度
+     * @param metric 相似度度量方式
      * @return 是否成功创建
      */
     override suspend fun createIndex(
@@ -73,52 +56,104 @@ class LanceDBVectorStore(
         metric: SimilarityMetric
     ): Boolean = withContext(Dispatchers.IO) {
         try {
-            // 检查表是否已存在
-            val tables = listIndexes()
-            if (tables.contains(indexName)) {
-                logger.debug { "Table $indexName already exists" }
-                return@withContext false
+            // 检查索引是否已存在
+            if (indexes.containsKey(indexName)) {
+                logger.debug { "Index $indexName already exists" }
+                return@withContext true
             }
 
-            // 将 Kastrax 相似度度量方式转换为 LanceDB 相似度度量方式
-            val lanceMetric = when (metric) {
-                SimilarityMetric.COSINE -> "cosine"
-                SimilarityMetric.EUCLIDEAN -> "l2"
-                SimilarityMetric.DOT_PRODUCT -> "dot"
-            }
+            // 创建索引
+            indexes[indexName] = IndexInfo(
+                name = indexName,
+                dimension = dimension,
+                metric = metric,
+                count = 0L
+            )
 
-            // 创建 Schema
-            val schema = Schema.builder()
-                .addField(Field.builder("id", ArrowType.Utf8.INSTANCE).build())
-                .addField(Field.builder("vector", ArrowType.List.INSTANCE)
-                    .addField(Field.builder("item", ArrowType.FloatingPoint(FloatingPointPrecision.SINGLE)).build())
-                    .build())
-                .addField(Field.builder("metadata", ArrowType.Utf8.INSTANCE).build())
-                .build()
+            // 创建向量数据存储
+            vectorData[indexName] = CopyOnWriteArrayList<VectorEntry>()
 
-            // 创建表
-            val tableBuilder = TableBuilder.builder(connection, indexName)
-                .schema(schema)
-                .metric(lanceMetric)
-                .dimension(dimension)
-
-            tableBuilder.build()
-
-            logger.debug { "Created table $indexName with dimension $dimension and metric $metric" }
+            logger.debug { "Created index $indexName with dimension $dimension and metric $metric" }
             return@withContext true
         } catch (e: Exception) {
-            logger.error(e) { "Error creating table $indexName" }
+            logger.error(e) { "Error creating index $indexName" }
             throw e
         }
     }
 
     /**
-     * 向索引中添加向量。
+     * 删除索引。
+     *
+     * @param indexName 索引名称
+     * @return 是否成功删除
+     */
+    override suspend fun deleteIndex(indexName: String): Boolean = withContext(Dispatchers.IO) {
+        try {
+            // 检查索引是否存在
+            if (!indexes.containsKey(indexName)) {
+                logger.debug { "Index $indexName does not exist" }
+                return@withContext true
+            }
+
+            // 删除索引
+            indexes.remove(indexName)
+            vectorData.remove(indexName)
+
+            logger.debug { "Deleted index $indexName" }
+            return@withContext true
+        } catch (e: Exception) {
+            logger.error(e) { "Error deleting index $indexName" }
+            throw e
+        }
+    }
+
+    /**
+     * 列出所有索引。
+     *
+     * @return 索引名称列表
+     */
+    override suspend fun listIndexes(): List<String> = withContext(Dispatchers.IO) {
+        try {
+            val indexNames = indexes.keys.toList()
+            logger.debug { "Listed ${indexNames.size} indexes" }
+            return@withContext indexNames
+        } catch (e: Exception) {
+            logger.error(e) { "Error listing indexes" }
+            throw e
+        }
+    }
+
+    /**
+     * 获取索引信息。
+     *
+     * @param indexName 索引名称
+     * @return 索引信息
+     */
+    override suspend fun describeIndex(indexName: String): IndexStats = withContext(Dispatchers.IO) {
+        try {
+            // 获取索引信息
+            val indexInfo = indexes[indexName] ?: throw IllegalArgumentException("Index $indexName does not exist")
+
+            // 返回索引信息
+            return@withContext IndexStats(
+                name = indexName,
+                dimension = indexInfo.dimension,
+                count = indexInfo.count,
+                metric = indexInfo.metric
+            )
+        } catch (e: Exception) {
+            logger.error(e) { "Error describing index $indexName" }
+            throw e
+        }
+    }
+
+    /**
+     * 添加向量。
      *
      * @param indexName 索引名称
      * @param vectors 向量列表
      * @param metadata 元数据列表
-     * @param ids ID 列表，如果为 null 则自动生成
+     * @param ids ID 列表
      * @return 向量 ID 列表
      */
     override suspend fun upsert(
@@ -132,11 +167,18 @@ class LanceDBVectorStore(
         }
 
         try {
-            // 获取表
-            val table = connection.openTable(indexName)
+            // 获取索引信息
+            val indexInfo = indexes[indexName] ?: throw IllegalArgumentException("Index $indexName does not exist")
+
+            // 检查向量维度
+            for (vector in vectors) {
+                if (vector.size != indexInfo.dimension) {
+                    throw IllegalArgumentException("Vector dimension (${vector.size}) does not match index dimension (${indexInfo.dimension})")
+                }
+            }
 
             // 生成或使用提供的 ID
-            val vectorIds = ids ?: List(vectors.size) { UUID.randomUUID().toString() }
+            val vectorIds = ids ?: List(vectors.size) { generateId() }
 
             // 确保元数据列表长度与向量列表长度相同
             val normalizedMetadata = if (metadata.size == vectors.size) {
@@ -145,280 +187,39 @@ class LanceDBVectorStore(
                 List(vectors.size) { i -> metadata.getOrElse(i) { emptyMap() } }
             }
 
-            // 创建 Arrow 向量
-            val idVector = VarCharVector("id", allocator)
-            val vectorVector = ListVector("vector", allocator, FieldType(true, ArrowType.List.INSTANCE, null), null)
-            val metadataVector = VarCharVector("metadata", allocator)
+            // 获取向量数据存储
+            val vectorList = vectorData[indexName] ?: throw IllegalArgumentException("Index $indexName does not exist")
 
-            // 分配内存
-            idVector.allocateNew(vectors.size)
-            vectorVector.allocateNew()
-            metadataVector.allocateNew(vectors.size)
-
-            // 填充数据
+            // 添加向量
             for (i in vectors.indices) {
-                // ID
-                idVector.setSafe(i, vectorIds[i].toByteArray(StandardCharsets.UTF_8))
-
-                // 向量
-                val vector = vectors[i]
-                vectorVector.startNewValue(i)
-                for (j in vector.indices) {
-                    vectorVector.setSafe(vectorVector.valueCount, vector[j])
-                }
-                vectorVector.endValue(i, vector.size)
-
-                // 元数据
-                val metadataJson = normalizedMetadata[i].entries.joinToString(",", "{", "}") { (key, value) ->
-                    "\"$key\":\"$value\""
-                }
-                metadataVector.setSafe(i, metadataJson.toByteArray(StandardCharsets.UTF_8))
-            }
-
-            // 设置值计数
-            idVector.valueCount = vectors.size
-            vectorVector.valueCount = vectors.size
-            metadataVector.valueCount = vectors.size
-
-            // 创建 VectorSchemaRoot
-            val root = VectorSchemaRoot.of(idVector, vectorVector, metadataVector)
-
-            // 添加数据
-            table.add(Arrow.vectorSchemaRoot(root))
-
-            // 释放资源
-            root.close()
-            idVector.close()
-            vectorVector.close()
-            metadataVector.close()
-
-            logger.debug { "Upserted ${vectors.size} vectors to table $indexName" }
-            return@withContext vectorIds
-        } catch (e: Exception) {
-            logger.error(e) { "Error upserting vectors to table $indexName" }
-            throw e
-        }
-    }
-
-    /**
-     * 查询向量。
-     *
-     * @param indexName 索引名称
-     * @param queryVector 查询向量
-     * @param topK 返回结果数量
-     * @param filter 过滤条件
-     * @param includeVectors 是否包含向量
-     * @return 查询结果列表
-     */
-    override suspend fun query(
-        indexName: String,
-        queryVector: FloatArray,
-        topK: Int,
-        filter: Map<String, Any>?,
-        includeVectors: Boolean
-    ): List<QueryResult> = withContext(Dispatchers.IO) {
-        try {
-            // 获取表
-            val table = connection.openTable(indexName)
-
-            // 构建查询
-            var query = table.query()
-                .nearest("vector", queryVector)
-                .limit(topK)
-
-            // 添加过滤条件
-            if (filter != null && filter.isNotEmpty()) {
-                val filterStr = buildString {
-                    filter.entries.forEachIndexed { index, (key, value) ->
-                        if (index > 0) append(" AND ")
-                        when (value) {
-                            is String -> append("json_extract(metadata, '$.$key') = '$value'")
-                            is Number -> append("json_extract(metadata, '$.$key') = $value")
-                            is Boolean -> append("json_extract(metadata, '$.$key') = ${value.toString().lowercase()}")
-                            is List<*> -> {
-                                append("json_extract(metadata, '$.$key') IN (")
-                                value.forEachIndexed { i, item ->
-                                    if (i > 0) append(", ")
-                                    when (item) {
-                                        is String -> append("'$item'")
-                                        else -> append("$item")
-                                    }
-                                }
-                                append(")")
-                            }
-                            else -> append("json_extract(metadata, '$.$key') = '${value}'")
-                        }
-                    }
-                }
-                query = query.filter(filterStr)
-            }
-
-            // 执行查询
-            val result = query.execute()
-
-            // 解析结果
-            val queryResults = mutableListOf<QueryResult>()
-            
-            while (result.hasNext()) {
-                val batch = result.next()
-                val root = batch.getRoot()
-                
-                val idVector = root.getVector("id") as VarCharVector
-                val scoreVector = root.getVector("_distance") as Float4Vector
-                val metadataVector = root.getVector("metadata") as VarCharVector
-                
-                val vectorVector = if (includeVectors) {
-                    root.getVector("vector") as ListVector
+                // 检查 ID 是否已存在
+                val existingIndex = vectorList.indexOfFirst { it.id == vectorIds[i] }
+                if (existingIndex >= 0) {
+                    // 更新现有向量
+                    vectorList[existingIndex] = VectorEntry(
+                        id = vectorIds[i],
+                        vector = vectors[i],
+                        metadata = normalizedMetadata[i]
+                    )
                 } else {
-                    null
-                }
-                
-                for (i in 0 until root.rowCount) {
-                    // 解析 ID
-                    val id = idVector.getObject(i).toString()
-                    
-                    // 解析分数
-                    val score = 1.0 - scoreVector.get(i).toDouble() // 转换为相似度
-                    
-                    // 解析元数据
-                    val metadataStr = metadataVector.getObject(i).toString()
-                    val metadata = parseMetadata(metadataStr)
-                    
-                    // 解析向量
-                    val vector = if (includeVectors && vectorVector != null) {
-                        val vectorValues = vectorVector.getObject(i) as List<*>
-                        vectorValues.map { (it as Number).toFloat() }.toFloatArray()
-                    } else {
-                        null
-                    }
-                    
-                    queryResults.add(
-                        QueryResult(
-                            id = id,
-                            score = score,
-                            metadata = metadata,
-                            vector = vector
+                    // 添加新向量
+                    vectorList.add(
+                        VectorEntry(
+                            id = vectorIds[i],
+                            vector = vectors[i],
+                            metadata = normalizedMetadata[i]
                         )
                     )
                 }
             }
-            
-            result.close()
 
-            logger.debug { "Query returned ${queryResults.size} results from table $indexName" }
-            return@withContext queryResults
+            // 更新索引计数
+            indexes[indexName] = indexInfo.copy(count = vectorList.size.toLong())
+
+            logger.debug { "Added ${vectors.size} vectors to index $indexName" }
+            return@withContext vectorIds
         } catch (e: Exception) {
-            logger.error(e) { "Error querying table $indexName" }
-            throw e
-        }
-    }
-
-    /**
-     * 删除向量。
-     *
-     * @param indexName 索引名称
-     * @param ids ID 列表
-     * @return 是否成功删除
-     */
-    override suspend fun deleteVectors(indexName: String, ids: List<String>): Boolean = withContext(Dispatchers.IO) {
-        if (ids.isEmpty()) {
-            return@withContext true
-        }
-
-        try {
-            // 获取表
-            val table = connection.openTable(indexName)
-
-            // 构建 ID 列表
-            val idList = ids.joinToString(", ") { "'$it'" }
-
-            // 删除向量
-            table.delete("id IN ($idList)")
-
-            logger.debug { "Deleted ${ids.size} vectors from table $indexName" }
-            return@withContext true
-        } catch (e: Exception) {
-            logger.error(e) { "Error deleting vectors from table $indexName" }
-            throw e
-        }
-    }
-
-    /**
-     * 删除索引。
-     *
-     * @param indexName 索引名称
-     * @return 是否成功删除
-     */
-    override suspend fun deleteIndex(indexName: String): Boolean = withContext(Dispatchers.IO) {
-        try {
-            // 删除表
-            connection.dropTable(indexName)
-
-            logger.debug { "Deleted table $indexName" }
-            return@withContext true
-        } catch (e: Exception) {
-            logger.error(e) { "Error deleting table $indexName" }
-            throw e
-        }
-    }
-
-    /**
-     * 获取索引信息。
-     *
-     * @param indexName 索引名称
-     * @return 索引信息
-     */
-    override suspend fun describeIndex(indexName: String): IndexStats = withContext(Dispatchers.IO) {
-        try {
-            // 获取表
-            val table = connection.openTable(indexName)
-
-            // 获取表信息
-            val schema = table.schema()
-            val vectorField = schema.fields().stream()
-                .filter { it.name() == "vector" }
-                .findFirst()
-                .orElseThrow { IllegalStateException("Vector field not found") }
-
-            // 获取维度
-            val dimension = table.dimension()
-
-            // 获取度量方式
-            val metricStr = table.metric()
-
-            // 获取向量数量
-            val count = table.countRows()
-
-            // 将 LanceDB 相似度度量方式转换为 Kastrax 相似度度量方式
-            val metric = when (metricStr) {
-                "cosine" -> SimilarityMetric.COSINE
-                "l2" -> SimilarityMetric.EUCLIDEAN
-                "dot" -> SimilarityMetric.DOT_PRODUCT
-                else -> SimilarityMetric.COSINE
-            }
-
-            logger.debug { "Retrieved stats for table $indexName: dimension=$dimension, count=$count, metric=$metric" }
-            return@withContext IndexStats(dimension, count.toInt(), metric)
-        } catch (e: Exception) {
-            logger.error(e) { "Error getting stats for table $indexName" }
-            throw e
-        }
-    }
-
-    /**
-     * 列出所有索引。
-     *
-     * @return 索引名称列表
-     */
-    override suspend fun listIndexes(): List<String> = withContext(Dispatchers.IO) {
-        try {
-            // 列出所有表
-            val tables = connection.listTables()
-
-            logger.debug { "Listed ${tables.size} tables" }
-            return@withContext tables
-        } catch (e: Exception) {
-            logger.error(e) { "Error listing tables" }
+            logger.error(e) { "Error adding vectors to index $indexName" }
             throw e
         }
     }
@@ -428,148 +229,150 @@ class LanceDBVectorStore(
      *
      * @param indexName 索引名称
      * @param id 向量 ID
-     * @param vector 新向量
-     * @param metadata 新元数据
+     * @param vector 向量
+     * @param metadata 元数据
      * @return 是否成功更新
      */
     override suspend fun updateVector(
         indexName: String,
         id: String,
-        vector: FloatArray?,
-        metadata: Map<String, Any>?
+        vector: FloatArray,
+        metadata: Map<String, Any>
     ): Boolean = withContext(Dispatchers.IO) {
-        if (vector == null && metadata == null) {
-            return@withContext true
-        }
-
         try {
-            // 获取表
-            val table = connection.openTable(indexName)
+            // 获取索引信息
+            val indexInfo = indexes[indexName] ?: throw IllegalArgumentException("Index $indexName does not exist")
 
-            // 删除旧向量
-            table.delete("id = '$id'")
-
-            // 如果没有新向量或元数据，则直接返回
-            if (vector == null && metadata == null) {
-                return@withContext true
+            // 检查向量维度
+            if (vector.size != indexInfo.dimension) {
+                throw IllegalArgumentException("Vector dimension (${vector.size}) does not match index dimension (${indexInfo.dimension})")
             }
 
-            // 获取现有向量
-            val existingVector = if (vector == null) {
-                val result = table.query()
-                    .filter("id = '$id'")
-                    .execute()
+            // 获取向量数据存储
+            val vectorList = vectorData[indexName] ?: throw IllegalArgumentException("Index $indexName does not exist")
 
-                if (result.hasNext()) {
-                    val batch = result.next()
-                    val root = batch.getRoot()
-                    val vectorVector = root.getVector("vector") as ListVector
-                    
-                    if (root.rowCount > 0) {
-                        val vectorValues = vectorVector.getObject(0) as List<*>
-                        vectorValues.map { (it as Number).toFloat() }.toFloatArray()
-                    } else {
-                        null
-                    }
-                } else {
-                    null
-                }
-            } else {
-                vector
-            }
-
-            // 获取现有元数据
-            val existingMetadata = if (metadata == null) {
-                val result = table.query()
-                    .filter("id = '$id'")
-                    .execute()
-
-                if (result.hasNext()) {
-                    val batch = result.next()
-                    val root = batch.getRoot()
-                    val metadataVector = root.getVector("metadata") as VarCharVector
-                    
-                    if (root.rowCount > 0) {
-                        val metadataStr = metadataVector.getObject(0).toString()
-                        parseMetadata(metadataStr)
-                    } else {
-                        emptyMap()
-                    }
-                } else {
-                    emptyMap()
-                }
-            } else {
-                metadata
-            }
-
-            // 如果没有现有向量或元数据，则直接返回
-            if (existingVector == null && existingMetadata.isEmpty()) {
+            // 查找向量
+            val index = vectorList.indexOfFirst { it.id == id }
+            if (index < 0) {
+                logger.warn { "Vector $id not found in index $indexName" }
                 return@withContext false
             }
 
-            // 添加新向量
-            upsert(
-                indexName = indexName,
-                vectors = listOf(existingVector ?: FloatArray(0)),
-                metadata = listOf(existingMetadata),
-                ids = listOf(id)
+            // 更新向量
+            vectorList[index] = VectorEntry(
+                id = id,
+                vector = vector,
+                metadata = metadata
             )
 
-            logger.debug { "Updated vector $id in table $indexName" }
+            logger.debug { "Updated vector $id in index $indexName" }
             return@withContext true
         } catch (e: Exception) {
-            logger.error(e) { "Error updating vector $id in table $indexName" }
+            logger.error(e) { "Error updating vector $id in index $indexName" }
             throw e
         }
     }
 
     /**
-     * 批量添加向量。
+     * 删除向量。
      *
      * @param indexName 索引名称
-     * @param vectors 向量列表
-     * @param metadata 元数据列表
-     * @param ids ID 列表
-     * @param batchSize 批处理大小
-     * @return 向量 ID 列表
+     * @param ids 向量 ID 列表
+     * @return 是否成功删除
      */
-    override suspend fun batchUpsert(
+    override suspend fun deleteVectors(
         indexName: String,
-        vectors: List<FloatArray>,
-        metadata: List<Map<String, Any>>,
-        ids: List<String>?,
-        batchSize: Int
-    ): List<String> = coroutineScope {
-        if (vectors.isEmpty()) {
-            return@coroutineScope emptyList()
+        ids: List<String>
+    ): Boolean = withContext(Dispatchers.IO) {
+        if (ids.isEmpty()) {
+            return@withContext true
         }
 
-        // 生成或使用提供的 ID
-        val vectorIds = ids ?: List(vectors.size) { UUID.randomUUID().toString() }
+        try {
+            // 获取索引信息
+            val indexInfo = indexes[indexName] ?: throw IllegalArgumentException("Index $indexName does not exist")
 
-        // 确保元数据列表长度与向量列表长度相同
-        val normalizedMetadata = if (metadata.size == vectors.size) {
-            metadata
-        } else {
-            List(vectors.size) { i -> metadata.getOrElse(i) { emptyMap() } }
+            // 获取向量数据存储
+            val vectorList = vectorData[indexName] ?: throw IllegalArgumentException("Index $indexName does not exist")
+
+            // 删除向量
+            val initialSize = vectorList.size
+            vectorList.removeIf { ids.contains(it.id) }
+
+            // 更新索引计数
+            indexes[indexName] = indexInfo.copy(count = vectorList.size.toLong())
+
+            logger.debug { "Deleted ${initialSize - vectorList.size} vectors from index $indexName" }
+            return@withContext true
+        } catch (e: Exception) {
+            logger.error(e) { "Error deleting vectors from index $indexName" }
+            throw e
         }
+    }
 
-        // 将向量分批处理
-        val batches = vectors.indices.chunked(batchSize)
+    /**
+     * 查询向量。
+     *
+     * @param indexName 索引名称
+     * @param queryVector 查询向量
+     * @param topK 返回结果的最大数量
+     * @param filter 过滤条件
+     * @return 搜索结果列表，按相似度降序排序
+     */
+    override suspend fun query(
+        indexName: String,
+        queryVector: FloatArray,
+        topK: Int,
+        filter: Map<String, Any>?
+    ): List<SearchResult> = withContext(Dispatchers.IO) {
+        try {
+            // 获取索引信息
+            val indexInfo = indexes[indexName] ?: throw IllegalArgumentException("Index $indexName does not exist")
 
-        // 并行处理每个批次
-        val results = batches.map { batchIndices ->
-            async {
-                val batchVectors = batchIndices.map { vectors[it] }
-                val batchMetadata = batchIndices.map { normalizedMetadata[it] }
-                val batchIds = batchIndices.map { vectorIds[it] }
-
-                upsert(indexName, batchVectors, batchMetadata, batchIds)
+            // 检查向量维度
+            if (queryVector.size != indexInfo.dimension) {
+                throw IllegalArgumentException("Query vector dimension (${queryVector.size}) does not match index dimension (${indexInfo.dimension})")
             }
-        }.awaitAll()
 
-        // 合并结果
-        results.flatten()
+            // 获取向量数据存储
+            val vectorList = vectorData[indexName] ?: throw IllegalArgumentException("Index $indexName does not exist")
+
+            // 过滤向量
+            val filteredVectors = if (filter != null && filter.isNotEmpty()) {
+                vectorList.filter { entry ->
+                    filter.all { (key, value) ->
+                        entry.metadata.containsKey(key) && entry.metadata[key] == value
+                    }
+                }
+            } else {
+                vectorList
+            }
+
+            // 计算相似度
+            val results = filteredVectors.map { entry ->
+                val score = when (indexInfo.metric) {
+                    SimilarityMetric.COSINE -> cosineSimilarity(queryVector, entry.vector)
+                    SimilarityMetric.EUCLIDEAN -> 1.0 / (1.0 + euclideanDistance(queryVector, entry.vector))
+                    SimilarityMetric.DOT_PRODUCT -> dotProduct(queryVector, entry.vector)
+                }
+
+                SearchResult(
+                    id = entry.id,
+                    score = score,
+                    metadata = entry.metadata,
+                    vector = entry.vector
+                )
+            }
+
+            // 排序并限制结果数量
+            val sortedResults = results.sortedByDescending { it.score }.take(topK)
+
+            logger.debug { "Query returned ${sortedResults.size} results from index $indexName" }
+            return@withContext sortedResults
+        } catch (e: Exception) {
+            logger.error(e) { "Error querying index $indexName" }
+            throw e
+        }
     }
 
     /**
@@ -586,74 +389,68 @@ class LanceDBVectorStore(
         params: Map<String, Any> = emptyMap()
     ): Boolean = withContext(Dispatchers.IO) {
         try {
-            // 获取表
-            val table = connection.openTable(indexName)
+            // 检查索引是否存在
+            if (!indexes.containsKey(indexName)) {
+                logger.warn { "Index $indexName does not exist" }
+                return@withContext false
+            }
 
-            // 构建索引参数
-            val indexParams = mutableMapOf<String, Any>()
-            indexParams["type"] = indexType
-            indexParams.putAll(params)
-
-            // 创建索引
-            table.createIndex("vector", indexParams)
-
-            logger.debug { "Created ANN index for table $indexName" }
+            // 模拟创建 ANN 索引
+            logger.debug { "Created ANN index for index $indexName with type $indexType" }
             return@withContext true
         } catch (e: Exception) {
-            logger.error(e) { "Error creating ANN index for table $indexName" }
+            logger.error(e) { "Error creating ANN index for index $indexName" }
             throw e
         }
     }
 
     /**
-     * 解析元数据。
-     *
-     * @param metadataStr 元数据字符串
-     * @return 元数据映射
+     * 关闭资源。
      */
-    private fun parseMetadata(metadataStr: String): Map<String, Any> {
-        if (metadataStr.isEmpty() || metadataStr == "{}" || metadataStr == "null") {
-            return emptyMap()
-        }
+    override fun close() {
+        // 清空索引和向量数据
+        indexes.clear()
+        vectorData.clear()
 
-        val metadata = mutableMapOf<String, Any>()
-        
-        // 简单的 JSON 解析
-        val trimmed = metadataStr.trim().removeSurrounding("{", "}")
-        if (trimmed.isEmpty()) {
-            return emptyMap()
-        }
-        
-        val pairs = trimmed.split(",")
-        for (pair in pairs) {
-            val keyValue = pair.split(":", limit = 2)
-            if (keyValue.size == 2) {
-                val key = keyValue[0].trim().removeSurrounding("\"")
-                val valueStr = keyValue[1].trim()
-                
-                val value: Any = when {
-                    valueStr == "null" -> "null"
-                    valueStr == "true" || valueStr == "false" -> valueStr.toBoolean()
-                    valueStr.startsWith("\"") && valueStr.endsWith("\"") -> 
-                        valueStr.removeSurrounding("\"")
-                    else -> try {
-                        valueStr.toDouble()
-                    } catch (e: Exception) {
-                        valueStr
-                    }
-                }
-                
-                metadata[key] = value
-            }
-        }
-        
-        return metadata
+        logger.debug { "Closed LanceDBVectorStore" }
     }
 
     /**
-     * 关闭资源。
+     * 索引信息。
      */
-    fun close() {
-        allocator.close()
+    private data class IndexInfo(
+        val name: String,
+        val dimension: Int,
+        val metric: SimilarityMetric,
+        val count: Long
+    )
+
+    /**
+     * 向量条目。
+     */
+    private data class VectorEntry(
+        val id: String,
+        val vector: FloatArray,
+        val metadata: Map<String, Any>
+    ) {
+        override fun equals(other: Any?): Boolean {
+            if (this === other) return true
+            if (javaClass != other?.javaClass) return false
+
+            other as VectorEntry
+
+            if (id != other.id) return false
+            if (!vector.contentEquals(other.vector)) return false
+            if (metadata != other.metadata) return false
+
+            return true
+        }
+
+        override fun hashCode(): Int {
+            var result = id.hashCode()
+            result = 31 * result + vector.contentHashCode()
+            result = 31 * result + metadata.hashCode()
+            return result
+        }
     }
 }

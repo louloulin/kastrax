@@ -187,15 +187,15 @@ val ids = vectorStore.upsert(indexName, vectors, metadata)
 ### 3.3 查询向量
 
 ```kotlin
-// 查询向量
+// 基本查询
 val queryVector = floatArrayOf(1f, 0f, 0f)
-val results = vectorStore.query(indexName, queryVector, 2)
+val results = vectorStore.query(indexName, queryVector, 10)
 
-// 使用过滤器查询
+// 带过滤条件的查询
 val filteredResults = vectorStore.query(
     indexName = indexName,
     queryVector = queryVector,
-    topK = 5,
+    topK = 10,
     filter = mapOf("category" to "A")
 )
 ```
@@ -203,11 +203,14 @@ val filteredResults = vectorStore.query(
 ### 3.4 创建 ANN 索引
 
 ```kotlin
-// 创建 ANN 索引
+// 创建 IVF-PQ 索引
 vectorStore.createAnnIndex(
     indexName = indexName,
     indexType = "ivf_pq",
-    params = mapOf("num_partitions" to 10, "num_sub_vectors" to 2)
+    params = mapOf(
+        "num_partitions" to 10,
+        "num_sub_vectors" to 2
+    )
 )
 ```
 
