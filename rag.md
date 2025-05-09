@@ -418,13 +418,22 @@ class RagEvaluationTool(
     - GraphRAGExample
     - AdvancedRagExample
 14. 编写了详细文档，包括 API 文档、使用指南、架构文档和扩展指南
+15. 实现了多模态 RAG 功能，支持文本、图像、音频和视频等多种模态的检索增强生成
+    - MultimodalDocument
+    - MultimodalEmbeddingService
+    - OpenAIMultimodalEmbeddingService
+    - MultimodalRAG
+    - MultimodalRagFactory
 
 下一步计划：
 
 1. 翻译文档为中文，并添加更多示例和案例研究
+2. 实现流式 RAG 功能，支持流式处理，实时返回检索结果和生成内容
+3. 实现分层 RAG 功能，支持分层检索，先检索大块内容，再检索细粒度内容
+4. 实现自适应 RAG 功能，根据查询自动选择最佳的检索策略和参数
 
 ## 成果总结
 
 我们成功地实现了 RAG 模块的大部分功能，并且成功构建了项目。这个模块提供了一个完整的 RAG 解决方案，包括文档加载、文档分割、文档检索、重排序和上下文构建等功能。这个模块可以与 kastrax-store 模块无缝集成，使用各种向量存储实现。
 
-我们已经实现了图 RAG 功能，并编写了详细的文档。下一步，我们将翻译文档为中文，并添加更多示例和案例研究，以便中文用户更好地使用这个模块。
+我们已经实现了图 RAG 功能和多模态 RAG 功能，并编写了详细的文档。下一步，我们将翻译文档为中文，并添加更多示例和案例研究，以便中文用户更好地使用这个模块。我们还计划实现流式 RAG、分层 RAG 和自适应 RAG 等高级功能，以提供更全面的 RAG 解决方案。
