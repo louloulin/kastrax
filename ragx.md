@@ -41,13 +41,9 @@ RAG 模块目前使用自己的向量存储接口和实现，主要包括：
 
 ### 3.1 阶段一：准备工作
 
-1. **创建新的 RAG 模块包结构**
-   - 创建 `ai.kastrax.ragx` 包作为新 RAG 模块的根包
-   - 创建子包：`document`、`retrieval`、`context`、`reranker` 等
-
 2. **定义核心接口和类**
-   - 定义 `RagX` 主类，作为新 RAG 模块的入口
-   - 定义 `RagXOptions` 类，配置 RAG 处理选项
+   - 定义 `rag` 主类，作为新 RAG 模块的入口
+   - 定义 `ragOptions` 类，配置 RAG 处理选项
    - 定义 `Retriever` 接口，统一检索器接口
 
 ### 3.2 阶段二：基础功能迁移
@@ -109,26 +105,26 @@ RAG 模块目前使用自己的向量存储接口和实现，主要包括：
 
 ### 4.1 核心类设计
 
-#### RagX 主类
+#### rag 主类
 
 ```kotlin
-class RagX(
+class rag(
     private val vectorStore: VectorStore,
     private val embeddingService: EmbeddingService,
     private val reranker: Reranker = IdentityReranker(),
-    private val defaultOptions: RagXOptions = RagXOptions()
+    private val defaultOptions: ragOptions = ragOptions()
 ) {
     // 文档加载方法
     suspend fun loadDocuments(loader: DocumentLoader, splitter: DocumentSplitter? = null): Int
     
     // 搜索方法
-    suspend fun search(query: String, limit: Int = 5, minScore: Double = 0.0, options: RagXOptions? = null): List<SearchResult>
+    suspend fun search(query: String, limit: Int = 5, minScore: Double = 0.0, options: ragOptions? = null): List<SearchResult>
     
     // 上下文生成方法
-    suspend fun generateContext(query: String, limit: Int = 5, minScore: Double = 0.0, options: RagXOptions? = null): String
+    suspend fun generateContext(query: String, limit: Int = 5, minScore: Double = 0.0, options: ragOptions? = null): String
     
     // 检索上下文方法
-    suspend fun retrieveContext(query: String, options: RagXOptions? = null, limit: Int = 5, minScore: Double = 0.0): RetrieveContextResult
+    suspend fun retrieveContext(query: String, options: ragOptions? = null, limit: Int = 5, minScore: Double = 0.0): RetrieveContextResult
 }
 ```
 
@@ -145,8 +141,8 @@ interface Retriever {
 为了保持向后兼容性，我们将实现适配层，将旧的 API 调用转发到新的实现：
 
 ```kotlin
-class LegacyRagAdapter(private val ragX: RagX) : RAG {
-    // 实现旧的 RAG 接口方法，内部调用 RagX 方法
+class LegacyRagAdapter(private val rag: rag) : RAG {
+    // 实现旧的 RAG 接口方法，内部调用 rag 方法
 }
 ```
 
@@ -194,7 +190,7 @@ class TopKRetriever(
 ### 5.1 渐进式迁移
 
 1. **并行开发**
-   - 在不影响现有 RAG 模块的情况下开发新的 RagX 模块
+   - 在不影响现有 RAG 模块的情况下开发新的 rag 模块
    - 完成基本功能后进行初步测试
 
 2. **适配层过渡**
@@ -247,7 +243,7 @@ class TopKRetriever(
 
 - `kastrax-rag`: 当前 RAG 模块
 - `kastrax-store`: 新的 vector store 架构
-- `kastrax-ragx`: 新的 RAG 模块（待创建）
+- `kastrax-rag`: 新的 RAG 模块（待创建）
 
 ### 9.2 参考资料
 
