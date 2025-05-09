@@ -2,7 +2,7 @@ package ai.kastrax.store.adapter
 
 import ai.kastrax.store.embedding.EmbeddingService
 import ai.kastrax.store.document.RagDocument
-import ai.kastrax.store.QueryResult
+import ai.kastrax.store.model.SearchResult
 import ai.kastrax.store.SimilarityMetric
 import ai.kastrax.store.VectorStore
 import kotlinx.coroutines.runBlocking
@@ -157,10 +157,10 @@ class RagVectorStoreAdapterTest {
 
         `when`(embeddingService.embed(query)).thenReturn(queryEmbedding)
 
-        val queryResults = listOf(
-            QueryResult("doc_1", 0.8, mapOf("key1" to "value1")),
-            QueryResult("doc_2", 0.6, mapOf("key2" to "value2")),
-            QueryResult("doc_3", 0.4, mapOf("key3" to "value3"))
+        val searchResults = listOf(
+            SearchResult("doc_1", 0.8, null, mapOf("key1" to "value1")),
+            SearchResult("doc_2", 0.6, null, mapOf("key2" to "value2")),
+            SearchResult("doc_3", 0.4, null, mapOf("key3" to "value3"))
         )
 
         `when`(mockVectorStore.query(
@@ -169,7 +169,7 @@ class RagVectorStoreAdapterTest {
             limit,
             null,
             false
-        )).thenReturn(queryResults)
+        )).thenReturn(searchResults)
 
         // 添加文档到适配器
         val docs = listOf(

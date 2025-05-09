@@ -32,28 +32,28 @@ class HybridSearchTest {
         val limit = 3
 
         // 创建测试文档
-        val doc1 = RagDocument("1", "This is a test document", mapOf("tag" to "test"))
-        val doc2 = RagDocument("2", "Another document for testing", mapOf("tag" to "test"))
-        val doc3 = RagDocument("3", "Document with query term", mapOf("tag" to "query"))
-        val doc4 = RagDocument("4", "Unrelated document", mapOf("tag" to "other"))
+        val doc1 = Document("1", "This is a test document", mapOf("tag" to "test"))
+        val doc2 = Document("2", "Another document for testing", mapOf("tag" to "test"))
+        val doc3 = Document("3", "Document with query term", mapOf("tag" to "query"))
+        val doc4 = Document("4", "Unrelated document", mapOf("tag" to "other"))
 
         // 模拟向量搜索结果
         val vectorResults = listOf(
-            SearchResult(doc1, 0.9),
-            SearchResult(doc2, 0.8),
-            SearchResult(doc4, 0.6)
+            DocumentSearchResult(doc1, 0.9),
+            DocumentSearchResult(doc2, 0.8),
+            DocumentSearchResult(doc4, 0.6)
         )
 
         // 模拟关键词搜索结果
         val keywordResults = listOf(
-            SearchResult(doc1, 0.8),
-            SearchResult(doc3, 0.7)
+            DocumentSearchResult(doc1, 0.8),
+            DocumentSearchResult(doc3, 0.7)
         )
 
         // 设置模拟行为
-        `when`(mockVectorStore.similaritySearch(query, embeddingService, limit * 2, 0.0))
+        `when`(mockDocumentVectorStore.similaritySearch(query, embeddingService, limit * 2, 0.0))
             .thenReturn(vectorResults)
-        `when`(mockVectorStore.keywordSearch(keywords, limit * 2))
+        `when`(mockDocumentVectorStore.keywordSearch(keywords, limit * 2))
             .thenReturn(keywordResults)
 
         // 执行混合搜索
@@ -64,7 +64,7 @@ class HybridSearchTest {
         )
         val results = HybridSearch.search(
             query = query,
-            vectorStore = mockVectorStore,
+            vectorStore = mockDocumentVectorStore,
             embeddingService = embeddingService,
             keywords = keywords,
             limit = limit,
@@ -106,19 +106,19 @@ class HybridSearchTest {
         val limit = 3
 
         // 创建测试文档
-        val doc1 = RagDocument("1", "This is a test document", mapOf("tag" to "test"))
-        val doc2 = RagDocument("2", "Another document for testing", mapOf("tag" to "test"))
-        val doc3 = RagDocument("3", "Document with query term", mapOf("tag" to "query"))
+        val doc1 = Document("1", "This is a test document", mapOf("tag" to "test"))
+        val doc2 = Document("2", "Another document for testing", mapOf("tag" to "test"))
+        val doc3 = Document("3", "Document with query term", mapOf("tag" to "query"))
 
         // 模拟向量搜索结果
         val vectorResults = listOf(
-            SearchResult(doc1, 0.9),
-            SearchResult(doc2, 0.8),
-            SearchResult(doc3, 0.7)
+            DocumentSearchResult(doc1, 0.9),
+            DocumentSearchResult(doc2, 0.8),
+            DocumentSearchResult(doc3, 0.7)
         )
 
         // 设置模拟行为
-        `when`(mockVectorStore.similaritySearch(query, embeddingService, limit * 2, 0.0))
+        `when`(mockDocumentVectorStore.similaritySearch(query, embeddingService, limit * 2, 0.0))
             .thenReturn(vectorResults)
 
         // 执行混合搜索
@@ -129,7 +129,7 @@ class HybridSearchTest {
         )
         val results = HybridSearch.search(
             query = query,
-            vectorStore = mockVectorStore,
+            vectorStore = mockDocumentVectorStore,
             embeddingService = embeddingService,
             keywords = keywords,
             limit = limit,
@@ -152,19 +152,22 @@ class HybridSearchTest {
     fun `test extract keywords`() {
         // 测试关键词提取
         val query = "This is a test query with some important keywords"
-        val keywords = HybridSearch.extractKeywords(query)
+        val keywords = HybridSearch.extractKeywords(query, 3, 5)
 
-        // 验证结果
+        // 验证提取的关键词
         assertTrue(keywords.contains("test"))
         assertTrue(keywords.contains("query"))
         assertTrue(keywords.contains("important"))
         assertTrue(keywords.contains("keywords"))
 
-        // 验证停用词被过滤
+        // 验证停用词被过滤掉了
         assertFalse(keywords.contains("this"))
         assertFalse(keywords.contains("is"))
         assertFalse(keywords.contains("a"))
         assertFalse(keywords.contains("with"))
         assertFalse(keywords.contains("some"))
+
+        // 验证关键词数量限制
+        assertTrue(keywords.size <= 5)
     }
 }
