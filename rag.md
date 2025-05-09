@@ -388,7 +388,12 @@ class RagEvaluationTool(
    - FastEmbedKotlinEmbeddingService
    - CachedEmbeddingService
    - EmbeddingServiceFactory
-9. 编写了单元测试，测试了各个模块的功能
+9. 实现了图 RAG 功能（GraphRAG）
+   - GraphNode
+   - GraphEdge
+   - GraphRAG
+   - GraphRAGTool
+10. 编写了单元测试，测试了各个模块的功能
    - RAGTest
    - PdfDocumentLoaderTest
    - DocumentCleanerTest
@@ -397,9 +402,12 @@ class RagEvaluationTool(
    - RandomEmbeddingServiceTest
    - CachedEmbeddingServiceTest
    - FastEmbedKotlinEmbeddingServiceTest
-10. 编写了示例代码，展示了如何使用 RAG 模块
+   - GraphRAGTest
+   - GraphRAGToolTest
+11. 编写了示例代码，展示了如何使用 RAG 模块
     - SimpleRagExample
     - FastEmbedKotlinExample
+    - GraphRAGExample
 
 下一步计划：
 
