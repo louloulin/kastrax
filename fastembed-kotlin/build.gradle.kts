@@ -30,8 +30,8 @@ dependencies {
 tasks.test {
     useJUnitPlatform()
 
-    // Make sure the native library is built before running tests
-    dependsOn("buildRustLibrary")
+    // Make sure the native library is built and copied before running tests
+    dependsOn("copyNativeLibrary")
 
     // Set system property for test logging
     systemProperty("java.util.logging.config.file", "${projectDir}/src/test/resources/logging.properties")
@@ -64,33 +64,67 @@ val libName = when {
     else -> "libfastembed_jni.so"
 }
 
+// Define the OS-specific directory name
+val osName = currentOs.name.lowercase().replace(" ", "-")
+val osArch = System.getProperty("os.arch")
+val osDir = "$osName-$osArch"
+
+// Define source and target paths as strings to avoid script object references
+val rustSrcDir = "rust/src"
+val cargoToml = "rust/Cargo.toml"
+val rustTargetDir = "rust/target/release"
+val nativeDirPath = "src/main/resources/native/$osDir"
+
 // Task to build the Rust library
 tasks.register<Exec>("buildRustLibrary") {
     group = "build"
     description = "Build the Rust library"
 
     workingDir = file("rust")
-
     commandLine = listOf("cargo", "build", "--release")
 
+    // Define inputs and outputs for proper task caching
+    inputs.dir(rustSrcDir)
+    inputs.file(cargoToml)
+    outputs.file(rustTargetDir + "/" + libName)
+}
+
+// Disable configuration cache for this module
+tasks.withType<Copy>().configureEach {
+    notCompatibleWithConfigurationCache("Copy tasks in this module have configuration cache issues")
+}
+
+// Use Copy task to copy the native library
+tasks.register<Copy>("copyNativeLibrary") {
+    group = "build"
+    description = "Copy the built Rust library to resources"
+
+    dependsOn("buildRustLibrary")
+
+    // Configure the copy task
+    from("$rustTargetDir/$libName")
+    into(nativeDirPath)
+    rename { libName }
+
+    // Make sure the directory exists
+    doFirst {
+        mkdir(nativeDirPath)
+    }
+
+    // Log the copy operation
     doLast {
-        // Create the native/os-specific directory if it doesn't exist
-        val nativeDir = file("src/main/resources/native/${currentOs.name.lowercase()}-${System.getProperty("os.arch")}")
-        nativeDir.mkdirs()
-
-        // Copy the built library to the resources directory
-        val sourceLib = file("rust/target/release/$libName")
-        val targetLib = file("${nativeDir}/$libName")
-
-        sourceLib.copyTo(targetLib, overwrite = true)
-
-        println("Copied native library to ${targetLib.absolutePath}")
+        logger.lifecycle("Copied native library to $nativeDirPath/$libName")
     }
 }
 
-// Make the jar task depend on building the Rust library
+// Make processResources depend on copyNativeLibrary
+tasks.named("processResources") {
+    dependsOn("copyNativeLibrary")
+}
+
+// Make the jar task depend on copying the native library
 tasks.jar {
-    dependsOn("buildRustLibrary")
+    dependsOn("copyNativeLibrary")
 }
 
 // Configure the JAR
