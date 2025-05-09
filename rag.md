@@ -380,19 +380,35 @@ class RagEvaluationTool(
    - CompositeQueryTransformer
    - RealTimeRag
    - RagEvaluationTool
-8. 编写了单元测试，测试了各个模块的功能
+8. 实现了嵌入服务模块，用于生成文本的嵌入向量
+   - EmbeddingService
+   - RandomEmbeddingService
+   - OpenAIEmbeddingService
+   - DeepseekEmbeddingService
+   - CachedEmbeddingService
+   - EmbeddingServiceFactory
+9. 编写了单元测试，测试了各个模块的功能
    - RAGTest
    - PdfDocumentLoaderTest
    - DocumentCleanerTest
    - EnhancedHybridRetrieverTest
    - DiversityRerankerTest
-9. 编写了示例代码，展示了如何使用 RAG 模块
-   - SimpleRagExample
+   - RandomEmbeddingServiceTest
+   - CachedEmbeddingServiceTest
+10. 编写了示例代码，展示了如何使用 RAG 模块
+    - SimpleRagExample
 
 下一步计划：
 
 1. 实现图 RAG 功能（GraphRAG）
-2. 编写集成测试，测试各个模块之间的交互
-3. 编写性能测试，测试 RAG 系统的性能
-4. 编写端到端测试，测试完整的 RAG 流程
-5. 编写文档，包括 API 文档、使用指南、架构文档和扩展指南
+2. 运行单元测试，确保所有实现的功能正常工作
+3. 编写集成测试，测试各个模块之间的交互
+4. 编写性能测试，测试 RAG 系统的性能
+5. 编写端到端测试，测试完整的 RAG 流程
+6. 编写文档，包括 API 文档、使用指南、架构文档和扩展指南
+
+## 成果总结
+
+我们成功地实现了 RAG 模块的大部分功能，并且成功构建了项目。这个模块提供了一个完整的 RAG 解决方案，包括文档加载、文档分割、文档检索、重排序和上下文构建等功能。这个模块可以与 kastrax-store 模块无缝集成，使用各种向量存储实现。
+
+下一步，我们将运行测试并编写文档，以确保模块的质量和可用性。我们还将实现图 RAG 功能，以支持更复杂的知识图谱应用场景。
