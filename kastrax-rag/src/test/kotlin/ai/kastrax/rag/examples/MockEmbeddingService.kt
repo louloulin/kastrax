@@ -9,6 +9,11 @@ import kotlinx.coroutines.withContext
  */
 class MockEmbeddingService : EmbeddingService {
     /**
+     * 嵌入向量的维度。
+     */
+    override fun dimension(): Int = 128
+
+    /**
      * 嵌入文本。
      *
      * @param text 文本
@@ -16,9 +21,9 @@ class MockEmbeddingService : EmbeddingService {
      */
     override suspend fun embed(text: String): FloatArray = withContext(Dispatchers.IO) {
         // 返回一个固定的嵌入向量
-        return@withContext FloatArray(128) { 0.1f }
+        return@withContext FloatArray(dimension()) { 0.1f }
     }
-    
+
     /**
      * 批量嵌入文本。
      *
@@ -27,6 +32,6 @@ class MockEmbeddingService : EmbeddingService {
      */
     override suspend fun embedBatch(texts: List<String>): List<FloatArray> = withContext(Dispatchers.IO) {
         // 返回固定的嵌入向量列表
-        return@withContext texts.map { FloatArray(128) { 0.1f } }
+        return@withContext texts.map { FloatArray(dimension()) { 0.1f } }
     }
 }

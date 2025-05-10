@@ -120,5 +120,5 @@ publishing {
 }
 
 application {
-    mainClass.set("ai.kastrax.rag.examples.FastEmbedKotlinTestAppKt")
+    mainClass.set("ai.kastrax.rag.examples.RagVerificationExample")
 }

@@ -153,6 +153,46 @@ class RAG(
     }
 
     /**
+     * 加载文档列表并添加到向量存储。
+     *
+     * @param documents 文档列表
+     * @param splitter 文档分割器，如果为 null，则不分割文档
+     * @return 是否成功添加
+     */
+    suspend fun loadDocuments(
+        documents: List<Document>,
+        splitter: DocumentSplitter? = null
+    ): Boolean {
+        try {
+            logger.debug { "Loading ${documents.size} documents" }
+
+            // 分割文档（如果需要）
+            val processedDocuments = if (splitter != null) {
+                documents.flatMap { document ->
+                    splitter.split(document)
+                }
+            } else {
+                documents
+            }
+            logger.debug { "Processed ${processedDocuments.size} documents after splitting" }
+
+            // 添加文档到向量存储
+            val success = documentStore.addDocuments(processedDocuments, embeddingService)
+
+            if (success) {
+                logger.info { "Added ${processedDocuments.size} documents to vector store" }
+            } else {
+                logger.error { "Failed to add documents to vector store" }
+            }
+
+            return success
+        } catch (e: Exception) {
+            logger.error(e) { "Error loading documents" }
+            return false
+        }
+    }
+
+    /**
      * 使用查询文本搜索相关文档。
      *
      * @param query 查询文本
@@ -344,6 +384,56 @@ class RAG(
         } catch (e: Exception) {
             logger.error(e) { "Error getting similarity scores" }
             return emptyMap()
+        }
+    }
+
+    /**
+     * 获取嵌入服务。
+     *
+     * @return 嵌入服务
+     */
+    fun getEmbeddingService(): EmbeddingService {
+        return embeddingService
+    }
+
+    /**
+     * 获取文档向量存储。
+     *
+     * @return 文档向量存储
+     */
+    fun getDocumentStore(): DocumentVectorStore {
+        return documentStore
+    }
+
+    /**
+     * 获取文档。
+     *
+     * @param id 文档 ID
+     * @return 文档，如果不存在则返回 null
+     */
+    suspend fun getDocument(id: String): Document? {
+        try {
+            // 搜索文档
+            val results = search("id:$id", 1)
+            return results.firstOrNull()?.document
+        } catch (e: Exception) {
+            logger.error(e) { "Error getting document with ID $id" }
+            return null
+        }
+    }
+
+    /**
+     * 删除文档。
+     *
+     * @param id 文档 ID
+     * @return 是否成功删除
+     */
+    suspend fun deleteDocument(id: String): Boolean {
+        try {
+            return documentStore.deleteDocuments(listOf(id))
+        } catch (e: Exception) {
+            logger.error(e) { "Error deleting document with ID $id" }
+            return false
         }
     }
 

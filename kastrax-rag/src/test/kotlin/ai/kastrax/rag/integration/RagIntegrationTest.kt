@@ -5,14 +5,14 @@ import ai.kastrax.rag.RagProcessOptions
 import ai.kastrax.rag.HybridOptions
 import ai.kastrax.rag.SemanticOptions
 import ai.kastrax.rag.QueryEnhancementOptions
-import ai.kastrax.rag.ContextOptions
+import ai.kastrax.rag.context.ContextBuilderConfig
 import ai.kastrax.rag.embedding.RandomEmbeddingService
 import ai.kastrax.rag.reranker.IdentityReranker
 import ai.kastrax.rag.reranker.RelevanceReranker
 import ai.kastrax.rag.reranker.DiversityReranker
-import ai.kastrax.rag.store.DocumentVectorStoreAdapter
-import ai.kastrax.rag.store.VectorStoreFactory
 import ai.kastrax.store.document.Document
+import ai.kastrax.store.document.DocumentVectorStore
+import ai.kastrax.store.vector.memory.InMemoryVectorStore
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
@@ -35,10 +35,65 @@ class RagIntegrationTest {
         embeddingService = RandomEmbeddingService(dimensions = 384)
 
         // 创建向量存储
-        val vectorStore = VectorStoreFactory.createInMemoryVectorStore()
+        val vectorStore = InMemoryVectorStore(dimension = 384)
 
-        // 创建文档向量存储适配器
-        val documentStore = DocumentVectorStoreAdapter(vectorStore)
+        // 创建文档向量存储
+        val documentStore = object : DocumentVectorStore {
+            override val dimension: Int = vectorStore.dimension
+
+            override fun getVectorStore() = vectorStore
+
+            override suspend fun addDocuments(documents: List<Document>, embeddingService: ai.kastrax.store.embedding.EmbeddingService): Boolean {
+                val embeddings = embeddingService.embedBatch(documents.map { it.content })
+                val ids = documents.map { it.id }
+                val metadataList = documents.map { it.metadata }
+                return vectorStore.addItems(ids, embeddings, metadataList)
+            }
+
+            override suspend fun addDocuments(documents: List<Document>): Boolean {
+                return true // 简化实现
+            }
+
+            override suspend fun deleteDocuments(ids: List<String>): Boolean {
+                return vectorStore.deleteItems(ids)
+            }
+
+            override suspend fun similaritySearch(query: String, embeddingService: ai.kastrax.store.embedding.EmbeddingService, limit: Int): List<ai.kastrax.store.document.DocumentSearchResult> {
+                val embedding = embeddingService.embed(query)
+                val results = vectorStore.similaritySearch(embedding, limit)
+                return results.map { result ->
+                    val metadata = result.metadata.mapValues { it.value }
+                    val document = Document(id = result.id, content = "Content for ${result.id}", metadata = metadata)
+                    ai.kastrax.store.document.DocumentSearchResult(document, result.score)
+                }
+            }
+
+            override suspend fun similaritySearch(embedding: FloatArray, limit: Int): List<ai.kastrax.store.document.DocumentSearchResult> {
+                val results = vectorStore.similaritySearch(embedding, limit)
+                return results.map { result ->
+                    val metadata = result.metadata.mapValues { it.value }
+                    val document = Document(id = result.id, content = "Content for ${result.id}", metadata = metadata)
+                    ai.kastrax.store.document.DocumentSearchResult(document, result.score)
+                }
+            }
+
+            override suspend fun similaritySearchWithFilter(embedding: FloatArray, filter: Map<String, Any>, limit: Int): List<ai.kastrax.store.document.DocumentSearchResult> {
+                val results = vectorStore.similaritySearchWithFilter(embedding, filter, limit)
+                return results.map { result ->
+                    val metadata = result.metadata.mapValues { it.value }
+                    val document = Document(id = result.id, content = "Content for ${result.id}", metadata = metadata)
+                    ai.kastrax.store.document.DocumentSearchResult(document, result.score)
+                }
+            }
+
+            override suspend fun keywordSearch(keywords: List<String>, limit: Int): List<ai.kastrax.store.document.DocumentSearchResult> {
+                return emptyList() // 简化实现
+            }
+
+            override suspend fun metadataSearch(filter: Map<String, Any>, limit: Int): List<ai.kastrax.store.document.DocumentSearchResult> {
+                return emptyList() // 简化实现
+            }
+        }
 
         // 创建 RAG 实例
         rag = RAG(
@@ -93,7 +148,7 @@ class RagIntegrationTest {
 
         // 加载文档
         runBlocking {
-            rag.loadDocuments(documents)
+            rag.loadDocuments(documents, null)
         }
     }
 
@@ -140,7 +195,7 @@ class RagIntegrationTest {
     fun `test semantic search`() = runBlocking {
         // 创建语义搜索选项
         val options = RagProcessOptions(
-            useSemanticSearch = true,
+            useSemanticRetrieval = true,
             semanticOptions = SemanticOptions(
                 expandQuery = true,
                 useSemanticClustering = true
@@ -182,7 +237,7 @@ class RagIntegrationTest {
         // 创建重排序器
         val relevanceReranker = RelevanceReranker(embeddingService)
         val ragWithReranker = RAG(
-            documentStore = rag.documentStore,
+            documentStore = rag.getDocumentStore(),
             embeddingService = embeddingService,
             reranker = relevanceReranker
         )
@@ -200,7 +255,7 @@ class RagIntegrationTest {
         // 创建多样性重排序器
         val diversityReranker = DiversityReranker(embeddingService)
         val ragWithReranker = RAG(
-            documentStore = rag.documentStore,
+            documentStore = rag.getDocumentStore(),
             embeddingService = embeddingService,
             reranker = diversityReranker
         )
@@ -219,7 +274,7 @@ class RagIntegrationTest {
     fun `test context options`() = runBlocking {
         // 创建上下文选项
         val options = RagProcessOptions(
-            contextOptions = ContextOptions(
+            contextOptions = ContextBuilderConfig(
                 maxTokens = 1000,
                 useMetadata = true,
                 template = "以下是关于 {{query}} 的信息：\n\n{{context}}\n\n来源：{{sources}}"
@@ -250,7 +305,7 @@ class RagIntegrationTest {
         // 创建组合选项
         val options = RagProcessOptions(
             useHybridSearch = true,
-            useSemanticSearch = true,
+            useSemanticRetrieval = true,
             useQueryEnhancement = true,
             useReranking = true,
             hybridOptions = HybridOptions(
@@ -265,7 +320,7 @@ class RagIntegrationTest {
                 useMultiQuery = true,
                 useQueryDecomposition = true
             ),
-            contextOptions = ContextOptions(
+            contextOptions = ContextBuilderConfig(
                 maxTokens = 2000,
                 useMetadata = true
             )

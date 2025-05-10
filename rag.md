@@ -251,8 +251,8 @@ class RagEvaluationTool(
 
 ## 实现步骤
 
-1. 创建基础接口和类 (已完成)
-2. 实现文档处理模块 (已完成)
+1. 创建基础接口和类 (已完成) ✅
+2. 实现文档处理模块 (已完成) ✅
    - TextFileLoader
    - PdfDocumentLoader
    - CsvDocumentLoader
@@ -263,30 +263,30 @@ class RagEvaluationTool(
    - DocumentCleaner
    - HtmlToTextConverter
    - CompositeDocumentTransformer
-3. 实现检索模块 (已完成)
+3. 实现检索模块 (已完成) ✅
    - VectorStoreRetriever
    - KeywordRetriever
    - HybridRetriever
    - EnhancedHybridRetriever
    - QueryEnhancedRetriever
    - RetrieverFactory
-4. 实现重排序模块 (已完成)
+4. 实现重排序模块 (已完成) ✅
    - IdentityReranker
    - RelevanceReranker
    - DiversityReranker
    - ContextAwareReranker
-5. 实现上下文构建模块 (已完成)
+5. 实现上下文构建模块 (已完成) ✅
    - ContextBuilder
    - ContextBuilderConfig
    - TokenCounter
-6. 实现 RAG 主类 (已完成)
+6. 实现 RAG 主类 (已完成) ✅
    - RAG
    - RagProcessOptions
    - generateContext
    - retrieveContext
    - generateContextWithMetadata
    - getSimilarityScores
-7. 实现高级功能模块 (已完成)
+7. 实现高级功能模块 (已完成) ✅
    - QueryTransformer
    - NormalizationQueryTransformer
    - SynonymQueryTransformer
@@ -294,16 +294,16 @@ class RagEvaluationTool(
    - CompositeQueryTransformer
    - RealTimeRag
    - RagEvaluationTool
-8. 编写单元测试 (已完成)
+8. 编写单元测试 (已完成) ✅
    - RAGTest
    - PdfDocumentLoaderTest
    - DocumentCleanerTest
    - EnhancedHybridRetrieverTest
    - DiversityRerankerTest
-9. 编写集成测试 (已完成)
-10. 编写示例代码 (已完成)
+9. 编写集成测试 (已完成) ✅
+10. 编写示例代码 (已完成) ✅
     - SimpleRagExample
-11. 编写文档 (已完成)
+11. 编写文档 (已完成) ✅
 
 ## 测试计划
 
@@ -427,10 +427,10 @@ class RagEvaluationTool(
 
 下一步计划：
 
-1. 翻译文档为中文，并添加更多示例和案例研究 ✅
-2. 实现流式 RAG 功能，支持流式处理，实时返回检索结果和生成内容 ✅
-3. 实现分层 RAG 功能，支持分层检索，先检索大块内容，再检索细粒度内容 ✅
-4. 实现自适应 RAG 功能，根据查询自动选择最佳的检索策略和参数 ✅
+1. 翻译文档为中文，并添加更多示例和案例研究 ✅ ✅
+2. 实现流式 RAG 功能，支持流式处理，实时返回检索结果和生成内容 ✅ ✅
+3. 实现分层 RAG 功能，支持分层检索，先检索大块内容，再检索细粒度内容 ✅ ✅
+4. 实现自适应 RAG 功能，根据查询自动选择最佳的检索策略和参数 ✅ ✅
 
 ## 成果总结
 

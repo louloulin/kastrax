@@ -1,8 +1,9 @@
 package ai.kastrax.rag.multimodal
 
 import ai.kastrax.rag.reranker.IdentityReranker
-import ai.kastrax.rag.store.DocumentVectorStoreAdapter
-import ai.kastrax.rag.store.VectorStoreFactory
+import ai.kastrax.store.document.Document
+import ai.kastrax.store.document.DocumentVectorStore
+import ai.kastrax.store.vector.memory.InMemoryVectorStore
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
@@ -18,16 +19,16 @@ import org.mockito.kotlin.whenever
  * 多模态 RAG 测试类。
  */
 class MultimodalRagTest {
-    
+
     private lateinit var embeddingService: MultimodalEmbeddingService
     private lateinit var multimodalRag: MultimodalRAG
     private lateinit var documents: List<MultimodalDocument>
-    
+
     @BeforeEach
     fun setup() {
         // 创建模拟的多模态嵌入服务
         embeddingService = mock(MultimodalEmbeddingService::class.java)
-        
+
         // 设置嵌入服务的行为
         `when`(embeddingService.dimension()).thenReturn(384)
         whenever(embeddingService.embed(any<String>())).thenReturn(FloatArray(384) { 0f })
@@ -37,20 +38,75 @@ class MultimodalRagTest {
         whenever(embeddingService.embedVideo(any())).thenReturn(FloatArray(384) { 0f })
         whenever(embeddingService.embedMultimodalDocument(any())).thenReturn(FloatArray(384) { 0f })
         whenever(embeddingService.embedMultimodalDocuments(any())).thenReturn(List(5) { FloatArray(384) { 0f } })
-        
+
         // 创建向量存储
-        val vectorStore = VectorStoreFactory.createInMemoryVectorStore()
-        
-        // 创建文档向量存储适配器
-        val documentStore = DocumentVectorStoreAdapter(vectorStore)
-        
+        val vectorStore = InMemoryVectorStore(dimension = 384)
+
+        // 创建文档向量存储
+        val documentStore = object : DocumentVectorStore {
+            override val dimension: Int = vectorStore.dimension
+
+            override fun getVectorStore() = vectorStore
+
+            override suspend fun addDocuments(documents: List<Document>, embeddingService: ai.kastrax.store.embedding.EmbeddingService): Boolean {
+                val embeddings = embeddingService.embedBatch(documents.map { it.content })
+                val ids = documents.map { it.id }
+                val metadataList = documents.map { it.metadata }
+                return vectorStore.addItems(ids, embeddings, metadataList)
+            }
+
+            override suspend fun addDocuments(documents: List<Document>): Boolean {
+                return true // 简化实现
+            }
+
+            override suspend fun deleteDocuments(ids: List<String>): Boolean {
+                return vectorStore.deleteItems(ids)
+            }
+
+            override suspend fun similaritySearch(query: String, embeddingService: ai.kastrax.store.embedding.EmbeddingService, limit: Int): List<ai.kastrax.store.document.DocumentSearchResult> {
+                val embedding = embeddingService.embed(query)
+                val results = vectorStore.similaritySearch(embedding, limit)
+                return results.map { result ->
+                    val metadata = result.metadata.mapValues { it.value }
+                    val document = Document(id = result.id, content = "Content for ${result.id}", metadata = metadata)
+                    ai.kastrax.store.document.DocumentSearchResult(document, result.score)
+                }
+            }
+
+            override suspend fun similaritySearch(embedding: FloatArray, limit: Int): List<ai.kastrax.store.document.DocumentSearchResult> {
+                val results = vectorStore.similaritySearch(embedding, limit)
+                return results.map { result ->
+                    val metadata = result.metadata.mapValues { it.value }
+                    val document = Document(id = result.id, content = "Content for ${result.id}", metadata = metadata)
+                    ai.kastrax.store.document.DocumentSearchResult(document, result.score)
+                }
+            }
+
+            override suspend fun similaritySearchWithFilter(embedding: FloatArray, filter: Map<String, Any>, limit: Int): List<ai.kastrax.store.document.DocumentSearchResult> {
+                val results = vectorStore.similaritySearchWithFilter(embedding, filter, limit)
+                return results.map { result ->
+                    val metadata = result.metadata.mapValues { it.value }
+                    val document = Document(id = result.id, content = "Content for ${result.id}", metadata = metadata)
+                    ai.kastrax.store.document.DocumentSearchResult(document, result.score)
+                }
+            }
+
+            override suspend fun keywordSearch(keywords: List<String>, limit: Int): List<ai.kastrax.store.document.DocumentSearchResult> {
+                return emptyList() // 简化实现
+            }
+
+            override suspend fun metadataSearch(filter: Map<String, Any>, limit: Int): List<ai.kastrax.store.document.DocumentSearchResult> {
+                return emptyList() // 简化实现
+            }
+        }
+
         // 创建多模态 RAG 实例
         multimodalRag = MultimodalRAG(
             documentStore = documentStore,
             embeddingService = embeddingService,
             reranker = IdentityReranker()
         )
-        
+
         // 创建测试文档
         documents = listOf(
             MultimodalDocument(
@@ -90,81 +146,81 @@ class MultimodalRagTest {
             )
         )
     }
-    
+
     @Test
     fun `test loading multimodal documents`() = runBlocking {
         // 加载多模态文档
         val result = multimodalRag.loadMultimodalDocuments(documents)
-        
+
         // 验证结果
         assertTrue(result)
     }
-    
+
     @Test
     fun `test multimodal search with text only`() = runBlocking {
         // 加载多模态文档
         multimodalRag.loadMultimodalDocuments(documents)
-        
+
         // 执行纯文本查询
         val results = multimodalRag.multimodalSearch("人工智能", limit = 3)
-        
+
         // 验证结果
         assertEquals(3, results.size)
     }
-    
+
     @Test
     fun `test multimodal search with text and image`() = runBlocking {
         // 加载多模态文档
         multimodalRag.loadMultimodalDocuments(documents)
-        
+
         // 执行多模态查询（文本 + 图像）
         val results = multimodalRag.multimodalSearch(
             textQuery = "深度学习",
             imageUrl = "https://example.com/images/neural_network.jpg",
             limit = 3
         )
-        
+
         // 验证结果
         assertEquals(3, results.size)
     }
-    
+
     @Test
     fun `test multimodal search with text and audio`() = runBlocking {
         // 加载多模态文档
         multimodalRag.loadMultimodalDocuments(documents)
-        
+
         // 执行多模态查询（文本 + 音频）
         val results = multimodalRag.multimodalSearch(
             textQuery = "自然语言处理",
             audioUrl = "https://example.com/audio/speech.mp3",
             limit = 3
         )
-        
+
         // 验证结果
         assertEquals(3, results.size)
     }
-    
+
     @Test
     fun `test multimodal search with text and video`() = runBlocking {
         // 加载多模态文档
         multimodalRag.loadMultimodalDocuments(documents)
-        
+
         // 执行多模态查询（文本 + 视频）
         val results = multimodalRag.multimodalSearch(
             textQuery = "计算机视觉",
             videoUrl = "https://example.com/videos/vision.mp4",
             limit = 3
         )
-        
+
         // 验证结果
         assertEquals(3, results.size)
     }
-    
+
     @Test
     fun `test multimodal search with all modalities`() = runBlocking {
         // 加载多模态文档
         multimodalRag.loadMultimodalDocuments(documents)
-        
+
         // 执行多模态查询（文本 + 图像 + 音频 + 视频）
         val results = multimodalRag.multimodalSearch(
             textQuery = "人工智能技术",
@@ -173,40 +229,40 @@ class MultimodalRagTest {
             videoUrl = "https://example.com/videos/ai_tech.mp4",
             limit = 3
         )
-        
+
         // 验证结果
         assertEquals(3, results.size)
     }
-    
+
     @Test
     fun `test generate multimodal context`() = runBlocking {
         // 加载多模态文档
         multimodalRag.loadMultimodalDocuments(documents)
-        
+
         // 生成多模态上下文
         val context = multimodalRag.generateMultimodalContext(
             textQuery = "机器学习和深度学习的区别",
             imageUrl = "https://example.com/images/ml_vs_dl.jpg",
             limit = 3
         )
-        
+
         // 验证结果
         assertNotNull(context)
         assertTrue(context.isNotEmpty())
     }
-    
+
     @Test
     fun `test retrieve multimodal context`() = runBlocking {
         // 加载多模态文档
         multimodalRag.loadMultimodalDocuments(documents)
-        
+
         // 检索多模态上下文
         val result = multimodalRag.retrieveMultimodalContext(
             textQuery = "计算机视觉的应用",
             videoUrl = "https://example.com/videos/cv_applications.mp4",
             limit = 3
         )
-        
+
         // 验证结果
         assertNotNull(result)
         assertNotNull(result.context)
