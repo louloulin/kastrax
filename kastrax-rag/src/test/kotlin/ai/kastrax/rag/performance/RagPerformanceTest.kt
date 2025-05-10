@@ -7,10 +7,11 @@ import ai.kastrax.rag.SemanticOptions
 import ai.kastrax.rag.QueryEnhancementOptions
 import ai.kastrax.rag.context.ContextBuilderConfig
 import ai.kastrax.rag.benchmark.RagBenchmarkTool
-import ai.kastrax.rag.embedding.RandomEmbeddingService
 import ai.kastrax.rag.reranker.IdentityReranker
 import ai.kastrax.store.document.Document
+import ai.kastrax.store.document.DocumentSearchResult
 import ai.kastrax.store.document.DocumentVectorStore
+import ai.kastrax.store.embedding.EmbeddingService
 import ai.kastrax.store.vector.memory.InMemoryVectorStore
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -29,7 +30,7 @@ import kotlin.system.measureTimeMillis
 class RagPerformanceTest {
 
     private lateinit var rag: RAG
-    private lateinit var embeddingService: RandomEmbeddingService
+    private lateinit var embeddingService: EmbeddingService
     private lateinit var benchmarkTool: RagBenchmarkTool
     private lateinit var documents: List<Document>
     private lateinit var queries: List<String>
@@ -37,7 +38,37 @@ class RagPerformanceTest {
     @BeforeEach
     fun setup() {
         // 创建嵌入服务
-        embeddingService = RandomEmbeddingService(dimensions = 384)
+        embeddingService = object : EmbeddingService {
+            override fun dimension(): Int = 384
+
+            override suspend fun embed(text: String): FloatArray {
+                // 使用文本的哈希码作为随机数生成器的种子，以确保相同的文本生成相同的嵌入
+                val textSeed = text.hashCode().toLong()
+                val textRandom = java.util.Random(textSeed)
+
+                // 生成随机向量
+                val vector = FloatArray(dimension()) {
+                    // 生成 [-1, 1] 范围内的随机浮点数
+                    textRandom.nextFloat() * 2 - 1
+                }
+
+                // 归一化向量
+                val norm = kotlin.math.sqrt(vector.sumOf { it * it.toDouble() })
+                if (norm > 0) {
+                    for (i in vector.indices) {
+                        vector[i] = (vector[i] / norm).toFloat()
+                    }
+                }
+
+                return vector
+            }
+
+            override suspend fun embedBatch(texts: List<String>): List<FloatArray> {
+                return texts.map { embed(it) }
+            }
+
+            override fun close() {}
+        }
 
         // 创建向量存储
         val vectorStore = InMemoryVectorStore(dimension = 384)
@@ -48,11 +79,15 @@ class RagPerformanceTest {
 
             override fun getVectorStore() = vectorStore
 
-            override suspend fun addDocuments(documents: List<Document>, embeddingService: ai.kastrax.store.embedding.EmbeddingService): Boolean {
+            override suspend fun addDocuments(documents: List<Document>, embeddingService: EmbeddingService): Boolean {
                 val embeddings = embeddingService.embedBatch(documents.map { it.content })
                 val ids = documents.map { it.id }
                 val metadataList = documents.map { it.metadata }
-                return vectorStore.addItems(ids, embeddings, metadataList)
+                // 使用 VectorStore 的 upsert 方法添加向量
+                val indexName = "default"
+                vectorStore.createIndex(indexName, dimension, ai.kastrax.store.SimilarityMetric.COSINE)
+                vectorStore.upsert(indexName, embeddings, metadataList, ids)
+                return true
             }
 
             override suspend fun addDocuments(documents: List<Document>): Boolean {
@@ -60,42 +95,50 @@ class RagPerformanceTest {
             }
 
             override suspend fun deleteDocuments(ids: List<String>): Boolean {
-                return vectorStore.deleteItems(ids)
+                // 使用 VectorStore 的 deleteVectors 方法删除向量
+                val indexName = "default"
+                return vectorStore.deleteVectors(indexName, ids)
             }
 
-            override suspend fun similaritySearch(query: String, embeddingService: ai.kastrax.store.embedding.EmbeddingService, limit: Int): List<ai.kastrax.store.document.DocumentSearchResult> {
+            override suspend fun similaritySearch(query: String, embeddingService: EmbeddingService, limit: Int): List<DocumentSearchResult> {
                 val embedding = embeddingService.embed(query)
-                val results = vectorStore.similaritySearch(embedding, limit)
+                // 使用 VectorStore 的 query 方法查询向量
+                val indexName = "default"
+                val results = vectorStore.query(indexName, embedding, limit, null, false)
                 return results.map { result ->
-                    val metadata = result.metadata.mapValues { it.value }
+                    val metadata = result.metadata ?: emptyMap()
                     val document = Document(id = result.id, content = "Content for ${result.id}", metadata = metadata)
-                    ai.kastrax.store.document.DocumentSearchResult(document, result.score)
+                    DocumentSearchResult(document, result.score)
                 }
             }
 
-            override suspend fun similaritySearch(embedding: FloatArray, limit: Int): List<ai.kastrax.store.document.DocumentSearchResult> {
-                val results = vectorStore.similaritySearch(embedding, limit)
+            override suspend fun similaritySearch(embedding: FloatArray, limit: Int): List<DocumentSearchResult> {
+                // 使用 VectorStore 的 query 方法查询向量
+                val indexName = "default"
+                val results = vectorStore.query(indexName, embedding, limit, null, false)
                 return results.map { result ->
-                    val metadata = result.metadata.mapValues { it.value }
+                    val metadata = result.metadata ?: emptyMap()
                     val document = Document(id = result.id, content = "Content for ${result.id}", metadata = metadata)
-                    ai.kastrax.store.document.DocumentSearchResult(document, result.score)
+                    DocumentSearchResult(document, result.score)
                 }
             }
 
-            override suspend fun similaritySearchWithFilter(embedding: FloatArray, filter: Map<String, Any>, limit: Int): List<ai.kastrax.store.document.DocumentSearchResult> {
-                val results = vectorStore.similaritySearchWithFilter(embedding, filter, limit)
+            override suspend fun similaritySearchWithFilter(embedding: FloatArray, filter: Map<String, Any>, limit: Int): List<DocumentSearchResult> {
+                // 使用 VectorStore 的 query 方法查询向量
+                val indexName = "default"
+                val results = vectorStore.query(indexName, embedding, limit, filter, false)
                 return results.map { result ->
-                    val metadata = result.metadata.mapValues { it.value }
+                    val metadata = result.metadata ?: emptyMap()
                     val document = Document(id = result.id, content = "Content for ${result.id}", metadata = metadata)
-                    ai.kastrax.store.document.DocumentSearchResult(document, result.score)
+                    DocumentSearchResult(document, result.score)
                 }
             }
 
-            override suspend fun keywordSearch(keywords: List<String>, limit: Int): List<ai.kastrax.store.document.DocumentSearchResult> {
+            override suspend fun keywordSearch(keywords: List<String>, limit: Int): List<DocumentSearchResult> {
                 return emptyList() // 简化实现
             }
 
-            override suspend fun metadataSearch(filter: Map<String, Any>, limit: Int): List<ai.kastrax.store.document.DocumentSearchResult> {
+            override suspend fun metadataSearch(filter: Map<String, Any>, limit: Int): List<DocumentSearchResult> {
                 return emptyList() // 简化实现
             }
         }
@@ -205,15 +248,17 @@ class RagPerformanceTest {
             RagProcessOptions(
                 useSemanticRetrieval = true,
                 semanticOptions = SemanticOptions(
-                    expandQuery = true,
-                    useSemanticClustering = false
+                    useChunking = true,
+                    chunkSize = 1000,
+                    chunkOverlap = 200
                 )
             ),
             RagProcessOptions(
                 useQueryEnhancement = true,
                 queryEnhancementOptions = QueryEnhancementOptions(
-                    useMultiQuery = true,
-                    useQueryDecomposition = false
+                    useSynonyms = true,
+                    useDecomposition = true,
+                    useNormalization = true
                 )
             )
         )

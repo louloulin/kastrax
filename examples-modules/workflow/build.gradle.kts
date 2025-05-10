@@ -6,22 +6,27 @@ plugins {
 
 dependencies {
     // 项目依赖
-    implementation("ai.kastrax:kastrax-core")
-    implementation("ai.kastrax:kastrax-deepseek")
+    implementation(project(":kastrax-core"))
+    implementation(project(":kastrax-rag"))
+    implementation(project(":kastrax-store"))
+    implementation(project(":kastrax-store:memory"))
+    implementation(project(":fastembed-kotlin"))
 
-    // Kotlin 序列化依赖
+    // Kotlin 依赖
+    implementation(kotlin("stdlib"))
+    implementation(kotlin("stdlib-jdk8"))
+    implementation(kotlin("reflect"))
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.0")
-
-    // Kotlin 日期时间依赖
     implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.4.1")
 
-    // 日志依赖
-    implementation("io.github.microutils:kotlin-logging-jvm:3.0.5")
-    implementation("ch.qos.logback:logback-classic:1.4.11")
+    // HTTP 客户端依赖
+    implementation("io.ktor:ktor-client-core:3.1.2")
+    implementation("io.ktor:ktor-client-okhttp:3.1.2")
 
-    // 其他特定依赖
-    implementation(kotlin("stdlib"))
-    implementation(kotlin("reflect"))
+    // 日志依赖
+    implementation("io.github.oshai:kotlin-logging-jvm:5.1.0")
+    implementation("ch.qos.logback:logback-classic:1.4.11")
 }
 
 application {

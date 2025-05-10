@@ -1,4 +1,4 @@
-package ai.kastrax.examples.workflow
+package ai.kastrax.examples.rag
 
 import ai.kastrax.rag.RAG
 import ai.kastrax.rag.RagProcessOptions
@@ -14,10 +14,10 @@ import kotlinx.coroutines.runBlocking
 import java.util.UUID
 
 /**
- * 简单的 RAG 工作流示例
+ * 简单的 RAG 示例
  */
 fun main() = runBlocking {
-    println("开始 RAG 工作流示例...")
+    println("开始 RAG 示例...")
     
     // 创建嵌入服务
     val embeddingService = object : EmbeddingService {
@@ -126,101 +126,6 @@ fun main() = runBlocking {
         }
     }
     
-    // 创建示例文档
-    val documents = listOf(
-        Document(
-            id = UUID.randomUUID().toString(),
-            content = "Kotlin 是一种在 Java 虚拟机上运行的静态类型编程语言，由 JetBrains 开发。",
-            metadata = mapOf("source" to "wiki", "category" to "programming")
-        ),
-        Document(
-            id = UUID.randomUUID().toString(),
-            content = "Kotlin 可以编译成 Java 字节码，也可以编译成 JavaScript，方便在没有 JVM 的设备上运行。",
-            metadata = mapOf("source" to "wiki", "category" to "programming")
-        ),
-        Document(
-            id = UUID.randomUUID().toString(),
-            content = "人工智能是计算机科学的一个分支，它企图了解智能的实质，并生产出一种新的能以人类智能相似的方式做出反应的智能机器。",
-            metadata = mapOf("source" to "wiki", "category" to "ai")
-        ),
-        Document(
-            id = UUID.randomUUID().toString(),
-            content = "机器学习是人工智能的一个分支，它使用各种统计技术，使计算机系统能够'学习'（例如，逐步提高特定任务的性能）而无需明确编程。",
-            metadata = mapOf("source" to "wiki", "category" to "ai")
-        ),
-        Document(
-            id = UUID.randomUUID().toString(),
-            content = "深度学习是机器学习的一个分支，它基于人工神经网络的结构和功能，尤其是卷积神经网络。",
-            metadata = mapOf("source" to "wiki", "category" to "ai")
-        )
-    )
-    
-    // 添加文档到向量存储
-    documentStore.addDocuments(documents, embeddingService)
-    println("已添加 ${documents.size} 个文档到向量存储")
-    
-    // 创建 RAG 实例
-    val rag = RAG(
-        documentStore = documentStore,
-        embeddingService = embeddingService,
-        reranker = IdentityReranker()
-    )
-    
-    // 模拟工作流步骤 1：查询 Kotlin 相关信息
-    println("\n工作流步骤 1：查询 Kotlin 相关信息")
-    val query1 = "什么是 Kotlin？"
-    println("查询: $query1")
-    
-    val result1 = rag.retrieveContext(
-        query = query1,
-        limit = 3,
-        options = RagProcessOptions(
-            contextOptions = ContextBuilderConfig(
-                maxTokens = 1000,
-                includeMetadata = true,
-                format = ContextFormat.TEXT,
-                separator = "\n\n"
-            )
-        )
-    )
-    
-    println("查询结果:")
-    println("上下文: ${result1.context}")
-    println("文档 ID: ${result1.documents.map { it.id }}")
-    
-    // 模拟工作流步骤 2：查询人工智能相关信息
-    println("\n工作流步骤 2：查询人工智能相关信息")
-    val query2 = "什么是人工智能？"
-    println("查询: $query2")
-    
-    val result2 = rag.retrieveContext(
-        query = query2,
-        limit = 3,
-        options = RagProcessOptions(
-            contextOptions = ContextBuilderConfig(
-                maxTokens = 1000,
-                includeMetadata = true,
-                format = ContextFormat.TEXT,
-                separator = "\n\n"
-            )
-        )
-    )
-    
-    println("查询结果:")
-    println("上下文: ${result2.context}")
-    println("文档 ID: ${result2.documents.map { it.id }}")
-    
-    // 模拟工作流步骤 3：生成综合报告
-    println("\n工作流步骤 3：生成综合报告")
-    println("基于检索到的信息生成综合报告:")
-    println("=== Kotlin 和人工智能技术报告 ===")
-    println("1. Kotlin 概述:")
-    println("   - ${result1.context}")
-    println("2. 人工智能概述:")
-    println("   - ${result2.context}")
-    println("3. 结论:")
-    println("   - Kotlin 是一种现代编程语言，可以用于开发各种应用，包括人工智能应用。")
-    println("   - 人工智能技术正在快速发展，包括机器学习和深度学习等分支。")
-    println("   - 使用 Kotlin 开发人工智能应用是一个有前景的方向。")
-    println("=== 报告结束 ===")
+    println("Hello, Kastrax RAG!")
+    println("这是一个简单的RAG示例，用于测试编译和运行。")
 }

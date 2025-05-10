@@ -210,7 +210,7 @@ class RagVectorStoreAdapterTest {
         val document = RagDocument(id, "Document 1", mapOf("key" to "value"))
 
         // 使用反射设置文档
-        val documentsField = RagVectorStoreAdapter::class.java.getDeclaredField("documents")
+        val documentsField = RagVectorStoreAdapter::class.java.getDeclaredField("documentCache")
         documentsField.isAccessible = true
         val documents = documentsField.get(adapter) as MutableMap<String, RagDocument>
         documents[id] = document
@@ -241,7 +241,7 @@ class RagVectorStoreAdapterTest {
         )
 
         // 使用反射设置文档
-        val documentsField = RagVectorStoreAdapter::class.java.getDeclaredField("documents")
+        val documentsField = RagVectorStoreAdapter::class.java.getDeclaredField("documentCache")
         documentsField.isAccessible = true
         val documents = documentsField.get(adapter) as MutableMap<String, RagDocument>
         docs.forEach { documents[it.id] = it }

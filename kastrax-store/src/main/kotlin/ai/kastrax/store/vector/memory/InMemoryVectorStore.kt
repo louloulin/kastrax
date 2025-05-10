@@ -1,4 +1,4 @@
-package ai.kastrax.store.memory
+package ai.kastrax.store.vector.memory
 
 import ai.kastrax.store.BaseVectorStore
 import ai.kastrax.store.IndexStats
@@ -14,7 +14,7 @@ private val logger = KotlinLogging.logger {}
  * 基于内存的向量存储实现。
  * 参考 mastra 的 MastraVector 和 kastrax 的 InMemoryVectorStore 实现。
  */
-class InMemoryVectorStore : BaseVectorStore() {
+class InMemoryVectorStore(val dimension: Int = 1536) : BaseVectorStore() {
     // 索引存储
     private val indexes = ConcurrentHashMap<String, MutableMap<String, Pair<FloatArray, Map<String, Any>>>>()
 
@@ -111,7 +111,7 @@ class InMemoryVectorStore : BaseVectorStore() {
         topK: Int,
         filter: Map<String, Any>?,
         includeVectors: Boolean
-    ): List<SearchResult> {
+    ): List<ai.kastrax.store.model.SearchResult> {
         val index = indexes[indexName] ?: throw IllegalArgumentException("Index $indexName does not exist")
         val stats = indexStats[indexName] ?: throw IllegalArgumentException("Index stats for $indexName not found")
 

@@ -74,6 +74,8 @@ include(":kastrax-a2a")
 include(":kastrax-a2x")
 include(":kastrax-actor")
 include(":kastrax-store")
+include(":kastrax-store:memory")
+include(":kastrax-store:chroma")
 include(":kactor")
 
 // Include kactor subprojects

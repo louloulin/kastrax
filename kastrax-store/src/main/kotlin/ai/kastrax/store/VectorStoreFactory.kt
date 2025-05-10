@@ -20,7 +20,7 @@ object VectorStoreFactory {
      */
     fun createInMemoryVectorStore(): VectorStore {
         logger.debug { "Creating in-memory vector store" }
-        return Class.forName("ai.kastrax.store.memory.InMemoryVectorStore").getDeclaredConstructor().newInstance() as VectorStore
+        return ai.kastrax.store.vector.memory.InMemoryVectorStore()
     }
 
     /**

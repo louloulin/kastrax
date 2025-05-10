@@ -18,7 +18,7 @@ class VectorStoreBackupTest {
 
     @BeforeEach
     fun setUp() {
-        vectorStore = VectorStoreFactory.createInMemoryVectorStore()
+        vectorStore = ai.kastrax.store.vector.memory.InMemoryVectorStore()
     }
 
     @Test
@@ -48,7 +48,7 @@ class VectorStoreBackupTest {
         assertTrue(backupFile.isNotEmpty())
 
         // 创建新的向量存储
-        val newVectorStore = VectorStoreFactory.createInMemoryVectorStore()
+        val newVectorStore = ai.kastrax.store.vector.memory.InMemoryVectorStore()
 
         // 恢复向量存储
         val restoredCount = VectorStoreBackup.restore(newVectorStore, backupFile)
@@ -107,7 +107,7 @@ class VectorStoreBackupTest {
         val backupFile = VectorStoreBackup.backup(vectorStore, backupDir)
 
         // 创建新的向量存储
-        val newVectorStore = VectorStoreFactory.createInMemoryVectorStore()
+        val newVectorStore = ai.kastrax.store.vector.memory.InMemoryVectorStore()
 
         // 恢复向量存储
         val restoredCount = VectorStoreBackup.restore(newVectorStore, backupFile)
@@ -196,12 +196,12 @@ class VectorStoreBackupTest {
         // 列出备份
         val backups = VectorStoreBackup.listBackups(backupDir)
         assertEquals(2, backups.size)
-        
+
         // 验证备份信息
         assertTrue(backups[0].file.endsWith(".zip"))
         assertTrue(backups[0].size > 0)
         assertEquals(1, backups[0].indexCount)
-        
+
         // 验证备份按时间戳降序排序
         assertTrue(backups[0].timestamp.isAfter(backups[1].timestamp))
     }
