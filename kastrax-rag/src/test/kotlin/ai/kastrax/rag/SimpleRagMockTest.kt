@@ -11,7 +11,7 @@ import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
-import org.mockito.Mockito.*
+import org.mockito.kotlin.*
 
 class SimpleRagMockTest {
 
@@ -37,15 +37,16 @@ class SimpleRagMockTest {
         )
 
         // 创建模拟的嵌入服务
-        val embeddingService = mock(EmbeddingService::class.java)
-        `when`(embeddingService.embed(anyString())).thenReturn(FloatArray(128) { 0.1f })
-        `when`(embeddingService.embedBatch(anyList<String>())).thenReturn(List(3) { FloatArray(128) { 0.1f } })
+        val embeddingService = mock<EmbeddingService>()
+        whenever(embeddingService.dimension()).thenReturn(128)
+        whenever(embeddingService.embed(any<String>())).thenReturn(FloatArray(128) { 0.1f })
+        whenever(embeddingService.embedBatch(any<List<String>>())).thenReturn(List(3) { FloatArray(128) { 0.1f } })
 
         // 创建模拟的文档向量存储
-        val documentStore = mock(DocumentVectorStore::class.java)
-        `when`(documentStore.dimension).thenReturn(128)
-        `when`(documentStore.addDocuments(anyList<Document>(), any(EmbeddingService::class.java))).thenReturn(true)
-        `when`(documentStore.similaritySearch(anyString(), any(EmbeddingService::class.java), anyInt()))
+        val documentStore = mock<DocumentVectorStore>()
+        whenever(documentStore.dimension).thenReturn(128)
+        whenever(documentStore.addDocuments(any<List<Document>>(), any<EmbeddingService>())).thenReturn(true)
+        whenever(documentStore.similaritySearch(any<String>(), any<EmbeddingService>(), any<Int>()))
             .thenReturn(listOf(
                 DocumentSearchResult(documents[0], 0.9),
                 DocumentSearchResult(documents[1], 0.8)
