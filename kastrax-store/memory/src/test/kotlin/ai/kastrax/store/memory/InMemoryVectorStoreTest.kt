@@ -1,7 +1,7 @@
 package ai.kastrax.store.memory
 
-import ai.kastrax.rag.embedding.EmbeddingService
-import ai.kastrax.store.QueryResult
+import ai.kastrax.store.embedding.EmbeddingService
+import ai.kastrax.store.model.SearchResult
 import ai.kastrax.store.SimilarityMetric
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assertions.*
@@ -17,7 +17,7 @@ class InMemoryVectorStoreTest {
 
     @BeforeEach
     fun setUp() {
-        vectorStore = InMemoryVectorStore()
+        vectorStore = InMemoryVectorStore(dimension = 3)
         embeddingService = mock(EmbeddingService::class.java)
     }
 
@@ -297,29 +297,29 @@ class InMemoryVectorStoreTest {
             mapOf("name" to "vector2"),
             mapOf("name" to "vector3")
         )
-        
+
         vectorStore.upsert("cosine_index", vectors, metadata)
         vectorStore.upsert("euclidean_index", vectors, metadata)
         vectorStore.upsert("dot_product_index", vectors, metadata)
 
         // 查询向量
         val queryVector = floatArrayOf(0.9f, 0.1f, 0f)
-        
+
         // 余弦相似度查询
         val cosineResults = vectorStore.query("cosine_index", queryVector, 3)
         assertEquals(3, cosineResults.size)
         assertEquals("vector1", cosineResults[0].metadata?.get("name"))
-        
+
         // 欧几里得距离查询
         val euclideanResults = vectorStore.query("euclidean_index", queryVector, 3)
         assertEquals(3, euclideanResults.size)
         assertEquals("vector1", euclideanResults[0].metadata?.get("name"))
-        
+
         // 点积查询
         val dotProductResults = vectorStore.query("dot_product_index", queryVector, 3)
         assertEquals(3, dotProductResults.size)
         assertEquals("vector1", dotProductResults[0].metadata?.get("name"))
-        
+
         // 验证不同度量方式的分数不同
         assertNotEquals(cosineResults[1].score, euclideanResults[1].score)
         assertNotEquals(cosineResults[1].score, dotProductResults[1].score)

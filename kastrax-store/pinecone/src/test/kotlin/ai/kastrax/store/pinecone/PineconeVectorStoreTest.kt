@@ -127,7 +127,7 @@ class PineconeVectorStoreTest {
 
         // 创建模拟向量存储
         mockVectorStore = PineconeVectorStore("test-api-key", "test-env", "test-project")
-        
+
         // 使用反射设置模拟客户端
         val clientField = PineconeVectorStore::class.java.getDeclaredField("client")
         clientField.isAccessible = true
@@ -241,12 +241,12 @@ class PineconeVectorStoreTest {
 
         // 创建真实的向量存储
         val realVectorStore = PineconeVectorStore(apiKey, environment, projectId)
-        
+
         try {
             // 创建索引
             val indexName = "test-index-${UUID.randomUUID().toString().substring(0, 8)}"
             realVectorStore.createIndex(indexName, 3, SimilarityMetric.COSINE)
-            
+
             // 等待索引准备就绪
             var ready = false
             var attempts = 0
@@ -259,11 +259,11 @@ class PineconeVectorStoreTest {
                     Thread.sleep(5000)
                 }
             }
-            
+
             if (!ready) {
-                fail("Index not ready after 50 seconds")
+                fail<String>("Index not ready after 50 seconds")
             }
-            
+
             // 添加向量
             val vectors = listOf(
                 floatArrayOf(1f, 0f, 0f),
@@ -277,12 +277,12 @@ class PineconeVectorStoreTest {
             )
             val ids = realVectorStore.upsert(indexName, vectors, metadata)
             assertEquals(3, ids.size)
-            
+
             // 查询向量
             val queryVector = floatArrayOf(1f, 0f, 0f)
             val results = realVectorStore.query(indexName, queryVector, 2)
             assertEquals(2, results.size)
-            
+
             // 删除索引
             realVectorStore.deleteIndex(indexName)
         } finally {

@@ -3,6 +3,7 @@ package ai.kastrax.store.memory
 import ai.kastrax.store.BaseVectorStore
 import ai.kastrax.store.IndexStats
 import ai.kastrax.store.SimilarityMetric
+import ai.kastrax.store.embedding.EmbeddingService
 import ai.kastrax.store.model.SearchResult
 import io.github.oshai.kotlinlogging.KotlinLogging
 import java.util.concurrent.ConcurrentHashMap
@@ -14,7 +15,7 @@ private val logger = KotlinLogging.logger {}
  * 基于内存的向量存储实现。
  * 参考 mastra 的 MastraVector 和 kastrax 的 InMemoryVectorStore 实现。
  */
-class InMemoryVectorStore : BaseVectorStore() {
+class InMemoryVectorStore(val dimension: Int = 1536) : BaseVectorStore() {
     // 索引存储
     private val indexes = ConcurrentHashMap<String, MutableMap<String, Pair<FloatArray, Map<String, Any>>>>()
 
@@ -196,6 +197,30 @@ class InMemoryVectorStore : BaseVectorStore() {
      */
     override suspend fun describeIndex(indexName: String): IndexStats {
         return indexStats[indexName] ?: throw IllegalArgumentException("Index $indexName does not exist")
+    }
+
+    /**
+     * 相似度搜索。
+     *
+     * @param indexName 索引名称
+     * @param query 查询文本
+     * @param embeddingService 嵌入服务
+     * @param limit 返回结果数量限制
+     * @param filter 过滤条件
+     * @param minScore 最小分数
+     * @return 搜索结果列表
+     */
+    override suspend fun similaritySearch(
+        indexName: String,
+        query: String,
+        embeddingService: EmbeddingService,
+        topK: Int,
+        filter: Map<String, Any>?,
+        minScore: Double
+    ): List<SearchResult> {
+        val queryVector = embeddingService.embed(query)
+        return query(indexName, queryVector, topK, filter, false)
+            .filter { it.score >= minScore }
     }
 
     /**
