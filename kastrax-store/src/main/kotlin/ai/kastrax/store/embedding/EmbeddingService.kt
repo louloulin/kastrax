@@ -1,39 +1,44 @@
 package ai.kastrax.store.embedding
 
-import java.io.Closeable
+import io.github.oshai.kotlinlogging.KotlinLogging
+
+private val logger = KotlinLogging.logger {}
 
 /**
- * 嵌入服务接口，用于将文本转换为嵌入向量。
+ * 嵌入服务，用于生成文本的嵌入向量。
  */
-interface EmbeddingService : Closeable {
+open class EmbeddingService {
+    /**
+     * 嵌入向量的维度。
+     */
+    open val dimension: Int = 1536
 
     /**
-     * 将文本转换为嵌入向量。
+     * 生成文本的嵌入向量。
      *
      * @param text 文本
      * @return 嵌入向量
      */
-    suspend fun embed(text: String): FloatArray
+    open suspend fun embed(text: String): FloatArray {
+        logger.debug { "Embedding text: ${text.take(50)}..." }
+        return FloatArray(dimension) { 0.0f }
+    }
 
     /**
-     * 将多个文本转换为嵌入向量。
+     * 批量生成文本的嵌入向量。
      *
      * @param texts 文本列表
      * @return 嵌入向量列表
      */
-    suspend fun embedBatch(texts: List<String>): List<FloatArray>
+    open suspend fun embedBatch(texts: List<String>): List<FloatArray> {
+        logger.debug { "Embedding ${texts.size} texts" }
+        return texts.map { FloatArray(dimension) { 0.0f } }
+    }
 
     /**
-     * 获取嵌入向量的维度。
-     *
-     * @return 嵌入向量的维度
+     * 关闭嵌入服务。
      */
-    fun dimension(): Int
-
-    /**
-     * 关闭资源的默认实现。
-     */
-    override fun close() {
-        // 默认实现，子类可以覆盖
+    open fun close() {
+        // 默认实现不做任何操作
     }
 }

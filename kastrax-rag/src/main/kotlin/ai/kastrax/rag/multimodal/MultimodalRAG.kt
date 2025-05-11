@@ -46,12 +46,11 @@ class MultimodalRAG(
         val embeddings = embeddingService.embedMultimodalDocuments(documents)
 
         // 加载文档和嵌入向量
-        // 创建一个实现 EmbeddingService 接口的对象，返回预计算的嵌入向量
-        val precomputedEmbeddingService = object : ai.kastrax.store.embedding.EmbeddingService {
-            private val dim: Int = documentStore.dimension
-            override suspend fun embed(text: String): FloatArray = FloatArray(dim)
+        // 创建一个实现 EmbeddingService 类的对象，返回预计算的嵌入向量
+        val precomputedEmbeddingService = object : ai.kastrax.store.embedding.EmbeddingService() {
+            override val dimension: Int = documentStore.dimension
+            override suspend fun embed(text: String): FloatArray = FloatArray(dimension)
             override suspend fun embedBatch(texts: List<String>): List<FloatArray> = embeddings
-            override fun dimension(): Int = dim
             override fun close() {}
         }
         return documentStore.addDocuments(standardDocuments, precomputedEmbeddingService)

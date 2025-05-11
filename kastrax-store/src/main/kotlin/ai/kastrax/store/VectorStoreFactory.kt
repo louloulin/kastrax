@@ -20,7 +20,9 @@ object VectorStoreFactory {
      */
     fun createInMemoryVectorStore(): VectorStore {
         logger.debug { "Creating in-memory vector store" }
-        return ai.kastrax.store.vector.memory.InMemoryVectorStore()
+        return Class.forName("ai.kastrax.store.memory.MemoryVectorStoreFactory")
+            .getDeclaredMethod("createVectorStore", Map::class.java)
+            .invoke(null, emptyMap<String, Any>()) as VectorStore
     }
 
     /**
@@ -41,9 +43,16 @@ object VectorStoreFactory {
         database: String = "default_database"
     ): VectorStore {
         logger.debug { "Creating Chroma vector store with host=$host, port=$port" }
-        return Class.forName("ai.kastrax.store.chroma.ChromaVectorStore")
-            .getDeclaredConstructor(String::class.java, Int::class.java, String::class.java, String::class.java, String::class.java)
-            .newInstance(host, port, apiPath, tenant, database) as VectorStore
+        val options = mapOf(
+            "host" to host,
+            "port" to port,
+            "apiPath" to apiPath,
+            "tenant" to tenant,
+            "database" to database
+        )
+        return Class.forName("ai.kastrax.store.chroma.ChromaVectorStoreFactory")
+            .getDeclaredMethod("createVectorStore", Map::class.java)
+            .invoke(null, options) as VectorStore
     }
 
     /**

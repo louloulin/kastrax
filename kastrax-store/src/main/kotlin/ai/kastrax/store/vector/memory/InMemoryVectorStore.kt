@@ -6,6 +6,7 @@ import ai.kastrax.store.SimilarityMetric
 import ai.kastrax.store.model.SearchResult
 import io.github.oshai.kotlinlogging.KotlinLogging
 import java.util.concurrent.ConcurrentHashMap
+import kotlin.math.pow
 import kotlin.math.sqrt
 
 private val logger = KotlinLogging.logger {}
@@ -253,6 +254,81 @@ class InMemoryVectorStore(val dimension: Int = 1536) : BaseVectorStore() {
         logger.debug { "Updated vector $id in index $indexName" }
 
         return true
+    }
+
+    /**
+     * 验证向量维度。
+     *
+     * @param vectors 向量列表
+     * @param dimension 期望的维度
+     * @throws IllegalArgumentException 如果向量维度不匹配
+     */
+    private fun validateVectorDimensions(vectors: List<FloatArray>, dimension: Int) {
+        for (i in vectors.indices) {
+            if (vectors[i].size != dimension) {
+                throw IllegalArgumentException("Vector at index $i has dimension ${vectors[i].size}, but expected $dimension")
+            }
+        }
+    }
+
+    /**
+     * 计算余弦相似度。
+     *
+     * @param vec1 向量 1
+     * @param vec2 向量 2
+     * @return 余弦相似度
+     */
+    private fun cosineSimilarity(vec1: FloatArray, vec2: FloatArray): Double {
+        var dotProduct = 0.0
+        var norm1 = 0.0
+        var norm2 = 0.0
+
+        for (i in vec1.indices) {
+            dotProduct += vec1[i] * vec2[i]
+            norm1 += vec1[i] * vec1[i]
+            norm2 += vec2[i] * vec2[i]
+        }
+
+        return if (norm1 > 0 && norm2 > 0) {
+            dotProduct / (sqrt(norm1) * sqrt(norm2))
+        } else {
+            0.0
+        }
+    }
+
+    /**
+     * 计算欧几里得距离。
+     *
+     * @param vec1 向量 1
+     * @param vec2 向量 2
+     * @return 欧几里得距离
+     */
+    private fun euclideanDistance(vec1: FloatArray, vec2: FloatArray): Double {
+        var sum = 0.0
+
+        for (i in vec1.indices) {
+            val diff = vec1[i] - vec2[i]
+            sum += diff * diff
+        }
+
+        return sqrt(sum)
+    }
+
+    /**
+     * 计算点积。
+     *
+     * @param vec1 向量 1
+     * @param vec2 向量 2
+     * @return 点积
+     */
+    private fun dotProduct(vec1: FloatArray, vec2: FloatArray): Double {
+        var sum = 0.0
+
+        for (i in vec1.indices) {
+            sum += vec1[i] * vec2[i]
+        }
+
+        return sum
     }
 
     /**

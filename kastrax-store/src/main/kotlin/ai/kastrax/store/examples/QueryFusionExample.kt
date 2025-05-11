@@ -26,7 +26,7 @@ object QueryFusionExample {
         vectorStore.createIndex(indexName, dimension)
 
         // 创建模拟嵌入服务
-        val embeddingService = object : EmbeddingService {
+        val embeddingService = object : EmbeddingService() {
             override suspend fun embed(text: String): FloatArray {
                 // 简单的模拟嵌入函数
                 return when {
@@ -44,9 +44,7 @@ object QueryFusionExample {
                 return texts.map { embed(it) }
             }
 
-            override fun dimension(): Int {
-                return dimension
-            }
+            override val dimension: Int = dimension
 
             override fun close() {
                 // 无需关闭任何资源

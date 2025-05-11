@@ -18,12 +18,12 @@ object RagVerificationExample {
     /**
      * 模拟的嵌入服务，用于测试。
      */
-    class MockEmbeddingService : EmbeddingService {
+    class MockEmbeddingService : EmbeddingService() {
         /**
          * 嵌入向量的维度。
          */
-        override fun dimension(): Int = 128
-        
+        override val dimension: Int = 128
+
         /**
          * 嵌入文本。
          *
@@ -34,7 +34,7 @@ object RagVerificationExample {
             // 返回一个固定的嵌入向量
             return FloatArray(dimension()) { 0.1f }
         }
-        
+
         /**
          * 批量嵌入文本。
          *
@@ -45,7 +45,7 @@ object RagVerificationExample {
             // 返回固定的嵌入向量列表
             return texts.map { FloatArray(dimension()) { 0.1f } }
         }
-        
+
         /**
          * 关闭资源。
          */
@@ -62,7 +62,7 @@ object RagVerificationExample {
          * 向量维度。
          */
         override val dimension: Int = 128
-        
+
         /**
          * 文档列表。
          */
@@ -83,7 +83,7 @@ object RagVerificationExample {
                 metadata = mapOf("source" to "python-docs")
             )
         )
-        
+
         /**
          * 获取底层向量存储。
          *
@@ -92,7 +92,7 @@ object RagVerificationExample {
         override fun getVectorStore(): ai.kastrax.store.VectorStore {
             throw UnsupportedOperationException("Not implemented")
         }
-        
+
         /**
          * 添加文档。
          *
@@ -106,7 +106,7 @@ object RagVerificationExample {
         ): Boolean {
             return true
         }
-        
+
         /**
          * 添加文档（已嵌入）。
          *
@@ -118,7 +118,7 @@ object RagVerificationExample {
         ): Boolean {
             return true
         }
-        
+
         /**
          * 删除文档。
          *
@@ -130,7 +130,7 @@ object RagVerificationExample {
         ): Boolean {
             return true
         }
-        
+
         /**
          * 相似度搜索。
          *
@@ -160,7 +160,7 @@ object RagVerificationExample {
                 }.take(limit)
             }
         }
-        
+
         /**
          * 相似度搜索（已嵌入）。
          *
@@ -176,7 +176,7 @@ object RagVerificationExample {
                 DocumentSearchResult(document, 0.9 - index * 0.1)
             }.take(limit)
         }
-        
+
         /**
          * 带过滤器的相似度搜索。
          *
@@ -198,7 +198,7 @@ object RagVerificationExample {
                 DocumentSearchResult(document, 0.9 - index * 0.1)
             }.take(limit)
         }
-        
+
         /**
          * 关键词搜索。
          *
@@ -218,7 +218,7 @@ object RagVerificationExample {
                 DocumentSearchResult(document, 0.9 - index * 0.1)
             }.take(limit)
         }
-        
+
         /**
          * 元数据搜索。
          *
@@ -247,10 +247,10 @@ object RagVerificationExample {
     fun main(args: Array<String>) = runBlocking {
         // 创建模拟的嵌入服务
         val embeddingService = MockEmbeddingService()
-        
+
         // 创建模拟的文档向量存储
         val documentStore = MockDocumentVectorStore()
-        
+
         // 创建 RAG 实例
         val rag = RAG(
             documentStore = documentStore,
@@ -263,22 +263,22 @@ object RagVerificationExample {
                 )
             )
         )
-        
+
         // 测试检索
         val query = "What is Kotlin?"
         println("Query: $query")
-        
+
         val searchResults = rag.search(query, limit = 2)
         println("\nSearch Results:")
         searchResults.forEachIndexed { index, result ->
             println("${index + 1}. ${result.document.content} (Score: ${result.score})")
         }
-        
+
         // 测试生成上下文
         val context = rag.generateContext(query, limit = 2)
         println("\nGenerated Context:")
         println(context)
-        
+
         // 测试检索上下文
         val retrieveResult = rag.retrieveContext(query, limit = 2)
         println("\nRetrieved Context:")

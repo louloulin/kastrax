@@ -20,13 +20,10 @@ fun main() = runBlocking {
 
     // 创建嵌入服务
     val ragEmbeddingService = RandomEmbeddingService(1536)
-    val embeddingService = object : ai.kastrax.store.embedding.EmbeddingService {
-        // 注意：ai.kastrax.store.embedding.EmbeddingService 接口中没有 dimensions 属性
-        // 我们在这里添加一个属性来存储维度信息
-        val dimensions: Int = 1536
+    val embeddingService = object : ai.kastrax.store.embedding.EmbeddingService() {
+        override val dimension: Int = 1536
         override suspend fun embed(text: String): FloatArray = ragEmbeddingService.embed(text)
         override suspend fun embedBatch(texts: List<String>): List<FloatArray> = ragEmbeddingService.embedBatch(texts)
-        override fun dimension(): Int = dimensions
         override fun close() {}
     }
 

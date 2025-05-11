@@ -115,14 +115,14 @@ class RAG(
      *
      * @return 文档向量存储
      */
-    fun getDocumentStore(): DocumentVectorStore = documentStore
+    fun getDocStore(): DocumentVectorStore = documentStore
 
     /**
      * 获取嵌入服务
      *
      * @return 嵌入服务
      */
-    fun getEmbeddingService(): EmbeddingService = embeddingService
+    fun getEmbedService(): EmbeddingService = embeddingService
 
     /**
      * 获取重排序器
@@ -408,20 +408,20 @@ class RAG(
     }
 
     /**
-     * 获取嵌入服务。
+     * 获取嵌入服务对象。
      *
-     * @return 嵌入服务
+     * @return 嵌入服务对象
      */
-    fun getEmbeddingService(): EmbeddingService {
+    fun getEmbeddingServiceObject(): EmbeddingService {
         return embeddingService
     }
 
     /**
-     * 获取文档向量存储。
+     * 获取文档向量存储对象。
      *
-     * @return 文档向量存储
+     * @return 文档向量存储对象
      */
-    fun getDocumentStore(): DocumentVectorStore {
+    fun getDocumentStoreObject(): DocumentVectorStore {
         return documentStore
     }
 

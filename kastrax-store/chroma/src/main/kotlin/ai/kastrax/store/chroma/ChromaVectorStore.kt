@@ -2,7 +2,7 @@ package ai.kastrax.store.chroma
 
 import ai.kastrax.store.BaseVectorStore
 import ai.kastrax.store.IndexStats
-import ai.kastrax.store.QueryResult
+import ai.kastrax.store.model.SearchResult
 import ai.kastrax.store.SimilarityMetric
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.ktor.client.*
@@ -196,7 +196,7 @@ class ChromaVectorStore(
         topK: Int,
         filter: Map<String, Any>?,
         includeVectors: Boolean
-    ): List<QueryResult> {
+    ): List<SearchResult> {
         try {
             // 获取集合 ID
             val collectionId = getCollectionId(indexName)
@@ -246,22 +246,22 @@ class ChromaVectorStore(
 
             if (response.status.isSuccess()) {
                 val responseBody: JsonObject = response.body()
-                
+
                 // 解析响应
                 val ids = responseBody["ids"]?.jsonArray?.get(0)?.jsonArray?.map { it.jsonPrimitive.content } ?: emptyList()
                 val distances = responseBody["distances"]?.jsonArray?.get(0)?.jsonArray?.map { it.jsonPrimitive.double } ?: emptyList()
-                val metadatas = responseBody["metadatas"]?.jsonArray?.get(0)?.jsonArray?.map { 
+                val metadatas = responseBody["metadatas"]?.jsonArray?.get(0)?.jsonArray?.map {
                     it.jsonObject.map { (key, value) ->
                         key to when {
                             value.jsonPrimitive.isString -> value.jsonPrimitive.content
-                            value.jsonPrimitive.isBoolean -> value.jsonPrimitive.boolean
+                            value.jsonPrimitive.booleanOrNull != null -> value.jsonPrimitive.boolean
                             else -> value.jsonPrimitive.double
                         }
                     }.toMap()
                 } ?: emptyList()
-                
+
                 val embeddings = if (includeVectors) {
-                    responseBody["embeddings"]?.jsonArray?.get(0)?.jsonArray?.map { 
+                    responseBody["embeddings"]?.jsonArray?.get(0)?.jsonArray?.map {
                         it.jsonArray.map { value -> value.jsonPrimitive.float }.toFloatArray()
                     }
                 } else {
@@ -270,7 +270,7 @@ class ChromaVectorStore(
 
                 // 构建查询结果
                 val results = ids.mapIndexed { index, id ->
-                    QueryResult(
+                    SearchResult(
                         id = id,
                         score = 1.0 - distances.getOrElse(index) { 0.0 }, // 转换距离为相似度
                         metadata = metadatas.getOrElse(index) { emptyMap() },
@@ -379,13 +379,13 @@ class ChromaVectorStore(
 
             if (response.status.isSuccess()) {
                 val responseBody: JsonObject = response.body()
-                
+
                 // 解析响应
                 val metadata = responseBody["metadata"]?.jsonObject
                 val dimension = metadata?.get("dimension")?.jsonPrimitive?.int ?: 0
                 val count = responseBody["count"]?.jsonPrimitive?.int ?: 0
                 val metricStr = metadata?.get("metric")?.jsonPrimitive?.content ?: "cosine"
-                
+
                 // 将 Chroma 相似度度量方式转换为 Kastrax 相似度度量方式
                 val metric = when (metricStr) {
                     "cosine" -> SimilarityMetric.COSINE
@@ -422,9 +422,9 @@ class ChromaVectorStore(
 
             if (response.status.isSuccess()) {
                 val responseBody: JsonObject = response.body()
-                
+
                 // 解析响应
-                val collections = responseBody["collections"]?.jsonArray?.map { 
+                val collections = responseBody["collections"]?.jsonArray?.map {
                     it.jsonObject["name"]?.jsonPrimitive?.content ?: ""
                 } ?: emptyList()
 
@@ -463,11 +463,11 @@ class ChromaVectorStore(
             // 构建请求体
             val requestBody = buildJsonObject {
                 put("ids", JsonArray(listOf(JsonPrimitive(id))))
-                
+
                 if (vector != null) {
                     put("embeddings", JsonArray(listOf(JsonArray(vector.map { JsonPrimitive(it) }))))
                 }
-                
+
                 if (metadata != null) {
                     put("metadatas", JsonArray(listOf(buildJsonObject {
                         metadata.forEach { (key, value) ->
@@ -567,10 +567,10 @@ class ChromaVectorStore(
 
             if (response.status.isSuccess()) {
                 val responseBody: JsonObject = response.body()
-                
+
                 // 解析响应
                 val collections = responseBody["collections"]?.jsonArray ?: return null
-                
+
                 // 查找匹配的集合
                 for (collection in collections) {
                     val name = collection.jsonObject["name"]?.jsonPrimitive?.content ?: continue
@@ -578,7 +578,7 @@ class ChromaVectorStore(
                         return collection.jsonObject["id"]?.jsonPrimitive?.content
                     }
                 }
-                
+
                 return null
             } else {
                 logger.error { "Failed to get collection ID for $collectionName: ${response.status}" }

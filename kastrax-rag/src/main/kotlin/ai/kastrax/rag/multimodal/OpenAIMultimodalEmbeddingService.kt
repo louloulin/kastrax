@@ -204,13 +204,9 @@ class OpenAIMultimodalEmbeddingService(
     }
 
     /**
-     * 返回嵌入向量的维度。
-     *
-     * @return 维度
+     * 嵌入向量的维度。
      */
-    override fun dimension(): Int {
-        return dimensions
-    }
+    override val dimension: Int = dimensions
 
     /**
      * 生成图像的嵌入向量。

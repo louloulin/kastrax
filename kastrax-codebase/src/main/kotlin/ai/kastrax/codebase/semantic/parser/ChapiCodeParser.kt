@@ -25,7 +25,7 @@ private val logger = KotlinLogging.logger {}
  * 使用 Chapi 库解析不同语言的代码文件
  */
 abstract class ChapiCodeParser : AbstractCodeParser() {
-    
+
     /**
      * 解析代码文件
      *
@@ -37,37 +37,37 @@ abstract class ChapiCodeParser : AbstractCodeParser() {
         try {
             // 创建文件元素
             val fileElement = createFileElement(filePath, content)
-            
+
             // 使用 Chapi 解析代码
             val codeContainer = parseCodeByChapi(content)
-            
+
             // 解析包声明
-            if (codeContainer.Packages.isNotEmpty()) {
-                val packageDecl = codeContainer.Packages.first()
+            if (codeContainer.packages.isNotEmpty()) {
+                val packageDecl = codeContainer.packages.first()
                 val packageElement = parsePackage(filePath, packageDecl, fileElement)
                 fileElement.addChild(packageElement)
-                fileElement.metadata["package"] = packageDecl.Name
+                fileElement.metadata["package"] = packageDecl.name
             }
-            
+
             // 解析导入声明
-            codeContainer.Imports.forEach { importDecl ->
+            codeContainer.imports.forEach { importDecl ->
                 val importElement = parseImport(filePath, importDecl, fileElement)
                 fileElement.addChild(importElement)
             }
-            
+
             // 解析类型声明
-            codeContainer.DataStructures.forEach { dataStruct ->
+            codeContainer.dataStructures.forEach { dataStruct ->
                 val classElement = parseDataStruct(filePath, dataStruct, fileElement)
                 fileElement.addChild(classElement)
             }
-            
+
             return fileElement
         } catch (e: Exception) {
             logger.error(e) { "解析代码文件时出错: $filePath" }
             return createFileElement(filePath, content)
         }
     }
-    
+
     /**
      * 使用 Chapi 解析代码
      *
@@ -75,7 +75,7 @@ abstract class ChapiCodeParser : AbstractCodeParser() {
      * @return Chapi 代码容器
      */
     protected abstract fun parseCodeByChapi(content: String): chapi.domain.core.CodeContainer
-    
+
     /**
      * 解析包声明
      *
@@ -89,9 +89,9 @@ abstract class ChapiCodeParser : AbstractCodeParser() {
         packageDecl: CodePackage,
         parent: CodeElement
     ): CodeElement {
-        val packageName = packageDecl.Name
+        val packageName = packageDecl.name
         val location = createLocation(filePath, packageDecl.Position)
-        
+
         return CodeElement(
             id = UUID.randomUUID().toString(),
             name = packageName,
@@ -103,7 +103,7 @@ abstract class ChapiCodeParser : AbstractCodeParser() {
             language = getLanguageName()
         )
     }
-    
+
     /**
      * 解析导入声明
      *
@@ -117,9 +117,9 @@ abstract class ChapiCodeParser : AbstractCodeParser() {
         importDecl: CodeImport,
         parent: CodeElement
     ): CodeElement {
-        val importName = importDecl.Source
+        val importName = importDecl.source
         val location = createLocation(filePath, importDecl.Position)
-        
+
         val importElement = CodeElement(
             id = UUID.randomUUID().toString(),
             name = importName,
@@ -129,13 +129,13 @@ abstract class ChapiCodeParser : AbstractCodeParser() {
             parent = parent,
             language = getLanguageName()
         )
-        
-        importElement.metadata["isStatic"] = importDecl.UsageName.contains("static")
-        importElement.metadata["isAsterisk"] = importDecl.Source.endsWith("*")
-        
+
+        importElement.metadata["isStatic"] = importDecl.usageName.contains("static")
+        importElement.metadata["isAsterisk"] = importDecl.source.endsWith("*")
+
         return importElement
     }
-    
+
     /**
      * 解析数据结构（类、接口、枚举等）
      *
@@ -149,21 +149,21 @@ abstract class ChapiCodeParser : AbstractCodeParser() {
         dataStruct: CodeDataStruct,
         parent: CodeElement
     ): CodeElement {
-        val name = dataStruct.NodeName
+        val name = dataStruct.nodeName
         val packageName = parent.metadata["package"] as? String ?: ""
         val qualifiedName = if (packageName.isNotEmpty()) "$packageName.$name" else name
-        val location = createLocation(filePath, dataStruct.Position)
-        
-        val type = when (dataStruct.Type) {
+        val location = createLocation(filePath, dataStruct.position)
+
+        val type = when (dataStruct.type) {
             "interface" -> CodeElementType.INTERFACE
             "enum" -> CodeElementType.ENUM
             "annotation" -> CodeElementType.ANNOTATION
             else -> CodeElementType.CLASS
         }
-        
+
         val visibility = parseVisibility(dataStruct.Modifiers)
         val modifiers = parseModifiers(dataStruct.Modifiers)
-        
+
         val classElement = CodeElement(
             id = UUID.randomUUID().toString(),
             name = name,
@@ -175,57 +175,57 @@ abstract class ChapiCodeParser : AbstractCodeParser() {
             parent = parent,
             language = getLanguageName()
         )
-        
+
         // 解析文档注释
-        if (dataStruct.DocString.isNotEmpty()) {
-            classElement.documentation = dataStruct.DocString
+        if (dataStruct.docString.isNotEmpty()) {
+            classElement.documentation = dataStruct.docString
         }
-        
+
         // 解析字段
-        dataStruct.Fields.forEach { field ->
+        dataStruct.fields.forEach { field ->
             val fieldElement = parseField(filePath, field, classElement)
             classElement.addChild(fieldElement)
         }
-        
+
         // 解析属性（Kotlin）
-        dataStruct.Properties.forEach { property ->
+        dataStruct.properties.forEach { property ->
             val propertyElement = parseProperty(filePath, property, classElement)
             classElement.addChild(propertyElement)
         }
-        
+
         // 解析方法
-        dataStruct.Functions.forEach { function ->
+        dataStruct.functions.forEach { function ->
             val methodElement = parseFunction(filePath, function, classElement)
             classElement.addChild(methodElement)
         }
-        
+
         // 解析内部类
-        dataStruct.InnerStructures.forEach { innerStruct ->
+        dataStruct.innerStructures.forEach { innerStruct ->
             val innerClassElement = parseDataStruct(filePath, innerStruct, classElement)
             classElement.addChild(innerClassElement)
         }
-        
+
         // 添加元数据
-        classElement.metadata["type"] = dataStruct.Type
-        
+        classElement.metadata["type"] = dataStruct.type
+
         // 解析注解
-        if (dataStruct.Annotations.isNotEmpty()) {
-            classElement.metadata["annotations"] = dataStruct.Annotations.map { it.Name }
+        if (dataStruct.annotations.isNotEmpty()) {
+            classElement.metadata["annotations"] = dataStruct.annotations.map { it.name }
         }
-        
+
         // 解析继承关系
-        if (dataStruct.Extend.isNotEmpty()) {
-            classElement.metadata["extends"] = dataStruct.Extend
+        if (dataStruct.extend.isNotEmpty()) {
+            classElement.metadata["extends"] = dataStruct.extend
         }
-        
+
         // 解析实现关系
-        if (dataStruct.Implements.isNotEmpty()) {
-            classElement.metadata["implements"] = dataStruct.Implements
+        if (dataStruct.implements.isNotEmpty()) {
+            classElement.metadata["implements"] = dataStruct.implements
         }
-        
+
         return classElement
     }
-    
+
     /**
      * 解析字段
      *
@@ -239,13 +239,13 @@ abstract class ChapiCodeParser : AbstractCodeParser() {
         field: CodeField,
         parent: CodeElement
     ): CodeElement {
-        val name = field.TypeValue
+        val name = field.typeValue
         val qualifiedName = "${parent.qualifiedName}.$name"
-        val location = createLocation(filePath, field.Position)
-        
-        val visibility = parseVisibility(field.Modifiers)
-        val modifiers = parseModifiers(field.Modifiers)
-        
+        val location = createLocation(filePath, field.position)
+
+        val visibility = parseVisibility(field.modifiers)
+        val modifiers = parseModifiers(field.modifiers)
+
         val fieldElement = CodeElement(
             id = UUID.randomUUID().toString(),
             name = name,
@@ -257,28 +257,28 @@ abstract class ChapiCodeParser : AbstractCodeParser() {
             parent = parent,
             language = getLanguageName()
         )
-        
+
         // 解析文档注释
-        if (field.DocString.isNotEmpty()) {
-            fieldElement.documentation = field.DocString
+        if (field.docString.isNotEmpty()) {
+            fieldElement.documentation = field.docString
         }
-        
+
         // 添加元数据
-        fieldElement.metadata["type"] = field.TypeType
-        
+        fieldElement.metadata["type"] = field.typeType
+
         // 解析注解
-        if (field.Annotations.isNotEmpty()) {
-            fieldElement.metadata["annotations"] = field.Annotations.map { it.Name }
+        if (field.annotations.isNotEmpty()) {
+            fieldElement.metadata["annotations"] = field.annotations.map { it.name }
         }
-        
+
         // 解析初始化表达式
-        if (field.TypeValue.isNotEmpty()) {
-            fieldElement.metadata["initializer"] = field.TypeValue
+        if (field.typeValue.isNotEmpty()) {
+            fieldElement.metadata["initializer"] = field.typeValue
         }
-        
+
         return fieldElement
     }
-    
+
     /**
      * 解析属性（Kotlin）
      *
@@ -292,13 +292,13 @@ abstract class ChapiCodeParser : AbstractCodeParser() {
         property: CodeProperty,
         parent: CodeElement
     ): CodeElement {
-        val name = property.TypeValue
+        val name = property.typeValue
         val qualifiedName = "${parent.qualifiedName}.$name"
-        val location = createLocation(filePath, property.Position)
-        
-        val visibility = parseVisibility(property.Modifiers)
-        val modifiers = parseModifiers(property.Modifiers)
-        
+        val location = createLocation(filePath, property.position)
+
+        val visibility = parseVisibility(property.modifiers)
+        val modifiers = parseModifiers(property.modifiers)
+
         val propertyElement = CodeElement(
             id = UUID.randomUUID().toString(),
             name = name,
@@ -310,28 +310,28 @@ abstract class ChapiCodeParser : AbstractCodeParser() {
             parent = parent,
             language = getLanguageName()
         )
-        
+
         // 解析文档注释
-        if (property.DocString.isNotEmpty()) {
-            propertyElement.documentation = property.DocString
+        if (property.docString.isNotEmpty()) {
+            propertyElement.documentation = property.docString
         }
-        
+
         // 添加元数据
-        propertyElement.metadata["type"] = property.TypeType
-        
+        propertyElement.metadata["type"] = property.typeType
+
         // 解析注解
-        if (property.Annotations.isNotEmpty()) {
-            propertyElement.metadata["annotations"] = property.Annotations.map { it.Name }
+        if (property.annotations.isNotEmpty()) {
+            propertyElement.metadata["annotations"] = property.annotations.map { it.name }
         }
-        
+
         // 解析初始化表达式
-        if (property.TypeValue.isNotEmpty()) {
-            propertyElement.metadata["initializer"] = property.TypeValue
+        if (property.typeValue.isNotEmpty()) {
+            propertyElement.metadata["initializer"] = property.typeValue
         }
-        
+
         return propertyElement
     }
-    
+
     /**
      * 解析函数（方法或构造函数）
      *
@@ -345,14 +345,14 @@ abstract class ChapiCodeParser : AbstractCodeParser() {
         function: CodeFunction,
         parent: CodeElement
     ): CodeElement {
-        val name = function.Name
+        val name = function.name
         val qualifiedName = "${parent.qualifiedName}.$name"
-        val location = createLocation(filePath, function.Position)
-        
-        val type = if (function.IsConstructor) CodeElementType.CONSTRUCTOR else CodeElementType.METHOD
-        val visibility = parseVisibility(function.Modifiers)
-        val modifiers = parseModifiers(function.Modifiers)
-        
+        val location = createLocation(filePath, function.position)
+
+        val type = if (function.isConstructor) CodeElementType.CONSTRUCTOR else CodeElementType.METHOD
+        val visibility = parseVisibility(function.modifiers)
+        val modifiers = parseModifiers(function.modifiers)
+
         val functionElement = CodeElement(
             id = UUID.randomUUID().toString(),
             name = name,
@@ -364,30 +364,30 @@ abstract class ChapiCodeParser : AbstractCodeParser() {
             parent = parent,
             language = getLanguageName()
         )
-        
+
         // 解析文档注释
-        if (function.DocString.isNotEmpty()) {
-            functionElement.documentation = function.DocString
+        if (function.docString.isNotEmpty()) {
+            functionElement.documentation = function.docString
         }
-        
+
         // 解析参数
-        function.Parameters.forEach { parameter ->
+        function.parameters.forEach { parameter ->
             val parameterElement = parseParameter(filePath, parameter, functionElement)
             functionElement.addChild(parameterElement)
         }
-        
+
         // 添加元数据
-        functionElement.metadata["returnType"] = function.ReturnType
-        functionElement.metadata["parameters"] = function.Parameters.map { it.TypeValue }
-        
+        functionElement.metadata["returnType"] = function.returnType
+        functionElement.metadata["parameters"] = function.parameters.map { it.typeValue }
+
         // 解析注解
-        if (function.Annotations.isNotEmpty()) {
-            functionElement.metadata["annotations"] = function.Annotations.map { it.Name }
+        if (function.annotations.isNotEmpty()) {
+            functionElement.metadata["annotations"] = function.annotations.map { it.name }
         }
-        
+
         return functionElement
     }
-    
+
     /**
      * 解析参数
      *
@@ -401,12 +401,12 @@ abstract class ChapiCodeParser : AbstractCodeParser() {
         parameter: chapi.domain.core.CodeParameter,
         parent: CodeElement
     ): CodeElement {
-        val name = parameter.TypeValue
+        val name = parameter.typeValue
         val qualifiedName = "${parent.qualifiedName}.$name"
-        
+
         // Chapi 不提供参数的位置信息，使用父元素的位置
         val location = parent.location
-        
+
         val parameterElement = CodeElement(
             id = UUID.randomUUID().toString(),
             name = name,
@@ -417,18 +417,18 @@ abstract class ChapiCodeParser : AbstractCodeParser() {
             parent = parent,
             language = getLanguageName()
         )
-        
+
         // 添加元数据
-        parameterElement.metadata["type"] = parameter.TypeType
-        
+        parameterElement.metadata["type"] = parameter.typeType
+
         // 解析注解
-        if (parameter.Annotations.isNotEmpty()) {
-            parameterElement.metadata["annotations"] = parameter.Annotations.map { it.Name }
+        if (parameter.annotations.isNotEmpty()) {
+            parameterElement.metadata["annotations"] = parameter.annotations.map { it.name }
         }
-        
+
         return parameterElement
     }
-    
+
     /**
      * 解析注解
      *
@@ -442,12 +442,12 @@ abstract class ChapiCodeParser : AbstractCodeParser() {
         annotation: CodeAnnotation,
         parent: CodeElement
     ): CodeElement {
-        val name = annotation.Name
+        val name = annotation.name
         val qualifiedName = "${parent.qualifiedName}.$name"
-        
+
         // Chapi 不提供注解的位置信息，使用父元素的位置
         val location = parent.location
-        
+
         val annotationElement = CodeElement(
             id = UUID.randomUUID().toString(),
             name = name,
@@ -458,15 +458,15 @@ abstract class ChapiCodeParser : AbstractCodeParser() {
             parent = parent,
             language = getLanguageName()
         )
-        
+
         // 添加元数据
-        if (annotation.KeyValues.isNotEmpty()) {
-            annotationElement.metadata["keyValues"] = annotation.KeyValues
+        if (annotation.keyValues.isNotEmpty()) {
+            annotationElement.metadata["keyValues"] = annotation.keyValues
         }
-        
+
         return annotationElement
     }
-    
+
     /**
      * 解析可见性
      *
@@ -482,7 +482,7 @@ abstract class ChapiCodeParser : AbstractCodeParser() {
             else -> Visibility.PACKAGE_PRIVATE
         }
     }
-    
+
     /**
      * 解析修饰符
      *
@@ -491,7 +491,7 @@ abstract class ChapiCodeParser : AbstractCodeParser() {
      */
     private fun parseModifiers(modifiers: List<String>): Set<Modifier> {
         val result = mutableSetOf<Modifier>()
-        
+
         modifiers.forEach { modifier ->
             when (modifier) {
                 "static" -> result.add(Modifier.STATIC)
@@ -522,10 +522,10 @@ abstract class ChapiCodeParser : AbstractCodeParser() {
                 "virtual" -> result.add(Modifier.VIRTUAL)
             }
         }
-        
+
         return result
     }
-    
+
     /**
      * 创建位置
      *
@@ -543,13 +543,13 @@ abstract class ChapiCodeParser : AbstractCodeParser() {
                 endColumn = 1
             )
         }
-        
+
         return Location(
             filePath = filePath,
-            startLine = position.StartLine,
-            startColumn = position.StartLinePosition,
-            endLine = position.StopLine,
-            endColumn = position.StopLinePosition
+            startLine = position.startLine,
+            startColumn = position.startLinePosition,
+            endLine = position.stopLine,
+            endColumn = position.stopLinePosition
         )
     }
 }

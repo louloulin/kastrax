@@ -9,7 +9,7 @@ private val logger = KotlinLogging.logger {}
 /**
  * 多模态嵌入服务接口，支持文本、图像、音频和视频等多种模态的嵌入。
  */
-interface MultimodalEmbeddingService : ai.kastrax.store.embedding.EmbeddingService {
+abstract class MultimodalEmbeddingService : ai.kastrax.store.embedding.EmbeddingService() {
     /**
      * 生成图像的嵌入向量。
      *
