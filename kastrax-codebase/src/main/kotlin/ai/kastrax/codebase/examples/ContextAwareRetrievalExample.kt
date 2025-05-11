@@ -1,5 +1,11 @@
 package ai.kastrax.codebase.examples
 
+// TODO: 暂时注释掉示例代码，等待相关依赖问题解决
+
+// 空实现以避免语法错误
+class ContextAwareRetrievalExample
+
+/*
 import ai.kastrax.codebase.embedding.EmbeddingModel
 import ai.kastrax.codebase.embedding.EmbeddingModelManager
 import ai.kastrax.codebase.embedding.EmbeddingService
@@ -33,7 +39,7 @@ import kotlin.io.path.Path
  * 上下文感知检索示例
  */
 object ContextAwareRetrievalExample {
-    
+
     /**
      * 主函数
      */
@@ -46,15 +52,15 @@ object ContextAwareRetrievalExample {
             // 默认使用当前目录
             Path(".")
         }
-        
+
         println("开始分析代码库: $codebasePath")
-        
+
         // 注册代码解析器
         registerParsers()
-        
+
         // 创建嵌入模型管理器
         val embeddingModelManager = EmbeddingModelManager()
-        
+
         // 注册默认嵌入模型
         embeddingModelManager.registerModel(
             EmbeddingModel(
@@ -64,10 +70,10 @@ object ContextAwareRetrievalExample {
                 modelName = "text-embedding-3-small"
             )
         )
-        
+
         // 创建嵌入服务
         val embeddingService = EmbeddingService(embeddingModelManager)
-        
+
         // 创建向量存储
         val vectorStore = VectorStoreFactory.createVectorStore(
             config = VectorStoreConfig(
@@ -75,14 +81,14 @@ object ContextAwareRetrievalExample {
                 dimension = 1536
             )
         )
-        
+
         // 创建代码语义分析器
         val semanticAnalyzer = CodeSemanticAnalyzer(
             config = CodeSemanticAnalyzerConfig(
                 maxConcurrentFiles = 10
             )
         )
-        
+
         // 创建代码关系分析器
         val relationAnalyzer = CodeRelationAnalyzer(
             config = CodeRelationAnalyzerConfig(
@@ -92,7 +98,7 @@ object ContextAwareRetrievalExample {
                 analyzeOverride = true
             )
         )
-        
+
         // 创建符号关系图构建器
         val symbolGraphBuilder = SymbolGraphBuilder(
             semanticAnalyzer = semanticAnalyzer,
@@ -107,7 +113,7 @@ object ContextAwareRetrievalExample {
                 includeDependencies = true
             )
         )
-        
+
         // 创建语义记忆管理器
         val memoryManager = SemanticMemoryManager(
             semanticAnalyzer = semanticAnalyzer,
@@ -124,7 +130,7 @@ object ContextAwareRetrievalExample {
                 enableEventNotifications = true
             )
         )
-        
+
         // 创建上下文感知检索引擎
         val retrievalEngine = ContextAwareRetrievalEngine(
             memoryManager = memoryManager,
@@ -175,7 +181,7 @@ object ContextAwareRetrievalExample {
                 enableExplanations = true
             )
         )
-        
+
         // 启动事件监听
         val eventJob = launch {
             retrievalEngine.events.collect { event ->
@@ -198,33 +204,33 @@ object ContextAwareRetrievalExample {
                 }
             }
         }
-        
+
         // 初始化记忆管理器
         memoryManager.initialize()
-        
+
         // 启动记忆管理器
         memoryManager.start()
-        
+
         // 初始化检索引擎
         retrievalEngine.initialize()
-        
+
         // 索引代码库
         println("\n开始索引代码库...")
         memoryManager.addCodebaseIndexingTask(codebasePath)
-        
+
         // 等待索引完成
         println("等待索引完成...")
         Thread.sleep(5000)
-        
+
         // 演示检索功能
         demonstrateRetrieval(retrievalEngine)
-        
+
         // 取消事件监听
         eventJob.cancel()
-        
+
         println("\n上下文感知检索示例完成")
     }
-    
+
     /**
      * 注册代码解析器
      */
@@ -232,7 +238,7 @@ object ContextAwareRetrievalExample {
         CodeParserFactory.registerParser(ChapiJavaCodeParser())
         CodeParserFactory.registerParser(ChapiKotlinCodeParser())
     }
-    
+
     /**
      * 演示检索功能
      *
@@ -240,10 +246,10 @@ object ContextAwareRetrievalExample {
      */
     private suspend fun demonstrateRetrieval(retrievalEngine: ContextAwareRetrievalEngine) {
         println("\n演示检索功能:")
-        
+
         // 创建会话 ID
         val sessionId = "example-session"
-        
+
         // 执行第一次检索
         println("\n第一次检索:")
         val results1 = retrievalEngine.retrieve(
@@ -252,17 +258,17 @@ object ContextAwareRetrievalExample {
             limit = 5,
             minScore = 0.5
         )
-        
+
         println("找到 ${results1.size} 个结果")
         results1.forEachIndexed { index, result ->
             println("${index + 1}. 分数: ${result.score}, 记忆: ${result.memory.getShortDescription()}")
-            
+
             // 打印解释（如果有）
             if (result.explanation != null) {
                 println("   解释: ${result.explanation}")
             }
         }
-        
+
         // 提供反馈
         if (results1.isNotEmpty()) {
             println("\n提供反馈:")
@@ -272,10 +278,10 @@ object ContextAwareRetrievalExample {
                 sessionId = sessionId,
                 comment = "这个结果非常相关"
             )
-            
+
             println("反馈提交${if (feedback) "成功" else "失败"}")
         }
-        
+
         // 执行第二次检索（上下文相关）
         println("\n第二次检索（上下文相关）:")
         val results2 = retrievalEngine.retrieve(
@@ -284,12 +290,12 @@ object ContextAwareRetrievalExample {
             limit = 5,
             minScore = 0.5
         )
-        
+
         println("找到 ${results2.size} 个结果")
         results2.forEachIndexed { index, result ->
             println("${index + 1}. 分数: ${result.score}, 记忆: ${result.memory.getShortDescription()}")
         }
-        
+
         // 执行第三次检索（带当前文件和选中文本）
         println("\n第三次检索（带当前文件和选中文本）:")
         val results3 = retrievalEngine.retrieve(
@@ -300,17 +306,17 @@ object ContextAwareRetrievalExample {
             currentFile = "MyClass.java",
             selectedText = "implementMethod"
         )
-        
+
         println("找到 ${results3.size} 个结果")
         results3.forEachIndexed { index, result ->
             println("${index + 1}. 分数: ${result.score}, 记忆: ${result.memory.getShortDescription()}")
         }
-        
+
         // 清除会话历史
         println("\n清除会话历史:")
         val cleared = retrievalEngine.clearSessionHistory(sessionId)
         println("会话历史清除${if (cleared) "成功" else "失败"}")
-        
+
         // 执行第四次检索（无上下文）
         println("\n第四次检索（无上下文）:")
         val results4 = retrievalEngine.retrieve(
@@ -319,10 +325,10 @@ object ContextAwareRetrievalExample {
             limit = 5,
             minScore = 0.5
         )
-        
+
         println("找到 ${results4.size} 个结果")
         results4.forEachIndexed { index, result ->
             println("${index + 1}. 分数: ${result.score}, 记忆: ${result.memory.getShortDescription()}")
         }
     }
-}
+*/

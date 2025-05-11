@@ -37,7 +37,7 @@ data class CodeEmbeddingServiceConfig(
  * @property config 配置
  */
 class CodeEmbeddingService(
-    private val baseEmbeddingService: Any,
+    private val baseEmbeddingService: EmbeddingService,
     private val config: CodeEmbeddingServiceConfig = CodeEmbeddingServiceConfig()
 ) : Closeable {
 
@@ -51,7 +51,7 @@ class CodeEmbeddingService(
     /**
      * 嵌入维度
      */
-    val dimension: Int = 1536
+    val dimension: Int = 1536 // 使用固定值替代引用
 
     /**
      * 嵌入单个文本
@@ -79,7 +79,7 @@ class CodeEmbeddingService(
         val processedText = preprocessCode(text)
 
         // 生成嵌入
-        val embedding = FloatArray(1536) { (Math.random() * 2 - 1).toFloat() }
+        val embedding = baseEmbeddingService.embed(processedText)
 
         // 缓存嵌入
         cacheEmbedding(cacheKey, embedding)
@@ -132,7 +132,7 @@ class CodeEmbeddingService(
             val batchStartIndex = batchIndex * config.batchSize
 
             // 生成嵌入
-            val embeddings = List(batch.size) { FloatArray(1536) { (Math.random() * 2 - 1).toFloat() } }
+            val embeddings = baseEmbeddingService.embedBatch(batch)
 
             // 将结果与原始索引关联
             embeddings.forEachIndexed { i, embedding ->

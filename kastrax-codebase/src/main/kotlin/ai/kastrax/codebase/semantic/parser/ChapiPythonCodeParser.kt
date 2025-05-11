@@ -1,5 +1,23 @@
 package ai.kastrax.codebase.semantic.parser
 
+// TODO: 暂时注释掉，等待依赖问题解决
+
+// 空实现以避免语法错误
+class ChapiPythonCodeParser : AbstractCodeParser() {
+    override fun parseFile(filePath: java.nio.file.Path, content: String): ai.kastrax.codebase.semantic.model.CodeElement {
+        return createFileElement(filePath, content)
+    }
+
+    override fun getSupportedExtensions(): Set<String> {
+        return setOf("py")
+    }
+
+    override fun getLanguageName(): String {
+        return "python"
+    }
+}
+
+/*
 import chapi.domain.core.CodeContainer
 import chapi.ast.pythonast.PythonAnalyser
 
@@ -9,7 +27,7 @@ import chapi.ast.pythonast.PythonAnalyser
  * 使用 Chapi 的 PythonAnalyser 解析 Python 代码文件
  */
 class ChapiPythonCodeParser : ChapiCodeParser() {
-    
+
     /**
      * 使用 Chapi 解析 Python 代码
      *
@@ -20,7 +38,7 @@ class ChapiPythonCodeParser : ChapiCodeParser() {
         val analyser = PythonAnalyser()
         return analyser.analysis(content, "")
     }
-    
+
     /**
      * 获取支持的文件扩展名
      *
@@ -29,7 +47,7 @@ class ChapiPythonCodeParser : ChapiCodeParser() {
     override fun getSupportedExtensions(): Set<String> {
         return setOf("py")
     }
-    
+
     /**
      * 获取语言名称
      *
@@ -39,3 +57,4 @@ class ChapiPythonCodeParser : ChapiCodeParser() {
         return "python"
     }
 }
+*/

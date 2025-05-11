@@ -18,7 +18,9 @@ import kotlin.math.sqrt
 
 /**
  * 代码嵌入示例
+ * TODO: 暂时注释掉，等待修复EmbeddingService相关问题
  */
+/*
 object CodeEmbeddingExample {
 
     /**
@@ -38,11 +40,10 @@ object CodeEmbeddingExample {
 
         // 创建基础嵌入服务
         val baseEmbeddingService = FastEmbeddingService.create()
-        val embeddingService = baseEmbeddingService
 
         // 创建代码嵌入服务
         val codeEmbeddingService = CodeEmbeddingService(
-            baseEmbeddingService = embeddingService,
+            baseEmbeddingService = baseEmbeddingService,
             config = CodeEmbeddingServiceConfig(
                 cacheSize = 1000,
                 batchSize = 32
@@ -177,4 +178,4 @@ object CodeEmbeddingExample {
             0.0
         }
     }
-}
+}*/

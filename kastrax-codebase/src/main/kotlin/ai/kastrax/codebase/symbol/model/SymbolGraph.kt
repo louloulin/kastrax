@@ -19,31 +19,31 @@ class SymbolGraph(
 ) {
     // 符号节点映射
     private val nodes = ConcurrentHashMap<String, SymbolNode>()
-    
+
     // 符号关系映射
     private val relations = ConcurrentHashMap<String, SymbolRelation>()
-    
+
     // 源符号到关系的映射
     private val sourceToRelations = ConcurrentHashMap<String, MutableSet<String>>()
-    
+
     // 目标符号到关系的映射
     private val targetToRelations = ConcurrentHashMap<String, MutableSet<String>>()
-    
+
     // 符号名称到符号 ID 的映射
     private val nameToIds = ConcurrentHashMap<String, MutableSet<String>>()
-    
+
     // 限定名到符号 ID 的映射
     private val qualifiedNameToIds = ConcurrentHashMap<String, MutableSet<String>>()
-    
+
     // 文件路径到符号 ID 的映射
     private val fileToIds = ConcurrentHashMap<String, MutableSet<String>>()
-    
+
     // 符号类型到符号 ID 的映射
     private val typeToIds = ConcurrentHashMap<SymbolType, MutableSet<String>>()
-    
+
     // 读写锁
     private val lock = ReentrantReadWriteLock()
-    
+
     /**
      * 添加符号节点
      *
@@ -56,23 +56,23 @@ class SymbolGraph(
             if (nodes.containsKey(node.id)) {
                 return false
             }
-            
+
             // 添加节点
             nodes[node.id] = node
-            
+
             // 更新索引
             nameToIds.computeIfAbsent(node.name) { mutableSetOf() }.add(node.id)
             qualifiedNameToIds.computeIfAbsent(node.qualifiedName) { mutableSetOf() }.add(node.id)
             typeToIds.computeIfAbsent(node.type) { mutableSetOf() }.add(node.id)
-            
+
             // 更新文件索引
             val filePath = node.location.filePath.toString()
             fileToIds.computeIfAbsent(filePath) { mutableSetOf() }.add(node.id)
-            
+
             return true
         }
     }
-    
+
     /**
      * 添加符号关系
      *
@@ -85,23 +85,23 @@ class SymbolGraph(
             if (relations.containsKey(relation.id)) {
                 return false
             }
-            
+
             // 检查源节点和目标节点是否存在
             if (!nodes.containsKey(relation.sourceId) || !nodes.containsKey(relation.targetId)) {
                 return false
             }
-            
+
             // 添加关系
             relations[relation.id] = relation
-            
+
             // 更新索引
             sourceToRelations.computeIfAbsent(relation.sourceId) { mutableSetOf() }.add(relation.id)
             targetToRelations.computeIfAbsent(relation.targetId) { mutableSetOf() }.add(relation.id)
-            
+
             return true
         }
     }
-    
+
     /**
      * 获取符号节点
      *
@@ -113,7 +113,7 @@ class SymbolGraph(
             return nodes[id]
         }
     }
-    
+
     /**
      * 获取符号关系
      *
@@ -125,7 +125,7 @@ class SymbolGraph(
             return relations[id]
         }
     }
-    
+
     /**
      * 获取所有符号节点
      *
@@ -136,7 +136,7 @@ class SymbolGraph(
             return nodes.values.toList()
         }
     }
-    
+
     /**
      * 获取所有符号关系
      *
@@ -147,7 +147,7 @@ class SymbolGraph(
             return relations.values.toList()
         }
     }
-    
+
     /**
      * 获取出关系
      *
@@ -158,12 +158,12 @@ class SymbolGraph(
     fun getOutgoingRelations(nodeId: String, type: SymbolRelationType? = null): List<SymbolRelation> {
         lock.read {
             val relationIds = sourceToRelations[nodeId] ?: return emptyList()
-            
+
             return relationIds.mapNotNull { relations[it] }
                 .filter { type == null || it.type == type }
         }
     }
-    
+
     /**
      * 获取入关系
      *
@@ -174,12 +174,12 @@ class SymbolGraph(
     fun getIncomingRelations(nodeId: String, type: SymbolRelationType? = null): List<SymbolRelation> {
         lock.read {
             val relationIds = targetToRelations[nodeId] ?: return emptyList()
-            
+
             return relationIds.mapNotNull { relations[it] }
                 .filter { type == null || it.type == type }
         }
     }
-    
+
     /**
      * 获取相邻节点
      *
@@ -195,14 +195,14 @@ class SymbolGraph(
             } else {
                 getIncomingRelations(nodeId, type)
             }
-            
+
             return relations.mapNotNull { relation ->
                 val targetId = if (direction) relation.targetId else relation.sourceId
                 nodes[targetId]
             }
         }
     }
-    
+
     /**
      * 根据名称查找符号节点
      *
@@ -213,12 +213,23 @@ class SymbolGraph(
     fun findNodesByName(name: String, type: SymbolType? = null): List<SymbolNode> {
         lock.read {
             val nodeIds = nameToIds[name] ?: return emptyList()
-            
+
             return nodeIds.mapNotNull { nodes[it] }
                 .filter { type == null || it.type == type }
         }
     }
-    
+
+    /**
+     * 根据名称查找符号节点（返回第一个匹配的节点）
+     *
+     * @param name 符号名称
+     * @param type 符号类型，如果为 null 则不限制类型
+     * @return 符号节点，如果不存在则返回 null
+     */
+    fun findNodeByName(name: String, type: SymbolType? = null): SymbolNode? {
+        return findNodesByName(name, type).firstOrNull()
+    }
+
     /**
      * 根据限定名查找符号节点
      *
@@ -229,12 +240,12 @@ class SymbolGraph(
     fun findNodesByQualifiedName(qualifiedName: String, type: SymbolType? = null): List<SymbolNode> {
         lock.read {
             val nodeIds = qualifiedNameToIds[qualifiedName] ?: return emptyList()
-            
+
             return nodeIds.mapNotNull { nodes[it] }
                 .filter { type == null || it.type == type }
         }
     }
-    
+
     /**
      * 根据文件路径查找符号节点
      *
@@ -245,12 +256,12 @@ class SymbolGraph(
     fun findNodesByFile(filePath: Path, type: SymbolType? = null): List<SymbolNode> {
         lock.read {
             val nodeIds = fileToIds[filePath.toString()] ?: return emptyList()
-            
+
             return nodeIds.mapNotNull { nodes[it] }
                 .filter { type == null || it.type == type }
         }
     }
-    
+
     /**
      * 根据类型查找符号节点
      *
@@ -260,11 +271,11 @@ class SymbolGraph(
     fun findNodesByType(type: SymbolType): List<SymbolNode> {
         lock.read {
             val nodeIds = typeToIds[type] ?: return emptyList()
-            
+
             return nodeIds.mapNotNull { nodes[it] }
         }
     }
-    
+
     /**
      * 获取节点数量
      *
@@ -275,7 +286,7 @@ class SymbolGraph(
             return nodes.size
         }
     }
-    
+
     /**
      * 获取关系数量
      *
@@ -286,7 +297,7 @@ class SymbolGraph(
             return relations.size
         }
     }
-    
+
     /**
      * 清空图
      */
@@ -302,7 +313,7 @@ class SymbolGraph(
             typeToIds.clear()
         }
     }
-    
+
     /**
      * 移除节点
      *
@@ -313,27 +324,27 @@ class SymbolGraph(
         lock.write {
             // 获取节点
             val node = nodes[nodeId] ?: return false
-            
+
             // 移除关联的关系
             val outRelationIds = sourceToRelations[nodeId]?.toList() ?: emptyList()
             val inRelationIds = targetToRelations[nodeId]?.toList() ?: emptyList()
-            
+
             outRelationIds.forEach { removeRelation(it) }
             inRelationIds.forEach { removeRelation(it) }
-            
+
             // 移除节点
             nodes.remove(nodeId)
-            
+
             // 更新索引
             nameToIds[node.name]?.remove(nodeId)
             qualifiedNameToIds[node.qualifiedName]?.remove(nodeId)
             typeToIds[node.type]?.remove(nodeId)
             fileToIds[node.location.filePath.toString()]?.remove(nodeId)
-            
+
             return true
         }
     }
-    
+
     /**
      * 移除关系
      *
@@ -344,18 +355,18 @@ class SymbolGraph(
         lock.write {
             // 获取关系
             val relation = relations[relationId] ?: return false
-            
+
             // 移除关系
             relations.remove(relationId)
-            
+
             // 更新索引
             sourceToRelations[relation.sourceId]?.remove(relationId)
             targetToRelations[relation.targetId]?.remove(relationId)
-            
+
             return true
         }
     }
-    
+
     /**
      * 获取图的统计信息
      *
@@ -364,24 +375,24 @@ class SymbolGraph(
     fun getStats(): Map<String, Any> {
         lock.read {
             val stats = mutableMapOf<String, Any>()
-            
+
             stats["nodeCount"] = nodes.size
             stats["relationCount"] = relations.size
-            
+
             // 按类型统计节点
             val nodesByType = mutableMapOf<SymbolType, Int>()
             typeToIds.forEach { (type, ids) ->
                 nodesByType[type] = ids.size
             }
             stats["nodesByType"] = nodesByType
-            
+
             // 按类型统计关系
             val relationsByType = mutableMapOf<SymbolRelationType, Int>()
             relations.values.forEach { relation ->
                 relationsByType[relation.type] = relationsByType.getOrDefault(relation.type, 0) + 1
             }
             stats["relationsByType"] = relationsByType
-            
+
             return stats
         }
     }

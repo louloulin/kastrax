@@ -1,5 +1,11 @@
 package ai.kastrax.codebase.indexing.distributed
 
+// TODO: 暂时注释掉Actor相关代码，等待kactor依赖问题解决
+
+// 空实现以避免语法错误
+class IndexCoordinatorEvent
+
+/*
 /**
  * 索引协调者事件
  */
@@ -11,7 +17,7 @@ sealed class IndexCoordinatorEvent {
      * @property workerId 工作者 ID
      */
     data class TaskAssigned(val taskId: String, val workerId: String) : IndexCoordinatorEvent()
-    
+
     /**
      * 任务完成事件
      *
@@ -19,7 +25,7 @@ sealed class IndexCoordinatorEvent {
      * @property workerId 工作者 ID
      */
     data class TaskCompleted(val taskId: String, val workerId: String) : IndexCoordinatorEvent()
-    
+
     /**
      * 任务失败事件
      *
@@ -28,14 +34,14 @@ sealed class IndexCoordinatorEvent {
      * @property error 错误信息
      */
     data class TaskFailed(val taskId: String, val workerId: String, val error: String) : IndexCoordinatorEvent()
-    
+
     /**
      * 工作者注册事件
      *
      * @property workerId 工作者 ID
      */
     data class WorkerRegistered(val workerId: String) : IndexCoordinatorEvent()
-    
+
     /**
      * 工作者注销事件
      *
@@ -43,3 +49,4 @@ sealed class IndexCoordinatorEvent {
      */
     data class WorkerUnregistered(val workerId: String) : IndexCoordinatorEvent()
 }
+*/

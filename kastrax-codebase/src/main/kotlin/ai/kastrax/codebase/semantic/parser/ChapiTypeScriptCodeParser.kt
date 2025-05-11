@@ -1,5 +1,23 @@
 package ai.kastrax.codebase.semantic.parser
 
+// TODO: 暂时注释掉，等待依赖问题解决
+
+// 空实现以避免语法错误
+class ChapiTypeScriptCodeParser : AbstractCodeParser() {
+    override fun parseFile(filePath: java.nio.file.Path, content: String): ai.kastrax.codebase.semantic.model.CodeElement {
+        return createFileElement(filePath, content)
+    }
+
+    override fun getSupportedExtensions(): Set<String> {
+        return setOf("ts", "js", "tsx", "jsx")
+    }
+
+    override fun getLanguageName(): String {
+        return "typescript"
+    }
+}
+
+/*
 import chapi.domain.core.CodeContainer
 import chapi.ast.typescriptast.TypeScriptAnalyser
 
@@ -9,7 +27,7 @@ import chapi.ast.typescriptast.TypeScriptAnalyser
  * 使用 Chapi 的 TypeScriptAnalyser 解析 TypeScript 和 JavaScript 代码文件
  */
 class ChapiTypeScriptCodeParser : ChapiCodeParser() {
-    
+
     /**
      * 使用 Chapi 解析 TypeScript/JavaScript 代码
      *
@@ -20,7 +38,7 @@ class ChapiTypeScriptCodeParser : ChapiCodeParser() {
         val analyser = TypeScriptAnalyser()
         return analyser.analysis(content, "")
     }
-    
+
     /**
      * 获取支持的文件扩展名
      *
@@ -29,7 +47,7 @@ class ChapiTypeScriptCodeParser : ChapiCodeParser() {
     override fun getSupportedExtensions(): Set<String> {
         return setOf("ts", "tsx", "js", "jsx")
     }
-    
+
     /**
      * 获取语言名称
      *
@@ -39,3 +57,4 @@ class ChapiTypeScriptCodeParser : ChapiCodeParser() {
         return "typescript"
     }
 }
+*/

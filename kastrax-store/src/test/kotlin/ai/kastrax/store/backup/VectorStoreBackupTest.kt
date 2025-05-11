@@ -18,7 +18,7 @@ class VectorStoreBackupTest {
 
     @BeforeEach
     fun setUp() {
-        vectorStore = ai.kastrax.store.vector.memory.InMemoryVectorStore()
+        vectorStore = VectorStoreFactory.createInMemoryVectorStore()
     }
 
     @Test

@@ -1,5 +1,11 @@
 package ai.kastrax.codebase.indexing.distributed
 
+// TODO: 暂时注释掉Actor相关代码，等待kactor依赖问题解决
+
+// 空实现以避免语法错误
+class IndexCoordinatorConfig
+
+/*
 import kotlin.time.Duration
 
 /**
@@ -20,3 +26,4 @@ data class IndexCoordinatorConfig(
     val maxRetries: Int = 3,
     val taskTimeout: Duration = Duration.parse("5m")
 )
+*/

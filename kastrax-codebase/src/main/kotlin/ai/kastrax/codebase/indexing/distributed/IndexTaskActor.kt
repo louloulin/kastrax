@@ -1,5 +1,11 @@
 package ai.kastrax.codebase.indexing.distributed
 
+// TODO: 暂时注释掉Actor相关代码，等待kactor依赖问题解决
+
+// 空实现以避免语法错误
+class IndexTaskActor
+
+/*
 import actor.proto.Actor
 import actor.proto.Context
 import actor.proto.PID
@@ -23,7 +29,7 @@ sealed class IndexTaskMessage {
      * @property task 索引任务
      */
     data class ProcessTask(val task: IndexTask) : IndexTaskMessage()
-    
+
     /**
      * 任务完成消息
      *
@@ -32,12 +38,12 @@ sealed class IndexTaskMessage {
      * @property error 错误信息
      */
     data class TaskCompleted(val taskId: String, val success: Boolean, val error: String? = null) : IndexTaskMessage()
-    
+
     /**
      * 获取状态消息
      */
     object GetStatus : IndexTaskMessage()
-    
+
     /**
      * 状态响应消息
      *
@@ -79,13 +85,13 @@ class IndexTaskActor(
     private var activeTaskCount = 0
     private var completedTaskCount = 0
     private var failedTaskCount = 0
-    
+
     // 任务重试计数
     private val taskRetries = mutableMapOf<String, Int>()
-    
+
     // 任务协调者
     private var coordinator: PID? = null
-    
+
     /**
      * 接收消息
      */
@@ -97,14 +103,14 @@ class IndexTaskActor(
             else -> logger.warn { "未知消息类型: ${msg::class.simpleName}" }
         }
     }
-    
+
     /**
      * 处理启动消息
      */
     private fun Context.handleStarted() {
         logger.info { "索引任务 Actor 已启动: ${self.id}" }
     }
-    
+
     /**
      * 处理任务
      *
@@ -112,33 +118,33 @@ class IndexTaskActor(
      */
     private suspend fun Context.processTask(task: IndexTask) {
         logger.debug { "处理任务: ${task.id}, 类型: ${task.type}, 路径: ${task.path}" }
-        
+
         // 记录协调者
         if (coordinator == null) {
             coordinator = sender
         }
-        
+
         // 增加活动任务计数
         activeTaskCount++
-        
+
         try {
             // 使用超时处理任务
             withTimeout(config.taskTimeout) {
                 taskProcessor.processTask(task)
             }
-            
+
             // 任务成功完成
             activeTaskCount--
             completedTaskCount++
-            
+
             // 清除重试计数
             taskRetries.remove(task.id)
-            
+
             // 通知协调者任务完成
             coordinator?.let {
                 send(it, IndexTaskMessage.TaskCompleted(task.id, true))
             }
-            
+
             logger.debug { "任务完成: ${task.id}" }
         } catch (e: CancellationException) {
             // 任务超时
@@ -148,7 +154,7 @@ class IndexTaskActor(
             handleTaskFailure(task, e.message ?: "未知错误")
         }
     }
-    
+
     /**
      * 处理任务失败
      *
@@ -158,33 +164,33 @@ class IndexTaskActor(
     private suspend fun Context.handleTaskFailure(task: IndexTask, error: String) {
         // 减少活动任务计数
         activeTaskCount--
-        
+
         // 获取当前重试次数
         val retryCount = taskRetries.getOrDefault(task.id, 0)
-        
+
         if (retryCount < config.maxRetries) {
             // 增加重试次数
             taskRetries[task.id] = retryCount + 1
-            
+
             // 重新处理任务
             logger.warn { "任务重试: ${task.id}, 重试次数: ${retryCount + 1}, 错误: $error" }
             processTask(task)
         } else {
             // 任务失败
             failedTaskCount++
-            
+
             // 清除重试计数
             taskRetries.remove(task.id)
-            
+
             // 通知协调者任务失败
             coordinator?.let {
                 send(it, IndexTaskMessage.TaskCompleted(task.id, false, error))
             }
-            
+
             logger.error { "任务失败: ${task.id}, 已达到最大重试次数, 错误: $error" }
         }
     }
-    
+
     /**
      * 响应状态请求
      */
@@ -194,7 +200,7 @@ class IndexTaskActor(
             completedTaskCount = completedTaskCount,
             failedTaskCount = failedTaskCount
         )
-        
+
         respond(status)
     }
-}
+*/

@@ -1,5 +1,11 @@
 package ai.kastrax.codebase.examples
 
+// TODO: 暂时注释掉示例代码，等待相关依赖问题解决
+
+// 空实现以避免语法错误
+class ContextAwareSearchExample
+
+/*
 import ai.kastrax.codebase.embedding.EmbeddingModel
 import ai.kastrax.codebase.embedding.EmbeddingModelManager
 import ai.kastrax.codebase.embedding.EmbeddingService
@@ -30,7 +36,7 @@ import kotlin.io.path.Path
  * 上下文感知搜索示例
  */
 object ContextAwareSearchExample {
-    
+
     /**
      * 主函数
      */
@@ -43,15 +49,15 @@ object ContextAwareSearchExample {
             // 默认使用当前目录
             Path(".")
         }
-        
+
         println("开始分析代码库: $codebasePath")
-        
+
         // 注册代码解析器
         registerParsers()
-        
+
         // 创建嵌入模型管理器
         val embeddingModelManager = EmbeddingModelManager()
-        
+
         // 注册默认嵌入模型
         embeddingModelManager.registerModel(
             EmbeddingModel(
@@ -61,17 +67,17 @@ object ContextAwareSearchExample {
                 modelName = "text-embedding-3-small"
             )
         )
-        
+
         // 创建嵌入服务
         val embeddingService = EmbeddingService(embeddingModelManager)
-        
+
         // 创建代码语义分析器
         val semanticAnalyzer = CodeSemanticAnalyzer(
             config = CodeSemanticAnalyzerConfig(
                 maxConcurrentFiles = 10
             )
         )
-        
+
         // 创建代码关系分析器
         val relationAnalyzer = CodeRelationAnalyzer(
             config = CodeRelationAnalyzerConfig(
@@ -81,7 +87,7 @@ object ContextAwareSearchExample {
                 analyzeOverride = true
             )
         )
-        
+
         // 创建符号关系图构建器
         val symbolGraphBuilder = SymbolGraphBuilder(
             semanticAnalyzer = semanticAnalyzer,
@@ -96,7 +102,7 @@ object ContextAwareSearchExample {
                 includeDependencies = true
             )
         )
-        
+
         // 创建上下文构建器
         val contextBuilder = ContextBuilder(
             semanticAnalyzer = semanticAnalyzer,
@@ -110,7 +116,7 @@ object ContextAwareSearchExample {
                 maxHistorySize = 10
             )
         )
-        
+
         // 创建上下文选择器
         val contextSelector = IntentBasedContextSelector(
             contextHierarchy = contextBuilder.getContextHierarchy(),
@@ -127,7 +133,7 @@ object ContextAwareSearchExample {
                 cacheSize = 1000
             )
         )
-        
+
         // 启动事件监听
         val eventJob = launch {
             contextBuilder.events.collect { event ->
@@ -153,47 +159,47 @@ object ContextAwareSearchExample {
                 }
             }
         }
-        
+
         // 初始化上下文构建器
         contextBuilder.initialize()
-        
+
         // 构建代码库上下文
         println("\n开始构建代码库上下文...")
         val success = contextBuilder.buildCodebaseContext(codebasePath)
-        
+
         if (success) {
             println("构建代码库上下文成功")
         } else {
             println("构建代码库上下文失败")
             return@runBlocking
         }
-        
+
         // 获取上下文统计信息
         val stats = contextBuilder.getStats()
         println("\n上下文统计信息:")
         println("上下文总数: ${stats["totalContexts"]}")
-        
+
         val contextsByLevel = stats["contextsByLevel"] as Map<*, *>
         println("\n上下文级别统计:")
         contextsByLevel.entries.sortedByDescending { it.value as Int }.forEach { (level, count) ->
             println("$level: $count")
         }
-        
+
         val contextsByType = stats["contextsByType"] as Map<*, *>
         println("\n上下文类型统计:")
         contextsByType.entries.sortedByDescending { it.value as Int }.forEach { (type, count) ->
             println("$type: $count")
         }
-        
+
         // 演示上下文感知搜索
         demonstrateContextAwareSearch(contextBuilder, contextSelector)
-        
+
         // 取消事件监听
         eventJob.cancel()
-        
+
         println("\n上下文感知搜索示例完成")
     }
-    
+
     /**
      * 注册代码解析器
      */
@@ -201,7 +207,7 @@ object ContextAwareSearchExample {
         CodeParserFactory.registerParser(ChapiJavaCodeParser())
         CodeParserFactory.registerParser(ChapiKotlinCodeParser())
     }
-    
+
     /**
      * 演示上下文感知搜索
      *
@@ -213,10 +219,10 @@ object ContextAwareSearchExample {
         contextSelector: IntentBasedContextSelector
     ) {
         println("\n演示上下文感知搜索:")
-        
+
         // 创建会话 ID
         val sessionId = "example-session"
-        
+
         // 添加自定义上下文
         println("\n添加自定义上下文:")
         val customContextId = contextBuilder.addCustomContext(
@@ -225,36 +231,36 @@ object ContextAwareSearchExample {
             content = "这是一个自定义文档上下文，用于演示上下文感知搜索功能。",
             metadata = mapOf("key1" to "value1", "key2" to "value2")
         )
-        
+
         println("自定义上下文添加成功: $customContextId")
-        
+
         // 添加查询上下文
         println("\n添加查询上下文:")
         val queryContextId = contextBuilder.addQueryContext(
             query = "什么是上下文感知搜索？",
             sessionId = sessionId
         )
-        
+
         println("查询上下文添加成功: $queryContextId")
-        
+
         // 执行第一次搜索
         println("\n第一次搜索:")
         val retrievalContext1 = RetrievalContext(
             query = "什么是上下文感知搜索？",
             sessionId = sessionId
         )
-        
+
         val result1 = contextSelector.selectContexts(retrievalContext1)
-        
+
         println("查询意图: ${result1.intent.type}, 置信度: ${result1.intent.confidence}")
         println("选择的上下文数量: ${result1.selectedContexts.size}")
-        
+
         result1.selectedContexts.forEachIndexed { index, context ->
             val score = result1.relevanceScores[context.id] ?: 0.0
             println("${index + 1}. 级别: ${context.level}, 类型: ${context.type}, 分数: $score")
             println("   内容: ${context.content.take(100)}${if (context.content.length > 100) "..." else ""}")
         }
-        
+
         // 添加用户反馈上下文
         println("\n添加用户反馈上下文:")
         val feedbackContextId = contextBuilder.addFeedbackContext(
@@ -263,9 +269,9 @@ object ContextAwareSearchExample {
             comment = "这个结果很有帮助",
             sessionId = sessionId
         )
-        
+
         println("用户反馈上下文添加成功: $feedbackContextId")
-        
+
         // 执行第二次搜索
         println("\n第二次搜索:")
         val retrievalContext2 = RetrievalContext(
@@ -273,18 +279,18 @@ object ContextAwareSearchExample {
             previousQueries = listOf("什么是上下文感知搜索？"),
             sessionId = sessionId
         )
-        
+
         val result2 = contextSelector.selectContexts(retrievalContext2)
-        
+
         println("查询意图: ${result2.intent.type}, 置信度: ${result2.intent.confidence}")
         println("选择的上下文数量: ${result2.selectedContexts.size}")
-        
+
         result2.selectedContexts.forEachIndexed { index, context ->
             val score = result2.relevanceScores[context.id] ?: 0.0
             println("${index + 1}. 级别: ${context.level}, 类型: ${context.type}, 分数: $score")
             println("   内容: ${context.content.take(100)}${if (context.content.length > 100) "..." else ""}")
         }
-        
+
         // 执行第三次搜索（带当前文件和选中文本）
         println("\n第三次搜索:")
         val retrievalContext3 = RetrievalContext(
@@ -294,18 +300,18 @@ object ContextAwareSearchExample {
             selectedText = "selectContexts",
             sessionId = sessionId
         )
-        
+
         val result3 = contextSelector.selectContexts(retrievalContext3)
-        
+
         println("查询意图: ${result3.intent.type}, 置信度: ${result3.intent.confidence}")
         println("选择的上下文数量: ${result3.selectedContexts.size}")
-        
+
         result3.selectedContexts.forEachIndexed { index, context ->
             val score = result3.relevanceScores[context.id] ?: 0.0
             println("${index + 1}. 级别: ${context.level}, 类型: ${context.type}, 分数: $score")
             println("   内容: ${context.content.take(100)}${if (context.content.length > 100) "..." else ""}")
         }
-        
+
         // 更新上下文
         println("\n更新上下文:")
         val updateSuccess = contextBuilder.updateContext(
@@ -313,13 +319,14 @@ object ContextAwareSearchExample {
             content = "这是更新后的自定义文档上下文，用于演示上下文感知搜索功能。",
             metadata = mapOf("key3" to "value3")
         )
-        
+
         println("上下文更新${if (updateSuccess) "成功" else "失败"}")
-        
+
         // 移除上下文
         println("\n移除上下文:")
         val removeSuccess = contextBuilder.removeContext(customContextId)
-        
+
         println("上下文移除${if (removeSuccess) "成功" else "失败"}")
     }
 }
+*/

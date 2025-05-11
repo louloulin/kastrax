@@ -1,5 +1,11 @@
 package ai.kastrax.codebase.indexing.distributed
 
+// TODO: 暂时注释掉Actor相关代码，等待kactor依赖问题解决
+
+// 空实现以避免语法错误
+class ActorBasedIndexTaskProcessor
+
+/*
 import ai.kastrax.codebase.indexing.IndexTask
 import ai.kastrax.codebase.indexing.IndexTaskProcessor
 import ai.kastrax.codebase.indexing.IndexTaskType
@@ -32,10 +38,10 @@ class ActorBasedIndexTaskProcessor(
     private val documentStore: DocumentVectorStore,
     private val embeddingService: EmbeddingService
 ) : IndexTaskProcessor {
-    
+
     // 文件路径到文档 ID 的映射
     private val pathToId = ConcurrentHashMap<String, String>()
-    
+
     /**
      * 处理索引任务
      *
@@ -43,7 +49,7 @@ class ActorBasedIndexTaskProcessor(
      */
     override suspend fun processTask(task: IndexTask) = withContext(Dispatchers.IO) {
         logger.debug { "处理索引任务: ${task.id}, 类型: ${task.type}, 路径: ${task.path}" }
-        
+
         when (task.type) {
             IndexTaskType.ADD, IndexTaskType.UPDATE -> {
                 processAddOrUpdateTask(task.path)
@@ -59,7 +65,7 @@ class ActorBasedIndexTaskProcessor(
             }
         }
     }
-    
+
     /**
      * 处理添加或更新任务
      *
@@ -72,17 +78,17 @@ class ActorBasedIndexTaskProcessor(
                 logger.warn { "文件不存在或不是常规文件: $path" }
                 return
             }
-            
+
             // 读取文件内容
             val content = path.readText()
-            
+
             // 创建文档元数据
             val metadata = createFileMetadata(path)
-            
+
             // 检查文件是否已存在
             val pathString = path.toString()
             val existingId = pathToId[pathString]
-            
+
             if (existingId != null) {
                 // 更新文档
                 updateDocument(existingId, content, metadata)
@@ -95,7 +101,7 @@ class ActorBasedIndexTaskProcessor(
             throw e
         }
     }
-    
+
     /**
      * 处理删除任务
      *
@@ -105,16 +111,16 @@ class ActorBasedIndexTaskProcessor(
         try {
             // 获取文件路径
             val pathString = path.toString()
-            
+
             // 检查文件是否已索引
             val documentId = pathToId[pathString]
             if (documentId != null) {
                 // 从向量存储中删除文档
                 documentStore.deleteDocuments(listOf(documentId))
-                
+
                 // 从映射中删除
                 pathToId.remove(pathString)
-                
+
                 logger.debug { "从索引中删除文件: $path" }
             } else {
                 logger.warn { "文件未索引，无法删除: $path" }
@@ -124,7 +130,7 @@ class ActorBasedIndexTaskProcessor(
             throw e
         }
     }
-    
+
     /**
      * 处理分支变更任务
      *
@@ -134,12 +140,12 @@ class ActorBasedIndexTaskProcessor(
         try {
             val previousBranch = task.metadata["previousBranch"]
             val currentBranch = task.metadata["currentBranch"]
-            
+
             logger.info { "处理分支变更: $previousBranch -> $currentBranch" }
-            
+
             // 清空当前索引
             clearIndex()
-            
+
             // 重新索引当前分支
             processFullReindexTask(task.path)
         } catch (e: Exception) {
@@ -147,7 +153,7 @@ class ActorBasedIndexTaskProcessor(
             throw e
         }
     }
-    
+
     /**
      * 处理完全重新索引任务
      *
@@ -156,10 +162,10 @@ class ActorBasedIndexTaskProcessor(
     private suspend fun processFullReindexTask(rootPath: Path) {
         try {
             logger.info { "开始完全重新索引: $rootPath" }
-            
+
             // 清空当前索引
             clearIndex()
-            
+
             // 遍历所有文件并索引
             Files.walk(rootPath)
                 .filter { it.isRegularFile() }
@@ -170,14 +176,14 @@ class ActorBasedIndexTaskProcessor(
                         logger.error(e) { "索引文件时出错: $path" }
                     }
                 }
-            
+
             logger.info { "完全重新索引完成: $rootPath" }
         } catch (e: Exception) {
             logger.error(e) { "完全重新索引时出错: $rootPath" }
             throw e
         }
     }
-    
+
     /**
      * 清空索引
      */
@@ -185,22 +191,22 @@ class ActorBasedIndexTaskProcessor(
         try {
             // 获取所有文档 ID
             val documentIds = pathToId.values.toList()
-            
+
             // 从向量存储中删除所有文档
             if (documentIds.isNotEmpty()) {
                 documentStore.deleteDocuments(documentIds)
             }
-            
+
             // 清空映射
             pathToId.clear()
-            
+
             logger.debug { "清空索引" }
         } catch (e: Exception) {
             logger.error(e) { "清空索引时出错" }
             throw e
         }
     }
-    
+
     /**
      * 添加文档
      *
@@ -215,10 +221,10 @@ class ActorBasedIndexTaskProcessor(
             content = content,
             metadata = metadata
         )
-        
+
         // 添加文档到向量存储
         val success = documentStore.addDocuments(listOf(document), embeddingService)
-        
+
         if (success) {
             // 添加到映射
             pathToId[pathString] = document.id
@@ -227,7 +233,7 @@ class ActorBasedIndexTaskProcessor(
             logger.warn { "添加文档失败: $pathString" }
         }
     }
-    
+
     /**
      * 更新文档
      *
@@ -242,20 +248,20 @@ class ActorBasedIndexTaskProcessor(
             content = content,
             metadata = metadata
         )
-        
+
         // 从向量存储中删除文档
         documentStore.deleteDocuments(listOf(documentId))
-        
+
         // 添加文档到向量存储
         val success = documentStore.addDocuments(listOf(document), embeddingService)
-        
+
         if (success) {
             logger.debug { "更新文档: $documentId" }
         } else {
             logger.warn { "更新文档失败: $documentId" }
         }
     }
-    
+
     /**
      * 创建文件元数据
      *
@@ -265,10 +271,10 @@ class ActorBasedIndexTaskProcessor(
     private fun createFileMetadata(path: Path): Map<String, Any> {
         val file = path.toFile()
         val extension = path.extension.lowercase()
-        
+
         // 确定文件语言
         val language = determineLanguage(extension)
-        
+
         return mapOf(
             "path" to path.toString(),
             "filename" to path.name,
@@ -278,7 +284,7 @@ class ActorBasedIndexTaskProcessor(
             "lastModified" to file.lastModified()
         )
     }
-    
+
     /**
      * 确定文件语言
      *
@@ -321,4 +327,4 @@ class ActorBasedIndexTaskProcessor(
             else -> "Unknown"
         }
     }
-}
+*/

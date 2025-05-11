@@ -20,7 +20,7 @@ private val logger = KotlinLogging.logger {}
  */
 data class EmbeddingModelVersion(
     val version: String,
-    val service: Any,
+    val service: EmbeddingService,
     val createdAt: Long = System.currentTimeMillis()
 )
 
@@ -74,7 +74,7 @@ class EmbeddingModelManager(private val config: EmbeddingModelManagerConfig = Em
      */
     suspend fun registerModelVersion(
         version: String,
-        service: Any,
+        service: EmbeddingService,
         setAsActive: Boolean = false
     ): Boolean = mutex.withLock {
         if (modelVersions.containsKey(version)) {
@@ -209,7 +209,7 @@ class EmbeddingModelManager(private val config: EmbeddingModelManagerConfig = Em
         }
 
         // 生成嵌入
-        val embedding = FloatArray(1536) { (Math.random() * 2 - 1).toFloat() }
+        val embedding = modelVersion.service.embed(text)
 
         // 更新缓存
         updateCache(cacheKey, targetVersion, embedding)
@@ -254,7 +254,7 @@ class EmbeddingModelManager(private val config: EmbeddingModelManagerConfig = Em
 
         // 生成嵌入
         val embedTexts = textsToEmbed.map { it.second }
-        val embeddings = List(embedTexts.size) { FloatArray(1536) { (Math.random() * 2 - 1).toFloat() } }
+        val embeddings = modelVersion.service.embedBatch(embedTexts)
 
         // 更新缓存
         textsToEmbed.forEachIndexed { i, (index, text) ->

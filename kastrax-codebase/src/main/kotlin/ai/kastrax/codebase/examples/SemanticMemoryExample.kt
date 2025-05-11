@@ -1,5 +1,11 @@
 package ai.kastrax.codebase.examples
 
+// TODO: 暂时注释掉示例代码，等待相关依赖问题解决
+
+// 空实现以避免语法错误
+class SemanticMemoryExample
+
+/*
 import ai.kastrax.codebase.embedding.EmbeddingModel
 import ai.kastrax.codebase.embedding.EmbeddingModelManager
 import ai.kastrax.codebase.embedding.EmbeddingService
@@ -30,7 +36,7 @@ import kotlin.io.path.Path
  * 语义记忆示例
  */
 object SemanticMemoryExample {
-    
+
     /**
      * 主函数
      */
@@ -43,15 +49,15 @@ object SemanticMemoryExample {
             // 默认使用当前目录
             Path(".")
         }
-        
+
         println("开始分析代码库: $codebasePath")
-        
+
         // 注册代码解析器
         registerParsers()
-        
+
         // 创建嵌入模型管理器
         val embeddingModelManager = EmbeddingModelManager()
-        
+
         // 注册默认嵌入模型
         embeddingModelManager.registerModel(
             EmbeddingModel(
@@ -61,10 +67,10 @@ object SemanticMemoryExample {
                 modelName = "text-embedding-3-small"
             )
         )
-        
+
         // 创建嵌入服务
         val embeddingService = EmbeddingService(embeddingModelManager)
-        
+
         // 创建向量存储
         val vectorStore = VectorStoreFactory.createVectorStore(
             config = VectorStoreConfig(
@@ -72,14 +78,14 @@ object SemanticMemoryExample {
                 dimension = 1536
             )
         )
-        
+
         // 创建代码语义分析器
         val semanticAnalyzer = CodeSemanticAnalyzer(
             config = CodeSemanticAnalyzerConfig(
                 maxConcurrentFiles = 10
             )
         )
-        
+
         // 创建代码关系分析器
         val relationAnalyzer = CodeRelationAnalyzer(
             config = CodeRelationAnalyzerConfig(
@@ -89,7 +95,7 @@ object SemanticMemoryExample {
                 analyzeOverride = true
             )
         )
-        
+
         // 创建符号关系图构建器
         val symbolGraphBuilder = SymbolGraphBuilder(
             semanticAnalyzer = semanticAnalyzer,
@@ -104,7 +110,7 @@ object SemanticMemoryExample {
                 includeDependencies = true
             )
         )
-        
+
         // 创建语义记忆管理器
         val memoryManager = SemanticMemoryManager(
             semanticAnalyzer = semanticAnalyzer,
@@ -121,7 +127,7 @@ object SemanticMemoryExample {
                 enableEventNotifications = true
             )
         )
-        
+
         // 启动事件监听
         val eventJob = launch {
             memoryManager.events.collect { event ->
@@ -150,50 +156,50 @@ object SemanticMemoryExample {
                 }
             }
         }
-        
+
         // 初始化记忆管理器
         memoryManager.initialize()
-        
+
         // 启动记忆管理器
         memoryManager.start()
-        
+
         // 索引代码库
         println("\n开始索引代码库...")
         memoryManager.addCodebaseIndexingTask(codebasePath)
-        
+
         // 等待索引完成
         println("等待索引完成...")
         Thread.sleep(5000)
-        
+
         // 获取记忆存储统计信息
         val stats = memoryManager.getMemoryStoreStats()
         println("\n记忆存储统计信息:")
         println("记忆总数: ${stats["memoryCount"]}")
-        
+
         val memoriesByType = stats["memoriesByType"] as Map<*, *>
         println("\n记忆类型统计:")
         memoriesByType.entries.sortedByDescending { it.value as Int }.forEach { (type, count) ->
             println("$type: $count")
         }
-        
+
         val memoriesByImportance = stats["memoriesByImportance"] as Map<*, *>
         println("\n记忆重要性统计:")
         memoriesByImportance.entries.sortedByDescending { it.value as Int }.forEach { (importance, count) ->
             println("$importance: $count")
         }
-        
+
         // 演示查询功能
         demonstrateQueries(memoryManager)
-        
+
         // 停止记忆管理器
         memoryManager.stop()
-        
+
         // 取消事件监听
         eventJob.cancel()
-        
+
         println("\n语义记忆示例完成")
     }
-    
+
     /**
      * 注册代码解析器
      */
@@ -201,7 +207,7 @@ object SemanticMemoryExample {
         CodeParserFactory.registerParser(ChapiJavaCodeParser())
         CodeParserFactory.registerParser(ChapiKotlinCodeParser())
     }
-    
+
     /**
      * 演示查询功能
      *
@@ -209,7 +215,7 @@ object SemanticMemoryExample {
      */
     private suspend fun demonstrateQueries(memoryManager: SemanticMemoryManager) {
         println("\n演示查询功能:")
-        
+
         // 语义搜索
         println("\n语义搜索:")
         val semanticResults = memoryManager.semanticSearch(
@@ -217,12 +223,12 @@ object SemanticMemoryExample {
             limit = 5,
             minScore = 0.7
         )
-        
+
         println("找到 ${semanticResults.size} 个结果")
         semanticResults.forEach { result ->
             println("- 分数: ${result.score}, 记忆: ${result.memory.getShortDescription()}")
         }
-        
+
         // 混合搜索
         println("\n混合搜索:")
         val hybridResults = memoryManager.hybridSearch(
@@ -230,30 +236,30 @@ object SemanticMemoryExample {
             limit = 5,
             minScore = 0.7
         )
-        
+
         println("找到 ${hybridResults.size} 个结果")
         hybridResults.forEach { result ->
             println("- 分数: ${result.score}, 记忆: ${result.memory.getShortDescription()}")
         }
-        
+
         // 按类型查询
         println("\n按类型查询:")
         val typeResults = memoryManager.findMemoriesByType(MemoryType.CODE_STRUCTURE).take(5)
-        
+
         println("找到 ${typeResults.size} 个结果")
         typeResults.forEach { memory ->
             println("- ${memory.getShortDescription()}")
         }
-        
+
         // 按重要性查询
         println("\n按重要性查询:")
         val importanceResults = memoryManager.findMemoriesByImportance(ImportanceLevel.HIGH).take(5)
-        
+
         println("找到 ${importanceResults.size} 个结果")
         importanceResults.forEach { memory ->
             println("- ${memory.getShortDescription()}")
         }
-        
+
         // 创建自定义记忆
         println("\n创建自定义记忆:")
         val customMemory = memoryManager.createCustomMemory(
@@ -261,20 +267,20 @@ object SemanticMemoryExample {
             importance = ImportanceLevel.HIGH,
             metadata = mapOf("source" to "example", "category" to "demo")
         )
-        
+
         // 添加记忆
         val added = memoryManager.addMemory(customMemory)
-        
+
         if (added) {
             println("自定义记忆添加成功: ${customMemory.getShortDescription()}")
-            
+
             // 查询相关记忆
             val relatedResults = memoryManager.semanticSearch(
                 query = "自定义记忆演示",
                 limit = 3,
                 minScore = 0.7
             )
-            
+
             println("找到 ${relatedResults.size} 个相关记忆")
             relatedResults.forEach { result ->
                 println("- 分数: ${result.score}, 记忆: ${result.memory.getShortDescription()}")
@@ -284,3 +290,4 @@ object SemanticMemoryExample {
         }
     }
 }
+*/

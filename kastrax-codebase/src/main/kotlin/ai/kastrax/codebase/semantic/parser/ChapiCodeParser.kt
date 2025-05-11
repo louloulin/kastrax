@@ -1,5 +1,11 @@
 package ai.kastrax.codebase.semantic.parser
 
+// TODO: 暂时注释掉，等待依赖问题解决
+
+// 空实现以避免语法错误
+class ChapiCodeParser
+
+/*
 import ai.kastrax.codebase.semantic.model.CodeElement
 import ai.kastrax.codebase.semantic.model.CodeElementType
 import ai.kastrax.codebase.semantic.model.Location
@@ -484,6 +490,26 @@ abstract class ChapiCodeParser : AbstractCodeParser() {
     }
 
     /**
+     * 获取支持的文件扩展名
+     *
+     * @return 支持的文件扩展名集合
+     */
+    override fun getSupportedExtensions(): Set<String> {
+        // 由子类实现
+        return emptySet()
+    }
+
+    /**
+     * 获取语言名称
+     *
+     * @return 语言名称
+     */
+    override fun getLanguageName(): String {
+        // 由子类实现
+        return ""
+    }
+
+    /**
      * 解析修饰符
      *
      * @param modifiers 修饰符列表
@@ -553,3 +579,4 @@ abstract class ChapiCodeParser : AbstractCodeParser() {
         )
     }
 }
+*/

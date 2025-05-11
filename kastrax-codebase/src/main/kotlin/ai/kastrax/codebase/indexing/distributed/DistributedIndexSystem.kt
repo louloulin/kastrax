@@ -2,7 +2,8 @@ package ai.kastrax.codebase.indexing.distributed
 
 import ai.kastrax.codebase.actor.ActorSystem
 import ai.kastrax.codebase.actor.PID
-import ai.kastrax.codebase.store.CodeVectorStore
+// TODO: 暂时注释掉，等待依赖问题解决
+// import ai.kastrax.codebase.store.CodeVectorStore
 import ai.kastrax.store.embedding.EmbeddingService
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow

@@ -1,5 +1,11 @@
 package ai.kastrax.codebase.semantic.memory
 
+// TODO: 暂时注释掉，等待依赖问题解决
+
+// 空实现以避免语法错误
+class SemanticMemoryManager
+
+/*
 import ai.kastrax.codebase.embedding.EmbeddingService
 import ai.kastrax.codebase.semantic.CodeSemanticAnalyzer
 import ai.kastrax.codebase.semantic.model.CodeElement
@@ -96,14 +102,14 @@ class SemanticMemoryManager(
 ) {
     // 记忆存储
     private val memoryStore = SemanticMemoryStore(config.memoryStoreName)
-    
+
     // 记忆生成器
     private val memoryGenerator = SemanticMemoryGenerator(
         config = SemanticMemoryGeneratorConfig(
             maxConcurrentTasks = config.maxConcurrentTasks
         )
     )
-    
+
     // 记忆检索器
     private val memoryRetriever = SemanticMemoryRetriever(
         memoryStore = memoryStore,
@@ -114,30 +120,30 @@ class SemanticMemoryManager(
             vectorStoreName = config.vectorStoreName
         )
     )
-    
+
     // 事件流
     private val _events = MutableSharedFlow<MemoryManagerEvent>(replay = 0)
     val events: SharedFlow<MemoryManagerEvent> = _events.asSharedFlow()
-    
+
     // 索引任务队列
     private val indexingQueue = Channel<IndexingTask>(Channel.UNLIMITED)
-    
+
     // 索引任务作业
     private var indexingJob: Job? = null
-    
+
     // 是否已初始化
     private val initialized = AtomicBoolean(false)
-    
+
     // 是否正在运行
     private val running = AtomicBoolean(false)
-    
+
     // 索引任务类型
     private sealed class IndexingTask {
         data class IndexCodeElement(val element: CodeElement) : IndexingTask()
         data class IndexSymbolNode(val node: SymbolNode, val graph: SymbolGraph) : IndexingTask()
         data class IndexCodebase(val path: Path) : IndexingTask()
     }
-    
+
     /**
      * 初始化管理器
      */
@@ -146,16 +152,16 @@ class SemanticMemoryManager(
             logger.info { "语义记忆管理器已经初始化" }
             return@withContext
         }
-        
+
         logger.info { "初始化语义记忆管理器" }
-        
+
         try {
             // 初始化记忆检索器
             memoryRetriever.initialize()
-            
+
             // 启动索引任务处理器
             startIndexingProcessor()
-            
+
             // 发送初始化事件
             emitEvent(
                 MemoryManagerEventType.INITIALIZED,
@@ -163,18 +169,18 @@ class SemanticMemoryManager(
             )
         } catch (e: Exception) {
             logger.error(e) { "初始化语义记忆管理器失败: ${e.message}" }
-            
+
             // 发送错误事件
             emitEvent(
                 MemoryManagerEventType.ERROR,
                 "初始化语义记忆管理器失败: ${e.message}",
                 mapOf("error" to e)
             )
-            
+
             throw e
         }
     }
-    
+
     /**
      * 启动管理器
      */
@@ -183,13 +189,13 @@ class SemanticMemoryManager(
             logger.info { "语义记忆管理器已经在运行" }
             return
         }
-        
+
         logger.info { "启动语义记忆管理器" }
-        
+
         // 启动索引任务处理器
         startIndexingProcessor()
     }
-    
+
     /**
      * 停止管理器
      */
@@ -198,14 +204,14 @@ class SemanticMemoryManager(
             logger.info { "语义记忆管理器已经停止" }
             return
         }
-        
+
         logger.info { "停止语义记忆管理器" }
-        
+
         // 停止索引任务处理器
         indexingJob?.cancel()
         indexingJob = null
     }
-    
+
     /**
      * 启动索引任务处理器
      */
@@ -213,21 +219,21 @@ class SemanticMemoryManager(
         if (indexingJob != null && indexingJob?.isActive == true) {
             return
         }
-        
+
         indexingJob = CoroutineScope(Dispatchers.IO).launch {
             logger.info { "启动索引任务处理器" }
-            
+
             try {
                 for (task in indexingQueue) {
                     if (!running.get()) {
                         break
                     }
-                    
+
                     try {
                         processIndexingTask(task)
                     } catch (e: Exception) {
                         logger.error(e) { "处理索引任务失败: ${e.message}" }
-                        
+
                         // 发送错误事件
                         emitEvent(
                             MemoryManagerEventType.ERROR,
@@ -238,7 +244,7 @@ class SemanticMemoryManager(
                 }
             } catch (e: Exception) {
                 logger.error(e) { "索引任务处理器异常: ${e.message}" }
-                
+
                 // 发送错误事件
                 emitEvent(
                     MemoryManagerEventType.ERROR,
@@ -248,7 +254,7 @@ class SemanticMemoryManager(
             }
         }
     }
-    
+
     /**
      * 处理索引任务
      *
@@ -267,7 +273,7 @@ class SemanticMemoryManager(
             }
         }
     }
-    
+
     /**
      * 索引代码元素
      *
@@ -275,21 +281,21 @@ class SemanticMemoryManager(
      */
     private suspend fun indexCodeElement(element: CodeElement) {
         logger.debug { "索引代码元素: ${element.name}" }
-        
+
         try {
             // 生成记忆
             val memories = memoryGenerator.generateMemoriesFromCodeElement(element)
-            
+
             if (memories.isEmpty()) {
                 return
             }
-            
+
             // 添加记忆到存储
             var addedCount = 0
             memories.forEach { memory ->
                 if (memoryStore.addMemory(memory)) {
                     addedCount++
-                    
+
                     // 发送记忆添加事件
                     emitEvent(
                         MemoryManagerEventType.MEMORY_ADDED,
@@ -298,14 +304,14 @@ class SemanticMemoryManager(
                     )
                 }
             }
-            
+
             // 索引记忆
             val indexedCount = memoryRetriever.indexMemories(memories)
-            
+
             logger.debug { "索引代码元素完成: ${element.name}, 添加 $addedCount 个记忆, 索引 $indexedCount 个记忆" }
         } catch (e: Exception) {
             logger.error(e) { "索引代码元素失败: ${element.name}, ${e.message}" }
-            
+
             // 发送错误事件
             emitEvent(
                 MemoryManagerEventType.ERROR,
@@ -314,7 +320,7 @@ class SemanticMemoryManager(
             )
         }
     }
-    
+
     /**
      * 索引符号节点
      *
@@ -323,21 +329,21 @@ class SemanticMemoryManager(
      */
     private suspend fun indexSymbolNode(node: SymbolNode, graph: SymbolGraph) {
         logger.debug { "索引符号节点: ${node.name}" }
-        
+
         try {
             // 生成记忆
             val memories = memoryGenerator.generateMemoriesFromSymbolNode(node, graph)
-            
+
             if (memories.isEmpty()) {
                 return
             }
-            
+
             // 添加记忆到存储
             var addedCount = 0
             memories.forEach { memory ->
                 if (memoryStore.addMemory(memory)) {
                     addedCount++
-                    
+
                     // 发送记忆添加事件
                     emitEvent(
                         MemoryManagerEventType.MEMORY_ADDED,
@@ -346,14 +352,14 @@ class SemanticMemoryManager(
                     )
                 }
             }
-            
+
             // 索引记忆
             val indexedCount = memoryRetriever.indexMemories(memories)
-            
+
             logger.debug { "索引符号节点完成: ${node.name}, 添加 $addedCount 个记忆, 索引 $indexedCount 个记忆" }
         } catch (e: Exception) {
             logger.error(e) { "索引符号节点失败: ${node.name}, ${e.message}" }
-            
+
             // 发送错误事件
             emitEvent(
                 MemoryManagerEventType.ERROR,
@@ -362,7 +368,7 @@ class SemanticMemoryManager(
             )
         }
     }
-    
+
     /**
      * 索引代码库
      *
@@ -370,32 +376,32 @@ class SemanticMemoryManager(
      */
     private suspend fun indexCodebase(path: Path) {
         logger.info { "开始索引代码库: $path" }
-        
+
         // 发送索引开始事件
         emitEvent(
             MemoryManagerEventType.INDEXING_STARTED,
             "开始索引代码库: $path",
             mapOf("path" to path)
         )
-        
+
         try {
             // 检查路径是否存在
             if (!path.exists() || !path.isDirectory()) {
                 throw IllegalArgumentException("路径不存在或不是目录: $path")
             }
-            
+
             // 分析代码库
             val codebase = semanticAnalyzer.analyzeCodebase(path)
-            
+
             // 构建符号图
             val graph = symbolGraphBuilder.buildGraph(codebase)
-            
+
             // 索引代码元素
             val elementMemories = memoryGenerator.generateMemoriesFromCodeElement(codebase)
-            
+
             // 索引符号节点
             val symbolMemories = mutableListOf<SemanticMemory>()
-            
+
             // 并行处理符号节点
             val nodes = graph.getAllNodes()
             nodes.chunked(config.maxConcurrentTasks).forEach { chunk ->
@@ -404,13 +410,13 @@ class SemanticMemoryManager(
                         memoryGenerator.generateMemoriesFromSymbolNode(node, graph)
                     }
                 }.awaitAll().flatten()
-                
+
                 symbolMemories.addAll(chunkMemories)
             }
-            
+
             // 合并记忆
             val allMemories = elementMemories + symbolMemories
-            
+
             // 添加记忆到存储
             var addedCount = 0
             allMemories.forEach { memory ->
@@ -418,12 +424,12 @@ class SemanticMemoryManager(
                     addedCount++
                 }
             }
-            
+
             // 索引记忆
             val indexedCount = memoryRetriever.indexMemories(allMemories)
-            
+
             logger.info { "索引代码库完成: $path, 添加 $addedCount 个记忆, 索引 $indexedCount 个记忆" }
-            
+
             // 发送索引完成事件
             emitEvent(
                 MemoryManagerEventType.INDEXING_COMPLETED,
@@ -436,18 +442,18 @@ class SemanticMemoryManager(
             )
         } catch (e: Exception) {
             logger.error(e) { "索引代码库失败: $path, ${e.message}" }
-            
+
             // 发送索引失败事件
             emitEvent(
                 MemoryManagerEventType.INDEXING_FAILED,
                 "索引代码库失败: $path, ${e.message}",
                 mapOf("error" to e, "path" to path)
             )
-            
+
             throw e
         }
     }
-    
+
     /**
      * 添加代码元素索引任务
      *
@@ -456,7 +462,7 @@ class SemanticMemoryManager(
     suspend fun addCodeElementIndexingTask(element: CodeElement) {
         indexingQueue.send(IndexingTask.IndexCodeElement(element))
     }
-    
+
     /**
      * 添加符号节点索引任务
      *
@@ -466,7 +472,7 @@ class SemanticMemoryManager(
     suspend fun addSymbolNodeIndexingTask(node: SymbolNode, graph: SymbolGraph) {
         indexingQueue.send(IndexingTask.IndexSymbolNode(node, graph))
     }
-    
+
     /**
      * 添加代码库索引任务
      *
@@ -475,7 +481,7 @@ class SemanticMemoryManager(
     suspend fun addCodebaseIndexingTask(path: Path) {
         indexingQueue.send(IndexingTask.IndexCodebase(path))
     }
-    
+
     /**
      * 语义搜索
      *
@@ -492,10 +498,10 @@ class SemanticMemoryManager(
         filter: Map<String, String> = emptyMap()
     ): List<SemanticMemorySearchResult> {
         logger.debug { "执行语义搜索: $query" }
-        
+
         try {
             val results = memoryRetriever.semanticSearch(query, limit, minScore, filter)
-            
+
             // 发送查询执行事件
             emitEvent(
                 MemoryManagerEventType.QUERY_EXECUTED,
@@ -508,22 +514,22 @@ class SemanticMemoryManager(
                     "resultCount" to results.size
                 )
             )
-            
+
             return results
         } catch (e: Exception) {
             logger.error(e) { "语义搜索失败: $query, ${e.message}" }
-            
+
             // 发送错误事件
             emitEvent(
                 MemoryManagerEventType.ERROR,
                 "语义搜索失败: $query, ${e.message}",
                 mapOf("error" to e, "query" to query)
             )
-            
+
             return emptyList()
         }
     }
-    
+
     /**
      * 混合搜索
      *
@@ -540,10 +546,10 @@ class SemanticMemoryManager(
         filter: Map<String, String> = emptyMap()
     ): List<SemanticMemorySearchResult> {
         logger.debug { "执行混合搜索: $query" }
-        
+
         try {
             val results = memoryRetriever.hybridSearch(query, limit, minScore, filter)
-            
+
             // 发送查询执行事件
             emitEvent(
                 MemoryManagerEventType.QUERY_EXECUTED,
@@ -556,22 +562,22 @@ class SemanticMemoryManager(
                     "resultCount" to results.size
                 )
             )
-            
+
             return results
         } catch (e: Exception) {
             logger.error(e) { "混合搜索失败: $query, ${e.message}" }
-            
+
             // 发送错误事件
             emitEvent(
                 MemoryManagerEventType.ERROR,
                 "混合搜索失败: $query, ${e.message}",
                 mapOf("error" to e, "query" to query)
             )
-            
+
             return emptyList()
         }
     }
-    
+
     /**
      * 添加记忆
      *
@@ -580,16 +586,16 @@ class SemanticMemoryManager(
      */
     suspend fun addMemory(memory: SemanticMemory): Boolean {
         logger.debug { "添加记忆: ${memory.getShortDescription()}" }
-        
+
         try {
             // 添加记忆到存储
             if (!memoryStore.addMemory(memory)) {
                 return false
             }
-            
+
             // 索引记忆
             val success = memoryRetriever.indexMemory(memory)
-            
+
             if (success) {
                 // 发送记忆添加事件
                 emitEvent(
@@ -598,22 +604,22 @@ class SemanticMemoryManager(
                     mapOf("memory" to memory)
                 )
             }
-            
+
             return success
         } catch (e: Exception) {
             logger.error(e) { "添加记忆失败: ${memory.id}, ${e.message}" }
-            
+
             // 发送错误事件
             emitEvent(
                 MemoryManagerEventType.ERROR,
                 "添加记忆失败: ${memory.id}, ${e.message}",
                 mapOf("error" to e, "memory" to memory)
             )
-            
+
             return false
         }
     }
-    
+
     /**
      * 更新记忆
      *
@@ -622,16 +628,16 @@ class SemanticMemoryManager(
      */
     suspend fun updateMemory(memory: SemanticMemory): Boolean {
         logger.debug { "更新记忆: ${memory.getShortDescription()}" }
-        
+
         try {
             // 更新记忆存储
             if (!memoryStore.updateMemory(memory)) {
                 return false
             }
-            
+
             // 更新记忆索引
             val success = memoryRetriever.updateMemoryIndex(memory)
-            
+
             if (success) {
                 // 发送记忆更新事件
                 emitEvent(
@@ -640,22 +646,22 @@ class SemanticMemoryManager(
                     mapOf("memory" to memory)
                 )
             }
-            
+
             return success
         } catch (e: Exception) {
             logger.error(e) { "更新记忆失败: ${memory.id}, ${e.message}" }
-            
+
             // 发送错误事件
             emitEvent(
                 MemoryManagerEventType.ERROR,
                 "更新记忆失败: ${memory.id}, ${e.message}",
                 mapOf("error" to e, "memory" to memory)
             )
-            
+
             return false
         }
     }
-    
+
     /**
      * 删除记忆
      *
@@ -664,17 +670,17 @@ class SemanticMemoryManager(
      */
     suspend fun deleteMemory(memoryId: String): Boolean {
         logger.debug { "删除记忆: $memoryId" }
-        
+
         try {
             // 获取记忆
             val memory = memoryStore.getMemory(memoryId) ?: return false
-            
+
             // 删除记忆索引
             val indexDeleted = memoryRetriever.deleteMemoryIndex(memoryId)
-            
+
             // 删除记忆存储
             val storeDeleted = memoryStore.removeMemory(memoryId)
-            
+
             if (storeDeleted) {
                 // 发送记忆删除事件
                 emitEvent(
@@ -683,22 +689,22 @@ class SemanticMemoryManager(
                     mapOf("memory" to memory)
                 )
             }
-            
+
             return indexDeleted && storeDeleted
         } catch (e: Exception) {
             logger.error(e) { "删除记忆失败: $memoryId, ${e.message}" }
-            
+
             // 发送错误事件
             emitEvent(
                 MemoryManagerEventType.ERROR,
                 "删除记忆失败: $memoryId, ${e.message}",
                 mapOf("error" to e, "memoryId" to memoryId)
             )
-            
+
             return false
         }
     }
-    
+
     /**
      * 获取记忆
      *
@@ -708,7 +714,7 @@ class SemanticMemoryManager(
     fun getMemory(memoryId: String): SemanticMemory? {
         return memoryStore.getMemory(memoryId)
     }
-    
+
     /**
      * 获取所有记忆
      *
@@ -717,7 +723,7 @@ class SemanticMemoryManager(
     fun getAllMemories(): List<SemanticMemory> {
         return memoryStore.getAllMemories()
     }
-    
+
     /**
      * 根据类型查找记忆
      *
@@ -727,7 +733,7 @@ class SemanticMemoryManager(
     fun findMemoriesByType(type: MemoryType): List<SemanticMemory> {
         return memoryStore.findMemoriesByType(type)
     }
-    
+
     /**
      * 根据重要性查找记忆
      *
@@ -737,7 +743,7 @@ class SemanticMemoryManager(
     fun findMemoriesByImportance(importance: ImportanceLevel): List<SemanticMemory> {
         return memoryStore.findMemoriesByImportance(importance)
     }
-    
+
     /**
      * 根据代码元素查找记忆
      *
@@ -747,7 +753,7 @@ class SemanticMemoryManager(
     fun findMemoriesByElement(elementId: String): List<SemanticMemory> {
         return memoryStore.findMemoriesByElement(elementId)
     }
-    
+
     /**
      * 根据符号查找记忆
      *
@@ -757,7 +763,7 @@ class SemanticMemoryManager(
     fun findMemoriesBySymbol(symbolId: String): List<SemanticMemory> {
         return memoryStore.findMemoriesBySymbol(symbolId)
     }
-    
+
     /**
      * 根据文件路径查找记忆
      *
@@ -767,7 +773,7 @@ class SemanticMemoryManager(
     fun findMemoriesByFile(filePath: Path): List<SemanticMemory> {
         return memoryStore.findMemoriesByFile(filePath)
     }
-    
+
     /**
      * 查找相关记忆
      *
@@ -777,7 +783,7 @@ class SemanticMemoryManager(
     fun findRelatedMemories(memoryId: String): List<SemanticMemory> {
         return memoryStore.findRelatedMemories(memoryId)
     }
-    
+
     /**
      * 创建自定义记忆
      *
@@ -803,7 +809,7 @@ class SemanticMemoryManager(
             metadata = metadata
         )
     }
-    
+
     /**
      * 获取记忆存储统计信息
      *
@@ -812,14 +818,14 @@ class SemanticMemoryManager(
     fun getMemoryStoreStats(): Map<String, Any> {
         return memoryStore.getStats()
     }
-    
+
     /**
      * 清除缓存
      */
     fun clearCache() {
         memoryRetriever.clearCache()
     }
-    
+
     /**
      * 发送事件
      *
@@ -835,7 +841,7 @@ class SemanticMemoryManager(
         if (!config.enableEventNotifications) {
             return
         }
-        
+
         try {
             val event = MemoryManagerEvent(type, message, data)
             _events.emit(event)
@@ -844,3 +850,4 @@ class SemanticMemoryManager(
         }
     }
 }
+*/

@@ -20,15 +20,8 @@ object VectorStoreFactory {
      */
     fun createInMemoryVectorStore(): VectorStore {
         logger.debug { "Creating in-memory vector store" }
-        try {
-            return Class.forName("ai.kastrax.store.memory.MemoryVectorStoreFactory")
-                .getDeclaredMethod("createVectorStore", Map::class.java)
-                .invoke(null, emptyMap<String, Any>()) as VectorStore
-        } catch (e: ClassNotFoundException) {
-            // Fallback to direct instantiation
-            logger.debug { "MemoryVectorStoreFactory not found, using direct instantiation" }
-            return ai.kastrax.store.vector.memory.InMemoryVectorStore()
-        }
+        // 直接使用 InMemoryVectorStore 而不是通过反射
+        return ai.kastrax.store.vector.memory.InMemoryVectorStore()
     }
 
     /**

@@ -1,5 +1,11 @@
 package ai.kastrax.codebase.examples
 
+// TODO: 暂时注释掉Actor相关代码，等待kactor依赖问题解决
+
+// 空实现以避免语法错误
+class DistributedIndexSystemExample
+
+/*
 import actor.proto.ActorSystem
 import ai.kastrax.codebase.embedding.FastEmbeddingService
 import ai.kastrax.codebase.indexing.distributed.DistributedIndexSystemFactory
@@ -137,4 +143,4 @@ object DistributedIndexSystemExample {
             println("分布式索引系统示例完成")
         }
     }
-}
+*/

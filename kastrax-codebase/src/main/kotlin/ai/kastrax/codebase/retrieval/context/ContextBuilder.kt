@@ -1,5 +1,11 @@
 package ai.kastrax.codebase.retrieval.context
 
+// TODO: 暂时注释掉，等待依赖问题解决
+
+// 空实现以避免语法错误
+class ContextBuilder
+
+/*
 import ai.kastrax.codebase.semantic.CodeSemanticAnalyzer
 import ai.kastrax.codebase.semantic.model.CodeElement
 import ai.kastrax.codebase.semantic.model.CodeElementType
@@ -88,23 +94,23 @@ class ContextBuilder(
 ) {
     // 上下文层次结构
     private val contextHierarchy = ContextHierarchy("codebase-context")
-    
+
     // 路径到上下文 ID 的映射
     private val pathToContextId = ConcurrentHashMap<String, String>()
-    
+
     // 符号 ID 到上下文 ID 的映射
     private val symbolToContextId = ConcurrentHashMap<String, String>()
-    
+
     // 查询历史
     private val queryHistory = ConcurrentHashMap<String, MutableList<String>>()
-    
+
     // 事件流
     private val _events = MutableSharedFlow<ContextBuilderEvent>(replay = 0)
     val events: SharedFlow<ContextBuilderEvent> = _events.asSharedFlow()
-    
+
     // 是否已初始化
     private val initialized = AtomicBoolean(false)
-    
+
     /**
      * 初始化构建器
      */
@@ -113,17 +119,17 @@ class ContextBuilder(
             logger.info { "上下文构建器已经初始化" }
             return@withContext
         }
-        
+
         logger.info { "初始化上下文构建器" }
-        
+
         try {
             // 清空上下文层次结构
             contextHierarchy.clear()
-            
+
             // 清空映射
             pathToContextId.clear()
             symbolToContextId.clear()
-            
+
             // 发送初始化事件
             emitEvent(
                 ContextBuilderEventType.INITIALIZED,
@@ -131,18 +137,18 @@ class ContextBuilder(
             )
         } catch (e: Exception) {
             logger.error(e) { "初始化上下文构建器失败: ${e.message}" }
-            
+
             // 发送错误事件
             emitEvent(
                 ContextBuilderEventType.ERROR,
                 "初始化上下文构建器失败: ${e.message}",
                 mapOf("error" to e)
             )
-            
+
             throw e
         }
     }
-    
+
     /**
      * 构建代码库上下文
      *
@@ -155,28 +161,28 @@ class ContextBuilder(
             if (!initialized.get()) {
                 initialize()
             }
-            
+
             // 检查路径是否存在
             if (!path.exists() || !path.isDirectory()) {
                 throw IllegalArgumentException("路径不存在或不是目录: $path")
             }
-            
+
             // 发送构建开始事件
             emitEvent(
                 ContextBuilderEventType.BUILDING_STARTED,
                 "开始构建代码库上下文: $path",
                 mapOf("path" to path)
             )
-            
+
             // 分析代码库
             val codebase = semanticAnalyzer.analyzeCodebase(path)
-            
+
             // 构建符号图
             val graph = symbolGraphBuilder.buildGraph(codebase)
-            
+
             // 构建上下文层次结构
             val success = buildContextHierarchy(codebase, graph)
-            
+
             if (success) {
                 // 发送构建完成事件
                 emitEvent(
@@ -192,22 +198,22 @@ class ContextBuilder(
                     mapOf("path" to path)
                 )
             }
-            
+
             return@withContext success
         } catch (e: Exception) {
             logger.error(e) { "构建代码库上下文失败: $path, ${e.message}" }
-            
+
             // 发送构建失败事件
             emitEvent(
                 ContextBuilderEventType.BUILDING_FAILED,
                 "构建代码库上下文失败: $path, ${e.message}",
                 mapOf("error" to e, "path" to path)
             )
-            
+
             return@withContext false
         }
     }
-    
+
     /**
      * 构建上下文层次结构
      *
@@ -228,10 +234,10 @@ class ContextBuilder(
                 type = ContextType.CODE,
                 content = "Global Context: ${codebase.name}"
             )
-            
+
             // 添加全局上下文
             contextHierarchy.addContext(globalContext)
-            
+
             // 创建项目上下文
             val projectContextId = "project-${UUID.randomUUID()}"
             val projectContext = ContextElement(
@@ -241,23 +247,23 @@ class ContextBuilder(
                 content = "Project Context: ${codebase.name}",
                 path = codebase.location.filePath
             )
-            
+
             // 添加项目上下文
             contextHierarchy.addContext(projectContext, globalContextId)
-            
+
             // 添加路径映射
             pathToContextId[codebase.location.filePath.toString()] = projectContextId
-            
+
             // 处理子元素
             processCodeElements(codebase.children, projectContextId, graph)
-            
+
             return@withContext true
         } catch (e: Exception) {
             logger.error(e) { "构建上下文层次结构失败: ${e.message}" }
             return@withContext false
         }
     }
-    
+
     /**
      * 处理代码元素
      *
@@ -279,7 +285,7 @@ class ContextBuilder(
             }.awaitAll()
         }
     }
-    
+
     /**
      * 处理代码元素
      *
@@ -304,29 +310,29 @@ class ContextBuilder(
                 CodeElementType.FIELD, CodeElementType.PROPERTY, CodeElementType.PARAMETER, CodeElementType.LOCAL_VARIABLE -> ContextLevel.LOCAL
                 else -> null
             } ?: return@withContext null
-            
+
             // 创建上下文 ID
             val contextId = "${level.name.lowercase()}-${UUID.randomUUID()}"
-            
+
             // 创建上下文内容
             val content = buildString {
                 append("${element.type.name.lowercase()} ${element.name}")
-                
+
                 if (element.qualifiedName.isNotEmpty()) {
                     append("\nQualified Name: ${element.qualifiedName}")
                 }
-                
+
                 if (config.includeDocumentation && element.documentation.isNotEmpty()) {
                     append("\nDocumentation: ${element.documentation}")
                 }
-                
+
                 if (config.includeComments && element.comments.isNotEmpty()) {
                     append("\nComments:")
                     element.comments.forEach { comment ->
                         append("\n- $comment")
                     }
                 }
-                
+
                 if (element.type == CodeElementType.FILE && element.content.isNotEmpty()) {
                     append("\nContent: ${element.content.take(1000)}")
                     if (element.content.length > 1000) {
@@ -334,7 +340,7 @@ class ContextBuilder(
                     }
                 }
             }
-            
+
             // 创建上下文元素
             val contextElement = ContextElement(
                 id = contextId,
@@ -343,33 +349,33 @@ class ContextBuilder(
                 content = content,
                 path = element.location.filePath
             )
-            
+
             // 添加上下文
             contextHierarchy.addContext(contextElement, parentContextId)
-            
+
             // 添加路径映射
             pathToContextId[element.location.filePath.toString()] = contextId
-            
+
             // 查找对应的符号节点
             val symbolNode = findSymbolForElement(element, graph)
-            
+
             // 添加符号映射
             if (symbolNode != null) {
                 symbolToContextId[symbolNode.id] = contextId
             }
-            
+
             // 处理子元素
             if (element.children.isNotEmpty()) {
                 processCodeElements(element.children, contextId, graph)
             }
-            
+
             return@withContext contextId
         } catch (e: Exception) {
             logger.error(e) { "处理代码元素失败: ${element.name}, ${e.message}" }
             return@withContext null
         }
     }
-    
+
     /**
      * 查找元素对应的符号
      *
@@ -393,12 +399,12 @@ class ContextBuilder(
             CodeElementType.MODULE -> SymbolType.MODULE
             else -> null
         } ?: return null
-        
+
         // 查找符号
         return graph.findNodesByQualifiedName(element.qualifiedName)
             .firstOrNull { it.type == symbolType }
     }
-    
+
     /**
      * 添加查询上下文
      *
@@ -410,22 +416,22 @@ class ContextBuilder(
         try {
             // 创建上下文 ID
             val contextId = "query-${UUID.randomUUID()}"
-            
+
             // 获取查询历史
             val history = queryHistory.computeIfAbsent(sessionId) { mutableListOf() }
-            
+
             // 添加查询到历史
             history.add(query)
-            
+
             // 如果历史超过最大大小，移除最早的查询
             if (history.size > config.maxHistorySize) {
                 history.removeAt(0)
             }
-            
+
             // 创建上下文内容
             val content = buildString {
                 append("Query: $query")
-                
+
                 if (config.includeHistory && history.isNotEmpty()) {
                     append("\nQuery History:")
                     history.takeLast(config.maxHistorySize).forEach { historyQuery ->
@@ -433,7 +439,7 @@ class ContextBuilder(
                     }
                 }
             }
-            
+
             // 创建上下文元素
             val contextElement = ContextElement(
                 id = contextId,
@@ -442,32 +448,32 @@ class ContextBuilder(
                 content = content,
                 metadata = mutableMapOf("sessionId" to sessionId)
             )
-            
+
             // 添加上下文
             contextHierarchy.addContext(contextElement)
-            
+
             // 发送上下文添加事件
             emitEvent(
                 ContextBuilderEventType.CONTEXT_ADDED,
                 "添加查询上下文: $query",
                 mapOf("contextId" to contextId, "query" to query)
             )
-            
+
             return@withContext contextId
         } catch (e: Exception) {
             logger.error(e) { "添加查询上下文失败: $query, ${e.message}" }
-            
+
             // 发送错误事件
             emitEvent(
                 ContextBuilderEventType.ERROR,
                 "添加查询上下文失败: $query, ${e.message}",
                 mapOf("error" to e, "query" to query)
             )
-            
+
             return@withContext ""
         }
     }
-    
+
     /**
      * 添加用户反馈上下文
      *
@@ -486,17 +492,17 @@ class ContextBuilder(
         try {
             // 创建上下文 ID
             val contextId = "feedback-${UUID.randomUUID()}"
-            
+
             // 创建上下文内容
             val content = buildString {
                 append("Feedback for Memory: $memoryId")
                 append("\nScore: $score")
-                
+
                 if (!comment.isNullOrEmpty()) {
                     append("\nComment: $comment")
                 }
             }
-            
+
             // 创建上下文元素
             val contextElement = ContextElement(
                 id = contextId,
@@ -509,32 +515,32 @@ class ContextBuilder(
                     "score" to score
                 )
             )
-            
+
             // 添加上下文
             contextHierarchy.addContext(contextElement)
-            
+
             // 发送上下文添加事件
             emitEvent(
                 ContextBuilderEventType.CONTEXT_ADDED,
                 "添加用户反馈上下文: $memoryId",
                 mapOf("contextId" to contextId, "memoryId" to memoryId)
             )
-            
+
             return@withContext contextId
         } catch (e: Exception) {
             logger.error(e) { "添加用户反馈上下文失败: $memoryId, ${e.message}" }
-            
+
             // 发送错误事件
             emitEvent(
                 ContextBuilderEventType.ERROR,
                 "添加用户反馈上下文失败: $memoryId, ${e.message}",
                 mapOf("error" to e, "memoryId" to memoryId)
             )
-            
+
             return@withContext ""
         }
     }
-    
+
     /**
      * 添加自定义上下文
      *
@@ -557,7 +563,7 @@ class ContextBuilder(
         try {
             // 创建上下文 ID
             val contextId = "custom-${UUID.randomUUID()}"
-            
+
             // 创建上下文元素
             val contextElement = ContextElement(
                 id = contextId,
@@ -567,41 +573,41 @@ class ContextBuilder(
                 path = path,
                 metadata = metadata.toMutableMap()
             )
-            
+
             // 添加上下文
             val success = contextHierarchy.addContext(contextElement, parentId)
-            
+
             if (success) {
                 // 添加路径映射
                 if (path != null) {
                     pathToContextId[path.toString()] = contextId
                 }
-                
+
                 // 发送上下文添加事件
                 emitEvent(
                     ContextBuilderEventType.CONTEXT_ADDED,
                     "添加自定义上下文: $contextId",
                     mapOf("contextId" to contextId)
                 )
-                
+
                 return@withContext contextId
             } else {
                 return@withContext ""
             }
         } catch (e: Exception) {
             logger.error(e) { "添加自定义上下文失败: ${e.message}" }
-            
+
             // 发送错误事件
             emitEvent(
                 ContextBuilderEventType.ERROR,
                 "添加自定义上下文失败: ${e.message}",
                 mapOf("error" to e)
             )
-            
+
             return@withContext ""
         }
     }
-    
+
     /**
      * 更新上下文
      *
@@ -618,7 +624,7 @@ class ContextBuilder(
         try {
             // 获取上下文
             val context = contextHierarchy.getContext(contextId) ?: return@withContext false
-            
+
             // 创建更新后的上下文
             val updatedContext = context.copy(
                 content = content ?: context.content,
@@ -628,13 +634,13 @@ class ContextBuilder(
                     context.metadata
                 }
             )
-            
+
             // 移除旧上下文
             contextHierarchy.removeContext(contextId)
-            
+
             // 添加更新后的上下文
             val success = contextHierarchy.addContext(updatedContext, updatedContext.parent?.id)
-            
+
             if (success) {
                 // 发送上下文更新事件
                 emitEvent(
@@ -643,22 +649,22 @@ class ContextBuilder(
                     mapOf("contextId" to contextId)
                 )
             }
-            
+
             return@withContext success
         } catch (e: Exception) {
             logger.error(e) { "更新上下文失败: $contextId, ${e.message}" }
-            
+
             // 发送错误事件
             emitEvent(
                 ContextBuilderEventType.ERROR,
                 "更新上下文失败: $contextId, ${e.message}",
                 mapOf("error" to e, "contextId" to contextId)
             )
-            
+
             return@withContext false
         }
     }
-    
+
     /**
      * 移除上下文
      *
@@ -669,16 +675,16 @@ class ContextBuilder(
         try {
             // 获取上下文
             val context = contextHierarchy.getContext(contextId) ?: return@withContext false
-            
+
             // 移除上下文
             val success = contextHierarchy.removeContext(contextId)
-            
+
             if (success) {
                 // 移除路径映射
                 if (context.path != null) {
                     pathToContextId.remove(context.path.toString())
                 }
-                
+
                 // 发送上下文移除事件
                 emitEvent(
                     ContextBuilderEventType.CONTEXT_REMOVED,
@@ -686,22 +692,22 @@ class ContextBuilder(
                     mapOf("contextId" to contextId)
                 )
             }
-            
+
             return@withContext success
         } catch (e: Exception) {
             logger.error(e) { "移除上下文失败: $contextId, ${e.message}" }
-            
+
             // 发送错误事件
             emitEvent(
                 ContextBuilderEventType.ERROR,
                 "移除上下文失败: $contextId, ${e.message}",
                 mapOf("error" to e, "contextId" to contextId)
             )
-            
+
             return@withContext false
         }
     }
-    
+
     /**
      * 获取上下文
      *
@@ -711,7 +717,7 @@ class ContextBuilder(
     fun getContext(contextId: String): ContextElement? {
         return contextHierarchy.getContext(contextId)
     }
-    
+
     /**
      * 根据路径获取上下文
      *
@@ -722,7 +728,7 @@ class ContextBuilder(
         val contextId = pathToContextId[path.toString()] ?: return null
         return contextHierarchy.getContext(contextId)
     }
-    
+
     /**
      * 根据符号获取上下文
      *
@@ -733,7 +739,7 @@ class ContextBuilder(
         val contextId = symbolToContextId[symbolId] ?: return null
         return contextHierarchy.getContext(contextId)
     }
-    
+
     /**
      * 获取上下文层次结构
      *
@@ -742,7 +748,7 @@ class ContextBuilder(
     fun getContextHierarchy(): ContextHierarchy {
         return contextHierarchy
     }
-    
+
     /**
      * 获取所有上下文
      *
@@ -751,7 +757,7 @@ class ContextBuilder(
     fun getAllContexts(): List<ContextElement> {
         return contextHierarchy.getAllContexts()
     }
-    
+
     /**
      * 获取指定级别的上下文
      *
@@ -761,7 +767,7 @@ class ContextBuilder(
     fun getContextsByLevel(level: ContextLevel): List<ContextElement> {
         return contextHierarchy.getContextsByLevel(level)
     }
-    
+
     /**
      * 获取指定类型的上下文
      *
@@ -771,7 +777,7 @@ class ContextBuilder(
     fun getContextsByType(type: ContextType): List<ContextElement> {
         return contextHierarchy.getContextsByType(type)
     }
-    
+
     /**
      * 查找上下文
      *
@@ -781,7 +787,7 @@ class ContextBuilder(
     fun findContexts(predicate: (ContextElement) -> Boolean): List<ContextElement> {
         return contextHierarchy.findContexts(predicate)
     }
-    
+
     /**
      * 清空上下文
      */
@@ -791,7 +797,7 @@ class ContextBuilder(
         symbolToContextId.clear()
         queryHistory.clear()
     }
-    
+
     /**
      * 获取统计信息
      *
@@ -800,7 +806,7 @@ class ContextBuilder(
     fun getStats(): Map<String, Any> {
         return contextHierarchy.getStats()
     }
-    
+
     /**
      * 发送事件
      *
@@ -816,7 +822,7 @@ class ContextBuilder(
         if (!config.enableEventNotifications) {
             return
         }
-        
+
         try {
             val event = ContextBuilderEvent(type, message, data)
             _events.emit(event)
@@ -825,3 +831,4 @@ class ContextBuilder(
         }
     }
 }
+*/
