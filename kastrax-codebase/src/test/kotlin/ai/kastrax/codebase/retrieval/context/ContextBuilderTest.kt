@@ -1,0 +1,447 @@
+package ai.kastrax.codebase.retrieval.context
+
+import ai.kastrax.codebase.semantic.CodeRelationAnalyzer
+import ai.kastrax.codebase.semantic.CodeRelationAnalyzerConfig
+import ai.kastrax.codebase.semantic.CodeSemanticAnalyzer
+import ai.kastrax.codebase.semantic.CodeSemanticAnalyzerConfig
+import ai.kastrax.codebase.semantic.parser.ChapiJavaCodeParser
+import ai.kastrax.codebase.semantic.parser.ChapiKotlinCodeParser
+import ai.kastrax.codebase.semantic.parser.CodeParserFactory
+import ai.kastrax.codebase.symbol.SymbolGraphBuilder
+import ai.kastrax.codebase.symbol.SymbolGraphBuilderConfig
+import kotlinx.coroutines.flow.take
+import kotlinx.coroutines.flow.toList
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.io.TempDir
+import java.nio.file.Path
+import kotlin.io.path.writeText
+import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
+import kotlin.test.assertTrue
+
+class ContextBuilderTest {
+    
+    @TempDir
+    lateinit var tempDir: Path
+    
+    private lateinit var semanticAnalyzer: CodeSemanticAnalyzer
+    private lateinit var relationAnalyzer: CodeRelationAnalyzer
+    private lateinit var symbolGraphBuilder: SymbolGraphBuilder
+    private lateinit var contextBuilder: ContextBuilder
+    
+    @BeforeEach
+    fun setUp() {
+        // 注册解析器
+        CodeParserFactory.registerParser(ChapiJavaCodeParser())
+        CodeParserFactory.registerParser(ChapiKotlinCodeParser())
+        
+        // 创建分析器
+        semanticAnalyzer = CodeSemanticAnalyzer(
+            config = CodeSemanticAnalyzerConfig(
+                excludePatterns = emptySet(),
+                excludeDirectories = emptySet()
+            )
+        )
+        
+        relationAnalyzer = CodeRelationAnalyzer(
+            config = CodeRelationAnalyzerConfig(
+                analyzeInheritance = true,
+                analyzeUsage = true,
+                analyzeDependency = true,
+                analyzeOverride = true
+            )
+        )
+        
+        symbolGraphBuilder = SymbolGraphBuilder(
+            semanticAnalyzer = semanticAnalyzer,
+            relationAnalyzer = relationAnalyzer,
+            config = SymbolGraphBuilderConfig(
+                includeReferences = true,
+                includeCalls = true,
+                includeInheritance = true,
+                includeImplementations = true,
+                includeOverrides = true,
+                includeImports = true,
+                includeDependencies = true
+            )
+        )
+        
+        contextBuilder = ContextBuilder(
+            semanticAnalyzer = semanticAnalyzer,
+            symbolGraphBuilder = symbolGraphBuilder,
+            config = ContextBuilderConfig(
+                maxConcurrentTasks = 10,
+                enableEventNotifications = true,
+                includeDocumentation = true,
+                includeComments = true,
+                includeHistory = true,
+                maxHistorySize = 10
+            )
+        )
+        
+        // 创建测试文件
+        createTestFiles()
+    }
+    
+    @Test
+    fun `test building codebase context`() = runBlocking {
+        // 初始化上下文构建器
+        contextBuilder.initialize()
+        
+        // 收集事件
+        val events = mutableListOf<ContextBuilderEvent>()
+        val job = launch {
+            contextBuilder.events.take(3).toList(events)
+        }
+        
+        // 构建代码库上下文
+        val success = contextBuilder.buildCodebaseContext(tempDir)
+        
+        // 等待事件收集完成
+        job.join()
+        
+        // 验证结果
+        assertTrue(success)
+        assertTrue(events.isNotEmpty())
+        assertTrue(events.any { it.type == ContextBuilderEventType.BUILDING_STARTED })
+        assertTrue(events.any { it.type == ContextBuilderEventType.BUILDING_COMPLETED })
+        
+        // 获取所有上下文
+        val allContexts = contextBuilder.getAllContexts()
+        
+        // 验证上下文数量
+        assertTrue(allContexts.size > 1)
+        
+        // 验证上下文级别
+        val globalContexts = contextBuilder.getContextsByLevel(ContextLevel.GLOBAL)
+        val projectContexts = contextBuilder.getContextsByLevel(ContextLevel.PROJECT)
+        val fileContexts = contextBuilder.getContextsByLevel(ContextLevel.FILE)
+        val classContexts = contextBuilder.getContextsByLevel(ContextLevel.CLASS)
+        
+        assertTrue(globalContexts.isNotEmpty())
+        assertTrue(projectContexts.isNotEmpty())
+        assertTrue(fileContexts.isNotEmpty())
+        assertTrue(classContexts.isNotEmpty())
+        
+        // 验证上下文类型
+        val codeContexts = contextBuilder.getContextsByType(ContextType.CODE)
+        
+        assertTrue(codeContexts.isNotEmpty())
+        
+        // 验证上下文内容
+        val testClassContext = contextBuilder.findContexts { it.content.contains("TestClass") }.firstOrNull()
+        
+        assertNotNull(testClassContext)
+        assertEquals(ContextLevel.CLASS, testClassContext.level)
+        assertEquals(ContextType.CODE, testClassContext.type)
+    }
+    
+    @Test
+    fun `test adding query context`() = runBlocking {
+        // 初始化上下文构建器
+        contextBuilder.initialize()
+        
+        // 添加查询上下文
+        val contextId = contextBuilder.addQueryContext("What is TestClass?", "test-session")
+        
+        // 验证结果
+        assertTrue(contextId.isNotEmpty())
+        
+        // 获取上下文
+        val context = contextBuilder.getContext(contextId)
+        
+        // 验证上下文
+        assertNotNull(context)
+        assertEquals(ContextLevel.GLOBAL, context.level)
+        assertEquals(ContextType.QUERY, context.type)
+        assertTrue(context.content.contains("What is TestClass?"))
+        
+        // 添加第二个查询
+        val contextId2 = contextBuilder.addQueryContext("How to use TestClass?", "test-session")
+        
+        // 获取上下文
+        val context2 = contextBuilder.getContext(contextId2)
+        
+        // 验证上下文
+        assertNotNull(context2)
+        assertTrue(context2.content.contains("How to use TestClass?"))
+        assertTrue(context2.content.contains("Query History"))
+        assertTrue(context2.content.contains("What is TestClass?"))
+    }
+    
+    @Test
+    fun `test adding feedback context`() = runBlocking {
+        // 初始化上下文构建器
+        contextBuilder.initialize()
+        
+        // 添加用户反馈上下文
+        val contextId = contextBuilder.addFeedbackContext(
+            memoryId = "memory1",
+            score = 0.8,
+            comment = "This is helpful",
+            sessionId = "test-session"
+        )
+        
+        // 验证结果
+        assertTrue(contextId.isNotEmpty())
+        
+        // 获取上下文
+        val context = contextBuilder.getContext(contextId)
+        
+        // 验证上下文
+        assertNotNull(context)
+        assertEquals(ContextLevel.GLOBAL, context.level)
+        assertEquals(ContextType.USER_FEEDBACK, context.type)
+        assertTrue(context.content.contains("memory1"))
+        assertTrue(context.content.contains("0.8"))
+        assertTrue(context.content.contains("This is helpful"))
+    }
+    
+    @Test
+    fun `test adding custom context`() = runBlocking {
+        // 初始化上下文构建器
+        contextBuilder.initialize()
+        
+        // 添加自定义上下文
+        val contextId = contextBuilder.addCustomContext(
+            level = ContextLevel.MODULE,
+            type = ContextType.DOCUMENTATION,
+            content = "This is a custom documentation context",
+            metadata = mapOf("key1" to "value1", "key2" to "value2")
+        )
+        
+        // 验证结果
+        assertTrue(contextId.isNotEmpty())
+        
+        // 获取上下文
+        val context = contextBuilder.getContext(contextId)
+        
+        // 验证上下文
+        assertNotNull(context)
+        assertEquals(ContextLevel.MODULE, context.level)
+        assertEquals(ContextType.DOCUMENTATION, context.type)
+        assertEquals("This is a custom documentation context", context.content)
+        assertEquals("value1", context.metadata["key1"])
+        assertEquals("value2", context.metadata["key2"])
+    }
+    
+    @Test
+    fun `test updating context`() = runBlocking {
+        // 初始化上下文构建器
+        contextBuilder.initialize()
+        
+        // 添加自定义上下文
+        val contextId = contextBuilder.addCustomContext(
+            level = ContextLevel.MODULE,
+            type = ContextType.DOCUMENTATION,
+            content = "Original content",
+            metadata = mapOf("key1" to "value1")
+        )
+        
+        // 更新上下文
+        val success = contextBuilder.updateContext(
+            contextId = contextId,
+            content = "Updated content",
+            metadata = mapOf("key2" to "value2")
+        )
+        
+        // 验证结果
+        assertTrue(success)
+        
+        // 获取更新后的上下文
+        val context = contextBuilder.getContext(contextId)
+        
+        // 验证上下文
+        assertNotNull(context)
+        assertEquals("Updated content", context.content)
+        assertEquals("value1", context.metadata["key1"])
+        assertEquals("value2", context.metadata["key2"])
+    }
+    
+    @Test
+    fun `test removing context`() = runBlocking {
+        // 初始化上下文构建器
+        contextBuilder.initialize()
+        
+        // 添加自定义上下文
+        val contextId = contextBuilder.addCustomContext(
+            level = ContextLevel.MODULE,
+            type = ContextType.DOCUMENTATION,
+            content = "Content to be removed"
+        )
+        
+        // 验证上下文存在
+        assertNotNull(contextBuilder.getContext(contextId))
+        
+        // 移除上下文
+        val success = contextBuilder.removeContext(contextId)
+        
+        // 验证结果
+        assertTrue(success)
+        
+        // 验证上下文不存在
+        assertEquals(null, contextBuilder.getContext(contextId))
+    }
+    
+    @Test
+    fun `test context hierarchy`() = runBlocking {
+        // 初始化上下文构建器
+        contextBuilder.initialize()
+        
+        // 添加父上下文
+        val parentId = contextBuilder.addCustomContext(
+            level = ContextLevel.MODULE,
+            type = ContextType.CODE,
+            content = "Parent context"
+        )
+        
+        // 添加子上下文
+        val childId = contextBuilder.addCustomContext(
+            level = ContextLevel.CLASS,
+            type = ContextType.CODE,
+            content = "Child context",
+            parentId = parentId
+        )
+        
+        // 获取上下文
+        val parent = contextBuilder.getContext(parentId)
+        val child = contextBuilder.getContext(childId)
+        
+        // 验证上下文
+        assertNotNull(parent)
+        assertNotNull(child)
+        
+        // 验证层次结构
+        assertEquals(parent.id, child.parent?.id)
+        assertTrue(parent.children.any { it.id == childId })
+        
+        // 获取上下文层次结构
+        val hierarchy = contextBuilder.getContextHierarchy()
+        
+        // 验证层次结构
+        val rootContext = hierarchy.getRootContext()
+        assertTrue(rootContext.getAllChildren(true).any { it.id == parentId })
+        assertTrue(rootContext.getAllChildren(true).any { it.id == childId })
+    }
+    
+    /**
+     * 创建测试文件
+     */
+    private fun createTestFiles() {
+        // 创建 Java 文件
+        val javaFile = tempDir.resolve("TestClass.java")
+        javaFile.writeText("""
+            package ai.kastrax.codebase.test;
+            
+            import java.util.List;
+            import java.util.ArrayList;
+            
+            /**
+             * 这是一个测试类，用于测试上下文构建器。
+             */
+            public class TestClass implements TestInterface {
+                private String name;
+                private int age;
+                private List<String> items;
+                
+                /**
+                 * 构造函数
+                 */
+                public TestClass(String name, int age) {
+                    this.name = name;
+                    this.age = age;
+                    this.items = new ArrayList<>();
+                }
+                
+                /**
+                 * 获取名称
+                 */
+                @Override
+                public String getName() {
+                    return name;
+                }
+                
+                /**
+                 * 设置名称
+                 */
+                public void setName(String name) {
+                    this.name = name;
+                }
+                
+                /**
+                 * 获取年龄
+                 */
+                @Override
+                public int getAge() {
+                    return age;
+                }
+                
+                /**
+                 * 设置年龄
+                 */
+                public void setAge(int age) {
+                    this.age = age;
+                }
+                
+                /**
+                 * 测试方法
+                 */
+                @Override
+                public void testMethod() {
+                    System.out.println("This is a test method.");
+                    anotherMethod();
+                }
+                
+                /**
+                 * 另一个方法
+                 */
+                private void anotherMethod() {
+                    System.out.println("This is another method.");
+                }
+                
+                /**
+                 * 添加项目
+                 */
+                public void addItem(String item) {
+                    items.add(item);
+                }
+                
+                /**
+                 * 获取项目
+                 */
+                public List<String> getItems() {
+                    return items;
+                }
+            }
+        """.trimIndent())
+        
+        // 创建 Java 接口文件
+        val javaInterfaceFile = tempDir.resolve("TestInterface.java")
+        javaInterfaceFile.writeText("""
+            package ai.kastrax.codebase.test;
+            
+            /**
+             * 这是一个测试接口，用于测试上下文构建器。
+             */
+            public interface TestInterface {
+                /**
+                 * 获取名称
+                 */
+                String getName();
+                
+                /**
+                 * 获取年龄
+                 */
+                int getAge();
+                
+                /**
+                 * 测试方法
+                 */
+                void testMethod();
+            }
+        """.trimIndent())
+    }
+}

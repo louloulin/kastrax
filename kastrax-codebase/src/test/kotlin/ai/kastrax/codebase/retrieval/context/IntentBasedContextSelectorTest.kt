@@ -1,0 +1,404 @@
+package ai.kastrax.codebase.retrieval.context
+
+import ai.kastrax.codebase.embedding.EmbeddingModel
+import ai.kastrax.codebase.embedding.EmbeddingModelManager
+import ai.kastrax.codebase.embedding.EmbeddingService
+import ai.kastrax.codebase.retrieval.model.RetrievalContext
+import ai.kastrax.codebase.semantic.CodeRelationAnalyzer
+import ai.kastrax.codebase.semantic.CodeRelationAnalyzerConfig
+import ai.kastrax.codebase.semantic.CodeSemanticAnalyzer
+import ai.kastrax.codebase.semantic.CodeSemanticAnalyzerConfig
+import ai.kastrax.codebase.semantic.parser.ChapiJavaCodeParser
+import ai.kastrax.codebase.semantic.parser.ChapiKotlinCodeParser
+import ai.kastrax.codebase.semantic.parser.CodeParserFactory
+import ai.kastrax.codebase.symbol.SymbolGraphBuilder
+import ai.kastrax.codebase.symbol.SymbolGraphBuilderConfig
+import kotlinx.coroutines.runBlocking
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.io.TempDir
+import java.nio.file.Path
+import kotlin.io.path.writeText
+import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
+import kotlin.test.assertTrue
+
+class IntentBasedContextSelectorTest {
+    
+    @TempDir
+    lateinit var tempDir: Path
+    
+    private lateinit var embeddingService: EmbeddingService
+    private lateinit var contextBuilder: ContextBuilder
+    private lateinit var contextSelector: IntentBasedContextSelector
+    
+    @BeforeEach
+    fun setUp() {
+        // 注册解析器
+        CodeParserFactory.registerParser(ChapiJavaCodeParser())
+        CodeParserFactory.registerParser(ChapiKotlinCodeParser())
+        
+        // 创建嵌入模型管理器
+        val embeddingModelManager = EmbeddingModelManager()
+        
+        // 注册测试嵌入模型
+        embeddingModelManager.registerModel(
+            EmbeddingModel(
+                name = "test",
+                dimension = 4,
+                provider = "test",
+                modelName = "test-model",
+                apiKey = "test-key",
+                endpoint = "test-endpoint"
+            )
+        )
+        
+        // 创建嵌入服务（使用模拟实现）
+        embeddingService = object : EmbeddingService(embeddingModelManager) {
+            override suspend fun generateEmbedding(text: String, modelName: String): List<Float> {
+                // 返回简单的测试嵌入向量
+                return listOf(0.1f, 0.2f, 0.3f, 0.4f)
+            }
+            
+            override suspend fun generateEmbeddings(texts: List<String>, modelName: String): List<List<Float>> {
+                // 返回简单的测试嵌入向量列表
+                return texts.map { listOf(0.1f, 0.2f, 0.3f, 0.4f) }
+            }
+        }
+        
+        // 创建分析器
+        val semanticAnalyzer = CodeSemanticAnalyzer(
+            config = CodeSemanticAnalyzerConfig(
+                excludePatterns = emptySet(),
+                excludeDirectories = emptySet()
+            )
+        )
+        
+        val relationAnalyzer = CodeRelationAnalyzer(
+            config = CodeRelationAnalyzerConfig(
+                analyzeInheritance = true,
+                analyzeUsage = true,
+                analyzeDependency = true,
+                analyzeOverride = true
+            )
+        )
+        
+        val symbolGraphBuilder = SymbolGraphBuilder(
+            semanticAnalyzer = semanticAnalyzer,
+            relationAnalyzer = relationAnalyzer,
+            config = SymbolGraphBuilderConfig(
+                includeReferences = true,
+                includeCalls = true,
+                includeInheritance = true,
+                includeImplementations = true,
+                includeOverrides = true,
+                includeImports = true,
+                includeDependencies = true
+            )
+        )
+        
+        // 创建上下文构建器
+        contextBuilder = ContextBuilder(
+            semanticAnalyzer = semanticAnalyzer,
+            symbolGraphBuilder = symbolGraphBuilder,
+            config = ContextBuilderConfig(
+                maxConcurrentTasks = 10,
+                enableEventNotifications = true,
+                includeDocumentation = true,
+                includeComments = true,
+                includeHistory = true,
+                maxHistorySize = 10
+            )
+        )
+        
+        // 创建上下文选择器
+        contextSelector = IntentBasedContextSelector(
+            contextHierarchy = contextBuilder.getContextHierarchy(),
+            embeddingService = embeddingService,
+            intentDetectorConfig = IntentDetectorConfig(
+                embeddingModelName = "test",
+                confidenceThreshold = 0.6,
+                enableCaching = true,
+                cacheSize = 1000
+            ),
+            selectorConfig = ContextSelectorConfig(
+                minRelevanceScore = 0.3,
+                enableCaching = true,
+                cacheSize = 1000
+            )
+        )
+        
+        // 创建测试文件
+        createTestFiles()
+        
+        // 构建代码库上下文
+        runBlocking {
+            contextBuilder.initialize()
+            contextBuilder.buildCodebaseContext(tempDir)
+        }
+    }
+    
+    @Test
+    fun `test detecting query intent`() = runBlocking {
+        // 测试定义查询
+        val definitionIntent = contextSelector.detectQueryIntent("What is TestClass?")
+        assertEquals(QueryIntentType.DEFINITION, definitionIntent.type)
+        assertTrue(definitionIntent.confidence > 0.5)
+        
+        // 测试实现查询
+        val implementationIntent = contextSelector.detectQueryIntent("How to implement TestInterface?")
+        assertEquals(QueryIntentType.IMPLEMENTATION, implementationIntent.type)
+        assertTrue(implementationIntent.confidence > 0.5)
+        
+        // 测试使用查询
+        val usageIntent = contextSelector.detectQueryIntent("How to use TestClass?")
+        assertEquals(QueryIntentType.USAGE, usageIntent.type)
+        assertTrue(usageIntent.confidence > 0.5)
+        
+        // 测试继承查询
+        val inheritanceIntent = contextSelector.detectQueryIntent("What classes inherit from TestClass?")
+        assertEquals(QueryIntentType.INHERITANCE, inheritanceIntent.type)
+        assertTrue(inheritanceIntent.confidence > 0.5)
+        
+        // 测试通用查询
+        val generalIntent = contextSelector.detectQueryIntent("Hello world")
+        assertEquals(QueryIntentType.GENERAL, generalIntent.type)
+    }
+    
+    @Test
+    fun `test selecting contexts based on intent`() = runBlocking {
+        // 添加查询上下文
+        contextBuilder.addQueryContext("What is TestClass?", "test-session")
+        
+        // 创建检索上下文
+        val retrievalContext = RetrievalContext(
+            query = "What is TestClass?",
+            previousQueries = listOf("Hello"),
+            currentFile = "TestClass.java"
+        )
+        
+        // 选择上下文
+        val result = contextSelector.selectContexts(retrievalContext)
+        
+        // 验证结果
+        assertNotNull(result)
+        assertTrue(result.selectedContexts.isNotEmpty())
+        assertEquals(QueryIntentType.DEFINITION, result.intent.type)
+        
+        // 验证选择的上下文包含相关内容
+        val containsTestClass = result.selectedContexts.any { it.content.contains("TestClass") }
+        assertTrue(containsTestClass)
+        
+        // 验证相关性分数
+        assertTrue(result.relevanceScores.isNotEmpty())
+        assertTrue(result.relevanceScores.values.all { it >= 0.0 && it <= 1.0 })
+    }
+    
+    @Test
+    fun `test selecting contexts for implementation intent`() = runBlocking {
+        // 创建检索上下文
+        val retrievalContext = RetrievalContext(
+            query = "How to implement TestInterface?",
+            currentFile = "TestInterface.java"
+        )
+        
+        // 选择上下文
+        val result = contextSelector.selectContexts(retrievalContext)
+        
+        // 验证结果
+        assertNotNull(result)
+        assertTrue(result.selectedContexts.isNotEmpty())
+        assertEquals(QueryIntentType.IMPLEMENTATION, result.intent.type)
+        
+        // 验证选择的上下文包含相关内容
+        val containsTestInterface = result.selectedContexts.any { it.content.contains("TestInterface") }
+        assertTrue(containsTestInterface)
+    }
+    
+    @Test
+    fun `test selecting contexts with selected text`() = runBlocking {
+        // 创建检索上下文
+        val retrievalContext = RetrievalContext(
+            query = "How does testMethod work?",
+            selectedText = "testMethod"
+        )
+        
+        // 选择上下文
+        val result = contextSelector.selectContexts(retrievalContext)
+        
+        // 验证结果
+        assertNotNull(result)
+        assertTrue(result.selectedContexts.isNotEmpty())
+        
+        // 验证选择的上下文包含相关内容
+        val containsTestMethod = result.selectedContexts.any { it.content.contains("testMethod") }
+        assertTrue(containsTestMethod)
+    }
+    
+    @Test
+    fun `test selecting contexts with previous queries`() = runBlocking {
+        // 创建检索上下文
+        val retrievalContext = RetrievalContext(
+            query = "How to override methods?",
+            previousQueries = listOf("What is TestClass?", "How to implement TestInterface?")
+        )
+        
+        // 选择上下文
+        val result = contextSelector.selectContexts(retrievalContext)
+        
+        // 验证结果
+        assertNotNull(result)
+        assertTrue(result.selectedContexts.isNotEmpty())
+        
+        // 验证选择的上下文包含相关内容
+        val containsOverride = result.selectedContexts.any { it.content.contains("@Override") }
+        assertTrue(containsOverride)
+    }
+    
+    @Test
+    fun `test caching`() = runBlocking {
+        // 创建检索上下文
+        val retrievalContext = RetrievalContext(
+            query = "What is TestClass?",
+            currentFile = "TestClass.java"
+        )
+        
+        // 第一次选择上下文
+        val result1 = contextSelector.selectContexts(retrievalContext)
+        
+        // 第二次选择上下文（应该使用缓存）
+        val result2 = contextSelector.selectContexts(retrievalContext)
+        
+        // 验证结果相同
+        assertEquals(result1.intent.type, result2.intent.type)
+        assertEquals(result1.selectedContexts.size, result2.selectedContexts.size)
+        
+        // 清除缓存
+        contextSelector.clearCache()
+        
+        // 第三次选择上下文（不应该使用缓存）
+        val result3 = contextSelector.selectContexts(retrievalContext)
+        
+        // 验证结果相同（因为输入相同）
+        assertEquals(result1.intent.type, result3.intent.type)
+        assertEquals(result1.selectedContexts.size, result3.selectedContexts.size)
+    }
+    
+    /**
+     * 创建测试文件
+     */
+    private fun createTestFiles() {
+        // 创建 Java 文件
+        val javaFile = tempDir.resolve("TestClass.java")
+        javaFile.writeText("""
+            package ai.kastrax.codebase.test;
+            
+            import java.util.List;
+            import java.util.ArrayList;
+            
+            /**
+             * 这是一个测试类，用于测试上下文选择器。
+             */
+            public class TestClass implements TestInterface {
+                private String name;
+                private int age;
+                private List<String> items;
+                
+                /**
+                 * 构造函数
+                 */
+                public TestClass(String name, int age) {
+                    this.name = name;
+                    this.age = age;
+                    this.items = new ArrayList<>();
+                }
+                
+                /**
+                 * 获取名称
+                 */
+                @Override
+                public String getName() {
+                    return name;
+                }
+                
+                /**
+                 * 设置名称
+                 */
+                public void setName(String name) {
+                    this.name = name;
+                }
+                
+                /**
+                 * 获取年龄
+                 */
+                @Override
+                public int getAge() {
+                    return age;
+                }
+                
+                /**
+                 * 设置年龄
+                 */
+                public void setAge(int age) {
+                    this.age = age;
+                }
+                
+                /**
+                 * 测试方法
+                 */
+                @Override
+                public void testMethod() {
+                    System.out.println("This is a test method.");
+                    anotherMethod();
+                }
+                
+                /**
+                 * 另一个方法
+                 */
+                private void anotherMethod() {
+                    System.out.println("This is another method.");
+                }
+                
+                /**
+                 * 添加项目
+                 */
+                public void addItem(String item) {
+                    items.add(item);
+                }
+                
+                /**
+                 * 获取项目
+                 */
+                public List<String> getItems() {
+                    return items;
+                }
+            }
+        """.trimIndent())
+        
+        // 创建 Java 接口文件
+        val javaInterfaceFile = tempDir.resolve("TestInterface.java")
+        javaInterfaceFile.writeText("""
+            package ai.kastrax.codebase.test;
+            
+            /**
+             * 这是一个测试接口，用于测试上下文选择器。
+             */
+            public interface TestInterface {
+                /**
+                 * 获取名称
+                 */
+                String getName();
+                
+                /**
+                 * 获取年龄
+                 */
+                int getAge();
+                
+                /**
+                 * 测试方法
+                 */
+                void testMethod();
+            }
+        """.trimIndent())
+    }
+}
