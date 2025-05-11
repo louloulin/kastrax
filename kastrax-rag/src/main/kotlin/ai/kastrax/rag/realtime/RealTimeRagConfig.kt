@@ -1,9 +1,5 @@
 package ai.kastrax.rag.realtime
 
-import ai.kastrax.rag.HybridOptions
-import ai.kastrax.rag.QueryEnhancementOptions
-import ai.kastrax.rag.RerankingOptions
-import ai.kastrax.rag.SemanticOptions
 import ai.kastrax.rag.context.ContextBuilderConfig
 
 /**
@@ -17,12 +13,6 @@ import ai.kastrax.rag.context.ContextBuilderConfig
  * @property useIncrementalIndexing 是否使用增量索引
  * @property useChangeDetection 是否使用变更检测
  * @property changeDetectionThreshold 变更检测阈值
- * @property maxDocuments 最大文档数量
- * @property maxDocumentAge 最大文档年龄（毫秒）
- * @property useTimeDecay 是否使用时间衰减
- * @property timeDecayFactor 时间衰减因子
- * @property characterLevelStreaming 是否启用字符级流式处理
- * @property streamingDelay 流式处理延迟（毫秒）
  * @property retrievalOptions 检索选项
  * @property contextOptions 上下文构建选项
  */
@@ -35,12 +25,6 @@ data class RealTimeRagConfig(
     val useIncrementalIndexing: Boolean = true,
     val useChangeDetection: Boolean = true,
     val changeDetectionThreshold: Double = 0.1,
-    val maxDocuments: Int = 1000,
-    val maxDocumentAge: Long = 24 * 60 * 60 * 1000, // 24 小时
-    val useTimeDecay: Boolean = true,
-    val timeDecayFactor: Double = 0.5,
-    val characterLevelStreaming: Boolean = false,
-    val streamingDelay: Long = 10, // 10 毫秒，字符级流式处理的延迟
     val retrievalOptions: RealTimeRetrievalOptions = RealTimeRetrievalOptions(),
     val contextOptions: ContextBuilderConfig = ContextBuilderConfig()
 )
@@ -61,9 +45,63 @@ data class RealTimeRetrievalOptions(
     val useHybridSearch: Boolean = false,
     val useSemanticRetrieval: Boolean = false,
     val useReranking: Boolean = true,
-    val useQueryEnhancement: Boolean = false,
+    val useQueryEnhancement: Boolean = true,
     val hybridOptions: HybridOptions = HybridOptions(),
     val semanticOptions: SemanticOptions = SemanticOptions(),
     val rerankingOptions: RerankingOptions = RerankingOptions(),
     val queryEnhancementOptions: QueryEnhancementOptions = QueryEnhancementOptions()
+)
+
+/**
+ * 混合搜索选项
+ *
+ * @property vectorWeight 向量权重
+ * @property keywordWeight 关键词权重
+ */
+data class HybridOptions(
+    val vectorWeight: Double = 0.7,
+    val keywordWeight: Double = 0.3
+)
+
+/**
+ * 语义检索选项
+ *
+ * @property useChunking 是否使用分块
+ * @property chunkSize 分块大小
+ * @property chunkOverlap 分块重叠大小
+ */
+data class SemanticOptions(
+    val useChunking: Boolean = true,
+    val chunkSize: Int = 1000,
+    val chunkOverlap: Int = 200
+)
+
+/**
+ * 重排序选项
+ *
+ * @property useDiversity 是否使用多样性重排序
+ * @property diversityWeight 多样性权重
+ * @property useMetadata 是否使用元数据重排序
+ * @property metadataFields 元数据字段
+ * @property metadataWeights 元数据权重
+ */
+data class RerankingOptions(
+    val useDiversity: Boolean = false,
+    val diversityWeight: Double = 0.3,
+    val useMetadata: Boolean = false,
+    val metadataFields: List<String> = emptyList(),
+    val metadataWeights: Map<String, Double> = emptyMap()
+)
+
+/**
+ * 查询增强选项
+ *
+ * @property useSynonyms 是否使用同义词
+ * @property useDecomposition 是否使用分解
+ * @property useNormalization 是否使用归一化
+ */
+data class QueryEnhancementOptions(
+    val useSynonyms: Boolean = true,
+    val useDecomposition: Boolean = false,
+    val useNormalization: Boolean = true
 )

@@ -8,7 +8,7 @@ import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import org.mockito.Mockito.*
+import org.mockito.kotlin.*
 
 class QueryFusionTest {
 
@@ -17,8 +17,8 @@ class QueryFusionTest {
 
     @BeforeEach
     fun setUp() {
-        mockVectorStore = mock(VectorStore::class.java)
-        embeddingService = mock(EmbeddingService::class.java)
+        mockVectorStore = mock<VectorStore>()
+        embeddingService = mock<EmbeddingService>()
     }
 
     @Test
@@ -33,8 +33,8 @@ class QueryFusionTest {
         val topK = 3
 
         // 模拟嵌入服务
-        `when`(embeddingService.embed("query1")).thenReturn(queryEmbeddings[0])
-        `when`(embeddingService.embed("query2")).thenReturn(queryEmbeddings[1])
+        whenever(embeddingService.embed("query1")).thenReturn(queryEmbeddings[0])
+        whenever(embeddingService.embed("query2")).thenReturn(queryEmbeddings[1])
 
         // 模拟向量存储查询结果
         val query1Results = listOf(
@@ -48,8 +48,8 @@ class QueryFusionTest {
             SearchResult("4", 0.7, null, mapOf("name" to "doc4"))
         )
 
-        `when`(mockVectorStore.query(indexName, queryEmbeddings[0], topK * 2)).thenReturn(query1Results)
-        `when`(mockVectorStore.query(indexName, queryEmbeddings[1], topK * 2)).thenReturn(query2Results)
+        whenever(mockVectorStore.query(indexName, queryEmbeddings[0], topK * 2, null, false)).thenReturn(query1Results)
+        whenever(mockVectorStore.query(indexName, queryEmbeddings[1], topK * 2, null, false)).thenReturn(query2Results)
 
         // 执行加权融合
         val options = FusionOptions(
@@ -98,8 +98,8 @@ class QueryFusionTest {
             SearchResult("4", 0.7, null, mapOf("name" to "doc4"))
         )
 
-        `when`(mockVectorStore.query(indexName, queryEmbeddings[0], topK * 2)).thenReturn(query1Results)
-        `when`(mockVectorStore.query(indexName, queryEmbeddings[1], topK * 2)).thenReturn(query2Results)
+        whenever(mockVectorStore.query(indexName, queryEmbeddings[0], topK * 2, null, false)).thenReturn(query1Results)
+        whenever(mockVectorStore.query(indexName, queryEmbeddings[1], topK * 2, null, false)).thenReturn(query2Results)
 
         // 执行最大分数融合
         val options = FusionOptions(strategy = FusionStrategy.MAX_SCORE)
@@ -145,8 +145,8 @@ class QueryFusionTest {
             SearchResult("4", 0.7, null, mapOf("name" to "doc4"))
         )
 
-        `when`(mockVectorStore.query(indexName, queryEmbeddings[0], topK * 2)).thenReturn(query1Results)
-        `when`(mockVectorStore.query(indexName, queryEmbeddings[1], topK * 2)).thenReturn(query2Results)
+        whenever(mockVectorStore.query(indexName, queryEmbeddings[0], topK * 2, null, false)).thenReturn(query1Results)
+        whenever(mockVectorStore.query(indexName, queryEmbeddings[1], topK * 2, null, false)).thenReturn(query2Results)
 
         // 执行平均分数融合
         val options = FusionOptions(strategy = FusionStrategy.AVERAGE)
@@ -193,9 +193,9 @@ class QueryFusionTest {
             SearchResult("2", 0.85, floatArrayOf(0.7f, 0.3f, 0f), mapOf("name" to "doc2"))
         )
 
-        `when`(mockVectorStore.query(indexName, queryEmbeddings[0], topK)).thenReturn(query1Results)
-        `when`(mockVectorStore.query(indexName, queryEmbeddings[1], topK)).thenReturn(query2Results)
-        `when`(mockVectorStore.query(eq(indexName), any(FloatArray::class.java), eq(topK))).thenReturn(recursiveResults)
+        whenever(mockVectorStore.query(indexName, queryEmbeddings[0], topK, null, false)).thenReturn(query1Results)
+        whenever(mockVectorStore.query(indexName, queryEmbeddings[1], topK, null, false)).thenReturn(query2Results)
+        whenever(mockVectorStore.query(eq(indexName), any<FloatArray>(), eq(topK), isNull(), eq(false))).thenReturn(recursiveResults)
 
         // 执行递归融合
         val options = FusionOptions(
@@ -257,8 +257,8 @@ class QueryFusionTest {
             SearchResult("4", 0.7, null, mapOf("name" to "doc4"))
         )
 
-        `when`(mockVectorStore.query(indexName, queryEmbeddings[0], topK * 2)).thenReturn(query1Results)
-        `when`(mockVectorStore.query(indexName, queryEmbeddings[1], topK * 2)).thenReturn(query2Results)
+        whenever(mockVectorStore.query(indexName, queryEmbeddings[0], topK * 2, null, false)).thenReturn(query1Results)
+        whenever(mockVectorStore.query(indexName, queryEmbeddings[1], topK * 2, null, false)).thenReturn(query2Results)
 
         // 执行加权融合
         val options = FusionOptions(

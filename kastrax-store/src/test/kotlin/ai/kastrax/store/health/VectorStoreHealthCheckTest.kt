@@ -8,7 +8,7 @@ import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import org.mockito.Mockito.*
+import org.mockito.kotlin.*
 
 class VectorStoreHealthCheckTest {
 
@@ -16,26 +16,26 @@ class VectorStoreHealthCheckTest {
 
     @BeforeEach
     fun setUp() {
-        mockVectorStore = mock(VectorStore::class.java)
+        mockVectorStore = mock<VectorStore>()
     }
 
     @Test
     fun `test check health with healthy indexes`() = runBlocking {
         // 模拟向量存储
-        `when`(mockVectorStore.listIndexes()).thenReturn(listOf("index1", "index2"))
+        whenever(mockVectorStore.listIndexes()).thenReturn(listOf("index1", "index2"))
 
         // 模拟索引信息
-        `when`(mockVectorStore.describeIndex("index1")).thenReturn(
+        whenever(mockVectorStore.describeIndex("index1")).thenReturn(
             IndexStats(3, 100, SimilarityMetric.COSINE)
         )
-        `when`(mockVectorStore.describeIndex("index2")).thenReturn(
+        whenever(mockVectorStore.describeIndex("index2")).thenReturn(
             IndexStats(3, 200, SimilarityMetric.COSINE)
         )
 
         // 模拟查询结果
-        `when`(mockVectorStore.query(eq("index1"), any(FloatArray::class.java), eq(1), isNull(), eq(false)))
+        whenever(mockVectorStore.query(eq("index1"), any<FloatArray>(), eq(1), isNull(), eq(false)))
             .thenReturn(listOf(SearchResult("1", 0.9, null, mapOf("name" to "vector1"))))
-        `when`(mockVectorStore.query(eq("index2"), any(FloatArray::class.java), eq(1), isNull(), eq(false)))
+        whenever(mockVectorStore.query(eq("index2"), any<FloatArray>(), eq(1), isNull(), eq(false)))
             .thenReturn(listOf(SearchResult("2", 0.8, null, mapOf("name" to "vector2"))))
 
         // 执行健康检查
@@ -61,16 +61,16 @@ class VectorStoreHealthCheckTest {
     @Test
     fun `test check health with unhealthy index`() = runBlocking {
         // 模拟向量存储
-        `when`(mockVectorStore.listIndexes()).thenReturn(listOf("index1", "index2"))
+        whenever(mockVectorStore.listIndexes()).thenReturn(listOf("index1", "index2"))
 
         // 模拟索引信息
-        `when`(mockVectorStore.describeIndex("index1")).thenReturn(
+        whenever(mockVectorStore.describeIndex("index1")).thenReturn(
             IndexStats(3, 100, SimilarityMetric.COSINE)
         )
-        `when`(mockVectorStore.describeIndex("index2")).thenThrow(RuntimeException("Index not found"))
+        whenever(mockVectorStore.describeIndex("index2")).thenThrow(RuntimeException("Index not found"))
 
         // 模拟查询结果
-        `when`(mockVectorStore.query(eq("index1"), any(FloatArray::class.java), eq(1), isNull(), eq(false)))
+        whenever(mockVectorStore.query(eq("index1"), any<FloatArray>(), eq(1), isNull(), eq(false)))
             .thenReturn(listOf(SearchResult("1", 0.9, null, mapOf("name" to "vector1"))))
 
         // 执行健康检查
@@ -97,7 +97,7 @@ class VectorStoreHealthCheckTest {
     @Test
     fun `test check health with empty indexes`() = runBlocking {
         // 模拟向量存储
-        `when`(mockVectorStore.listIndexes()).thenReturn(emptyList())
+        whenever(mockVectorStore.listIndexes()).thenReturn(emptyList())
 
         // 执行健康检查
         val result = VectorStoreHealthCheck.checkHealth(mockVectorStore)
@@ -111,7 +111,7 @@ class VectorStoreHealthCheckTest {
     @Test
     fun `test check health with exception`() = runBlocking {
         // 模拟向量存储
-        `when`(mockVectorStore.listIndexes()).thenThrow(RuntimeException("Connection error"))
+        whenever(mockVectorStore.listIndexes()).thenThrow(RuntimeException("Connection error"))
 
         // 执行健康检查
         val result = VectorStoreHealthCheck.checkHealth(mockVectorStore)
@@ -125,12 +125,12 @@ class VectorStoreHealthCheckTest {
     @Test
     fun `test check index health`() = runBlocking {
         // 模拟索引信息
-        `when`(mockVectorStore.describeIndex("index1")).thenReturn(
+        whenever(mockVectorStore.describeIndex("index1")).thenReturn(
             IndexStats(3, 100, SimilarityMetric.COSINE)
         )
 
         // 模拟查询结果
-        `when`(mockVectorStore.query(eq("index1"), any(FloatArray::class.java), eq(1), isNull(), eq(false)))
+        whenever(mockVectorStore.query(eq("index1"), any<FloatArray>(), eq(1), isNull(), eq(false)))
             .thenReturn(listOf(SearchResult("1", 0.9, null, mapOf("name" to "vector1"))))
 
         // 执行索引健康检查

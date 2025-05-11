@@ -9,7 +9,7 @@ import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import org.mockito.Mockito.*
+import org.mockito.kotlin.*
 
 class RagVectorStoreAdapterTest {
 
@@ -21,12 +21,12 @@ class RagVectorStoreAdapterTest {
 
     @BeforeEach
     fun setUp() {
-        mockVectorStore = mock(VectorStore::class.java)
+        mockVectorStore = mock<VectorStore>()
         adapter = RagVectorStoreAdapter(mockVectorStore, indexName, dimension)
-        embeddingService = mock(EmbeddingService::class.java)
+        embeddingService = mock<EmbeddingService>()
 
         runBlocking {
-            `when`(mockVectorStore.createIndex(indexName, dimension, SimilarityMetric.COSINE)).thenReturn(true)
+            whenever(mockVectorStore.createIndex(indexName, dimension, SimilarityMetric.COSINE)).thenReturn(true)
         }
     }
 
@@ -38,7 +38,7 @@ class RagVectorStoreAdapterTest {
         val metadata = mapOf("key" to "value")
         val id = "doc_1"
 
-        `when`(mockVectorStore.upsert(
+        whenever(mockVectorStore.upsert(
             indexName,
             listOf(embedding),
             listOf(mapOf("key" to "value")),
@@ -72,8 +72,8 @@ class RagVectorStoreAdapterTest {
         val metadata = mapOf("key" to "value")
         val id = "doc_1"
 
-        `when`(embeddingService.embed(document)).thenReturn(embedding)
-        `when`(mockVectorStore.upsert(
+        whenever(embeddingService.embed(document)).thenReturn(embedding)
+        whenever(mockVectorStore.upsert(
             indexName,
             listOf(embedding),
             listOf(mapOf("key" to "value")),
@@ -108,7 +108,7 @@ class RagVectorStoreAdapterTest {
         )
         val ids = listOf("doc_1", "doc_2")
 
-        `when`(mockVectorStore.batchUpsert(
+        whenever(mockVectorStore.batchUpsert(
             indexName,
             embeddings,
             listOf(
@@ -155,7 +155,7 @@ class RagVectorStoreAdapterTest {
         val limit = 2
         val minScore = 0.5
 
-        `when`(embeddingService.embed(query)).thenReturn(queryEmbedding)
+        whenever(embeddingService.embed(query)).thenReturn(queryEmbedding)
 
         val searchResults = listOf(
             SearchResult("doc_1", 0.8, null, mapOf("key1" to "value1")),
@@ -163,7 +163,7 @@ class RagVectorStoreAdapterTest {
             SearchResult("doc_3", 0.4, null, mapOf("key3" to "value3"))
         )
 
-        `when`(mockVectorStore.query(
+        whenever(mockVectorStore.query(
             indexName,
             queryEmbedding,
             limit,
@@ -179,10 +179,15 @@ class RagVectorStoreAdapterTest {
         )
 
         // 使用反射设置文档
-        val documentsField = RagVectorStoreAdapter::class.java.getDeclaredField("documents")
+        val documentsField = RagVectorStoreAdapter::class.java.getDeclaredField("documentCache")
         documentsField.isAccessible = true
         val documents = documentsField.get(adapter) as MutableMap<String, RagDocument>
         docs.forEach { documents[it.id] = it }
+
+        val contentToIdField = RagVectorStoreAdapter::class.java.getDeclaredField("contentToId")
+        contentToIdField.isAccessible = true
+        val contentToId = contentToIdField.get(adapter) as MutableMap<String, String>
+        docs.forEach { contentToId[it.content] = it.id }
 
         // 执行
         val results = adapter.similaritySearch(query, embeddingService, limit, minScore)
@@ -220,7 +225,7 @@ class RagVectorStoreAdapterTest {
         val contentToId = contentToIdField.get(adapter) as MutableMap<String, String>
         contentToId[document.content] = id
 
-        `when`(mockVectorStore.deleteVectors(indexName, listOf(id))).thenReturn(true)
+        whenever(mockVectorStore.deleteVectors(indexName, listOf(id))).thenReturn(true)
 
         // 执行
         val result = adapter.deleteDocument(id)
@@ -251,8 +256,8 @@ class RagVectorStoreAdapterTest {
         val contentToId = contentToIdField.get(adapter) as MutableMap<String, String>
         docs.forEach { contentToId[it.content] = it.id }
 
-        `when`(mockVectorStore.deleteIndex(indexName)).thenReturn(true)
-        `when`(mockVectorStore.createIndex(indexName, dimension, SimilarityMetric.COSINE)).thenReturn(true)
+        whenever(mockVectorStore.deleteIndex(indexName)).thenReturn(true)
+        whenever(mockVectorStore.createIndex(indexName, dimension, SimilarityMetric.COSINE)).thenReturn(true)
 
         // 执行
         adapter.clear()

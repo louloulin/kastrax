@@ -12,7 +12,7 @@ import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import org.mockito.Mockito.*
+import org.mockito.kotlin.*
 
 class HybridSearchTest {
 
@@ -23,9 +23,9 @@ class HybridSearchTest {
 
     @BeforeEach
     fun setUp() {
-        mockVectorStore = mock(VectorStore::class.java)
-        mockDocumentVectorStore = mock(DocumentVectorStore::class.java)
-        embeddingService = mock(EmbeddingService::class.java)
+        mockVectorStore = mock<VectorStore>()
+        mockDocumentVectorStore = mock<DocumentVectorStore>()
+        embeddingService = mock<EmbeddingService>()
         mockVectorStoreAdapter = VectorStoreFactory.adaptToDocumentVectorStore(mockVectorStore)
     }
 
@@ -56,9 +56,9 @@ class HybridSearchTest {
         )
 
         // 设置模拟行为
-        `when`(mockVectorStoreAdapter.similaritySearch(eq(query), eq(embeddingService), eq(limit * 2)))
+        whenever(mockVectorStoreAdapter.similaritySearch(eq(query), eq(embeddingService), eq(limit * 2)))
             .thenReturn(vectorResults)
-        `when`(mockVectorStoreAdapter.keywordSearch(eq(keywords), eq(limit * 2)))
+        whenever(mockVectorStoreAdapter.keywordSearch(eq(keywords), eq(limit * 2)))
             .thenReturn(keywordResults)
 
         // 执行混合搜索
@@ -123,7 +123,7 @@ class HybridSearchTest {
         )
 
         // 设置模拟行为
-        `when`(mockVectorStoreAdapter.similaritySearch(eq(query), eq(embeddingService), eq(limit * 2)))
+        whenever(mockVectorStoreAdapter.similaritySearch(eq(query), eq(embeddingService), eq(limit * 2)))
             .thenReturn(vectorResults)
 
         // 执行混合搜索

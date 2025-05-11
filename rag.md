@@ -292,7 +292,7 @@ class RagEvaluationTool(
    - SynonymQueryTransformer
    - DecompositionQueryTransformer
    - CompositeQueryTransformer
-   - RealTimeRag
+   - RealTimeRag ✅
    - RagEvaluationTool
 8. 编写单元测试 (已完成) ✅
    - RAGTest
@@ -428,7 +428,7 @@ class RagEvaluationTool(
 下一步计划：
 
 1. 翻译文档为中文，并添加更多示例和案例研究 ✅ ✅
-2. 实现流式 RAG 功能，支持流式处理，实时返回检索结果和生成内容 ✅ ✅
+2. 实现流式 RAG 功能，支持流式处理，实时返回检索结果和生成内容 ✅ ✅ ✅
 3. 实现分层 RAG 功能，支持分层检索，先检索大块内容，再检索细粒度内容 ✅ ✅
 4. 实现自适应 RAG 功能，根据查询自动选择最佳的检索策略和参数 ✅ ✅
 
