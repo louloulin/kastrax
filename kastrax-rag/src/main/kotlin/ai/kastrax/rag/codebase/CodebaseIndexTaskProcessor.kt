@@ -1,5 +1,6 @@
 package ai.kastrax.rag.codebase
 
+// Import from kastrax-codebase module
 import ai.kastrax.codebase.indexing.IndexTask
 import ai.kastrax.codebase.indexing.IndexTaskProcessor
 import ai.kastrax.codebase.indexing.IndexTaskType
@@ -30,10 +31,10 @@ class CodebaseIndexTaskProcessor(
     private val documentStore: DocumentVectorStore,
     private val embeddingService: EmbeddingService
 ) : IndexTaskProcessor {
-    
+
     // 文件路径到文档 ID 的映射
     private val pathToId = mutableMapOf<String, String>()
-    
+
     /**
      * 处理索引任务
      *
@@ -41,7 +42,7 @@ class CodebaseIndexTaskProcessor(
      */
     override suspend fun processTask(task: IndexTask) = withContext(Dispatchers.IO) {
         logger.debug { "处理索引任务: ${task.id}, 类型: ${task.type}, 路径: ${task.path}" }
-        
+
         when (task.type) {
             IndexTaskType.ADD, IndexTaskType.UPDATE -> {
                 processAddOrUpdateTask(task.path)
@@ -57,7 +58,7 @@ class CodebaseIndexTaskProcessor(
             }
         }
     }
-    
+
     /**
      * 处理添加或更新任务
      *
@@ -70,17 +71,17 @@ class CodebaseIndexTaskProcessor(
                 logger.warn { "文件不存在或不是常规文件: $path" }
                 return
             }
-            
+
             // 读取文件内容
             val content = path.readText()
-            
+
             // 创建文档元数据
             val metadata = createFileMetadata(path)
-            
+
             // 检查文件是否已存在
             val pathString = path.toString()
             val existingId = pathToId[pathString]
-            
+
             if (existingId != null) {
                 // 更新文档
                 updateDocument(existingId, content, metadata)
@@ -93,7 +94,7 @@ class CodebaseIndexTaskProcessor(
             throw e
         }
     }
-    
+
     /**
      * 处理删除任务
      *
@@ -103,16 +104,16 @@ class CodebaseIndexTaskProcessor(
         try {
             // 获取文件路径
             val pathString = path.toString()
-            
+
             // 检查文件是否已索引
             val documentId = pathToId[pathString]
             if (documentId != null) {
                 // 从向量存储中删除文档
                 documentStore.deleteDocuments(listOf(documentId))
-                
+
                 // 从映射中删除
                 pathToId.remove(pathString)
-                
+
                 logger.debug { "从索引中删除文件: $path" }
             } else {
                 logger.warn { "文件未索引，无法删除: $path" }
@@ -122,7 +123,7 @@ class CodebaseIndexTaskProcessor(
             throw e
         }
     }
-    
+
     /**
      * 处理分支变更任务
      *
@@ -132,12 +133,12 @@ class CodebaseIndexTaskProcessor(
         try {
             val previousBranch = task.metadata["previousBranch"]
             val currentBranch = task.metadata["currentBranch"]
-            
+
             logger.info { "处理分支变更: $previousBranch -> $currentBranch" }
-            
+
             // 清空当前索引
             clearIndex()
-            
+
             // 重新索引当前分支
             processFullReindexTask(task.path)
         } catch (e: Exception) {
@@ -145,7 +146,7 @@ class CodebaseIndexTaskProcessor(
             throw e
         }
     }
-    
+
     /**
      * 处理完全重新索引任务
      *
@@ -154,10 +155,10 @@ class CodebaseIndexTaskProcessor(
     private suspend fun processFullReindexTask(rootPath: Path) {
         try {
             logger.info { "开始完全重新索引: $rootPath" }
-            
+
             // 清空当前索引
             clearIndex()
-            
+
             // 遍历所有文件并索引
             Files.walk(rootPath)
                 .filter { it.isRegularFile() }
@@ -168,14 +169,14 @@ class CodebaseIndexTaskProcessor(
                         logger.error(e) { "索引文件时出错: $path" }
                     }
                 }
-            
+
             logger.info { "完全重新索引完成: $rootPath" }
         } catch (e: Exception) {
             logger.error(e) { "完全重新索引时出错: $rootPath" }
             throw e
         }
     }
-    
+
     /**
      * 清空索引
      */
@@ -183,22 +184,22 @@ class CodebaseIndexTaskProcessor(
         try {
             // 获取所有文档 ID
             val documentIds = pathToId.values.toList()
-            
+
             // 从向量存储中删除所有文档
             if (documentIds.isNotEmpty()) {
                 documentStore.deleteDocuments(documentIds)
             }
-            
+
             // 清空映射
             pathToId.clear()
-            
+
             logger.debug { "清空索引" }
         } catch (e: Exception) {
             logger.error(e) { "清空索引时出错" }
             throw e
         }
     }
-    
+
     /**
      * 添加文档
      *
@@ -213,10 +214,10 @@ class CodebaseIndexTaskProcessor(
             content = content,
             metadata = metadata
         )
-        
+
         // 添加文档到向量存储
         val success = documentStore.addDocuments(listOf(document), embeddingService)
-        
+
         if (success) {
             // 添加到映射
             pathToId[pathString] = document.id
@@ -225,7 +226,7 @@ class CodebaseIndexTaskProcessor(
             logger.warn { "添加文档失败: $pathString" }
         }
     }
-    
+
     /**
      * 更新文档
      *
@@ -240,20 +241,20 @@ class CodebaseIndexTaskProcessor(
             content = content,
             metadata = metadata
         )
-        
+
         // 从向量存储中删除文档
         documentStore.deleteDocuments(listOf(documentId))
-        
+
         // 添加文档到向量存储
         val success = documentStore.addDocuments(listOf(document), embeddingService)
-        
+
         if (success) {
             logger.debug { "更新文档: $documentId" }
         } else {
             logger.warn { "更新文档失败: $documentId" }
         }
     }
-    
+
     /**
      * 创建文件元数据
      *
@@ -263,10 +264,10 @@ class CodebaseIndexTaskProcessor(
     private fun createFileMetadata(path: Path): Map<String, Any> {
         val file = path.toFile()
         val extension = path.extension.lowercase()
-        
+
         // 确定文件语言
         val language = determineLanguage(extension)
-        
+
         return mapOf(
             "path" to path.toString(),
             "filename" to path.name,
@@ -276,7 +277,7 @@ class CodebaseIndexTaskProcessor(
             "lastModified" to file.lastModified()
         )
     }
-    
+
     /**
      * 确定文件语言
      *

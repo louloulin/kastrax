@@ -26,16 +26,16 @@ class FastEmbedKotlinEmbeddingService private constructor(
     private val showDownloadProgress: Boolean,
     private val textEmbedding: TextEmbedding,
     private val asyncTextEmbedding: AsyncTextEmbedding
-) : EmbeddingService {
+) : EmbeddingService() {
 
     /**
      * 嵌入向量的维度。
      */
-    val dimensions: Int = textEmbedding.dimension
+    override val dimension: Int = textEmbedding.dimension
 
     init {
         logger.info { "Initializing FastEmbed Kotlin with model: $model" }
-        logger.info { "FastEmbed Kotlin initialized with embedding dimensions: $dimensions" }
+        logger.info { "FastEmbed Kotlin initialized with embedding dimensions: $dimension" }
     }
 
     /**
@@ -52,7 +52,7 @@ class FastEmbedKotlinEmbeddingService private constructor(
             } catch (e: Exception) {
                 logger.error(e) { "Error generating embedding for text" }
                 // 返回零向量作为后备
-                FloatArray(dimensions) { 0f }
+                FloatArray(dimension) { 0f }
             }
         }
     }
@@ -77,19 +77,12 @@ class FastEmbedKotlinEmbeddingService private constructor(
             } catch (e: Exception) {
                 logger.error(e) { "Error generating batch embeddings" }
                 // 返回零向量作为后备
-                texts.map { FloatArray(dimensions) { 0f } }
+                texts.map { FloatArray(dimension) { 0f } }
             }
         }
     }
 
-    /**
-     * 获取嵌入向量的维度。
-     *
-     * @return 嵌入向量的维度
-     */
-    override fun dimension(): Int {
-        return dimensions
-    }
+
 
     /**
      * 关闭服务，释放资源。

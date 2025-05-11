@@ -9,7 +9,7 @@ dependencies {
     implementation(project(":kastrax-core"))
     implementation(project(":kastrax-memory-api"))
     implementation(project(":kastrax-store"))
-    implementation(project(":kastrax-rag"))
+    // Removed kastrax-rag dependency to avoid circular dependency
     implementation(project(":kastrax-datasource"))
     implementation(project(":kastrax-integrations:kastrax-openai"))
     implementation(project(":kastrax-integrations:kastrax-deepseek"))

@@ -16,7 +16,7 @@ private val logger = KotlinLogging.logger {}
 class RandomEmbeddingService(
     private val dimensions: Int = 1536,
     private val seed: Long = 42
-) : EmbeddingService {
+) : EmbeddingService() {
     private val random = java.util.Random(seed)
 
     /**
@@ -58,11 +58,8 @@ class RandomEmbeddingService(
     }
 
     /**
-     * 获取嵌入向量的维度。
-     *
-     * @return 嵌入向量的维度
+     * 嵌入向量的维度。
      */
-    override fun dimension(): Int {
-        return dimensions
-    }
+    override val dimension: Int
+        get() = dimensions
 }

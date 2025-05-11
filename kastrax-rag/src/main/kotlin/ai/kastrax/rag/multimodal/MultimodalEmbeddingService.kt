@@ -16,7 +16,7 @@ abstract class MultimodalEmbeddingService : ai.kastrax.store.embedding.Embedding
      * @param imageUrl 图像 URL
      * @return 嵌入向量
      */
-    suspend fun embedImage(imageUrl: String): FloatArray
+    abstract suspend fun embedImage(imageUrl: String): FloatArray
 
     /**
      * 生成音频的嵌入向量。
@@ -24,7 +24,7 @@ abstract class MultimodalEmbeddingService : ai.kastrax.store.embedding.Embedding
      * @param audioUrl 音频 URL
      * @return 嵌入向量
      */
-    suspend fun embedAudio(audioUrl: String): FloatArray
+    abstract suspend fun embedAudio(audioUrl: String): FloatArray
 
     /**
      * 生成视频的嵌入向量。
@@ -32,7 +32,7 @@ abstract class MultimodalEmbeddingService : ai.kastrax.store.embedding.Embedding
      * @param videoUrl 视频 URL
      * @return 嵌入向量
      */
-    suspend fun embedVideo(videoUrl: String): FloatArray
+    abstract suspend fun embedVideo(videoUrl: String): FloatArray
 
     /**
      * 生成多模态文档的嵌入向量。

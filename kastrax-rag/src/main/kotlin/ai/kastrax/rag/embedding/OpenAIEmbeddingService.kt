@@ -36,7 +36,7 @@ class OpenAIEmbeddingService(
     private val maxRetries: Int = 3,
     private val timeout: Long = 30000,
     private val dimensions: Int = 1536 // Default dimension for text-embedding-3-small
-) : EmbeddingService {
+) : EmbeddingService() {
     private val client = HttpClient(CIO) {
         install(ContentNegotiation) {
             json(Json {
@@ -137,13 +137,10 @@ class OpenAIEmbeddingService(
     }
 
     /**
-     * 获取嵌入向量的维度。
-     *
-     * @return 嵌入向量的维度
+     * 嵌入向量的维度。
      */
-    override fun dimension(): Int {
-        return dimensions
-    }
+    override val dimension: Int
+        get() = dimensions
 
     /**
      * 计算余弦相似度。

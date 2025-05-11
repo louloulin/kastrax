@@ -51,7 +51,7 @@ class OpenAIMultimodalEmbeddingService(
     private val maxRetries: Int = 3,
     private val timeout: Long = 30000,
     private val tempDir: String = System.getProperty("java.io.tmpdir")
-) : MultimodalEmbeddingService {
+) : MultimodalEmbeddingService() {
 
     private val client = HttpClient(CIO) {
         install(ContentNegotiation) {

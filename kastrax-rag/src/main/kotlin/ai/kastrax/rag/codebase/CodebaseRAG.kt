@@ -1,5 +1,6 @@
 package ai.kastrax.rag.codebase
 
+// Import from kastrax-codebase module
 import ai.kastrax.codebase.CodebaseIndexManager
 import ai.kastrax.codebase.CodebaseIndexManagerConfig
 import ai.kastrax.codebase.filesystem.FileFilterConfig
@@ -87,10 +88,10 @@ class CodebaseRAG(
      */
     suspend fun start() = withContext(Dispatchers.IO) {
         logger.info { "启动代码库 RAG 系统" }
-        
+
         // 启动代码库索引管理器
         codebaseIndexManager.start()
-        
+
         // 监听索引事件
         launch {
             codebaseIndexManager.indexEvents.collect { event ->
@@ -98,17 +99,17 @@ class CodebaseRAG(
             }
         }
     }
-    
+
     /**
      * 停止代码库索引
      */
     suspend fun stop() = withContext(Dispatchers.IO) {
         logger.info { "停止代码库 RAG 系统" }
-        
+
         // 停止代码库索引管理器
         codebaseIndexManager.stop()
     }
-    
+
     /**
      * 搜索代码库
      *
@@ -126,7 +127,7 @@ class CodebaseRAG(
     ): List<DocumentSearchResult> {
         return rag.search(query, limit, minScore, options ?: config.ragProcessOptions)
     }
-    
+
     /**
      * 生成上下文
      *
@@ -144,7 +145,7 @@ class CodebaseRAG(
     ): String {
         return rag.generateContext(query, limit, minScore, options ?: config.ragProcessOptions)
     }
-    
+
     /**
      * 检索上下文
      *
@@ -162,17 +163,17 @@ class CodebaseRAG(
     ): RetrieveContextResult {
         return rag.retrieveContext(query, limit, minScore, options ?: config.ragProcessOptions)
     }
-    
+
     /**
      * 请求重新索引代码库
      */
     suspend fun requestReindex() = withContext(Dispatchers.IO) {
         logger.info { "请求重新索引代码库" }
-        
+
         // 请求重新索引
         codebaseIndexManager.requestReindex()
     }
-    
+
     companion object {
         /**
          * 创建代码库 RAG 系统
@@ -198,13 +199,13 @@ class CodebaseRAG(
                 reranker = reranker,
                 defaultOptions = config.ragProcessOptions
             )
-            
+
             // 创建代码库索引处理器
             val indexTaskProcessor = CodebaseIndexTaskProcessor(
                 documentStore = documentStore,
                 embeddingService = embeddingService
             )
-            
+
             // 创建代码库索引管理器配置
             val indexManagerConfig = CodebaseIndexManagerConfig(
                 fileSystemMonitorConfig = config.fileSystemMonitorConfig,
@@ -215,14 +216,14 @@ class CodebaseRAG(
                 enableGitMonitoring = config.enableGitMonitoring,
                 userId = config.userId
             )
-            
+
             // 创建代码库索引管理器
             val codebaseIndexManager = CodebaseIndexManager(
                 rootPath = rootPath,
                 config = indexManagerConfig,
                 indexTaskProcessor = indexTaskProcessor
             )
-            
+
             // 创建代码库 RAG 系统
             return CodebaseRAG(
                 rag = rag,

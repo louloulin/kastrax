@@ -16,7 +16,7 @@ private val logger = KotlinLogging.logger {}
 class CachedEmbeddingService(
     private val delegate: EmbeddingService,
     private val cacheSize: Int = 1000
-) : EmbeddingService {
+) : EmbeddingService() {
     private val cache = ConcurrentHashMap<String, FloatArray>()
     private val lruKeys = ConcurrentHashMap.newKeySet<String>()
 
@@ -98,13 +98,10 @@ class CachedEmbeddingService(
     }
 
     /**
-     * 获取嵌入向量的维度。
-     *
-     * @return 嵌入向量的维度
+     * 嵌入向量的维度。
      */
-    override fun dimension(): Int {
-        return delegate.dimension()
-    }
+    override val dimension: Int
+        get() = delegate.dimension
 
     /**
      * 关闭资源。

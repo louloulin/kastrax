@@ -20,7 +20,7 @@ class GraphRAGTool(
     private val embeddingService: EmbeddingService,
     private val graphRAG: GraphRAG = GraphRAG(
         GraphRAGConfig(
-            dimension = embeddingService.dimension(),
+            dimension = embeddingService.dimension,
             threshold = 0.7,
             bidirectional = true
         )
