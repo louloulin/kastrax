@@ -111,6 +111,26 @@ class RAG(
     private val defaultOptions: RagProcessOptions = RagProcessOptions()
 ) {
     /**
+     * 获取文档向量存储
+     *
+     * @return 文档向量存储
+     */
+    fun getDocumentStore(): DocumentVectorStore = documentStore
+
+    /**
+     * 获取嵌入服务
+     *
+     * @return 嵌入服务
+     */
+    fun getEmbeddingService(): EmbeddingService = embeddingService
+
+    /**
+     * 获取重排序器
+     *
+     * @return 重排序器
+     */
+    fun getReranker(): Reranker = reranker
+    /**
      * 从文档加载器加载文档并添加到向量存储。
      *
      * @param loader 文档加载器
