@@ -116,9 +116,57 @@ class InMemoryVectorStore(val dimension: Int = 1536) : BaseVectorStore() {
     ): List<SearchResult> = mutex.withLock {
         val index = getIndex(indexName) ?: return@withLock emptyList()
 
+        // 特殊情况：如果过滤条件中包含 id，则直接按 ID 查找
+        if (filter != null && filter.containsKey("id")) {
+            val id = filter["id"] as String
+            val vector = index.vectors[id]
+
+            if (vector != null) {
+                val metadata = index.metadata[id] ?: emptyMap()
+                return@withLock listOf(SearchResult(
+                    id = id,
+                    score = 1.0, // 使用最高分
+                    metadata = metadata,
+                    vector = if (includeVectors) vector else null
+                ))
+            }
+        }
+
+        // 如果查询向量为空且有过滤条件，则直接按过滤条件返回结果
+        if (queryVector.isEmpty() && filter != null) {
+            val results = mutableListOf<SearchResult>()
+
+            for ((id, vector) in index.vectors) {
+                val metadata = index.metadata[id] ?: emptyMap()
+
+                if (matchesFilter(metadata, filter)) {
+                    results.add(SearchResult(
+                        id = id,
+                        score = 1.0, // 使用最高分
+                        metadata = metadata,
+                        vector = if (includeVectors) vector else null
+                    ))
+                }
+            }
+
+            return@withLock results.take(topK)
+        }
+
+        // 如果查询向量为空且没有过滤条件，则返回所有向量
         if (queryVector.isEmpty()) {
-            logger.warn { "Empty query vector" }
-            return@withLock emptyList()
+            val results = mutableListOf<SearchResult>()
+
+            for ((id, vector) in index.vectors) {
+                val metadata = index.metadata[id] ?: emptyMap()
+                results.add(SearchResult(
+                    id = id,
+                    score = 1.0, // 使用最高分
+                    metadata = metadata,
+                    vector = if (includeVectors) vector else null
+                ))
+            }
+
+            return@withLock results.take(topK)
         }
 
         if (queryVector.size != index.dimension && queryVector.isNotEmpty()) {

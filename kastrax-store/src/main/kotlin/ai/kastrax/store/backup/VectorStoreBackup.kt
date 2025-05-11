@@ -175,7 +175,10 @@ object VectorStoreBackup {
                     // 恢复向量数据
                     if (indexData.vectors.isNotEmpty()) {
                         val vectors = indexData.vectors.map { it.vector }
-                        val metadata = indexData.vectors.map { it.metadata }
+                        // 将字符串元数据转换回 Map<String, Any>
+                        val metadata = indexData.vectors.map { vectorData ->
+                            vectorData.metadata.mapValues { it.value as Any }
+                        }
                         val ids = indexData.vectors.map { it.id }
 
                         // 批量添加向量
@@ -247,7 +250,7 @@ object VectorStoreBackup {
                         VectorData(
                             id = result.id,
                             vector = result.vector ?: FloatArray(0),
-                            metadata = result.metadata ?: emptyMap()
+                            metadata = result.metadata?.mapValues { it.value.toString() } ?: emptyMap()
                         )
                     }
                 } catch (e: Exception) {
@@ -386,7 +389,7 @@ data class IndexData(
 data class VectorData(
     val id: String,
     val vector: FloatArray,
-    val metadata: Map<String, @Contextual Any>
+    val metadata: Map<String, String>
 ) {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true

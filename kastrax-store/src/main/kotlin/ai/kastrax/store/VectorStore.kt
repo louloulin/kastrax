@@ -119,7 +119,14 @@ interface VectorStore {
     ): List<SearchResult> {
         // 计算查询的嵌入向量
         val queryEmbedding = embeddingService.embed(query)
-        return query(indexName, queryEmbedding, topK, filter)
+        val results = query(indexName, queryEmbedding, topK, filter)
+
+        // 过滤最小分数
+        return if (minScore > 0.0) {
+            results.filter { it.score >= minScore }
+        } else {
+            results
+        }
     }
 
     /**

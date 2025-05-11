@@ -78,8 +78,28 @@ abstract class BaseVectorStore : VectorStore {
             val results = query(indexName, FloatArray(0), 1, mapOf("id" to id), true)
 
             if (results.isEmpty()) {
-                logger.warn { "Vector $id not found in index $indexName" }
-                return false
+                // 尝试使用空向量和空过滤条件获取所有向量，然后手动过滤
+                val allResults = query(indexName, FloatArray(0), 1000, null, true)
+                val filteredResults = allResults.filter { it.id == id }
+
+                if (filteredResults.isEmpty()) {
+                    logger.warn { "Vector $id not found in index $indexName" }
+                    return false
+                }
+
+                val existingVector = filteredResults.first().vector
+
+                if (existingVector == null) {
+                    logger.warn { "Vector $id found but has no vector data" }
+                    return false
+                }
+
+                // 获取现有元数据并合并
+                val existingMetadata = filteredResults.first().metadata ?: emptyMap()
+                val mergedMetadata = existingMetadata.toMutableMap().apply { putAll(metadata) }
+
+                // 更新向量和元数据
+                return upsert(indexName, listOf(existingVector), listOf(mergedMetadata), listOf(id)).isNotEmpty()
             }
 
             val existingVector = results.first().vector
@@ -89,8 +109,12 @@ abstract class BaseVectorStore : VectorStore {
                 return false
             }
 
+            // 获取现有元数据并合并
+            val existingMetadata = results.first().metadata ?: emptyMap()
+            val mergedMetadata = existingMetadata.toMutableMap().apply { putAll(metadata) }
+
             // 更新向量和元数据
-            return upsert(indexName, listOf(existingVector), listOf(metadata), listOf(id)).isNotEmpty()
+            return upsert(indexName, listOf(existingVector), listOf(mergedMetadata), listOf(id)).isNotEmpty()
         }
 
         // 如果只更新向量
@@ -99,14 +123,38 @@ abstract class BaseVectorStore : VectorStore {
             val results = query(indexName, FloatArray(0), 1, mapOf("id" to id), false)
 
             if (results.isEmpty()) {
-                logger.warn { "Vector $id not found in index $indexName" }
-                return false
+                // 尝试使用空向量和空过滤条件获取所有向量，然后手动过滤
+                val allResults = query(indexName, FloatArray(0), 1000, null, false)
+                val filteredResults = allResults.filter { it.id == id }
+
+                if (filteredResults.isEmpty()) {
+                    logger.warn { "Vector $id not found in index $indexName" }
+                    return false
+                }
+
+                val existingMetadata = filteredResults.first().metadata
+
+                // 更新向量和元数据
+                return upsert(indexName, listOf(vector), listOf(existingMetadata ?: emptyMap()), listOf(id)).isNotEmpty()
             }
 
             val existingMetadata = results.first().metadata
 
             // 更新向量和元数据
             return upsert(indexName, listOf(vector), listOf(existingMetadata ?: emptyMap()), listOf(id)).isNotEmpty()
+        }
+
+        // 检查向量是否存在
+        val results = query(indexName, FloatArray(0), 1, mapOf("id" to id), false)
+        if (results.isEmpty()) {
+            // 尝试使用空向量和空过滤条件获取所有向量，然后手动过滤
+            val allResults = query(indexName, FloatArray(0), 1000, null, false)
+            val filteredResults = allResults.filter { it.id == id }
+
+            if (filteredResults.isEmpty()) {
+                logger.warn { "Vector $id not found in index $indexName" }
+                return false
+            }
         }
 
         // 更新向量和元数据
