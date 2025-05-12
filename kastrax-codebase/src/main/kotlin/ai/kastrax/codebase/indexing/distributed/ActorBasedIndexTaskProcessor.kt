@@ -3,6 +3,7 @@ package ai.kastrax.codebase.indexing.distributed
 import ai.kastrax.codebase.indexing.IndexTask
 import ai.kastrax.codebase.indexing.IndexTaskProcessor
 import ai.kastrax.codebase.indexing.IndexTaskType
+import ai.kastrax.codebase.indexing.IncrementalIndexTask
 import ai.kastrax.store.document.Document
 import ai.kastrax.store.document.DocumentVectorStore
 import ai.kastrax.store.embedding.EmbeddingService
@@ -42,7 +43,7 @@ class ActorBasedIndexTaskProcessor(
      *
      * @param task 索引任务
      */
-    override suspend fun processTask(task: IndexTask) = withContext(Dispatchers.IO) {
+    override suspend fun processTask(task: IncrementalIndexTask) = withContext(Dispatchers.IO) {
         logger.debug { "处理索引任务: ${task.id}, 类型: ${task.type}, 路径: ${task.path}" }
 
         when (task.type) {
@@ -131,7 +132,7 @@ class ActorBasedIndexTaskProcessor(
      *
      * @param task 索引任务
      */
-    private suspend fun processBranchChangeTask(task: IndexTask) {
+    private suspend fun processBranchChangeTask(task: IncrementalIndexTask) {
         try {
             val previousBranch = task.metadata["previousBranch"]
             val currentBranch = task.metadata["currentBranch"]
@@ -325,3 +326,4 @@ class ActorBasedIndexTaskProcessor(
             else -> "Unknown"
         }
     }
+}

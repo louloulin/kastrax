@@ -59,6 +59,11 @@ tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
     }
 }
 
+// Disable configuration cache for test task due to serialization issues
+tasks.withType<Test>().configureEach {
+    notCompatibleWithConfigurationCache("Test tasks in this module have configuration cache issues with DefaultProject")
+}
+
 allOpen {
     annotation("jakarta.ws.rs.Path")
     annotation("jakarta.enterprise.context.ApplicationScoped")

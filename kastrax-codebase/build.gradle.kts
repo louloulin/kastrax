@@ -4,7 +4,22 @@ plugins {
     id("org.jetbrains.dokka")
 }
 
-
+kotlin {
+    sourceSets {
+        main {
+            kotlin {
+                // 排除实验性代码
+                exclude("**/experimental/**")
+            }
+        }
+        test {
+            kotlin {
+                // 排除测试代码
+                exclude("**/indexing/IncrementalIndexerTest.kt")
+            }
+        }
+    }
+}
 
 
 dependencies {
@@ -20,6 +35,9 @@ dependencies {
     // kactor 依赖
     implementation(project(":kactor:proto-actor"))
     implementation(project(":kactor:proto-mailbox"))
+    implementation(project(":kactor:proto-remote"))
+    implementation(project(":kactor:proto-cluster"))
+    implementation(project(":kastrax-actor"))
 
     // 文件系统监控依赖
     implementation("io.methvin:directory-watcher:0.17.1")

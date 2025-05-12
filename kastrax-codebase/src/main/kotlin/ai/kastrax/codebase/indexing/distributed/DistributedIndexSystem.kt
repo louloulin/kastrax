@@ -1,7 +1,7 @@
 package ai.kastrax.codebase.indexing.distributed
 
-import ai.kastrax.codebase.actor.ActorSystem
-import ai.kastrax.codebase.actor.PID
+import actor.proto.ActorSystem
+import actor.proto.PID
 import ai.kastrax.codebase.indexing.IndexProcessor
 import ai.kastrax.codebase.indexing.IndexTask
 import ai.kastrax.codebase.indexing.IndexTaskStatus
@@ -117,13 +117,13 @@ class DistributedIndexSystem(
 
         try {
             // 启动协调器
-            coordinatorPid = actorSystem.spawn(
+            coordinatorPid = actor.proto.spawn(
                 IndexCoordinatorActor.props(config.coordinatorConfig),
                 "index-coordinator"
             )
 
             // 启动分片管理器
-            shardManagerPid = actorSystem.spawn(
+            shardManagerPid = actor.proto.spawn(
                 IndexShardManager.props(config.shardManagerConfig),
                 "index-shard-manager"
             )
@@ -131,7 +131,7 @@ class DistributedIndexSystem(
             // 启动本地工作器
             for (i in 0 until config.localWorkerCount) {
                 val workerId = "worker-${UUID.randomUUID()}"
-                val workerPid = actorSystem.spawn(
+                val workerPid = actor.proto.spawn(
                     IndexWorkerActor.props(
                         workerId = workerId,
                         coordinatorPid = coordinatorPid,
@@ -204,7 +204,7 @@ class DistributedIndexSystem(
         logger.debug { "提交索引任务: ${task.id}" }
 
         try {
-            val result = actorSystem.ask<Boolean>(
+            val result = actor.proto.ask<Boolean>(
                 coordinatorPid,
                 IndexCoordinatorMessage.SubmitTask(task),
                 config.taskSubmitTimeout.inWholeMilliseconds

@@ -1,9 +1,9 @@
 package ai.kastrax.codebase.indexing.distributed
 
-import ai.kastrax.codebase.actor.Actor
-import ai.kastrax.codebase.actor.Context
-import ai.kastrax.codebase.actor.PID
-import ai.kastrax.codebase.actor.Props
+import actor.proto.Actor
+import actor.proto.Context
+import actor.proto.PID
+import actor.proto.Props
 import ai.kastrax.codebase.indexing.IndexTask
 import ai.kastrax.codebase.indexing.IndexTaskStatus
 import ai.kastrax.codebase.indexing.IndexTaskType

@@ -1,7 +1,7 @@
 package ai.kastrax.codebase.indexing.distributed
 
-import  ai.kastrax.codebase.actor.PID
-import ai.kastrax.codebase.actor.Props
+import actor.proto.PID
+import actor.proto.Props
 import ai.kastrax.codebase.indexing.IndexProcessor
 
 /**
@@ -15,7 +15,7 @@ object ActorProps {
      * @return Props
      */
     fun IndexCoordinatorActor.Companion.props(config: IndexCoordinatorConfig): Props {
-        return Props.fromProducer {
+        return actor.proto.fromProducer {
             IndexCoordinatorActor(config)
         }
     }
@@ -35,7 +35,7 @@ object ActorProps {
         indexProcessor: IndexProcessor,
         config: IndexWorkerConfig
     ): Props {
-        return Props.fromProducer {
+        return actor.proto.fromProducer {
             IndexWorkerActor(workerId, coordinatorPid, indexProcessor, config)
         }
     }
@@ -47,7 +47,7 @@ object ActorProps {
      * @return Props
      */
     fun IndexShardManager.Companion.props(config: IndexShardManagerConfig): Props {
-        return Props.fromProducer {
+        return actor.proto.fromProducer {
             IndexShardManager(config)
         }
     }
