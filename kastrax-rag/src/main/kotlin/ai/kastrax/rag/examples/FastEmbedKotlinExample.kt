@@ -21,7 +21,7 @@ fun main() {
             model = EmbeddingModel.BGE_SMALL_ZH,
             showDownloadProgress = true
         ).use { embeddingService ->
-            println("嵌入服务创建成功，嵌入维度: ${embeddingService.dimensions}")
+            println("嵌入服务创建成功，嵌入维度: ${embeddingService.dimension}")
 
             // 测试单个文本嵌入
             val text = "人工智能是计算机科学的一个分支，它致力于创造能够模拟人类智能的机器。"

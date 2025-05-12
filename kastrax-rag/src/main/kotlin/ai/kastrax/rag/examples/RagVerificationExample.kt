@@ -32,7 +32,7 @@ object RagVerificationExample {
          */
         override suspend fun embed(text: String): FloatArray {
             // 返回一个固定的嵌入向量
-            return FloatArray(dimension()) { 0.1f }
+            return FloatArray(dimension) { 0.1f }
         }
 
         /**
@@ -43,7 +43,7 @@ object RagVerificationExample {
          */
         override suspend fun embedBatch(texts: List<String>): List<FloatArray> {
             // 返回固定的嵌入向量列表
-            return texts.map { FloatArray(dimension()) { 0.1f } }
+            return texts.map { FloatArray(dimension) { 0.1f } }
         }
 
         /**

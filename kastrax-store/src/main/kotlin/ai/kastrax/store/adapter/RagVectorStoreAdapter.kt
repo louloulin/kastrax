@@ -63,15 +63,16 @@ class RagVectorStoreAdapter(
         }
 
         // 生成文档 ID
-        val id = UUID.randomUUID().toString()
+        val tempId = UUID.randomUUID().toString()
 
         // 添加向量
-        vectorStore.upsert(
+        val ids = vectorStore.upsert(
             indexName = indexName,
             vectors = listOf(embedding),
             metadata = listOf(metadata + ("content" to document)),
-            ids = listOf(id)
+            ids = listOf(tempId)
         )
+        val id = tempId
 
         // 缓存文档
         val ragDocument = RagDocument(id, document, metadata)
@@ -132,7 +133,7 @@ class RagVectorStoreAdapter(
         }
 
         // 生成文档 ID
-        val ids = documents.map { document ->
+        val finalIds = documents.map { document ->
             contentToId[document] ?: UUID.randomUUID().toString()
         }
 
@@ -144,18 +145,18 @@ class RagVectorStoreAdapter(
             indexName = indexName,
             vectors = embeddings,
             metadata = enhancedMetadata,
-            ids = ids
+            ids = finalIds
         )
 
         // 缓存文档
         for (i in documents.indices) {
-            val ragDocument = RagDocument(ids[i], documents[i], normalizedMetadata[i])
-            documentCache[ids[i]] = ragDocument
-            contentToId[documents[i]] = ids[i]
+            val ragDocument = RagDocument(finalIds[i], documents[i], normalizedMetadata[i])
+            documentCache[finalIds[i]] = ragDocument
+            contentToId[documents[i]] = finalIds[i]
         }
 
         logger.debug { "Added ${documents.size} documents" }
-        return@withContext ids
+        return@withContext finalIds
     }
 
     /**

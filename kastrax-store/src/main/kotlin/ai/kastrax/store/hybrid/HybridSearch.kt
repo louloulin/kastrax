@@ -83,7 +83,7 @@ object HybridSearch {
             query = query,
             embeddingService = embeddingService,
             limit = limit * 2 // 获取更多结果以便后续合并
-        )
+        ).filter { it.score >= options.minVectorScore }
 
         // 如果关键词为空或权重为 0，则直接返回向量搜索结果
         if (keywords.isEmpty() || options.keywordWeight <= 0.0) {

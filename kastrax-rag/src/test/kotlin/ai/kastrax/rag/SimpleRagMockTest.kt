@@ -38,7 +38,7 @@ class SimpleRagMockTest {
 
         // 创建模拟的嵌入服务
         val embeddingService = mock<EmbeddingService>()
-        whenever(embeddingService.dimension()).thenReturn(128)
+        whenever(embeddingService.dimension).thenReturn(128)
         whenever(embeddingService.embed(any<String>())).thenReturn(FloatArray(128) { 0.1f })
         whenever(embeddingService.embedBatch(any<List<String>>())).thenReturn(List(3) { FloatArray(128) { 0.1f } })
 

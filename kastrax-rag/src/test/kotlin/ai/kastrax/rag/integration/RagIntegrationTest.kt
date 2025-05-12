@@ -34,8 +34,8 @@ class RagIntegrationTest {
     @BeforeEach
     fun setup() {
         // 创建嵌入服务
-        embeddingService = object : EmbeddingService {
-            override fun dimension(): Int = 384
+        embeddingService = object : EmbeddingService() {
+            override val dimension: Int = 384
 
             override suspend fun embed(text: String): FloatArray {
                 // 使用文本的哈希码作为随机数生成器的种子，以确保相同的文本生成相同的嵌入
@@ -43,7 +43,7 @@ class RagIntegrationTest {
                 val textRandom = java.util.Random(textSeed)
 
                 // 生成随机向量
-                val vector = FloatArray(dimension()) {
+                val vector = FloatArray(dimension) {
                     // 生成 [-1, 1] 范围内的随机浮点数
                     textRandom.nextFloat() * 2 - 1
                 }
