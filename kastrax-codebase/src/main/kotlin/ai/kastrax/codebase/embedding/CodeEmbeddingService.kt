@@ -2,7 +2,6 @@ package ai.kastrax.codebase.embedding
 
 import ai.kastrax.store.embedding.EmbeddingService
 import ai.kastrax.rag.embedding.CachedEmbeddingService
-import ai.kastrax.rag.embedding.EmbeddingService as RagEmbeddingService
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -42,22 +41,20 @@ class CodeEmbeddingService(
     private val config: CodeEmbeddingServiceConfig = CodeEmbeddingServiceConfig()
 ) : Closeable {
     // 缓存嵌入服务
-    private val ragEmbeddingService = object : RagEmbeddingService() {
-        override val dimension: Int = baseEmbeddingService.dimension
-        override suspend fun embed(text: String): FloatArray = baseEmbeddingService.embed(text)
-        override suspend fun embedBatch(texts: List<String>): List<FloatArray> = baseEmbeddingService.embedBatch(texts)
-        override fun close() {}
-    }
-
     private val cachedEmbeddingService: CachedEmbeddingService = CachedEmbeddingService(
-        delegate = ragEmbeddingService,
+        delegate = object : ai.kastrax.rag.embedding.EmbeddingService() {
+            override val dimension: Int = 1536
+            override suspend fun embed(text: String): FloatArray = baseEmbeddingService.embed(text)
+            override suspend fun embedBatch(texts: List<String>): List<FloatArray> = baseEmbeddingService.embedBatch(texts)
+            override fun close() {}
+        },
         cacheSize = config.cacheSize
     )
 
     /**
      * 嵌入维度
      */
-    val dimension: Int = baseEmbeddingService.dimension
+    val dimension: Int = 1536
 
     /**
      * 嵌入单个文本

@@ -216,7 +216,7 @@ class CodeVectorStore(
                 indexName = indexName,
                 queryVector = vector.toFloatArray(),
                 topK = limit * 2, // 获取更多结果，以便后续过滤
-                includeVectors = false
+                filter = null
             )
 
             // 过滤结果
@@ -294,7 +294,7 @@ class CodeVectorStore(
             }
 
             val stats = baseVectorStore.describeIndex(indexName)
-            return stats.count
+            return stats.count.toInt()
         } catch (e: Exception) {
             logger.error(e) { "获取元素数量失败: ${e.message}" }
             return 0
@@ -381,7 +381,7 @@ class CodeVectorStore(
 
         try {
             val id = metadata["id"] as String
-            
+
             // 如果缓存中存在，直接返回
             val cachedElement = elementCache[id]
             if (cachedElement != null) {
