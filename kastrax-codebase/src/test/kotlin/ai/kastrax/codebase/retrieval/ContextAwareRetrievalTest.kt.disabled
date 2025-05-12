@@ -1,0 +1,453 @@
+package ai.kastrax.codebase.retrieval
+
+import ai.kastrax.codebase.embedding.EmbeddingModel
+import ai.kastrax.codebase.embedding.EmbeddingModelManager
+import ai.kastrax.codebase.embedding.EmbeddingService
+import ai.kastrax.codebase.retrieval.model.ContextAwareRetrievalModelConfig
+import ai.kastrax.codebase.retrieval.model.RetrievalModelConfig
+import ai.kastrax.codebase.semantic.CodeRelationAnalyzer
+import ai.kastrax.codebase.semantic.CodeRelationAnalyzerConfig
+import ai.kastrax.codebase.semantic.CodeSemanticAnalyzer
+import ai.kastrax.codebase.semantic.CodeSemanticAnalyzerConfig
+import ai.kastrax.codebase.semantic.memory.ImportanceLevel
+import ai.kastrax.codebase.semantic.memory.MemoryType
+import ai.kastrax.codebase.semantic.memory.SemanticMemory
+import ai.kastrax.codebase.semantic.memory.SemanticMemoryManager
+import ai.kastrax.codebase.semantic.memory.SemanticMemoryManagerConfig
+import ai.kastrax.codebase.semantic.parser.ChapiJavaCodeParser
+import ai.kastrax.codebase.semantic.parser.ChapiKotlinCodeParser
+import ai.kastrax.codebase.semantic.parser.CodeParserFactory
+import ai.kastrax.codebase.store.VectorStore
+import ai.kastrax.codebase.store.VectorStoreConfig
+import ai.kastrax.codebase.store.VectorStoreFactory
+import ai.kastrax.codebase.symbol.SymbolGraphBuilder
+import ai.kastrax.codebase.symbol.SymbolGraphBuilderConfig
+import kotlinx.coroutines.runBlocking
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.io.TempDir
+import java.nio.file.Path
+import java.time.Instant
+import kotlin.io.path.writeText
+import kotlin.test.assertEquals
+import kotlin.test.assertTrue
+
+class ContextAwareRetrievalTest {
+    
+    @TempDir
+    lateinit var tempDir: Path
+    
+    private lateinit var embeddingService: EmbeddingService
+    private lateinit var memoryManager: SemanticMemoryManager
+    private lateinit var retrievalEngine: ContextAwareRetrievalEngine
+    
+    @BeforeEach
+    fun setUp() {
+        // 注册解析器
+        CodeParserFactory.registerParser(ChapiJavaCodeParser())
+        CodeParserFactory.registerParser(ChapiKotlinCodeParser())
+        
+        // 创建嵌入模型管理器
+        val embeddingModelManager = EmbeddingModelManager()
+        
+        // 注册测试嵌入模型
+        embeddingModelManager.registerModel(
+            EmbeddingModel(
+                name = "test",
+                dimension = 4,
+                provider = "test",
+                modelName = "test-model",
+                apiKey = "test-key",
+                endpoint = "test-endpoint"
+            )
+        )
+        
+        // 创建嵌入服务（使用模拟实现）
+        embeddingService = object : EmbeddingService(embeddingModelManager) {
+            override suspend fun generateEmbedding(text: String, modelName: String): List<Float> {
+                // 返回简单的测试嵌入向量
+                return listOf(0.1f, 0.2f, 0.3f, 0.4f)
+            }
+            
+            override suspend fun generateEmbeddings(texts: List<String>, modelName: String): List<List<Float>> {
+                // 返回简单的测试嵌入向量列表
+                return texts.map { listOf(0.1f, 0.2f, 0.3f, 0.4f) }
+            }
+        }
+        
+        // 创建向量存储
+        val vectorStore = VectorStoreFactory.createVectorStore(
+            config = VectorStoreConfig(
+                type = "memory",
+                dimension = 4
+            )
+        )
+        
+        // 创建代码语义分析器
+        val semanticAnalyzer = CodeSemanticAnalyzer(
+            config = CodeSemanticAnalyzerConfig(
+                maxConcurrentFiles = 10
+            )
+        )
+        
+        // 创建代码关系分析器
+        val relationAnalyzer = CodeRelationAnalyzer(
+            config = CodeRelationAnalyzerConfig(
+                analyzeInheritance = true,
+                analyzeUsage = true,
+                analyzeDependency = true,
+                analyzeOverride = true
+            )
+        )
+        
+        // 创建符号关系图构建器
+        val symbolGraphBuilder = SymbolGraphBuilder(
+            semanticAnalyzer = semanticAnalyzer,
+            relationAnalyzer = relationAnalyzer,
+            config = SymbolGraphBuilderConfig(
+                includeReferences = true,
+                includeCalls = true,
+                includeInheritance = true,
+                includeImplementations = true,
+                includeOverrides = true,
+                includeImports = true,
+                includeDependencies = true
+            )
+        )
+        
+        // 创建语义记忆管理器
+        memoryManager = SemanticMemoryManager(
+            semanticAnalyzer = semanticAnalyzer,
+            symbolGraphBuilder = symbolGraphBuilder,
+            embeddingService = embeddingService,
+            vectorStore = vectorStore,
+            config = SemanticMemoryManagerConfig(
+                memoryStoreName = "test-memory",
+                vectorStoreName = "test-vectors",
+                embeddingModelName = "test",
+                maxConcurrentTasks = 10,
+                autoIndexNewElements = true,
+                autoUpdateIndices = true,
+                enableEventNotifications = true
+            )
+        )
+        
+        // 创建上下文感知检索引擎
+        retrievalEngine = ContextAwareRetrievalEngine(
+            memoryManager = memoryManager,
+            embeddingService = embeddingService,
+            config = ContextAwareRetrievalEngineConfig(
+                engineType = RetrievalEngineType.CONTEXT_AWARE,
+                modelConfig = RetrievalModelConfig(
+                    name = "test",
+                    embeddingModelName = "test",
+                    vectorDimension = 4,
+                    maxResults = 10,
+                    minScore = 0.5,
+                    enableCaching = true,
+                    cacheSize = 100
+                ),
+                contextAwareConfig = ContextAwareRetrievalModelConfig(
+                    contextWindowSize = 3,
+                    contextWeight = 0.3,
+                    recencyDecayFactor = 0.1,
+                    popularityBoostFactor = 0.05,
+                    enableExplanations = true,
+                    enableUserFeedbackLearning = true,
+                    userFeedbackWeight = 0.2
+                ),
+                maxContextSize = 10,
+                enableEventNotifications = true,
+                enableFeedbackLearning = true,
+                enableExplanations = true
+            )
+        )
+        
+        // 创建测试文件
+        createTestFiles()
+        
+        // 创建测试记忆
+        createTestMemories()
+    }
+    
+    @Test
+    fun `test context aware retrieval`() = runBlocking {
+        // 初始化检索引擎
+        retrievalEngine.initialize()
+        
+        // 执行检索
+        val results = retrievalEngine.retrieve(
+            query = "Java class inheritance",
+            sessionId = "test-session",
+            limit = 5,
+            minScore = 0.5,
+            currentFile = "TestClass.java"
+        )
+        
+        // 验证结果
+        assertTrue(results.isNotEmpty())
+        
+        // 执行第二次检索（上下文相关）
+        val results2 = retrievalEngine.retrieve(
+            query = "method implementation",
+            sessionId = "test-session",
+            limit = 5,
+            minScore = 0.5,
+            currentFile = "TestClass.java"
+        )
+        
+        // 验证结果
+        assertTrue(results2.isNotEmpty())
+        
+        // 提供反馈
+        val feedback = retrievalEngine.provideFeedback(
+            memoryId = results2.first().memory.id,
+            score = 0.8,
+            sessionId = "test-session",
+            comment = "This is relevant"
+        )
+        
+        assertTrue(feedback)
+        
+        // 执行第三次检索（考虑反馈）
+        val results3 = retrievalEngine.retrieve(
+            query = "interface implementation",
+            sessionId = "test-session",
+            limit = 5,
+            minScore = 0.5,
+            currentFile = "TestClass.java"
+        )
+        
+        // 验证结果
+        assertTrue(results3.isNotEmpty())
+        
+        // 清除会话历史
+        val cleared = retrievalEngine.clearSessionHistory("test-session")
+        
+        assertTrue(cleared)
+    }
+    
+    @Test
+    fun `test retrieval with selected text`() = runBlocking {
+        // 初始化检索引擎
+        retrievalEngine.initialize()
+        
+        // 执行检索（带选中文本）
+        val results = retrievalEngine.retrieve(
+            query = "method implementation",
+            sessionId = "test-session",
+            limit = 5,
+            minScore = 0.5,
+            currentFile = "TestClass.java",
+            selectedText = "testMethod"
+        )
+        
+        // 验证结果
+        assertTrue(results.isNotEmpty())
+        
+        // 检查结果是否包含与选中文本相关的记忆
+        val hasMethodMemory = results.any { result ->
+            result.memory.content.contains("testMethod")
+        }
+        
+        assertTrue(hasMethodMemory)
+    }
+    
+    @Test
+    fun `test retrieval with different engine types`() = runBlocking {
+        // 创建多因素排序引擎
+        val multifactorEngine = ContextAwareRetrievalEngine(
+            memoryManager = memoryManager,
+            embeddingService = embeddingService,
+            config = ContextAwareRetrievalEngineConfig(
+                engineType = RetrievalEngineType.MULTIFACTOR,
+                modelConfig = RetrievalModelConfig(
+                    name = "test",
+                    embeddingModelName = "test",
+                    vectorDimension = 4,
+                    maxResults = 10,
+                    minScore = 0.5,
+                    enableCaching = true,
+                    cacheSize = 100
+                ),
+                maxContextSize = 10,
+                enableEventNotifications = true,
+                enableFeedbackLearning = true,
+                enableExplanations = true
+            )
+        )
+        
+        // 初始化引擎
+        multifactorEngine.initialize()
+        
+        // 执行检索
+        val results = multifactorEngine.retrieve(
+            query = "Java class inheritance",
+            sessionId = "test-session",
+            limit = 5,
+            minScore = 0.5,
+            currentFile = "TestClass.java"
+        )
+        
+        // 验证结果
+        assertTrue(results.isNotEmpty())
+    }
+    
+    /**
+     * 创建测试文件
+     */
+    private fun createTestFiles() {
+        // 创建 Java 文件
+        val javaFile = tempDir.resolve("TestClass.java")
+        javaFile.writeText("""
+            package ai.kastrax.codebase.test;
+            
+            import java.util.List;
+            import java.util.ArrayList;
+            
+            /**
+             * 这是一个测试类，用于测试上下文感知检索系统。
+             */
+            public class TestClass implements TestInterface {
+                private String name;
+                private int age;
+                private List<String> items;
+                
+                /**
+                 * 构造函数
+                 */
+                public TestClass(String name, int age) {
+                    this.name = name;
+                    this.age = age;
+                    this.items = new ArrayList<>();
+                }
+                
+                /**
+                 * 获取名称
+                 */
+                @Override
+                public String getName() {
+                    return name;
+                }
+                
+                /**
+                 * 设置名称
+                 */
+                public void setName(String name) {
+                    this.name = name;
+                }
+                
+                /**
+                 * 获取年龄
+                 */
+                @Override
+                public int getAge() {
+                    return age;
+                }
+                
+                /**
+                 * 设置年龄
+                 */
+                public void setAge(int age) {
+                    this.age = age;
+                }
+                
+                /**
+                 * 测试方法
+                 */
+                @Override
+                public void testMethod() {
+                    System.out.println("This is a test method.");
+                    anotherMethod();
+                }
+                
+                /**
+                 * 另一个方法
+                 */
+                private void anotherMethod() {
+                    System.out.println("This is another method.");
+                }
+                
+                /**
+                 * 添加项目
+                 */
+                public void addItem(String item) {
+                    items.add(item);
+                }
+                
+                /**
+                 * 获取项目
+                 */
+                public List<String> getItems() {
+                    return items;
+                }
+            }
+        """.trimIndent())
+        
+        // 创建 Java 接口文件
+        val javaInterfaceFile = tempDir.resolve("TestInterface.java")
+        javaInterfaceFile.writeText("""
+            package ai.kastrax.codebase.test;
+            
+            /**
+             * 这是一个测试接口，用于测试上下文感知检索系统。
+             */
+            public interface TestInterface {
+                /**
+                 * 获取名称
+                 */
+                String getName();
+                
+                /**
+                 * 获取年龄
+                 */
+                int getAge();
+                
+                /**
+                 * 测试方法
+                 */
+                void testMethod();
+            }
+        """.trimIndent())
+    }
+    
+    /**
+     * 创建测试记忆
+     */
+    private fun createTestMemories() = runBlocking {
+        // 创建类继承记忆
+        val inheritanceMemory = SemanticMemory(
+            id = "memory1",
+            type = MemoryType.INHERITANCE,
+            content = "Java 类继承是面向对象编程的核心概念之一。在 Java 中，一个类可以继承另一个类的属性和方法，实现代码重用和多态性。TestClass 继承自 Object 类并实现了 TestInterface 接口。",
+            importance = ImportanceLevel.HIGH,
+            creationTime = Instant.now().minusSeconds(3600),
+            accessCount = 5
+        )
+        
+        // 创建方法实现记忆
+        val methodMemory = SemanticMemory(
+            id = "memory2",
+            type = MemoryType.IMPLEMENTATION,
+            content = "TestClass 实现了 TestInterface 接口中定义的 testMethod 方法。该方法打印一条消息并调用 anotherMethod 方法。",
+            importance = ImportanceLevel.MEDIUM,
+            creationTime = Instant.now().minusSeconds(1800),
+            accessCount = 3
+        )
+        
+        // 创建接口实现记忆
+        val interfaceMemory = SemanticMemory(
+            id = "memory3",
+            type = MemoryType.IMPLEMENTATION,
+            content = "TestClass 实现了 TestInterface 接口，提供了 getName()、getAge() 和 testMethod() 方法的具体实现。",
+            importance = ImportanceLevel.HIGH,
+            creationTime = Instant.now().minusSeconds(2400),
+            accessCount = 4
+        )
+        
+        // 添加记忆
+        memoryManager.addMemory(inheritanceMemory)
+        memoryManager.addMemory(methodMemory)
+        memoryManager.addMemory(interfaceMemory)
+    }
+}

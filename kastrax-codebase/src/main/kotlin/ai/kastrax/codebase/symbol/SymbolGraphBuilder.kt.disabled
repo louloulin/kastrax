@@ -1,0 +1,322 @@
+package ai.kastrax.codebase.symbol
+
+import ai.kastrax.codebase.semantic.CodeSemanticAnalyzer
+import ai.kastrax.codebase.semantic.model.CodeElement
+import ai.kastrax.codebase.symbol.model.SymbolGraph
+import ai.kastrax.codebase.symbol.model.SymbolNode
+import ai.kastrax.codebase.symbol.model.SymbolRelation
+import io.github.oshai.kotlinlogging.KotlinLogging
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import java.io.File
+import java.nio.file.Path
+import java.nio.file.Paths
+
+private val logger = KotlinLogging.logger {}
+
+/**
+ * 符号图构建器配置
+ *
+ * @property includeImports 是否包含导入
+ * @property includeInheritance 是否包含继承关系
+ * @property includeImplementations 是否包含实现关系
+ * @property includeCalls 是否包含调用关系
+ * @property includeReferences 是否包含引用关系
+ * @property includeDocumentation 是否包含文档
+ * @property maxDepth 最大深度
+ * @property fileExtensions 文件扩展名列表
+ * @property excludePatterns 排除模式列表
+ */
+data class SymbolGraphBuilderConfig(
+    val includeImports: Boolean = true,
+    val includeInheritance: Boolean = true,
+    val includeImplementations: Boolean = true,
+    val includeCalls: Boolean = true,
+    val includeReferences: Boolean = true,
+    val includeDocumentation: Boolean = true,
+    val maxDepth: Int = 5,
+    val fileExtensions: List<String> = listOf("java", "kt", "py", "js", "ts", "go"),
+    val excludePatterns: List<String> = listOf("**/build/**", "**/target/**", "**/node_modules/**", "**/.git/**")
+)
+
+/**
+ * 符号图构建器
+ *
+ * 用于构建代码库的符号关系图
+ *
+ * @property codeAnalyzer 代码分析器
+ * @property config 配置
+ */
+class SymbolGraphBuilder(
+    private val codeAnalyzer: CodeSemanticAnalyzer,
+    private val config: SymbolGraphBuilderConfig = SymbolGraphBuilderConfig()
+) {
+    // 符号图
+    private val symbolGraph = SymbolGraph()
+
+    // 已处理的文件
+    private val processedFiles = mutableSetOf<String>()
+
+    /**
+     * 构建符号图
+     *
+     * @param rootPath 根路径
+     * @return 符号图
+     */
+    suspend fun buildGraph(rootPath: String): SymbolGraph = withContext(Dispatchers.IO) {
+        val rootDir = File(rootPath)
+        if (!rootDir.exists() || !rootDir.isDirectory) {
+            logger.error { "根路径不存在或不是目录: $rootPath" }
+            return@withContext symbolGraph
+        }
+
+        // 清除之前的图
+        symbolGraph.clear()
+        processedFiles.clear()
+
+        // 处理根目录
+        processDirectory(rootDir, 0)
+
+        // 构建关系
+        buildRelations()
+
+        return@withContext symbolGraph
+    }
+
+    /**
+     * 处理目录
+     *
+     * @param directory 目录
+     * @param depth 深度
+     */
+    private suspend fun processDirectory(directory: File, depth: Int) {
+        if (depth > config.maxDepth) {
+            return
+        }
+
+        directory.listFiles()?.forEach { file ->
+            if (file.isDirectory) {
+                // 检查是否应该排除该目录
+                if (!shouldExclude(file.path)) {
+                    processDirectory(file, depth + 1)
+                }
+            } else if (file.isFile && shouldProcessFile(file)) {
+                processFile(file)
+            }
+        }
+    }
+
+    /**
+     * 处理文件
+     *
+     * @param file 文件
+     */
+    private suspend fun processFile(file: File) {
+        if (processedFiles.contains(file.absolutePath)) {
+            return
+        }
+
+        try {
+            val fileContent = file.readText()
+            val codeElements = codeAnalyzer.analyzeCode(fileContent, file.extension)
+
+            // 添加符号节点
+            addSymbolNodes(codeElements, file.path)
+
+            // 标记文件为已处理
+            processedFiles.add(file.absolutePath)
+        } catch (e: Exception) {
+            logger.error(e) { "处理文件时出错: ${file.path}" }
+        }
+    }
+
+    /**
+     * 添加符号节点
+     *
+     * @param codeElements 代码元素列表
+     * @param filePath 文件路径
+     */
+    private fun addSymbolNodes(codeElements: List<CodeElement>, filePath: String) {
+        codeElements.forEach { element ->
+            val node = SymbolNode(
+                id = element.id,
+                name = element.name,
+                type = element.type,
+                filePath = filePath,
+                startLine = element.location.startLine,
+                endLine = element.location.endLine,
+                documentation = if (config.includeDocumentation) element.documentation else "",
+                modifiers = element.modifiers,
+                properties = element.properties
+            )
+
+            symbolGraph.addNode(node)
+
+            // 递归处理子元素
+            addSymbolNodes(element.children, filePath)
+        }
+    }
+
+    /**
+     * 构建关系
+     */
+    private suspend fun buildRelations() {
+        val nodes = symbolGraph.getAllNodes()
+
+        for (node in nodes) {
+            // 处理继承关系
+            if (config.includeInheritance) {
+                buildInheritanceRelations(node)
+            }
+
+            // 处理实现关系
+            if (config.includeImplementations) {
+                buildImplementationRelations(node)
+            }
+
+            // 处理调用关系
+            if (config.includeCalls) {
+                buildCallRelations(node)
+            }
+
+            // 处理引用关系
+            if (config.includeReferences) {
+                buildReferenceRelations(node)
+            }
+        }
+    }
+
+    /**
+     * 构建继承关系
+     *
+     * @param node 符号节点
+     */
+    private fun buildInheritanceRelations(node: SymbolNode) {
+        val superClass = node.properties["superClass"] as? String ?: return
+        val superNode = symbolGraph.findNodeByName(superClass) ?: return
+
+        symbolGraph.addRelation(
+            SymbolRelation(
+                sourceId = node.id,
+                targetId = superNode.id,
+                type = "EXTENDS"
+            )
+        )
+    }
+
+    /**
+     * 构建实现关系
+     *
+     * @param node 符号节点
+     */
+    private fun buildImplementationRelations(node: SymbolNode) {
+        val interfaces = node.properties["interfaces"] as? List<String> ?: return
+        
+        interfaces.forEach { interfaceName ->
+            val interfaceNode = symbolGraph.findNodeByName(interfaceName) ?: return@forEach
+            
+            symbolGraph.addRelation(
+                SymbolRelation(
+                    sourceId = node.id,
+                    targetId = interfaceNode.id,
+                    type = "IMPLEMENTS"
+                )
+            )
+        }
+    }
+
+    /**
+     * 构建调用关系
+     *
+     * @param node 符号节点
+     */
+    private fun buildCallRelations(node: SymbolNode) {
+        val calls = node.properties["calls"] as? List<String> ?: return
+        
+        calls.forEach { call ->
+            val callNode = symbolGraph.findNodeByName(call) ?: return@forEach
+            
+            symbolGraph.addRelation(
+                SymbolRelation(
+                    sourceId = node.id,
+                    targetId = callNode.id,
+                    type = "CALLS"
+                )
+            )
+        }
+    }
+
+    /**
+     * 构建引用关系
+     *
+     * @param node 符号节点
+     */
+    private fun buildReferenceRelations(node: SymbolNode) {
+        val references = node.properties["references"] as? List<String> ?: return
+        
+        references.forEach { reference ->
+            val referenceNode = symbolGraph.findNodeByName(reference) ?: return@forEach
+            
+            symbolGraph.addRelation(
+                SymbolRelation(
+                    sourceId = node.id,
+                    targetId = referenceNode.id,
+                    type = "REFERENCES"
+                )
+            )
+        }
+    }
+
+    /**
+     * 检查是否应该处理文件
+     *
+     * @param file 文件
+     * @return 是否应该处理
+     */
+    private fun shouldProcessFile(file: File): Boolean {
+        // 检查文件扩展名
+        if (!config.fileExtensions.contains(file.extension.lowercase())) {
+            return false
+        }
+
+        // 检查是否应该排除
+        return !shouldExclude(file.path)
+    }
+
+    /**
+     * 检查是否应该排除
+     *
+     * @param path 路径
+     * @return 是否应该排除
+     */
+    private fun shouldExclude(path: String): Boolean {
+        val normalizedPath = path.replace("\\", "/")
+        
+        return config.excludePatterns.any { pattern ->
+            val regex = pattern
+                .replace(".", "\\.")
+                .replace("**", ".*")
+                .replace("*", "[^/]*")
+                .toRegex()
+            
+            regex.matches(normalizedPath)
+        }
+    }
+
+    /**
+     * 获取符号图
+     *
+     * @return 符号图
+     */
+    fun getGraph(): SymbolGraph {
+        return symbolGraph
+    }
+
+    /**
+     * 清除符号图
+     */
+    fun clear() {
+        symbolGraph.clear()
+        processedFiles.clear()
+    }
+}
