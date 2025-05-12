@@ -38,42 +38,9 @@ private val logger = KotlinLogging.logger {}
 // 配置类已移至DistributedIndexSystemConfig.kt文件
 
 /**
- * 索引协调器事件
+ * 系统状态变更事件
  */
-sealed class IndexCoordinatorEvent {
-    /**
-     * 任务状态变更事件
-     *
-     * @property taskId 任务ID
-     * @property status 状态
-     * @property error 错误信息
-     */
-    data class TaskStatusChanged(
-        val taskId: String,
-        val status: IndexTaskStatus,
-        val error: String? = null
-    ) : IndexCoordinatorEvent()
-
-    /**
-     * 工作器状态变更事件
-     *
-     * @property workerId 工作器ID
-     * @property isActive 是否活跃
-     */
-    data class WorkerStatusChanged(
-        val workerId: String,
-        val isActive: Boolean
-    ) : IndexCoordinatorEvent()
-
-    /**
-     * 系统状态变更事件
-     *
-     * @property status 系统状态
-     */
-    data class SystemStatusChanged(
-        val status: SystemStatus
-    ) : IndexCoordinatorEvent()
-}
+data class SystemStatusChangedEvent(val status: SystemStatusInfo)
 
 /**
  * 分布式索引系统
@@ -101,7 +68,7 @@ class DistributedIndexSystem(
     private val taskResults = ConcurrentHashMap<String, CompletableDeferred<Boolean>>()
 
     // 事件流
-    private val _eventFlow = MutableSharedFlow<IndexCoordinatorEvent>(replay = 0, extraBufferCapacity = 100)
+    private val _eventFlow = MutableSharedFlow<Any>(replay = 0, extraBufferCapacity = 100)
     private val eventFlow = _eventFlow.asSharedFlow()
 
     /**
@@ -117,13 +84,13 @@ class DistributedIndexSystem(
 
         try {
             // 启动协调器
-            coordinatorPid = actor.proto.spawn(
+            coordinatorPid = actorSystem.actorOf(
                 IndexCoordinatorActor.props(config.coordinatorConfig),
                 "index-coordinator"
             )
 
             // 启动分片管理器
-            shardManagerPid = actor.proto.spawn(
+            shardManagerPid = actorSystem.actorOf(
                 IndexShardManager.props(config.shardManagerConfig),
                 "index-shard-manager"
             )
@@ -131,7 +98,7 @@ class DistributedIndexSystem(
             // 启动本地工作器
             for (i in 0 until config.localWorkerCount) {
                 val workerId = "worker-${UUID.randomUUID()}"
-                val workerPid = actor.proto.spawn(
+                val workerPid = actorSystem.actorOf(
                     IndexWorkerActor.props(
                         workerId = workerId,
                         coordinatorPid = coordinatorPid,
@@ -145,7 +112,7 @@ class DistributedIndexSystem(
 
             // 发布系统启动事件
             val status = getStatus()
-            _eventFlow.emit(IndexCoordinatorEvent.SystemStatusChanged(status))
+            _eventFlow.emit(SystemStatusChangedEvent(status))
 
             logger.info { "分布式索引系统启动成功" }
         } catch (e: Exception) {
@@ -180,7 +147,7 @@ class DistributedIndexSystem(
             actorSystem.stop(coordinatorPid)
 
             // 发布系统停止事件
-            _eventFlow.emit(IndexCoordinatorEvent.SystemStatusChanged(SystemStatus.STOPPED))
+            _eventFlow.emit(SystemStatusChangedEvent(SystemStatusInfo(status = SystemStatus.STOPPED)))
 
             logger.info { "分布式索引系统停止成功" }
         } catch (e: Exception) {
@@ -204,10 +171,10 @@ class DistributedIndexSystem(
         logger.debug { "提交索引任务: ${task.id}" }
 
         try {
-            val result = actor.proto.ask<Boolean>(
+            val result = actorSystem.requestAsync<Boolean>(
                 coordinatorPid,
                 IndexCoordinatorMessage.SubmitTask(task),
-                config.taskSubmitTimeout.inWholeMilliseconds
+                java.time.Duration.ofMillis(config.taskSubmitTimeout.inWholeMilliseconds)
             )
 
             return@withContext result
@@ -243,10 +210,10 @@ class DistributedIndexSystem(
             var successCount = 0
 
             for (batch in batches) {
-                val result = actorSystem.ask<Boolean>(
+                val result = actorSystem.requestAsync<Boolean>(
                     coordinatorPid,
                     IndexCoordinatorMessage.SubmitTasks(batch),
-                    config.taskSubmitTimeout.inWholeMilliseconds
+                    java.time.Duration.ofMillis(config.taskSubmitTimeout.inWholeMilliseconds)
                 )
 
                 if (result) {
@@ -264,27 +231,27 @@ class DistributedIndexSystem(
     /**
      * 获取系统状态
      *
-     * @return 系统状态
+     * @return 系统状态信息
      */
-    suspend fun getStatus(): SystemStatus = withContext(Dispatchers.Default) {
+    suspend fun getStatus(): SystemStatusInfo = withContext(Dispatchers.Default) {
         if (!isStarted.get()) {
             logger.warn { "分布式索引系统尚未启动" }
-            return@withContext SystemStatus.STOPPED
+            return@withContext SystemStatusInfo(status = SystemStatus.STOPPED)
         }
 
         try {
             // 获取协调器状态
-            val coordinatorStatus = actorSystem.ask<IndexCoordinatorMessage.StatusResponse>(
+            val coordinatorStatus = actorSystem.requestAsync<IndexCoordinatorMessage.StatusResponse>(
                 coordinatorPid,
                 IndexCoordinatorMessage.GetStatus,
-                config.taskSubmitTimeout.inWholeMilliseconds
+                java.time.Duration.ofMillis(config.taskSubmitTimeout.inWholeMilliseconds)
             )
 
             // 获取分片管理器状态
-            val shardManagerStatus = actorSystem.ask<IndexShardManagerMessage.GetAllShardsResponse>(
+            val shardManagerStatus = actorSystem.requestAsync<IndexShardManagerMessage.GetAllShardsResponse>(
                 shardManagerPid,
                 IndexShardManagerMessage.GetAllShards,
-                config.taskSubmitTimeout.inWholeMilliseconds
+                java.time.Duration.ofMillis(config.taskSubmitTimeout.inWholeMilliseconds)
             )
 
             // 获取工作器状态
@@ -292,10 +259,10 @@ class DistributedIndexSystem(
                 workerPids.map { workerPid ->
                     async {
                         try {
-                            actorSystem.ask<IndexWorkerMessage.StatusResponse>(
+                            actorSystem.requestAsync<IndexWorkerMessage.StatusResponse>(
                                 workerPid,
                                 IndexWorkerMessage.GetStatus,
-                                config.taskSubmitTimeout.inWholeMilliseconds
+                                java.time.Duration.ofMillis(config.taskSubmitTimeout.inWholeMilliseconds)
                             )
                         } catch (e: Exception) {
                             null
@@ -304,11 +271,22 @@ class DistributedIndexSystem(
                 }.awaitAll().filterNotNull()
             }
 
-            // 返回系统状态
-            return@withContext SystemStatus.RUNNING
+            // 返回系统状态信息
+            return@withContext SystemStatusInfo(
+                status = SystemStatus.RUNNING,
+                pendingTaskCount = coordinatorStatus.pendingTaskCount,
+                runningTaskCount = coordinatorStatus.runningTaskCount,
+                completedTaskCount = coordinatorStatus.completedTaskCount,
+                failedTaskCount = coordinatorStatus.failedTaskCount,
+                workerCount = coordinatorStatus.workerCount
+            )
         } catch (e: Exception) {
             logger.error(e) { "获取系统状态时出错" }
-            return@withContext if (isStarted.get()) SystemStatus.RUNNING else SystemStatus.STOPPED
+            return@withContext if (isStarted.get()) {
+                SystemStatusInfo(status = SystemStatus.RUNNING)
+            } else {
+                SystemStatusInfo(status = SystemStatus.STOPPED)
+            }
         }
     }
 
@@ -326,17 +304,17 @@ class DistributedIndexSystem(
 
         try {
             // 获取分片
-            val response = actorSystem.ask<IndexShardManagerMessage.GetShardResponse>(
+            val response = actorSystem.requestAsync<IndexShardManagerMessage.GetShardResponse>(
                 shardManagerPid,
                 IndexShardManagerMessage.GetShard(key),
-                config.taskSubmitTimeout.inWholeMilliseconds
+                java.time.Duration.ofMillis(config.taskSubmitTimeout.inWholeMilliseconds)
             )
 
             // 获取分片信息
-            val allShardsResponse = actorSystem.ask<IndexShardManagerMessage.GetAllShardsResponse>(
+            val allShardsResponse = actorSystem.requestAsync<IndexShardManagerMessage.GetAllShardsResponse>(
                 shardManagerPid,
                 IndexShardManagerMessage.GetAllShards,
-                config.taskSubmitTimeout.inWholeMilliseconds
+                java.time.Duration.ofMillis(config.taskSubmitTimeout.inWholeMilliseconds)
             )
 
             return@withContext allShardsResponse.shards[response.shardId]
@@ -351,7 +329,7 @@ class DistributedIndexSystem(
      *
      * @return 索引事件流
      */
-    fun indexEvents(): Flow<IndexCoordinatorEvent> {
+    fun indexEvents(): Flow<Any> {
         return eventFlow
     }
 

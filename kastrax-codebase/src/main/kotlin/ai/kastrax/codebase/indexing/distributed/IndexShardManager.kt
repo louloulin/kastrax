@@ -4,6 +4,7 @@ import actor.proto.Actor
 import actor.proto.Context
 import actor.proto.PID
 import actor.proto.Props
+import actor.proto.fromProducer
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.delay
 import java.time.Instant
@@ -15,78 +16,7 @@ import kotlin.time.Duration.Companion.seconds
 
 private val logger = KotlinLogging.logger {}
 
-/**
- * 索引分片管理器消息
- */
-sealed class IndexShardManagerMessage {
-    /**
-     * 注册分片消息
-     *
-     * @property shardId 分片ID
-     * @property nodeId 节点ID
-     * @property pid 分片PID
-     * @property metadata 元数据
-     */
-    data class RegisterShard(
-        val shardId: String,
-        val nodeId: String,
-        val pid: PID,
-        val metadata: Map<String, Any> = emptyMap()
-    ) : IndexShardManagerMessage()
-
-    /**
-     * 注销分片消息
-     *
-     * @property shardId 分片ID
-     * @property nodeId 节点ID
-     */
-    data class UnregisterShard(val shardId: String, val nodeId: String) : IndexShardManagerMessage()
-
-    /**
-     * 分片心跳消息
-     *
-     * @property shardId 分片ID
-     * @property nodeId 节点ID
-     * @property status 状态
-     */
-    data class ShardHeartbeat(
-        val shardId: String,
-        val nodeId: String,
-        val status: ShardStatus
-    ) : IndexShardManagerMessage()
-
-    /**
-     * 获取分片消息
-     *
-     * @property key 键
-     */
-    data class GetShard(val key: String) : IndexShardManagerMessage()
-
-    /**
-     * 获取分片响应消息
-     *
-     * @property shardId 分片ID
-     * @property pid 分片PID
-     */
-    data class GetShardResponse(val shardId: String, val pid: PID?) : IndexShardManagerMessage()
-
-    /**
-     * 获取所有分片消息
-     */
-    object GetAllShards : IndexShardManagerMessage()
-
-    /**
-     * 获取所有分片响应消息
-     *
-     * @property shards 分片信息映射
-     */
-    data class GetAllShardsResponse(val shards: Map<String, ShardInfo>) : IndexShardManagerMessage()
-
-    /**
-     * 重新平衡分片消息
-     */
-    object RebalanceShards : IndexShardManagerMessage()
-}
+// 索引分片管理器消息已移至 IndexShardManagerMessage.kt
 
 /**
  * 分片状态
@@ -97,49 +27,9 @@ sealed class IndexShardManagerMessage {
  * @property memoryUsage 内存使用率
  * @property isHealthy 是否健康
  */
-data class ShardStatus(
-    val documentCount: Long = 0,
-    val indexSize: Long = 0,
-    val cpuUsage: Double = 0.0,
-    val memoryUsage: Double = 0.0,
-    val isHealthy: Boolean = true
-)
+// 分片状态和分片信息已移至 IndexShardManagerMessage.kt
 
-/**
- * 分片信息
- *
- * @property shardId 分片ID
- * @property nodeId 节点ID
- * @property pid 分片PID
- * @property status 状态
- * @property metadata 元数据
- * @property lastHeartbeat 最后心跳时间
- */
-data class ShardInfo(
-    val shardId: String,
-    val nodeId: String,
-    val pid: PID,
-    var status: ShardStatus = ShardStatus(),
-    val metadata: Map<String, Any> = emptyMap(),
-    var lastHeartbeat: Instant = Instant.now()
-)
-
-/**
- * 索引分片管理器配置
- *
- * @property shardCount 分片数量
- * @property replicaCount 副本数量
- * @property heartbeatInterval 心跳间隔
- * @property shardTimeoutDuration 分片超时时间
- * @property rebalanceInterval 重新平衡间隔
- */
-data class IndexShardManagerConfig(
-    val shardCount: Int = 10,
-    val replicaCount: Int = 1,
-    val heartbeatInterval: Duration = 10.seconds,
-    val shardTimeoutDuration: Duration = 30.seconds,
-    val rebalanceInterval: Duration = 60.seconds
-)
+// 索引分片管理器配置已移至 DistributedIndexSystemConfig.kt
 
 /**
  * 索引分片管理器
@@ -158,17 +48,7 @@ class IndexShardManager(private val config: IndexShardManagerConfig = IndexShard
     /**
      * 接收消息
      */
-    override suspend fun Context.receive(msg: Any) {
-        when (msg) {
-            is IndexShardManagerMessage.RegisterShard -> handleRegisterShard(msg.shardId, msg.nodeId, msg.pid, msg.metadata)
-            is IndexShardManagerMessage.UnregisterShard -> handleUnregisterShard(msg.shardId, msg.nodeId)
-            is IndexShardManagerMessage.ShardHeartbeat -> handleShardHeartbeat(msg.shardId, msg.nodeId, msg.status)
-            is IndexShardManagerMessage.GetShard -> handleGetShard(msg.key)
-            is IndexShardManagerMessage.GetAllShards -> handleGetAllShards()
-            is IndexShardManagerMessage.RebalanceShards -> handleRebalanceShards()
-            else -> logger.warn { "未知消息类型: ${msg::class.simpleName}" }
-        }
-    }
+    // 删除重复的 receive 方法，使用下面的实现
 
     /**
      * 处理注册分片消息
@@ -184,7 +64,7 @@ class IndexShardManager(private val config: IndexShardManagerConfig = IndexShard
         pid: PID,
         metadata: Map<String, Any>
     ) {
-        logger.info { "注册分片: $shardId, 节点: $nodeId" }
+        logger.info("注册分片: $shardId, 节点: $nodeId")
 
         // 创建分片信息
         val shardInfo = ShardInfo(
@@ -212,7 +92,7 @@ class IndexShardManager(private val config: IndexShardManagerConfig = IndexShard
      * @param nodeId 节点ID
      */
     private suspend fun Context.handleUnregisterShard(shardId: String, nodeId: String) {
-        logger.info { "注销分片: $shardId, 节点: $nodeId" }
+        logger.info("注销分片: $shardId, 节点: $nodeId")
 
         // 从分片映射中移除
         val shardInfo = shards.remove(shardId)
@@ -229,7 +109,7 @@ class IndexShardManager(private val config: IndexShardManagerConfig = IndexShard
             // 响应注销成功
             respond(true)
         } else {
-            logger.warn { "尝试注销不存在的分片: $shardId" }
+            logger.warning("尝试注销不存在的分片: $shardId")
 
             // 响应注销失败
             respond(false)
@@ -251,9 +131,9 @@ class IndexShardManager(private val config: IndexShardManagerConfig = IndexShard
             shardInfo.status = status
             shardInfo.lastHeartbeat = Instant.now()
 
-            logger.debug { "分片心跳: $shardId, 节点: $nodeId, 健康: ${status.isHealthy}" }
+            logger.debug("分片心跳: $shardId, 节点: $nodeId, 健康: ${status.isHealthy}")
         } else {
-            logger.warn { "收到未注册分片的心跳: $shardId, 节点: $nodeId" }
+            logger.warning("收到未注册分片的心跳: $shardId, 节点: $nodeId")
         }
     }
 
@@ -290,11 +170,11 @@ class IndexShardManager(private val config: IndexShardManagerConfig = IndexShard
      * 处理重新平衡分片消息
      */
     private suspend fun Context.handleRebalanceShards() {
-        logger.info { "开始重新平衡分片" }
+        logger.info("开始重新平衡分片")
 
         // 检查是否有足够的节点
         if (nodeShards.size <= 1) {
-            logger.info { "节点数量不足，无需重新平衡" }
+            logger.info("节点数量不足，无需重新平衡")
             return
         }
 
@@ -308,7 +188,7 @@ class IndexShardManager(private val config: IndexShardManagerConfig = IndexShard
         val underloadedNodes = nodeShardCounts.filter { it.value < targetShardsPerNode }
 
         if (overloadedNodes.isEmpty() || underloadedNodes.isEmpty()) {
-            logger.info { "分片已经平衡，无需重新平衡" }
+            logger.info("分片已经平衡，无需重新平衡")
             return
         }
 
@@ -331,7 +211,7 @@ class IndexShardManager(private val config: IndexShardManagerConfig = IndexShard
                 // 移动分片
                 val shardInfo = shards[shardId] ?: continue
 
-                logger.info { "移动分片 $shardId 从节点 $overloadedNodeId 到节点 $targetNodeId" }
+                logger.info("移动分片 $shardId 从节点 $overloadedNodeId 到节点 $targetNodeId")
 
                 // 通知相关节点
                 // 注意：这里只是模拟，实际实现需要更复杂的协议
@@ -344,12 +224,18 @@ class IndexShardManager(private val config: IndexShardManagerConfig = IndexShard
                 shards[shardId] = shardInfo.copy(nodeId = targetNodeId)
 
                 // 更新节点分片计数
-                nodeShardCounts[overloadedNodeId] = nodeShardCounts[overloadedNodeId]!! - 1
-                nodeShardCounts[targetNodeId] = (nodeShardCounts[targetNodeId] ?: 0) + 1
+                val overloadedCount = nodeShardCounts.getOrDefault(overloadedNodeId, 0)
+                val updatedOverloadedCount = overloadedCount - 1
+                val mutableNodeShardCounts = nodeShardCounts.toMutableMap()
+                mutableNodeShardCounts[overloadedNodeId] = updatedOverloadedCount
+
+                val targetCount = nodeShardCounts.getOrDefault(targetNodeId, 0)
+                val updatedTargetCount = targetCount + 1
+                mutableNodeShardCounts[targetNodeId] = updatedTargetCount
             }
         }
 
-        logger.info { "分片重新平衡完成" }
+        logger.info("分片重新平衡完成")
     }
 
     /**
@@ -365,7 +251,7 @@ class IndexShardManager(private val config: IndexShardManagerConfig = IndexShard
             .map { it.key to it.value }
 
         for ((shardId, shardInfo) in timedOutShards) {
-            logger.warn { "分片超时: $shardId, 节点: ${shardInfo.nodeId}" }
+            logger.warning("分片超时: $shardId, 节点: ${shardInfo.nodeId}")
 
             // 从分片映射中移除
             shards.remove(shardId)
@@ -385,28 +271,53 @@ class IndexShardManager(private val config: IndexShardManagerConfig = IndexShard
      */
     private suspend fun Context.startPeriodicTasks() {
         // 定期检查分片健康状态
-        spawnNamed("health-checker") {
-            while (true) {
-                checkShardHealth()
-                delay(config.heartbeatInterval.inWholeMilliseconds)
+        val healthCheckerProps = fromProducer {
+            object : Actor {
+                override suspend fun Context.receive(msg: Any) {
+                    checkShardHealth()
+                    delay(config.heartbeatInterval.inWholeMilliseconds)
+                    send(self, "continue")
+                }
             }
         }
+        val healthChecker = spawnNamed(healthCheckerProps, "health-checker")
+        send(healthChecker, "continue")
 
         // 定期重新平衡分片
-        spawnNamed("rebalancer") {
-            while (true) {
-                self.tell(IndexShardManagerMessage.RebalanceShards)
-                delay(config.rebalanceInterval.inWholeMilliseconds)
+        val rebalancerProps = fromProducer {
+            object : Actor {
+                override suspend fun Context.receive(msg: Any) {
+                    send(self, IndexShardManagerMessage.RebalanceShards)
+                    delay(config.rebalanceInterval.inWholeMilliseconds)
+                    send(self, "continue")
+                }
             }
         }
+        val rebalancer = spawnNamed(rebalancerProps, "rebalancer")
+        send(rebalancer, "continue")
     }
 
     /**
      * 处理启动消息
      */
-    override suspend fun Context.started() {
-        logger.info { "索引分片管理器已启动" }
-        startPeriodicTasks()
+    override suspend fun Context.receive(msg: Any) {
+        when (msg) {
+            is IndexShardManagerMessage.RegisterShard -> handleRegisterShard(
+                msg.shardId,
+                msg.nodeId,
+                msg.pid,
+                msg.metadata
+            )
+            is IndexShardManagerMessage.UnregisterShard -> handleUnregisterShard(msg.shardId, msg.nodeId)
+            is IndexShardManagerMessage.ShardHeartbeat -> handleShardHeartbeat(msg.shardId, msg.nodeId, msg.status)
+            is IndexShardManagerMessage.GetShard -> handleGetShard(msg.key)
+            is IndexShardManagerMessage.RebalanceShards -> handleRebalanceShards()
+            "started" -> {
+                logger.info("索引分片管理器已启动")
+                startPeriodicTasks()
+            }
+            else -> logger.warning("未知消息类型: ${msg::class.simpleName}")
+        }
     }
 
     companion object {
@@ -417,7 +328,7 @@ class IndexShardManager(private val config: IndexShardManagerConfig = IndexShard
          * @return Props
          */
         fun props(config: IndexShardManagerConfig = IndexShardManagerConfig()): Props {
-            return Props.fromProducer { IndexShardManager(config) }
+            return fromProducer { IndexShardManager(config) }
         }
     }
 }

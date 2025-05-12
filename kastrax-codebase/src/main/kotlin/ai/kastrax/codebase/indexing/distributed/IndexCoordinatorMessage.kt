@@ -1,6 +1,6 @@
 package ai.kastrax.codebase.indexing.distributed
 
-import ai.kastrax.codebase.actor.PID
+import actor.proto.PID
 import ai.kastrax.codebase.indexing.IndexTask
 import ai.kastrax.codebase.indexing.IndexTaskStatus
 
@@ -71,5 +71,18 @@ sealed class IndexCoordinatorMessage {
         val workerCount: Int,
         val totalCapacity: Int,
         val availableCapacity: Int
+    ) : IndexCoordinatorMessage()
+
+    /**
+     * 工作器心跳消息
+     *
+     * @property workerId 工作器ID
+     * @property activeTaskCount 活动任务数量
+     * @property availableSlots 可用槽位数量
+     */
+    data class WorkerHeartbeat(
+        val workerId: String,
+        val activeTaskCount: Int,
+        val availableSlots: Int
     ) : IndexCoordinatorMessage()
 }

@@ -4,6 +4,7 @@ import actor.proto.Actor
 import actor.proto.Context
 import actor.proto.PID
 import actor.proto.Props
+import actor.proto.fromProducer
 import ai.kastrax.codebase.indexing.IndexProcessor
 import ai.kastrax.codebase.indexing.IndexTask
 import ai.kastrax.codebase.indexing.IndexTaskStatus
@@ -26,20 +27,7 @@ import kotlin.time.Duration.Companion.seconds
 
 private val logger = KotlinLogging.logger {}
 
-/**
- * 索引工作器配置
- *
- * @property capacity 工作器容量
- * @property heartbeatInterval 心跳间隔
- * @property taskTimeout 任务超时时间
- * @property maxConcurrentTasks 最大并发任务数
- */
-data class IndexWorkerConfig(
-    val capacity: Int = 5,
-    val heartbeatInterval: Duration = 5.seconds,
-    val taskTimeout: Duration = 60.seconds,
-    val maxConcurrentTasks: Int = 3
-)
+// 索引工作器配置已移至 DistributedIndexSystemConfig.kt
 
 /**
  * 索引工作器 Actor
@@ -65,16 +53,7 @@ class IndexWorkerActor(
     private var completedTaskCount = 0
     private var failedTaskCount = 0
 
-    /**
-     * 接收消息
-     */
-    override suspend fun Context.receive(msg: Any) {
-        when (msg) {
-            is IndexWorkerMessage.ProcessTask -> handleProcessTask(msg.task)
-            is IndexWorkerMessage.GetStatus -> handleGetStatus()
-            else -> logger.warn { "未知消息类型: ${msg::class.simpleName}" }
-        }
-    }
+    // 删除重复的 receive 方法，使用下面的实现
 
     /**
      * 处理任务消息
@@ -82,11 +61,11 @@ class IndexWorkerActor(
      * @param task 索引任务
      */
     private suspend fun Context.handleProcessTask(task: IndexTask) {
-        logger.debug { "接收到任务: ${task.id}, 类型: ${task.type}, 路径: ${task.path}" }
+        logger.debug("接收到任务: ${task.id}, 类型: ${task.type}, 路径: ${task.path}")
 
         // 检查是否有可用容量
         if (activeTaskCount.get() >= config.capacity) {
-            logger.warn { "工作器容量已满，拒绝任务: ${task.id}" }
+            logger.warning("工作器容量已满，拒绝任务: ${task.id}")
 
             // 向协调器报告任务失败
             send(coordinatorPid, IndexCoordinatorMessage.TaskStatusUpdate(
@@ -109,9 +88,14 @@ class IndexWorkerActor(
         ))
 
         // 异步处理任务
-        spawnNamed("task-${task.id}") {
-            processTask(task)
+        val taskProps = fromProducer {
+            object : Actor {
+                override suspend fun Context.receive(msg: Any) {
+                    processTask(task)
+                }
+            }
         }
+        spawnNamed(taskProps, "task-${task.id}")
     }
 
     /**
@@ -143,7 +127,7 @@ class IndexWorkerActor(
             }
 
             // 任务成功完成
-            logger.info { "任务完成: ${task.id}" }
+            logger.info("任务完成: ${task.id}")
 
             // 更新统计信息
             completedTaskCount++
@@ -159,7 +143,7 @@ class IndexWorkerActor(
             ))
         } catch (e: TimeoutCancellationException) {
             // 任务超时
-            logger.error { "任务超时: ${task.id}" }
+            logger.error("任务超时: ${task.id}")
 
             // 更新统计信息
             failedTaskCount++
@@ -176,7 +160,7 @@ class IndexWorkerActor(
             ))
         } catch (e: Exception) {
             // 任务执行出错
-            logger.error(e) { "任务执行出错: ${task.id}" }
+            logger.error("任务执行出错: ${task.id}", e)
 
             // 更新统计信息
             failedTaskCount++
@@ -210,29 +194,41 @@ class IndexWorkerActor(
      */
     private suspend fun Context.startPeriodicTasks() {
         // 定期发送心跳
-        spawnNamed("heartbeat-sender") {
-            while (true) {
-                sendHeartbeat()
-                delay(config.heartbeatInterval.inWholeMilliseconds)
+        val heartbeatProps = fromProducer {
+            object : Actor {
+                override suspend fun Context.receive(msg: Any) {
+                    sendHeartbeat()
+                    delay(config.heartbeatInterval.inWholeMilliseconds)
+                    send(self, "continue")
+                }
             }
         }
+        val heartbeatSender = spawnNamed(heartbeatProps, "heartbeat-sender")
+        send(heartbeatSender, "continue")
     }
 
     /**
      * 处理启动消息
      */
-    override suspend fun Context.started() {
-        logger.info { "索引工作器已启动: $workerId" }
+    override suspend fun Context.receive(msg: Any) {
+        when (msg) {
+            is IndexWorkerMessage.ProcessTask -> handleProcessTask(msg.task)
+            is IndexWorkerMessage.GetStatus -> handleGetStatus()
+            "started" -> {
+                logger.info("索引工作器已启动: $workerId")
 
-        // 向协调器注册
-        send(coordinatorPid, IndexCoordinatorMessage.RegisterWorker(
-            workerId = workerId,
-            capacity = config.capacity,
-            pid = self
-        ))
+                // 向协调器注册
+                send(coordinatorPid, IndexCoordinatorMessage.RegisterWorker(
+                    workerId = workerId,
+                    capacity = config.capacity,
+                    pid = self
+                ))
 
-        // 启动定时任务
-        startPeriodicTasks()
+                // 启动定时任务
+                startPeriodicTasks()
+            }
+            else -> logger.warning("未知消息类型: ${msg::class.simpleName}")
+        }
     }
 
     companion object {
@@ -251,7 +247,7 @@ class IndexWorkerActor(
             indexProcessor: IndexProcessor,
             config: IndexWorkerConfig = IndexWorkerConfig()
         ): Props {
-            return Props.fromProducer { IndexWorkerActor(workerId, coordinatorPid, indexProcessor, config) }
+            return fromProducer { IndexWorkerActor(workerId, coordinatorPid, indexProcessor, config) }
         }
     }
 }

@@ -1,6 +1,6 @@
 package ai.kastrax.codebase.indexing.distributed
 
-import ai.kastrax.codebase.actor.ActorSystem
+import actor.proto.ActorSystem
 import ai.kastrax.codebase.indexing.IndexProcessor
 import ai.kastrax.codebase.indexing.IndexTask
 import ai.kastrax.codebase.indexing.IndexTaskStatus
@@ -9,6 +9,7 @@ import java.nio.file.Path
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.flow.toList
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -18,8 +19,8 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.Timeout
-import java.util.UUID
 import java.util.concurrent.TimeUnit
+import java.util.UUID
 import kotlin.time.Duration.Companion.seconds
 
 class DistributedIndexSystemTest {
@@ -30,7 +31,7 @@ class DistributedIndexSystemTest {
 
     @BeforeEach
     fun setUp() {
-        actorSystem = ActorSystem()
+        actorSystem = ActorSystem.default()
         indexProcessor = TestIndexProcessor()
 
         val config = DistributedIndexSystemConfig(
@@ -201,7 +202,7 @@ class DistributedIndexSystemTest {
         indexSystem.start()
 
         // 收集事件
-        val events = mutableListOf<IndexCoordinatorEvent>()
+        val events = mutableListOf<Any>()
         val job = launch {
             indexSystem.indexEvents().take(2).toList(events)
         }
@@ -223,7 +224,7 @@ class DistributedIndexSystemTest {
 
         // 验证事件
         assertTrue(events.size >= 1)
-        assertTrue(events.any { it is IndexCoordinatorEvent.SystemStatusChanged })
+        assertTrue(events.any { it is SystemStatusChangedEvent })
     }
 
     @Test

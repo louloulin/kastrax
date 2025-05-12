@@ -32,4 +32,17 @@ sealed class IndexWorkerMessage {
         val completedTaskCount: Int,
         val failedTaskCount: Int
     ) : IndexWorkerMessage()
+
+    /**
+     * 工作器心跳消息
+     *
+     * @property workerId 工作器ID
+     * @property activeTaskCount 活动任务数量
+     * @property availableSlots 可用槽位数量
+     */
+    data class WorkerHeartbeat(
+        val workerId: String,
+        val activeTaskCount: Int,
+        val availableSlots: Int
+    ) : IndexWorkerMessage()
 }
