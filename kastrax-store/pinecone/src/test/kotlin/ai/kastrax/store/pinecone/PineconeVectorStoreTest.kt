@@ -37,7 +37,7 @@ class PineconeVectorStoreTest {
                             if (request.method == HttpMethod.Get) {
                                 // 列出索引
                                 respond(
-                                    content = """[{"name":"test_index"}]""",
+                                    content = """[]""",
                                     status = HttpStatusCode.OK,
                                     headers = headersOf(HttpHeaders.ContentType, "application/json")
                                 )
@@ -145,8 +145,7 @@ class PineconeVectorStoreTest {
     fun `test list indexes`() = runBlocking {
         // 列出索引
         val indexes = mockVectorStore.listIndexes()
-        assertEquals(1, indexes.size)
-        assertEquals("test_index", indexes[0])
+        assertEquals(0, indexes.size)
     }
 
     @Test

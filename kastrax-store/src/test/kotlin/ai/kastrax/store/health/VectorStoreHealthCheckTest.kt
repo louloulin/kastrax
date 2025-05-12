@@ -141,7 +141,7 @@ class VectorStoreHealthCheckTest {
         assertEquals(HealthStatus.HEALTHY, result.status)
         assertEquals(3, result.details["dimension"])
         assertEquals(100, result.details["count"])
-        assertEquals(SimilarityMetric.COSINE, result.details["metric"])
+        assertEquals(SimilarityMetric.COSINE.toString(), result.details["metric"])
         assertEquals(1, result.details["queryResultCount"])
     }
 }

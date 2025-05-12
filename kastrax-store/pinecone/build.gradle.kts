@@ -27,18 +27,18 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.0")
 
     // Pinecone 客户端依赖
-    implementation("io.ktor:ktor-client-core:2.3.7")
-    implementation("io.ktor:ktor-client-cio:2.3.7")
-    implementation("io.ktor:ktor-client-content-negotiation:2.3.7")
-    implementation("io.ktor:ktor-serialization-kotlinx-json:2.3.7")
-    implementation("io.ktor:ktor-client-auth:2.3.7")
+    implementation("io.ktor:ktor-client-core:3.1.2")
+    implementation("io.ktor:ktor-client-cio:3.1.2")
+    implementation("io.ktor:ktor-client-content-negotiation:3.1.2")
+    implementation("io.ktor:ktor-serialization-kotlinx-json:3.1.2")
+    implementation("io.ktor:ktor-client-auth:3.1.2")
 
     // 测试
     testImplementation("org.junit.jupiter:junit-jupiter-api:5.10.0")
     testImplementation("org.junit.jupiter:junit-jupiter-engine:5.10.0")
     testImplementation("org.mockito:mockito-core:5.5.0")
     testImplementation("org.mockito.kotlin:mockito-kotlin:5.1.0")
-    testImplementation("io.ktor:ktor-client-mock:2.3.7")
+    testImplementation("io.ktor:ktor-client-mock:3.1.2")
 }
 
 tasks.test {

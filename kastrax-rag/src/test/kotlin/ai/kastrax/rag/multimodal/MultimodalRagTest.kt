@@ -34,7 +34,7 @@ class MultimodalRagTest {
         embeddingService = mock(MultimodalEmbeddingService::class.java)
 
         // 设置嵌入服务的行为
-        `when`(embeddingService.dimension()).thenReturn(384)
+        `when`(embeddingService.dimension).thenReturn(384)
         whenever(embeddingService.embed(any())).thenReturn(FloatArray(384) { 0f })
         whenever(embeddingService.embedBatch(any())).thenReturn(List(5) { FloatArray(384) { 0f } })
         whenever(embeddingService.embedImage(any())).thenReturn(FloatArray(384) { 0f })

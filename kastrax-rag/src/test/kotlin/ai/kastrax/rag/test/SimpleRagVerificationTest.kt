@@ -44,7 +44,7 @@ class SimpleRagVerificationTest {
         val embeddingService = mock(EmbeddingService::class.java)
         `when`(embeddingService.embed(anyString())).thenReturn(FloatArray(128) { 0.1f })
         `when`(embeddingService.embedBatch(anyList<String>())).thenReturn(List(3) { FloatArray(128) { 0.1f } })
-        `when`(embeddingService.dimension()).thenReturn(128)
+        `when`(embeddingService.dimension).thenReturn(128)
 
         // 创建模拟的文档向量存储
         val documentStore = mock(DocumentVectorStore::class.java)
@@ -100,7 +100,7 @@ class SimpleRagVerificationTest {
         // 创建模拟的嵌入服务
         val embeddingService = mock(EmbeddingService::class.java)
         `when`(embeddingService.embed(anyString())).thenReturn(FloatArray(128) { 0.1f })
-        `when`(embeddingService.dimension()).thenReturn(128)
+        `when`(embeddingService.dimension).thenReturn(128)
 
         // 创建模拟的文档向量存储
         val documentStore = mock(DocumentVectorStore::class.java)

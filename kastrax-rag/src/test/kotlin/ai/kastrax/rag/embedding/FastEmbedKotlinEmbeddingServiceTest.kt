@@ -43,8 +43,8 @@ class FastEmbedKotlinEmbeddingServiceTest {
         val embedding = embeddingService.embed(text)
 
         // 验证维度
-        assertEquals(embeddingService.dimensions, embedding.size)
-        assertEquals(embeddingService.dimension(), embedding.size)
+        assertEquals(embeddingService.dimension, embedding.size)
+        assertEquals(embeddingService.dimension, embedding.size)
     }
 
     @Test
@@ -60,7 +60,7 @@ class FastEmbedKotlinEmbeddingServiceTest {
         // 验证结果
         assertEquals(texts.size, embeddings.size)
         embeddings.forEach { embedding ->
-            assertEquals(embeddingService.dimensions, embedding.size)
+            assertEquals(embeddingService.dimension, embedding.size)
         }
     }
 
@@ -121,6 +121,6 @@ class FastEmbedKotlinEmbeddingServiceTest {
     @Test
     fun `test dimension returns correct value`() {
         // 验证维度
-        assertEquals(384, embeddingService.dimension())
+        assertEquals(384, embeddingService.dimension)
     }
 }

@@ -50,7 +50,7 @@ class RagVerificationTest {
         val embeddingService = mock(EmbeddingService::class.java)
         `when`(embeddingService.embed(any())).thenReturn(FloatArray(128) { 0.1f })
         `when`(embeddingService.embedBatch(any<List<String>>())).thenReturn(List(3) { FloatArray(128) { 0.1f } })
-        `when`(embeddingService.dimension()).thenReturn(128)
+        `when`(embeddingService.dimension).thenReturn(128)
 
         // 创建模拟的文档向量存储
         val documentStore = mock(DocumentVectorStore::class.java)
@@ -105,7 +105,7 @@ class RagVerificationTest {
         // 创建模拟的嵌入服务
         val embeddingService = mock(EmbeddingService::class.java)
         `when`(embeddingService.embed(any())).thenReturn(FloatArray(128) { 0.1f })
-        `when`(embeddingService.dimension()).thenReturn(128)
+        `when`(embeddingService.dimension).thenReturn(128)
 
         // 创建模拟的文档向量存储
         val documentStore = mock(DocumentVectorStore::class.java)

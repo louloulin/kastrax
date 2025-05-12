@@ -19,7 +19,7 @@ class RandomEmbeddingServiceTest {
         
         // 验证维度
         assertEquals(dimensions, embedding.size)
-        assertEquals(dimensions, embeddingService.dimension())
+        assertEquals(dimensions, embeddingService.dimension)
     }
     
     @Test

@@ -19,7 +19,7 @@ class CachedEmbeddingServiceTest {
         
         // 设置模拟行为
         coEvery { mockEmbeddingService.embed(text) } returns embedding
-        coEvery { mockEmbeddingService.dimension() } returns embedding.size
+        coEvery { mockEmbeddingService.dimension } returns embedding.size
         
         // 创建缓存嵌入服务
         val cachedService = CachedEmbeddingService(mockEmbeddingService)
@@ -56,7 +56,7 @@ class CachedEmbeddingServiceTest {
             val index = texts.indexOf(text)
             if (index >= 0) embeddings[index] else floatArrayOf()
         }
-        coEvery { mockEmbeddingService.dimension() } returns 2
+        coEvery { mockEmbeddingService.dimension } returns 2
         
         // 创建缓存嵌入服务
         val cachedService = CachedEmbeddingService(mockEmbeddingService)
@@ -91,7 +91,7 @@ class CachedEmbeddingServiceTest {
             val text = firstArg<String>()
             floatArrayOf(text.hashCode().toFloat())
         }
-        coEvery { mockEmbeddingService.dimension() } returns 1
+        coEvery { mockEmbeddingService.dimension } returns 1
         
         // 创建缓存嵌入服务
         val cachedService = CachedEmbeddingService(mockEmbeddingService, cacheSize)
@@ -128,12 +128,12 @@ class CachedEmbeddingServiceTest {
         val dimension = 512
         
         // 设置模拟行为
-        coEvery { mockEmbeddingService.dimension() } returns dimension
+        coEvery { mockEmbeddingService.dimension } returns dimension
         
         // 创建缓存嵌入服务
         val cachedService = CachedEmbeddingService(mockEmbeddingService)
         
         // 验证维度
-        assertEquals(dimension, cachedService.dimension())
+        assertEquals(dimension, cachedService.dimension)
     }
 }

@@ -26,7 +26,7 @@ class GraphRAGToolTest {
 
         // 创建模拟的嵌入服务
         embeddingService = mockk<EmbeddingService>()
-        every { embeddingService.dimension() } returns 3
+        every { embeddingService.dimension } returns 3
 
         // 创建 GraphRAGTool
         graphRAGTool = GraphRAGTool(documentLoader, embeddingService)
