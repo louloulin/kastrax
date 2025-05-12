@@ -2,8 +2,8 @@ package ai.kastrax.codebase.examples
 
 import ai.kastrax.codebase.embedding.CodeChunker
 import ai.kastrax.codebase.embedding.CodeChunkerConfig
-import ai.kastrax.codebase.embedding.CodeEmbeddingService
-import ai.kastrax.codebase.embedding.CodeEmbeddingServiceConfig
+// import ai.kastrax.codebase.embedding.CodeEmbeddingService
+// import ai.kastrax.codebase.embedding.CodeEmbeddingServiceConfig
 // TODO: 暂时注释掉，等待依赖问题解决
 // import ai.kastrax.codebase.store.CodeVectorStore
 // import ai.kastrax.codebase.store.CodeVectorStoreConfig

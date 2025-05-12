@@ -4,12 +4,23 @@ plugins {
     id("org.jetbrains.dokka")
 }
 
+kotlin {
+    sourceSets {
+        main {
+            kotlin {
+                // 排除实验性代码，避免编译错误
+                exclude("**/experimental/**")
+            }
+        }
+    }
+}
+
 dependencies {
     // KastraX 核心依赖
     implementation(project(":kastrax-core"))
     implementation(project(":kastrax-memory-api"))
     implementation(project(":kastrax-store"))
-    // Removed kastrax-rag dependency to avoid circular dependency
+    implementation(project(":kastrax-rag"))
     implementation(project(":kastrax-datasource"))
     implementation(project(":kastrax-integrations:kastrax-openai"))
     implementation(project(":kastrax-integrations:kastrax-deepseek"))

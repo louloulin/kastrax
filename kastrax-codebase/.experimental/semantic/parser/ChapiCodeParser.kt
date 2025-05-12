@@ -1,11 +1,5 @@
 package ai.kastrax.codebase.semantic.parser
 
-// TODO: 暂时注释掉，等待依赖问题解决
-
-// 空实现以避免语法错误
-class ChapiCodeParser
-
-/*
 import ai.kastrax.codebase.semantic.model.CodeElement
 import ai.kastrax.codebase.semantic.model.CodeElementType
 import ai.kastrax.codebase.semantic.model.Location
@@ -579,4 +573,3 @@ abstract class ChapiCodeParser : AbstractCodeParser() {
         )
     }
 }
-*/

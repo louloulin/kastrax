@@ -2,8 +2,8 @@ package ai.kastrax.codebase.examples
 
 import ai.kastrax.codebase.embedding.CodeChunker
 import ai.kastrax.codebase.embedding.CodeChunkerConfig
-import ai.kastrax.codebase.embedding.CodeEmbeddingService
-import ai.kastrax.codebase.embedding.CodeEmbeddingServiceConfig
+// import ai.kastrax.codebase.embedding.CodeEmbeddingService
+// import ai.kastrax.codebase.embedding.CodeEmbeddingServiceConfig
 import ai.kastrax.codebase.embedding.EmbeddingModelManager
 import ai.kastrax.codebase.embedding.EmbeddingModelManagerConfig
 import ai.kastrax.codebase.embedding.FastEmbeddingService
