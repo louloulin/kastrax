@@ -1,23 +1,5 @@
 package ai.kastrax.codebase.semantic.parser
 
-// TODO: 暂时注释掉，等待依赖问题解决
-
-// 空实现以避免语法错误
-class ChapiGoCodeParser : AbstractCodeParser() {
-    override fun parseFile(filePath: java.nio.file.Path, content: String): ai.kastrax.codebase.semantic.model.CodeElement {
-        return createFileElement(filePath, content)
-    }
-
-    override fun getSupportedExtensions(): Set<String> {
-        return setOf("go")
-    }
-
-    override fun getLanguageName(): String {
-        return "go"
-    }
-}
-
-/*
 import chapi.domain.core.CodeContainer
 import chapi.ast.goast.GoAnalyser
 
@@ -54,7 +36,6 @@ class ChapiGoCodeParser : ChapiCodeParser() {
      * @return 语言名称
      */
     override fun getLanguageName(): String {
-        return "go"
+        return "Go"
     }
 }
-*/

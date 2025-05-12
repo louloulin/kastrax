@@ -1,23 +1,23 @@
 package ai.kastrax.codebase.semantic.parser
 
 import chapi.domain.core.CodeContainer
-import chapi.ast.javaast.JavaAnalyser
+import chapi.ast.pythonast.PythonAnalyser
 
 /**
- * 基于 Chapi 的 Java 代码解析器
+ * 基于 Chapi 的 Python 代码解析器
  *
- * 使用 Chapi 的 JavaAnalyser 解析 Java 代码文件
+ * 使用 Chapi 的 PythonAnalyser 解析 Python 代码文件
  */
-class ChapiJavaCodeParser : ChapiCodeParser() {
+class ChapiPythonCodeParser : ChapiCodeParser() {
 
     /**
-     * 使用 Chapi 解析 Java 代码
+     * 使用 Chapi 解析 Python 代码
      *
      * @param content 代码内容
      * @return Chapi 代码容器
      */
     override fun parseCodeByChapi(content: String): CodeContainer {
-        val analyser = JavaAnalyser()
+        val analyser = PythonAnalyser()
         return analyser.analysis(content, "")
     }
 
@@ -27,7 +27,7 @@ class ChapiJavaCodeParser : ChapiCodeParser() {
      * @return 支持的文件扩展名集合
      */
     override fun getSupportedExtensions(): Set<String> {
-        return setOf("java")
+        return setOf("py")
     }
 
     /**
@@ -36,6 +36,6 @@ class ChapiJavaCodeParser : ChapiCodeParser() {
      * @return 语言名称
      */
     override fun getLanguageName(): String {
-        return "Java"
+        return "Python"
     }
 }
