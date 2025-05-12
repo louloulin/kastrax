@@ -2,13 +2,13 @@ package ai.kastrax.codebase.embedding
 
 import ai.kastrax.store.embedding.EmbeddingService
 import ai.kastrax.rag.embedding.CachedEmbeddingService
+import ai.kastrax.rag.embedding.EmbeddingService as RagEmbeddingService
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import java.util.concurrent.ConcurrentHashMap
-import kotlin.time.Duration
-import kotlin.time.TimeSource
 import java.io.Closeable
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.hours
 
 private val logger = KotlinLogging.logger {}
 
@@ -23,20 +23,11 @@ private val logger = KotlinLogging.logger {}
  */
 data class CodeEmbeddingServiceConfig(
     val cacheSize: Int = 10000,
-    val cacheExpirationDuration: Duration = Duration.parse("24h"),
+    val cacheExpirationDuration: Duration = 24.hours,
     val batchSize: Int = 32,
-    val useGpu: Boolean = true,
+    val useGpu: Boolean = false,
     val modelVersion: String = "latest"
-) {
-    /**
-     * 获取缓存大小
-     *
-     * @return 缓存大小
-     */
-    fun getCacheSize(): Int {
-        return cacheSize
-    }
-}
+)
 
 /**
  * 代码嵌入服务
@@ -44,24 +35,29 @@ data class CodeEmbeddingServiceConfig(
  * 为代码文件生成高质量的嵌入向量
  *
  * @property baseEmbeddingService 基础嵌入服务
- * @property cachedEmbeddingService 缓存嵌入服务
  * @property config 配置
  */
 class CodeEmbeddingService(
     private val baseEmbeddingService: EmbeddingService,
     private val config: CodeEmbeddingServiceConfig = CodeEmbeddingServiceConfig()
-) : Closeable, EmbeddingService {
-
+) : Closeable {
     // 缓存嵌入服务
+    private val ragEmbeddingService = object : RagEmbeddingService() {
+        override val dimension: Int = baseEmbeddingService.dimension
+        override suspend fun embed(text: String): FloatArray = baseEmbeddingService.embed(text)
+        override suspend fun embedBatch(texts: List<String>): List<FloatArray> = baseEmbeddingService.embedBatch(texts)
+        override fun close() {}
+    }
+
     private val cachedEmbeddingService: CachedEmbeddingService = CachedEmbeddingService(
-        delegate = baseEmbeddingService,
+        delegate = ragEmbeddingService,
         cacheSize = config.cacheSize
     )
 
     /**
      * 嵌入维度
      */
-    override val dimension: Int = baseEmbeddingService.dimension
+    val dimension: Int = baseEmbeddingService.dimension
 
     /**
      * 嵌入单个文本
@@ -69,7 +65,7 @@ class CodeEmbeddingService(
      * @param text 文本
      * @return 嵌入向量
      */
-    override suspend fun embed(text: String): FloatArray = withContext(Dispatchers.Default) {
+    suspend fun embed(text: String): FloatArray = withContext(Dispatchers.Default) {
         // 预处理代码文本
         val processedText = preprocessCode(text)
 
@@ -83,7 +79,7 @@ class CodeEmbeddingService(
      * @param texts 文本列表
      * @return 嵌入向量列表
      */
-    override suspend fun embedBatch(texts: List<String>): List<FloatArray> = withContext(Dispatchers.Default) {
+    suspend fun embedBatch(texts: List<String>): List<FloatArray> = withContext(Dispatchers.Default) {
         // 预处理代码文本
         val processedTexts = texts.map { preprocessCode(it) }
 
@@ -157,24 +153,6 @@ class CodeEmbeddingService(
     }
 
     /**
-     * 获取缓存统计
-     *
-     * @return 缓存命中率
-     */
-    fun getCacheStats(): Double {
-        // 简单返回一个固定值，因为 CachedEmbeddingService 没有 getCacheStats 方法
-        return 0.0
-    }
-
-    /**
-     * 清除缓存
-     */
-    fun clearCache() {
-        // CachedEmbeddingService 没有 clearCache 方法
-        logger.debug { "清除嵌入缓存" }
-    }
-
-    /**
      * 关闭资源
      */
     override fun close() {
@@ -195,23 +173,6 @@ class CodeEmbeddingService(
         ): CodeEmbeddingService {
             return CodeEmbeddingService(
                 baseEmbeddingService = baseEmbeddingService,
-                config = config
-            )
-        }
-
-        /**
-         * 从 RAG 嵌入服务创建代码嵌入服务
-         *
-         * @param embeddingService RAG 嵌入服务
-         * @param config 配置
-         * @return 代码嵌入服务
-         */
-        fun fromRagEmbeddingService(
-            embeddingService: EmbeddingService,
-            config: CodeEmbeddingServiceConfig = CodeEmbeddingServiceConfig()
-        ): CodeEmbeddingService {
-            return CodeEmbeddingService(
-                baseEmbeddingService = embeddingService,
                 config = config
             )
         }

@@ -3,9 +3,12 @@ package ai.kastrax.codebase.context
 import ai.kastrax.codebase.semantic.model.CodeElement
 import ai.kastrax.codebase.semantic.model.CodeElementType
 import ai.kastrax.codebase.semantic.model.Location
+import ai.kastrax.codebase.vector.CodeSearchResult
 import ai.kastrax.codebase.vector.CodeVectorStore
 import ai.kastrax.store.embedding.EmbeddingService
 import io.github.oshai.kotlinlogging.KotlinLogging
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import java.nio.file.Path
 import java.util.concurrent.ConcurrentHashMap
 
@@ -127,17 +130,32 @@ data class Context(
 }
 
 /**
+ * 上下文构建器配置
+ *
+ * @property maxCacheSize 最大缓存大小
+ * @property defaultMaxElements 默认最大元素数量
+ * @property defaultMinScore 默认最小分数
+ */
+data class ContextBuilderConfig(
+    val maxCacheSize: Int = 100,
+    val defaultMaxElements: Int = 20,
+    val defaultMinScore: Float = 0.5f
+)
+
+/**
  * 上下文构建器
  *
  * 用于构建多级上下文
  *
  * @property vectorStore 向量存储
  * @property embeddingService 嵌入服务
+ * @property config 配置
  * @property contextCache 上下文缓存
  */
 class ContextBuilder(
     private val vectorStore: CodeVectorStore,
     private val embeddingService: EmbeddingService,
+    private val config: ContextBuilderConfig = ContextBuilderConfig(),
     private val contextCache: ConcurrentHashMap<String, Context> = ConcurrentHashMap()
 ) {
     /**
@@ -154,18 +172,18 @@ class ContextBuilder(
     suspend fun buildContext(
         query: String,
         position: Location? = null,
-        maxElements: Int = 20,
-        minScore: Float = 0.5f,
+        maxElements: Int = config.defaultMaxElements,
+        minScore: Float = config.defaultMinScore,
         includeLevels: Set<ContextLevel> = ContextLevel.values().toSet(),
         excludeTypes: Set<CodeElementType> = emptySet()
-    ): Context {
+    ): Context = withContext(Dispatchers.IO) {
         // 生成缓存键
         val cacheKey = generateCacheKey(query, position, maxElements, minScore, includeLevels, excludeTypes)
 
         // 检查缓存
         val cachedContext = contextCache[cacheKey]
         if (cachedContext != null) {
-            return cachedContext
+            return@withContext cachedContext
         }
 
         try {
@@ -176,7 +194,7 @@ class ContextBuilder(
             val searchResults = vectorStore.similaritySearch(
                 vector = queryVector,
                 limit = maxElements * 2, // 获取更多结果，以便后续过滤
-                minScore = minScore,
+                minScore = minScore.toFloat(),
                 filter = { _, _, element ->
                     element.type !in excludeTypes
                 }
@@ -216,7 +234,7 @@ class ContextBuilder(
                         ContextElement(
                             element = element,
                             level = level,
-                            relevance = result.score,
+                            relevance = result.score.toFloat(),
                             content = content
                         )
                     )
@@ -240,12 +258,14 @@ class ContextBuilder(
             )
 
             // 缓存上下文
-            contextCache[cacheKey] = context
+            if (contextCache.size < config.maxCacheSize) {
+                contextCache[cacheKey] = context
+            }
 
-            return context
+            return@withContext context
         } catch (e: Exception) {
             logger.error(e) { "构建上下文时出错: $query" }
-            return Context(
+            return@withContext Context(
                 elements = emptyList(),
                 query = query,
                 metadata = mapOf("error" to e.message.toString())
@@ -260,10 +280,10 @@ class ContextBuilder(
      * @param maxElements 最大元素数量
      * @return 上下文
      */
-    fun buildFileContext(
+    suspend fun buildFileContext(
         filePath: Path,
-        maxElements: Int = 20
-    ): Context {
+        maxElements: Int = config.defaultMaxElements
+    ): Context = withContext(Dispatchers.IO) {
         try {
             // 查找文件中的所有元素
             val fileElements = findElementsByFilePath(filePath)
@@ -288,7 +308,7 @@ class ContextBuilder(
             val finalElements = contextElements.take(maxElements)
 
             // 创建上下文
-            return Context(
+            return@withContext Context(
                 elements = finalElements,
                 query = "file:$filePath",
                 metadata = mapOf(
@@ -298,7 +318,7 @@ class ContextBuilder(
             )
         } catch (e: Exception) {
             logger.error(e) { "构建文件上下文时出错: $filePath" }
-            return Context(
+            return@withContext Context(
                 elements = emptyList(),
                 query = "file:$filePath",
                 metadata = mapOf("error" to e.message.toString())
@@ -311,14 +331,14 @@ class ContextBuilder(
      *
      * @param typeName 类型名称
      * @param maxElements 最大元素数量
-     * @param minScore 最小相似度分数
+     * @param minScore 最小分数
      * @return 上下文
      */
     suspend fun buildTypeContext(
         typeName: String,
-        maxElements: Int = 20,
-        minScore: Float = 0.5f
-    ): Context {
+        maxElements: Int = config.defaultMaxElements,
+        minScore: Float = config.defaultMinScore
+    ): Context = withContext(Dispatchers.IO) {
         try {
             // 生成查询向量
             val queryVector = embeddingService.embed(typeName).toList()
@@ -333,7 +353,7 @@ class ContextBuilder(
                     CodeElementType.ANNOTATION
                 ),
                 limit = maxElements * 2,
-                minScore = minScore
+                minScore = minScore.toFloat()
             )
 
             // 构建上下文元素
@@ -347,7 +367,7 @@ class ContextBuilder(
                     ContextElement(
                         element = element,
                         level = level,
-                        relevance = result.score,
+                        relevance = result.score.toFloat(),
                         content = content
                     )
                 )
@@ -357,7 +377,7 @@ class ContextBuilder(
             val finalElements = contextElements.sortedByDescending { it.relevance }.take(maxElements)
 
             // 创建上下文
-            return Context(
+            return@withContext Context(
                 elements = finalElements,
                 query = "type:$typeName",
                 metadata = mapOf(
@@ -368,7 +388,7 @@ class ContextBuilder(
             )
         } catch (e: Exception) {
             logger.error(e) { "构建类型上下文时出错: $typeName" }
-            return Context(
+            return@withContext Context(
                 elements = emptyList(),
                 query = "type:$typeName",
                 metadata = mapOf("error" to e.message.toString())
@@ -381,14 +401,14 @@ class ContextBuilder(
      *
      * @param methodName 方法名称
      * @param maxElements 最大元素数量
-     * @param minScore 最小相似度分数
+     * @param minScore 最小分数
      * @return 上下文
      */
     suspend fun buildMethodContext(
         methodName: String,
-        maxElements: Int = 20,
-        minScore: Float = 0.5f
-    ): Context {
+        maxElements: Int = config.defaultMaxElements,
+        minScore: Float = config.defaultMinScore
+    ): Context = withContext(Dispatchers.IO) {
         try {
             // 生成查询向量
             val queryVector = embeddingService.embed(methodName).toList()
@@ -401,7 +421,7 @@ class ContextBuilder(
                     CodeElementType.CONSTRUCTOR
                 ),
                 limit = maxElements * 2,
-                minScore = minScore
+                minScore = minScore.toFloat()
             )
 
             // 构建上下文元素
@@ -415,7 +435,7 @@ class ContextBuilder(
                     ContextElement(
                         element = element,
                         level = level,
-                        relevance = result.score,
+                        relevance = result.score.toFloat(),
                         content = content
                     )
                 )
@@ -425,7 +445,7 @@ class ContextBuilder(
             val finalElements = contextElements.sortedByDescending { it.relevance }.take(maxElements)
 
             // 创建上下文
-            return Context(
+            return@withContext Context(
                 elements = finalElements,
                 query = "method:$methodName",
                 metadata = mapOf(
@@ -436,7 +456,7 @@ class ContextBuilder(
             )
         } catch (e: Exception) {
             logger.error(e) { "构建方法上下文时出错: $methodName" }
-            return Context(
+            return@withContext Context(
                 elements = emptyList(),
                 query = "method:$methodName",
                 metadata = mapOf("error" to e.message.toString())
@@ -449,18 +469,18 @@ class ContextBuilder(
      *
      * @param queries 查询列表
      * @param maxElementsPerQuery 每个查询的最大元素数量
-     * @param minScore 最小相似度分数
+     * @param minScore 最小分数
      * @param includeLevels 包含的级别
      * @param excludeTypes 排除的类型
      * @return 上下文
      */
-    fun buildMultiQueryContext(
+    suspend fun buildMultiQueryContext(
         queries: List<String>,
-        maxElementsPerQuery: Int = 10,
-        minScore: Float = 0.5f,
+        maxElementsPerQuery: Int = config.defaultMaxElements / 2,
+        minScore: Float = config.defaultMinScore,
         includeLevels: Set<ContextLevel> = ContextLevel.values().toSet(),
         excludeTypes: Set<CodeElementType> = emptySet()
-    ): Context {
+    ): Context = withContext(Dispatchers.IO) {
         try {
             // 构建每个查询的上下文
             val contexts = queries.map { query ->
@@ -487,7 +507,7 @@ class ContextBuilder(
                 .take(maxElementsPerQuery * queries.size)
 
             // 创建上下文
-            return Context(
+            return@withContext Context(
                 elements = uniqueElements,
                 query = queries.joinToString("; "),
                 metadata = mapOf(
@@ -500,7 +520,7 @@ class ContextBuilder(
             )
         } catch (e: Exception) {
             logger.error(e) { "构建多查询上下文时出错: ${queries.joinToString("; ")}" }
-            return Context(
+            return@withContext Context(
                 elements = emptyList(),
                 query = queries.joinToString("; "),
                 metadata = mapOf("error" to e.message.toString())
@@ -517,7 +537,7 @@ class ContextBuilder(
      */
     fun mergeContexts(
         contexts: List<Context>,
-        maxElements: Int = 50
+        maxElements: Int = config.defaultMaxElements * 2
     ): Context {
         try {
             // 合并上下文元素
@@ -620,7 +640,7 @@ class ContextBuilder(
      * @param query 查询
      * @param position 位置
      * @param maxElements 最大元素数量
-     * @param minScore 最小相似度分数
+     * @param minScore 最小分数
      * @param includeLevels 包含的级别
      * @param excludeTypes 排除的类型
      * @return 缓存键
