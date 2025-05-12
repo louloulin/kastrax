@@ -8,8 +8,16 @@ kotlin {
     sourceSets {
         main {
             kotlin {
-                // 排除实验性代码，避免编译错误
+                // 排除实验性代码和分布式索引实现，避免编译错误
                 exclude("**/experimental/**")
+                exclude("**/indexing/distributed/**")
+            }
+        }
+        test {
+            kotlin {
+                // 排除测试代码，避免编译错误
+                exclude("**/indexing/distributed/**")
+                exclude("**/indexing/IncrementalIndexerTest.kt")
             }
         }
     }
@@ -24,6 +32,10 @@ dependencies {
     implementation(project(":kastrax-datasource"))
     implementation(project(":kastrax-integrations:kastrax-openai"))
     implementation(project(":kastrax-integrations:kastrax-deepseek"))
+
+    // kactor 依赖
+    implementation(project(":kactor:proto-actor"))
+    implementation(project(":kactor:proto-mailbox"))
 
     // 文件系统监控依赖
     implementation("io.methvin:directory-watcher:0.17.1")

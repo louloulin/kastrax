@@ -1,11 +1,5 @@
 package ai.kastrax.codebase.indexing.distributed
 
-// TODO: 暂时注释掉Actor相关代码，等待kactor依赖问题解决
-
-// 空实现以避免语法错误
-class ActorBasedIndexTaskProcessor
-
-/*
 import ai.kastrax.codebase.indexing.IndexTask
 import ai.kastrax.codebase.indexing.IndexTaskProcessor
 import ai.kastrax.codebase.indexing.IndexTaskType
@@ -14,6 +8,7 @@ import ai.kastrax.store.document.DocumentVectorStore
 import ai.kastrax.store.embedding.EmbeddingService
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import java.nio.file.Files
 import java.nio.file.Path
@@ -171,7 +166,10 @@ class ActorBasedIndexTaskProcessor(
                 .filter { it.isRegularFile() }
                 .forEach { path ->
                     try {
-                        processAddOrUpdateTask(path)
+                        // 使用协程上下文调用挂起函数
+                        runBlocking {
+                            processAddOrUpdateTask(path)
+                        }
                     } catch (e: Exception) {
                         logger.error(e) { "索引文件时出错: $path" }
                     }
@@ -327,4 +325,3 @@ class ActorBasedIndexTaskProcessor(
             else -> "Unknown"
         }
     }
-*/

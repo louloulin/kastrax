@@ -72,118 +72,118 @@ class BatchProcessor(
 ) {
     private val logger = KotlinLogging.logger {}
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
-    
+
     // 批处理计数器
     private val batchCounter = AtomicInteger(0)
-    
+
     // 活跃的批处理
     private val activeBatches = ConcurrentHashMap<String, BatchProcessingResult>()
-    
+
     // 批处理结果流
     private val _batchResults = MutableSharedFlow<BatchProcessingResult>(extraBufferCapacity = 100)
     val batchResults: SharedFlow<BatchProcessingResult> = _batchResults
-    
+
     // 当前活跃批处理数
     private val activeBatchCount = AtomicInteger(0)
-    
+
     /**
      * 启动批处理器
      *
      * @param indexTasks 索引任务流
      */
-    fun start(indexTasks: SharedFlow<List<IndexTask>>) {
+    fun start(indexTasks: SharedFlow<List<IncrementalIndexTask>>) {
         logger.info { "启动批处理器" }
-        
+
         scope.launch {
             indexTasks.collect { tasks ->
                 processTasks(tasks)
             }
         }
     }
-    
+
     /**
      * 处理任务列表
      *
      * @param tasks 任务列表
      */
-    private fun processTasks(tasks: List<IndexTask>) {
+    private fun processTasks(tasks: List<IncrementalIndexTask>) {
         // 如果没有任务，则跳过
         if (tasks.isEmpty()) {
             return
         }
-        
+
         // 检查是否达到最大并发批处理数
         if (activeBatchCount.get() >= config.maxConcurrentBatches) {
             logger.warn { "达到最大并发批处理数，等待中: ${tasks.size} 个任务" }
             return
         }
-        
+
         // 将任务分成多个批次，每批不超过最大任务数
         val batches = tasks.chunked(config.maxTasksPerBatch)
-        
+
         // 处理每个批次
         batches.forEach { batchTasks ->
             val batchId = "batch-${batchCounter.incrementAndGet()}"
-            
+
             // 创建批处理结果
             val batchResult = BatchProcessingResult(
                 batchId = batchId,
                 status = BatchProcessingStatus.PENDING,
                 tasksTotal = batchTasks.size
             )
-            
+
             // 添加到活跃批处理
             activeBatches[batchId] = batchResult
-            
+
             // 发送批处理结果
             scope.launch {
                 _batchResults.emit(batchResult)
             }
-            
+
             // 启动批处理
             startBatchProcessing(batchId, batchTasks)
         }
     }
-    
+
     /**
      * 启动批处理
      *
      * @param batchId 批处理ID
      * @param tasks 任务列表
      */
-    private fun startBatchProcessing(batchId: String, tasks: List<IndexTask>) {
+    private fun startBatchProcessing(batchId: String, tasks: List<IncrementalIndexTask>) {
         // 增加活跃批处理数
         activeBatchCount.incrementAndGet()
-        
+
         // 更新批处理状态
         updateBatchStatus(batchId, BatchProcessingStatus.PROCESSING)
-        
+
         logger.info { "开始处理批次: $batchId, 任务数: ${tasks.size}" }
-        
+
         // 在后台处理批次
         scope.launch {
             try {
                 // 处理每个任务
                 var completed = 0
                 var failed = 0
-                
+
                 for (task in tasks) {
                     try {
                         // 处理任务
                         indexTaskProcessor.processTask(task)
                         completed++
-                        
+
                         // 更新批处理进度
                         updateBatchProgress(batchId, completed, failed)
                     } catch (e: Exception) {
                         logger.error(e) { "处理任务失败: ${task.id}" }
                         failed++
-                        
+
                         // 更新批处理进度
                         updateBatchProgress(batchId, completed, failed)
                     }
                 }
-                
+
                 // 完成批处理
                 completeBatch(batchId, completed, failed)
             } catch (e: Exception) {
@@ -195,7 +195,7 @@ class BatchProcessor(
             }
         }
     }
-    
+
     /**
      * 更新批处理状态
      *
@@ -206,13 +206,13 @@ class BatchProcessor(
         val current = activeBatches[batchId] ?: return
         val updated = current.copy(status = status)
         activeBatches[batchId] = updated
-        
+
         // 发送更新
         scope.launch {
             _batchResults.emit(updated)
         }
     }
-    
+
     /**
      * 更新批处理进度
      *
@@ -227,13 +227,13 @@ class BatchProcessor(
             tasksFailed = failed
         )
         activeBatches[batchId] = updated
-        
+
         // 发送更新
         scope.launch {
             _batchResults.emit(updated)
         }
     }
-    
+
     /**
      * 完成批处理
      *
@@ -250,18 +250,18 @@ class BatchProcessor(
             endTime = System.currentTimeMillis()
         )
         activeBatches[batchId] = updated
-        
+
         logger.info { "批处理完成: $batchId, 完成: $completed, 失败: $failed" }
-        
+
         // 发送更新
         scope.launch {
             _batchResults.emit(updated)
         }
-        
+
         // 从活跃批处理中移除
         activeBatches.remove(batchId)
     }
-    
+
     /**
      * 批处理失败
      *
@@ -276,18 +276,18 @@ class BatchProcessor(
             error = error
         )
         activeBatches[batchId] = updated
-        
+
         logger.error { "批处理失败: $batchId, 错误: $error" }
-        
+
         // 发送更新
         scope.launch {
             _batchResults.emit(updated)
         }
-        
+
         // 从活跃批处理中移除
         activeBatches.remove(batchId)
     }
-    
+
     /**
      * 获取批处理状态
      *
@@ -297,7 +297,7 @@ class BatchProcessor(
     fun getBatchStatus(batchId: String): BatchProcessingResult? {
         return activeBatches[batchId]
     }
-    
+
     /**
      * 获取所有活跃批处理
      *
@@ -317,5 +317,5 @@ interface IndexTaskProcessor {
      *
      * @param task 索引任务
      */
-    suspend fun processTask(task: IndexTask)
+    suspend fun processTask(task: IncrementalIndexTask)
 }
