@@ -42,7 +42,7 @@ class DataFlowAnalyzerImpl(
 
         try {
             when (element.type) {
-                CodeElementType.METHOD, CodeElementType.FUNCTION -> analyzeMethodDataFlow(element, flowGraph)
+                CodeElementType.METHOD -> analyzeMethodDataFlow(element, flowGraph)
                 CodeElementType.CLASS -> analyzeClassDataFlow(element, flowGraph)
                 CodeElementType.FILE -> analyzeFileDataFlow(element, flowGraph)
                 else -> {
@@ -61,7 +61,6 @@ class DataFlowAnalyzerImpl(
 
     override fun getSupportedElementTypes(): Set<CodeElementType> = setOf(
         CodeElementType.METHOD,
-        CodeElementType.FUNCTION,
         CodeElementType.CLASS,
         CodeElementType.FILE
     )
@@ -101,7 +100,7 @@ class DataFlowAnalyzerImpl(
 
         // 分析参数
         val parameterNodes = analyzeParameters(element, flowGraph)
-        
+
         // 连接入口节点和参数节点
         for (paramNodeId in parameterNodes) {
             val edgeId = UUID.randomUUID().toString()
@@ -117,7 +116,7 @@ class DataFlowAnalyzerImpl(
         // 分析方法体中的变量定义和使用
         val variableMap = mutableMapOf<String, String>() // 变量名到节点ID的映射
         val bodyElements = element.children.filter { it.type in STATEMENT_TYPES }
-        
+
         for (statement in bodyElements) {
             analyzeStatementDataFlow(statement, flowGraph, variableMap, parameterNodes)
         }
@@ -135,7 +134,7 @@ class DataFlowAnalyzerImpl(
                 )
             )
             flowGraph.addNode(returnNode)
-            
+
             // 连接返回节点和出口节点
             val edgeId = UUID.randomUUID().toString()
             val edge = FlowEdge(
@@ -145,7 +144,7 @@ class DataFlowAnalyzerImpl(
                 type = FlowEdgeType.DATA_DEPENDENCY
             )
             flowGraph.addEdge(edge)
-            
+
             // 分析返回值表达式中的变量引用
             analyzeExpressionReferences(returnStatement, returnNodeId, flowGraph, variableMap)
         }
@@ -187,7 +186,7 @@ class DataFlowAnalyzerImpl(
         // 分析类的字段
         val fieldNodes = mutableMapOf<String, String>() // 字段名到节点ID的映射
         val fields = element.children.filter { it.type == CodeElementType.FIELD }
-        
+
         for (field in fields) {
             val fieldNodeId = UUID.randomUUID().toString()
             val fieldNode = FlowNode(
@@ -200,7 +199,7 @@ class DataFlowAnalyzerImpl(
             )
             flowGraph.addNode(fieldNode)
             fieldNodes[field.name] = fieldNodeId
-            
+
             // 连接入口和字段节点
             val edgeId = UUID.randomUUID().toString()
             val edge = FlowEdge(
@@ -215,7 +214,7 @@ class DataFlowAnalyzerImpl(
         // 分析类的方法之间的数据流
         val methods = element.children.filter { it.type == CodeElementType.METHOD || it.type == CodeElementType.CONSTRUCTOR }
         val methodNodes = mutableMapOf<String, String>() // 方法名到节点ID的映射
-        
+
         // 为每个方法创建节点
         for (method in methods) {
             val methodNodeId = UUID.randomUUID().toString()
@@ -230,17 +229,17 @@ class DataFlowAnalyzerImpl(
             flowGraph.addNode(methodNode)
             methodNodes[method.name] = methodNodeId
         }
-        
+
         // 分析方法之间的调用关系
         for (method in methods) {
             val methodNodeId = methodNodes[method.name] ?: continue
-            
+
             // 查找方法中对其他方法的调用
             val methodCalls = findMethodCalls(method)
             for (call in methodCalls) {
                 val calledMethodName = call.name
                 val calledMethodNodeId = methodNodes[calledMethodName]
-                
+
                 if (calledMethodNodeId != null) {
                     // 创建方法调用边
                     val edgeId = UUID.randomUUID().toString()
@@ -253,13 +252,13 @@ class DataFlowAnalyzerImpl(
                     flowGraph.addEdge(edge)
                 }
             }
-            
+
             // 查找方法中对字段的访问
             val fieldAccesses = findFieldAccesses(method)
             for (access in fieldAccesses) {
                 val fieldName = access.name
                 val fieldNodeId = fieldNodes[fieldName]
-                
+
                 if (fieldNodeId != null) {
                     // 创建字段访问边
                     val edgeId = UUID.randomUUID().toString()
@@ -311,7 +310,7 @@ class DataFlowAnalyzerImpl(
         // 分析文件中的全局变量
         val globalVarNodes = mutableMapOf<String, String>() // 变量名到节点ID的映射
         val globalVars = element.children.filter { it.type == CodeElementType.VARIABLE_DECLARATION && it.parent?.type == CodeElementType.FILE }
-        
+
         for (variable in globalVars) {
             val varNodeId = UUID.randomUUID().toString()
             val varNode = FlowNode(
@@ -324,7 +323,7 @@ class DataFlowAnalyzerImpl(
             )
             flowGraph.addNode(varNode)
             globalVarNodes[variable.name] = varNodeId
-            
+
             // 连接入口和变量节点
             val edgeId = UUID.randomUUID().toString()
             val edge = FlowEdge(
@@ -339,7 +338,7 @@ class DataFlowAnalyzerImpl(
         // 分析文件中的函数
         val functions = element.children.filter { it.type == CodeElementType.FUNCTION }
         val functionNodes = mutableMapOf<String, String>() // 函数名到节点ID的映射
-        
+
         // 为每个函数创建节点
         for (function in functions) {
             val functionNodeId = UUID.randomUUID().toString()
@@ -353,7 +352,7 @@ class DataFlowAnalyzerImpl(
             )
             flowGraph.addNode(functionNode)
             functionNodes[function.name] = functionNodeId
-            
+
             // 连接入口和函数节点
             val entryEdgeId = UUID.randomUUID().toString()
             val entryEdge = FlowEdge(
@@ -364,17 +363,17 @@ class DataFlowAnalyzerImpl(
             )
             flowGraph.addEdge(entryEdge)
         }
-        
+
         // 分析函数之间的调用关系
         for (function in functions) {
             val functionNodeId = functionNodes[function.name] ?: continue
-            
+
             // 查找函数中对其他函数的调用
             val functionCalls = findMethodCalls(function)
             for (call in functionCalls) {
                 val calledFunctionName = call.name
                 val calledFunctionNodeId = functionNodes[calledFunctionName]
-                
+
                 if (calledFunctionNodeId != null) {
                     // 创建函数调用边
                     val edgeId = UUID.randomUUID().toString()
@@ -387,13 +386,13 @@ class DataFlowAnalyzerImpl(
                     flowGraph.addEdge(edge)
                 }
             }
-            
+
             // 查找函数中对全局变量的访问
             val globalVarAccesses = findGlobalVarAccesses(function, globalVars)
             for (access in globalVarAccesses) {
                 val varName = access.name
                 val varNodeId = globalVarNodes[varName]
-                
+
                 if (varNodeId != null) {
                     // 创建变量访问边
                     val edgeId = UUID.randomUUID().toString()
@@ -419,7 +418,7 @@ class DataFlowAnalyzerImpl(
     private fun analyzeParameters(element: CodeElement, flowGraph: FlowGraph): List<String> {
         val parameterNodeIds = mutableListOf<String>()
         val parameters = element.children.filter { it.type == CodeElementType.PARAMETER }
-        
+
         for (parameter in parameters) {
             val paramNodeId = UUID.randomUUID().toString()
             val paramNode = FlowNode(
@@ -433,7 +432,7 @@ class DataFlowAnalyzerImpl(
             flowGraph.addNode(paramNode)
             parameterNodeIds.add(paramNodeId)
         }
-        
+
         return parameterNodeIds
     }
 
@@ -446,13 +445,18 @@ class DataFlowAnalyzerImpl(
      * @param parameterNodes 参数节点ID列表
      */
     private fun analyzeStatementDataFlow(
-        element: CodeElement, 
-        flowGraph: FlowGraph, 
+        element: CodeElement,
+        flowGraph: FlowGraph,
         variableMap: MutableMap<String, String>,
         parameterNodes: List<String> = emptyList()
     ) {
-        when (element.type) {
-            CodeElementType.VARIABLE_DECLARATION -> {
+        // 根据语句名称或内容推断语句类型
+        when {
+            // 变量声明
+            element.name.contains("var ", ignoreCase = true) ||
+            element.name.contains("val ", ignoreCase = true) ||
+            element.name.contains("let ", ignoreCase = true) ||
+            element.name.contains("const ", ignoreCase = true) -> {
                 // 创建变量声明节点
                 val varNodeId = UUID.randomUUID().toString()
                 val varNode = FlowNode(
@@ -464,12 +468,16 @@ class DataFlowAnalyzerImpl(
                     )
                 )
                 flowGraph.addNode(varNode)
-                variableMap[element.name] = varNodeId
-                
+
+                // 提取变量名
+                val varName = element.name.substringAfter(" ").substringBefore("=").trim()
+                variableMap[varName] = varNodeId
+
                 // 分析初始化表达式中的变量引用
                 analyzeExpressionReferences(element, varNodeId, flowGraph, variableMap)
             }
-            CodeElementType.ASSIGNMENT -> {
+            // 赋值语句
+            element.name.contains("=") && !element.name.contains("==") -> {
                 // 创建赋值节点
                 val assignNodeId = UUID.randomUUID().toString()
                 val assignNode = FlowNode(
@@ -481,17 +489,18 @@ class DataFlowAnalyzerImpl(
                     )
                 )
                 flowGraph.addNode(assignNode)
-                
+
                 // 获取左侧变量名
                 val leftSide = element.name.substringBefore("=").trim()
-                
+
                 // 更新变量映射
                 variableMap[leftSide] = assignNodeId
-                
+
                 // 分析右侧表达式中的变量引用
                 analyzeExpressionReferences(element, assignNodeId, flowGraph, variableMap)
             }
-            CodeElementType.METHOD_CALL -> {
+            // 方法调用
+            element.name.contains("(") && element.name.contains(")") -> {
                 // 创建方法调用节点
                 val callNodeId = UUID.randomUUID().toString()
                 val callNode = FlowNode(
@@ -503,32 +512,51 @@ class DataFlowAnalyzerImpl(
                     )
                 )
                 flowGraph.addNode(callNode)
-                
+
                 // 分析方法调用参数中的变量引用
                 analyzeExpressionReferences(element, callNodeId, flowGraph, variableMap)
             }
-            CodeElementType.IF_STATEMENT, 
-            CodeElementType.FOR_STATEMENT, 
-            CodeElementType.WHILE_STATEMENT, 
-            CodeElementType.DO_WHILE_STATEMENT -> {
+            // if 语句
+            element.name.contains("if", ignoreCase = true) -> {
                 // 创建条件节点
                 val condNodeId = UUID.randomUUID().toString()
                 val condNode = FlowNode(
                     id = condNodeId,
-                    type = when (element.type) {
-                        CodeElementType.IF_STATEMENT -> FlowNodeType.CONDITION
-                        else -> FlowNodeType.LOOP
-                    },
+                    type = FlowNodeType.CONDITION,
                     element = element,
                     metadata = mutableMapOf(
-                        "label" to "${element.type}: ${element.name}"
+                        "label" to "If: ${element.name}"
                     )
                 )
                 flowGraph.addNode(condNode)
-                
+
                 // 分析条件表达式中的变量引用
                 analyzeExpressionReferences(element, condNodeId, flowGraph, variableMap)
-                
+
+                // 递归分析语句块中的语句
+                val bodyElements = element.children.filter { it.type in STATEMENT_TYPES }
+                for (statement in bodyElements) {
+                    analyzeStatementDataFlow(statement, flowGraph, variableMap, parameterNodes)
+                }
+            }
+            // 循环语句
+            element.name.contains("for", ignoreCase = true) ||
+            element.name.contains("while", ignoreCase = true) -> {
+                // 创建循环节点
+                val loopNodeId = UUID.randomUUID().toString()
+                val loopNode = FlowNode(
+                    id = loopNodeId,
+                    type = FlowNodeType.LOOP,
+                    element = element,
+                    metadata = mutableMapOf(
+                        "label" to "Loop: ${element.name}"
+                    )
+                )
+                flowGraph.addNode(loopNode)
+
+                // 分析循环条件中的变量引用
+                analyzeExpressionReferences(element, loopNodeId, flowGraph, variableMap)
+
                 // 递归分析语句块中的语句
                 val bodyElements = element.children.filter { it.type in STATEMENT_TYPES }
                 for (statement in bodyElements) {
@@ -554,18 +582,18 @@ class DataFlowAnalyzerImpl(
      * @param variableMap 变量名到节点ID的映射
      */
     private fun analyzeExpressionReferences(
-        element: CodeElement, 
-        nodeId: String, 
-        flowGraph: FlowGraph, 
+        element: CodeElement,
+        nodeId: String,
+        flowGraph: FlowGraph,
         variableMap: Map<String, String>
     ) {
         // 查找表达式中的变量引用
         val references = findVariableReferences(element)
-        
+
         for (reference in references) {
             val varName = reference.name
             val varNodeId = variableMap[varName]
-            
+
             if (varNodeId != null) {
                 // 创建数据依赖边
                 val edgeId = UUID.randomUUID().toString()
@@ -591,17 +619,17 @@ class DataFlowAnalyzerImpl(
      */
     private fun findVariableReferences(element: CodeElement): List<CodeElement> {
         val references = mutableListOf<CodeElement>()
-        
+
         // 如果元素本身是变量引用
         if (element.type == CodeElementType.VARIABLE_REFERENCE) {
             references.add(element)
         }
-        
+
         // 递归查找子元素中的变量引用
         for (child in element.children) {
             references.addAll(findVariableReferences(child))
         }
-        
+
         return references
     }
 
@@ -613,17 +641,17 @@ class DataFlowAnalyzerImpl(
      */
     private fun findMethodCalls(element: CodeElement): List<CodeElement> {
         val calls = mutableListOf<CodeElement>()
-        
+
         // 如果元素本身是方法调用
         if (element.type == CodeElementType.METHOD_CALL) {
             calls.add(element)
         }
-        
+
         // 递归查找子元素中的方法调用
         for (child in element.children) {
             calls.addAll(findMethodCalls(child))
         }
-        
+
         return calls
     }
 
@@ -635,17 +663,17 @@ class DataFlowAnalyzerImpl(
      */
     private fun findFieldAccesses(element: CodeElement): List<CodeElement> {
         val accesses = mutableListOf<CodeElement>()
-        
+
         // 如果元素本身是字段访问
         if (element.type == CodeElementType.FIELD_ACCESS) {
             accesses.add(element)
         }
-        
+
         // 递归查找子元素中的字段访问
         for (child in element.children) {
             accesses.addAll(findFieldAccesses(child))
         }
-        
+
         return accesses
     }
 
@@ -659,17 +687,17 @@ class DataFlowAnalyzerImpl(
     private fun findGlobalVarAccesses(element: CodeElement, globalVars: List<CodeElement>): List<CodeElement> {
         val accesses = mutableListOf<CodeElement>()
         val globalVarNames = globalVars.map { it.name }.toSet()
-        
+
         // 查找变量引用
         val references = findVariableReferences(element)
-        
+
         // 过滤出全局变量引用
         for (reference in references) {
             if (reference.name in globalVarNames) {
                 accesses.add(reference)
             }
         }
-        
+
         return accesses
     }
 
@@ -691,7 +719,7 @@ class DataFlowAnalyzerImpl(
                 "isEmpty" to true
             )
         )
-        
+
         // 创建入口节点
         val entryNodeId = UUID.randomUUID().toString()
         val entryNode = FlowNode(
@@ -704,7 +732,7 @@ class DataFlowAnalyzerImpl(
         )
         flowGraph.addNode(entryNode)
         flowGraph.setEntryNode(entryNodeId)
-        
+
         // 创建出口节点
         val exitNodeId = UUID.randomUUID().toString()
         val exitNode = FlowNode(
@@ -717,7 +745,7 @@ class DataFlowAnalyzerImpl(
         )
         flowGraph.addNode(exitNode)
         flowGraph.addExitNode(exitNodeId)
-        
+
         // 连接入口和出口
         val edgeId = UUID.randomUUID().toString()
         val edge = FlowEdge(
@@ -730,7 +758,7 @@ class DataFlowAnalyzerImpl(
             )
         )
         flowGraph.addEdge(edge)
-        
+
         return flowGraph
     }
 
@@ -740,20 +768,8 @@ class DataFlowAnalyzerImpl(
          */
         private val STATEMENT_TYPES = setOf(
             CodeElementType.STATEMENT,
-            CodeElementType.IF_STATEMENT,
-            CodeElementType.FOR_STATEMENT,
-            CodeElementType.WHILE_STATEMENT,
-            CodeElementType.DO_WHILE_STATEMENT,
-            CodeElementType.SWITCH_STATEMENT,
-            CodeElementType.TRY_STATEMENT,
-            CodeElementType.CATCH_CLAUSE,
-            CodeElementType.FINALLY_BLOCK,
-            CodeElementType.RETURN_STATEMENT,
-            CodeElementType.THROW_STATEMENT,
-            CodeElementType.METHOD_CALL,
-            CodeElementType.VARIABLE_DECLARATION,
-            CodeElementType.ASSIGNMENT,
-            CodeElementType.EXPRESSION
+            CodeElementType.EXPRESSION,
+            CodeElementType.BLOCK
         )
     }
 }

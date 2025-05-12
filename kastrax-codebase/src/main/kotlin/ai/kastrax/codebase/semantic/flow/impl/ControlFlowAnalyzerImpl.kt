@@ -42,7 +42,7 @@ class ControlFlowAnalyzerImpl(
 
         try {
             when (element.type) {
-                CodeElementType.METHOD, CodeElementType.FUNCTION -> analyzeMethodFlow(element, flowGraph)
+                CodeElementType.METHOD -> analyzeMethodFlow(element, flowGraph)
                 CodeElementType.CLASS -> analyzeClassFlow(element, flowGraph)
                 CodeElementType.FILE -> analyzeFileFlow(element, flowGraph)
                 else -> {
@@ -61,7 +61,6 @@ class ControlFlowAnalyzerImpl(
 
     override fun getSupportedElementTypes(): Set<CodeElementType> = setOf(
         CodeElementType.METHOD,
-        CodeElementType.FUNCTION,
         CodeElementType.CLASS,
         CodeElementType.FILE
     )
@@ -101,7 +100,7 @@ class ControlFlowAnalyzerImpl(
 
         // 分析方法体
         val bodyElements = element.children.filter { it.type in STATEMENT_TYPES }
-        
+
         if (bodyElements.isEmpty()) {
             // 如果方法体为空，直接连接入口和出口
             val edgeId = UUID.randomUUID().toString()
@@ -122,7 +121,7 @@ class ControlFlowAnalyzerImpl(
         var currentNodeId = entryNodeId
         for (statement in bodyElements) {
             val statementNodeId = analyzeStatement(statement, flowGraph)
-            
+
             // 连接当前节点和语句节点
             val edgeId = UUID.randomUUID().toString()
             val edge = FlowEdge(
@@ -132,7 +131,7 @@ class ControlFlowAnalyzerImpl(
                 type = FlowEdgeType.SEQUENTIAL
             )
             flowGraph.addEdge(edge)
-            
+
             currentNodeId = statementNodeId
         }
 
@@ -182,7 +181,7 @@ class ControlFlowAnalyzerImpl(
 
         // 分析类的方法
         val methods = element.children.filter { it.type == CodeElementType.METHOD || it.type == CodeElementType.CONSTRUCTOR }
-        
+
         if (methods.isEmpty()) {
             // 如果类没有方法，直接连接入口和出口
             val edgeId = UUID.randomUUID().toString()
@@ -211,7 +210,7 @@ class ControlFlowAnalyzerImpl(
                 )
             )
             flowGraph.addNode(methodNode)
-            
+
             // 连接入口和方法节点
             val entryEdgeId = UUID.randomUUID().toString()
             val entryEdge = FlowEdge(
@@ -221,7 +220,7 @@ class ControlFlowAnalyzerImpl(
                 type = FlowEdgeType.CALL
             )
             flowGraph.addEdge(entryEdge)
-            
+
             // 连接方法节点和出口节点
             val exitEdgeId = UUID.randomUUID().toString()
             val exitEdge = FlowEdge(
@@ -268,12 +267,12 @@ class ControlFlowAnalyzerImpl(
         flowGraph.addExitNode(exitNodeId)
 
         // 分析文件中的顶级元素
-        val topLevelElements = element.children.filter { 
-            it.type == CodeElementType.CLASS || 
-            it.type == CodeElementType.FUNCTION || 
-            it.type == CodeElementType.STATEMENT 
+        val topLevelElements = element.children.filter {
+            it.type == CodeElementType.CLASS ||
+            it.type == CodeElementType.METHOD ||
+            it.type == CodeElementType.STATEMENT
         }
-        
+
         if (topLevelElements.isEmpty()) {
             // 如果文件没有顶级元素，直接连接入口和出口
             val edgeId = UUID.randomUUID().toString()
@@ -297,7 +296,7 @@ class ControlFlowAnalyzerImpl(
                 id = elementNodeId,
                 type = when (element.type) {
                     CodeElementType.CLASS -> FlowNodeType.STATEMENT
-                    CodeElementType.FUNCTION -> FlowNodeType.CALL
+                    CodeElementType.METHOD -> FlowNodeType.CALL
                     else -> FlowNodeType.STATEMENT
                 },
                 element = element,
@@ -306,7 +305,7 @@ class ControlFlowAnalyzerImpl(
                 )
             )
             flowGraph.addNode(elementNode)
-            
+
             // 连接入口和元素节点
             val entryEdgeId = UUID.randomUUID().toString()
             val entryEdge = FlowEdge(
@@ -316,7 +315,7 @@ class ControlFlowAnalyzerImpl(
                 type = FlowEdgeType.SEQUENTIAL
             )
             flowGraph.addEdge(entryEdge)
-            
+
             // 连接元素节点和出口节点
             val exitEdgeId = UUID.randomUUID().toString()
             val exitEdge = FlowEdge(
@@ -339,22 +338,34 @@ class ControlFlowAnalyzerImpl(
     private fun analyzeStatement(element: CodeElement, flowGraph: FlowGraph): String {
         val nodeId = UUID.randomUUID().toString()
         val nodeType = when (element.type) {
-            CodeElementType.IF_STATEMENT -> FlowNodeType.CONDITION
-            CodeElementType.FOR_STATEMENT, 
-            CodeElementType.WHILE_STATEMENT, 
-            CodeElementType.DO_WHILE_STATEMENT -> FlowNodeType.LOOP
-            CodeElementType.SWITCH_STATEMENT -> FlowNodeType.BRANCH
-            CodeElementType.TRY_STATEMENT -> FlowNodeType.STATEMENT
-            CodeElementType.CATCH_CLAUSE -> FlowNodeType.CATCH
-            CodeElementType.FINALLY_BLOCK -> FlowNodeType.FINALLY
-            CodeElementType.RETURN_STATEMENT -> FlowNodeType.RETURN
-            CodeElementType.THROW_STATEMENT -> FlowNodeType.THROW
-            CodeElementType.METHOD_CALL -> FlowNodeType.CALL
-            CodeElementType.VARIABLE_DECLARATION -> FlowNodeType.DECLARATION
-            CodeElementType.ASSIGNMENT -> FlowNodeType.ASSIGNMENT
+            CodeElementType.STATEMENT -> {
+                // 根据语句名称或内容推断节点类型
+                when {
+                    element.name.contains("if", ignoreCase = true) -> FlowNodeType.CONDITION
+                    element.name.contains("for", ignoreCase = true) ||
+                    element.name.contains("while", ignoreCase = true) -> FlowNodeType.LOOP
+                    element.name.contains("switch", ignoreCase = true) ||
+                    element.name.contains("case", ignoreCase = true) -> FlowNodeType.BRANCH
+                    element.name.contains("try", ignoreCase = true) -> FlowNodeType.STATEMENT
+                    element.name.contains("catch", ignoreCase = true) -> FlowNodeType.CATCH
+                    element.name.contains("finally", ignoreCase = true) -> FlowNodeType.FINALLY
+                    element.name.contains("return", ignoreCase = true) -> FlowNodeType.RETURN
+                    element.name.contains("throw", ignoreCase = true) -> FlowNodeType.THROW
+                    element.name.contains("call", ignoreCase = true) ||
+                    element.name.contains("invoke", ignoreCase = true) -> FlowNodeType.CALL
+                    element.name.contains("var", ignoreCase = true) ||
+                    element.name.contains("val", ignoreCase = true) ||
+                    element.name.contains("let", ignoreCase = true) ||
+                    element.name.contains("const", ignoreCase = true) -> FlowNodeType.DECLARATION
+                    element.name.contains("=") && !element.name.contains("==") -> FlowNodeType.ASSIGNMENT
+                    else -> FlowNodeType.STATEMENT
+                }
+            }
+            CodeElementType.BLOCK -> FlowNodeType.STATEMENT
+            CodeElementType.EXPRESSION -> FlowNodeType.STATEMENT
             else -> FlowNodeType.STATEMENT
         }
-        
+
         val node = FlowNode(
             id = nodeId,
             type = nodeType,
@@ -364,7 +375,7 @@ class ControlFlowAnalyzerImpl(
             )
         )
         flowGraph.addNode(node)
-        
+
         return nodeId
     }
 
@@ -386,7 +397,7 @@ class ControlFlowAnalyzerImpl(
                 "isEmpty" to true
             )
         )
-        
+
         // 创建入口节点
         val entryNodeId = UUID.randomUUID().toString()
         val entryNode = FlowNode(
@@ -399,7 +410,7 @@ class ControlFlowAnalyzerImpl(
         )
         flowGraph.addNode(entryNode)
         flowGraph.setEntryNode(entryNodeId)
-        
+
         // 创建出口节点
         val exitNodeId = UUID.randomUUID().toString()
         val exitNode = FlowNode(
@@ -412,7 +423,7 @@ class ControlFlowAnalyzerImpl(
         )
         flowGraph.addNode(exitNode)
         flowGraph.addExitNode(exitNodeId)
-        
+
         // 连接入口和出口
         val edgeId = UUID.randomUUID().toString()
         val edge = FlowEdge(
@@ -425,7 +436,7 @@ class ControlFlowAnalyzerImpl(
             )
         )
         flowGraph.addEdge(edge)
-        
+
         return flowGraph
     }
 
@@ -435,20 +446,8 @@ class ControlFlowAnalyzerImpl(
          */
         private val STATEMENT_TYPES = setOf(
             CodeElementType.STATEMENT,
-            CodeElementType.IF_STATEMENT,
-            CodeElementType.FOR_STATEMENT,
-            CodeElementType.WHILE_STATEMENT,
-            CodeElementType.DO_WHILE_STATEMENT,
-            CodeElementType.SWITCH_STATEMENT,
-            CodeElementType.TRY_STATEMENT,
-            CodeElementType.CATCH_CLAUSE,
-            CodeElementType.FINALLY_BLOCK,
-            CodeElementType.RETURN_STATEMENT,
-            CodeElementType.THROW_STATEMENT,
-            CodeElementType.METHOD_CALL,
-            CodeElementType.VARIABLE_DECLARATION,
-            CodeElementType.ASSIGNMENT,
-            CodeElementType.EXPRESSION
+            CodeElementType.EXPRESSION,
+            CodeElementType.BLOCK
         )
     }
 }
