@@ -4,24 +4,8 @@ plugins {
     id("org.jetbrains.dokka")
 }
 
-kotlin {
-    sourceSets {
-        main {
-            kotlin {
-                // 排除实验性代码和分布式索引实现，避免编译错误
-                exclude("**/experimental/**")
-                exclude("**/indexing/distributed/**")
-            }
-        }
-        test {
-            kotlin {
-                // 排除测试代码，避免编译错误
-                exclude("**/indexing/distributed/**")
-                exclude("**/indexing/IncrementalIndexerTest.kt")
-            }
-        }
-    }
-}
+
+
 
 dependencies {
     // KastraX 核心依赖
