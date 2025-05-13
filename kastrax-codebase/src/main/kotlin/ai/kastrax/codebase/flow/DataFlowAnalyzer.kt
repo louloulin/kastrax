@@ -1,5 +1,12 @@
 package ai.kastrax.codebase.flow
 
+import ai.kastrax.codebase.semantic.flow.CodeFlowAnalyzer
+import ai.kastrax.codebase.semantic.flow.CodeFlowAnalyzerConfig
+import ai.kastrax.codebase.semantic.flow.FlowEdgeType
+import ai.kastrax.codebase.semantic.flow.FlowGraph
+import ai.kastrax.codebase.semantic.flow.FlowNode
+import ai.kastrax.codebase.semantic.flow.FlowNodeType
+import ai.kastrax.codebase.semantic.flow.FlowType
 import ai.kastrax.codebase.semantic.model.CodeElement
 import ai.kastrax.codebase.semantic.model.CodeElementType
 import io.github.oshai.kotlinlogging.KotlinLogging
@@ -16,8 +23,8 @@ private val logger = KotlinLogging.logger {}
  * @property config 配置
  */
 class DataFlowAnalyzer(
-    config: CodeFlowAnalyzerConfig
-) : AbstractCodeFlowAnalyzer(config) {
+    private val config: CodeFlowAnalyzerConfig
+) : CodeFlowAnalyzer {
     
     /**
      * 获取流类型
@@ -51,7 +58,12 @@ class DataFlowAnalyzer(
             }
             
             // 创建流图
-            val graph = createFlowGraph(element)
+            val graph = FlowGraph(
+                id = "${element.id}:data-flow",
+                name = "${element.name} Data Flow",
+                type = FlowType.DATA_FLOW,
+                element = element
+            )
             
             // 分析参数
             analyzeParameters(element, graph)
@@ -69,13 +81,49 @@ class DataFlowAnalyzer(
             analyzeReturns(element, graph)
             
             // 缓存流图
-            cacheGraph(element, graph)
+            graphCache[element.id] = graph
             
             return@withContext graph
         } catch (e: Exception) {
             logger.error(e) { "数据流分析失败: ${element.qualifiedName}" }
             return@withContext null
         }
+    }
+    
+    /**
+     * 分析代码元素集合
+     *
+     * @param elements 代码元素集合
+     * @return 流图集合
+     */
+    override suspend fun analyzeAll(elements: Collection<CodeElement>): Map<CodeElement, FlowGraph> {
+        val result = mutableMapOf<CodeElement, FlowGraph>()
+        
+        for (element in elements) {
+            val graph = analyze(element)
+            if (graph != null) {
+                result[element] = graph
+            }
+        }
+        
+        return result
+    }
+    
+    /**
+     * 获取缓存的流图
+     *
+     * @param element 代码元素
+     * @return 流图，如果缓存中不存在则返回null
+     */
+    override fun getCachedGraph(element: CodeElement): FlowGraph? {
+        return graphCache[element.id]
+    }
+    
+    /**
+     * 清除缓存
+     */
+    override fun clearCache() {
+        graphCache.clear()
     }
     
     /**
@@ -91,18 +139,13 @@ class DataFlowAnalyzer(
         parameters.forEach { param ->
             // 创建声明节点
             val paramType = param.metadata["type"] as? String ?: "Object"
-            val declarationNode = createDeclarationNode(param, param.name, paramType)
+            val declarationNode = FlowNode(
+                id = "${param.id}:declaration",
+                type = FlowNodeType.STATEMENT,
+                element = param,
+                label = "$paramType ${param.name}"
+            )
             graph.addNode(declarationNode)
-            
-            // 如果有默认值，则创建赋值节点
-            val defaultValue = param.metadata["defaultValue"] as? String
-            if (defaultValue != null) {
-                val assignmentNode = createAssignmentNode(param, param.name, defaultValue)
-                graph.addNode(assignmentNode)
-                
-                // 连接声明节点和赋值节点
-                graph.addEdge(declarationNode, assignmentNode, FlowEdgeType.DATA_FLOW)
-            }
         }
     }
     
@@ -122,7 +165,12 @@ class DataFlowAnalyzer(
             val initialValue = varInfo["initialValue"]
             
             // 创建声明节点
-            val declarationNode = createDeclarationNode(element, name, type, initialValue)
+            val declarationNode = FlowNode(
+                id = "${element.id}:var:$name",
+                type = FlowNodeType.STATEMENT,
+                element = element,
+                label = if (initialValue != null) "$type $name = $initialValue" else "$type $name"
+            )
             graph.addNode(declarationNode)
         }
     }
@@ -142,17 +190,13 @@ class DataFlowAnalyzer(
             val value = assignInfo["value"] ?: "unknown"
             
             // 创建赋值节点
-            val assignmentNode = createAssignmentNode(element, target, value)
+            val assignmentNode = FlowNode(
+                id = "${element.id}:assign:$target:${System.nanoTime()}",
+                type = FlowNodeType.STATEMENT,
+                element = element,
+                label = "$target = $value"
+            )
             graph.addNode(assignmentNode)
-            
-            // 如果值是一个变量引用，则创建引用节点并连接
-            if (!value.startsWith("\"") && !value.matches(Regex("\\d+"))) {
-                val referenceNode = createReferenceNode(element, value)
-                graph.addNode(referenceNode)
-                
-                // 连接引用节点和赋值节点
-                graph.addEdge(referenceNode, assignmentNode, FlowEdgeType.DATA_FLOW)
-            }
         }
     }
     
@@ -168,32 +212,13 @@ class DataFlowAnalyzer(
         
         methodCalls.forEach { callInfo ->
             val target = callInfo["target"] as? String ?: "unknown"
-            val callNode = createCallNode(element, target)
+            val callNode = FlowNode(
+                id = "${element.id}:call:$target:${System.nanoTime()}",
+                type = FlowNodeType.METHOD_CALL,
+                element = element,
+                label = target
+            )
             graph.addNode(callNode)
-            
-            // 获取参数
-            val args = callInfo["arguments"] as? List<String> ?: emptyList()
-            
-            // 为每个参数创建引用节点并连接到调用节点
-            args.forEach { arg ->
-                if (!arg.startsWith("\"") && !arg.matches(Regex("\\d+"))) {
-                    val referenceNode = createReferenceNode(element, arg)
-                    graph.addNode(referenceNode)
-                    
-                    // 连接引用节点和调用节点
-                    graph.addEdge(referenceNode, callNode, FlowEdgeType.DATA_FLOW)
-                }
-            }
-            
-            // 如果方法调用有赋值目标，则创建赋值节点并连接
-            val assignTarget = callInfo["assignTarget"] as? String
-            if (assignTarget != null) {
-                val assignmentNode = createAssignmentNode(element, assignTarget, "$target()")
-                graph.addNode(assignmentNode)
-                
-                // 连接调用节点和赋值节点
-                graph.addEdge(callNode, assignmentNode, FlowEdgeType.DATA_FLOW)
-            }
         }
     }
     
@@ -211,17 +236,16 @@ class DataFlowAnalyzer(
             val value = returnInfo["value"] ?: ""
             
             // 创建返回节点
-            val returnNode = createReturnNode(element, value)
+            val returnNode = FlowNode(
+                id = "${element.id}:return:${System.nanoTime()}",
+                type = FlowNodeType.RETURN,
+                element = element,
+                label = if (value.isEmpty()) "return" else "return $value"
+            )
             graph.addNode(returnNode)
-            
-            // 如果返回值是一个变量引用，则创建引用节点并连接
-            if (value.isNotEmpty() && !value.startsWith("\"") && !value.matches(Regex("\\d+"))) {
-                val referenceNode = createReferenceNode(element, value)
-                graph.addNode(referenceNode)
-                
-                // 连接引用节点和返回节点
-                graph.addEdge(referenceNode, returnNode, FlowEdgeType.DATA_FLOW)
-            }
         }
     }
+    
+    // 缓存
+    private val graphCache = mutableMapOf<String, FlowGraph>()
 }

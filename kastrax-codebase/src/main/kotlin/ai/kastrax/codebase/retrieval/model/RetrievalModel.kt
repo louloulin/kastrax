@@ -1,11 +1,5 @@
 package ai.kastrax.codebase.retrieval.model
 
-// TODO: 暂时注释掉，等待依赖问题解决
-
-// 空实现以避免语法错误
-interface RetrievalModel
-
-/*
 import ai.kastrax.codebase.embedding.EmbeddingService
 import ai.kastrax.codebase.semantic.memory.SemanticMemory
 import ai.kastrax.codebase.semantic.memory.SemanticMemorySearchResult
@@ -15,6 +9,8 @@ import kotlinx.coroutines.withContext
 import java.util.concurrent.ConcurrentHashMap
 
 private val logger = KotlinLogging.logger {}
+
+
 
 /**
  * 检索模型配置
@@ -80,20 +76,7 @@ data class RetrievalFeature(
     val value: Double
 )
 
-/**
- * 检索结果
- *
- * @property memory 语义记忆
- * @property score 相似度分数
- * @property features 特征列表
- * @property explanation 解释
- */
-data class RetrievalResult(
-    val memory: SemanticMemory,
-    val score: Double,
-    val features: List<RetrievalFeature> = emptyList(),
-    val explanation: String? = null
-)
+// 使用 ai.kastrax.codebase.retrieval.model.RetrievalResult 和 ai.kastrax.codebase.retrieval.model.MemoryRetrievalResult
 
 /**
  * 检索模型
@@ -108,7 +91,7 @@ abstract class RetrievalModel(
     protected val config: RetrievalModelConfig = RetrievalModelConfig()
 ) {
     // 查询缓存
-    protected val queryCache = ConcurrentHashMap<String, List<RetrievalResult>>()
+    protected val queryCache = ConcurrentHashMap<String, List<MemoryRetrievalResult>>()
 
     /**
      * 检索记忆
@@ -122,7 +105,7 @@ abstract class RetrievalModel(
         context: RetrievalContext,
         limit: Int = config.maxResults,
         minScore: Double = config.minScore
-    ): List<RetrievalResult>
+    ): List<MemoryRetrievalResult>
 
     /**
      * 计算特征

@@ -1,8 +1,8 @@
 package ai.kastrax.codebase.context
 
-import ai.kastrax.codebase.flow.CodeFlowAnalyzer
-import ai.kastrax.codebase.flow.FlowGraph
-import ai.kastrax.codebase.flow.FlowType
+import ai.kastrax.codebase.flow.CodeFlowAnalyzerAdapter
+import ai.kastrax.codebase.semantic.flow.FlowGraph
+import ai.kastrax.codebase.semantic.flow.FlowType
 import ai.kastrax.codebase.semantic.model.CodeElement
 import ai.kastrax.codebase.semantic.model.CodeElementType
 import ai.kastrax.codebase.semantic.model.Location
@@ -55,11 +55,11 @@ data class FlowAwareContextBuilderConfig(
 class FlowAwareContextBuilder(
     private val vectorStore: CodeVectorStore,
     private val embeddingService: EmbeddingService,
-    private val flowAnalyzer: CodeFlowAnalyzer,
+    private val flowAnalyzer: CodeFlowAnalyzerAdapter,
     private val config: FlowAwareContextBuilderConfig = FlowAwareContextBuilderConfig(),
     private val contextCache: ConcurrentHashMap<String, Context> = ConcurrentHashMap(),
     private val relationAnalyzer: CodeRelationAnalyzer? = null
-) {
+) : IContextBuilder {
     // 基础上下文构建器
     private val baseContextBuilder = ContextBuilder(
         vectorStore = vectorStore,
@@ -74,9 +74,36 @@ class FlowAwareContextBuilder(
         contextCache = contextCache,
         relationAnalyzer = relationAnalyzer
     )
-    
+
     /**
      * 构建流感知上下文
+     *
+     * @param query 查询字符串
+     * @param maxElements 最大元素数量
+     * @param minScore 最小相似度分数
+     * @param includeRelatedElements 是否包含相关元素
+     * @return 上下文
+     */
+    override suspend fun buildContext(
+        query: String,
+        maxElements: Int,
+        minScore: Double,
+        includeRelatedElements: Boolean
+    ): Context = withContext(Dispatchers.IO) {
+        // 调用内部方法实现实际功能
+        return@withContext buildContextInternal(
+            query = query,
+            position = null,
+            maxElements = maxElements,
+            minScore = minScore.toFloat(),
+            includeLevels = ContextLevel.values().toSet(),
+            excludeTypes = emptySet(),
+            includeRelatedElements = includeRelatedElements
+        )
+    }
+
+    /**
+     * 构建流感知上下文（内部实现）
      *
      * @param query 查询
      * @param position 位置
@@ -84,44 +111,44 @@ class FlowAwareContextBuilder(
      * @param minScore 最小相似度分数
      * @param includeLevels 包含的级别
      * @param excludeTypes 排除的类型
+     * @param includeRelatedElements 是否包含相关元素
      * @return 上下文
      */
-    suspend fun buildContext(
+    private suspend fun buildContextInternal(
         query: String,
         position: Location? = null,
         maxElements: Int = config.defaultMaxElements,
         minScore: Float = config.defaultMinScore,
         includeLevels: Set<ContextLevel> = ContextLevel.values().toSet(),
-        excludeTypes: Set<CodeElementType> = emptySet()
+        excludeTypes: Set<CodeElementType> = emptySet(),
+        includeRelatedElements: Boolean = true
     ): Context = withContext(Dispatchers.IO) {
         // 生成缓存键
         val cacheKey = generateCacheKey(query, position, maxElements, minScore, includeLevels, excludeTypes)
-        
+
         // 检查缓存
         val cachedContext = contextCache[cacheKey]
         if (cachedContext != null) {
             return@withContext cachedContext
         }
-        
+
         try {
             // 首先使用基础上下文构建器构建上下文
             val baseContext = baseContextBuilder.buildContext(
                 query = query,
-                position = position,
                 maxElements = maxElements,
-                minScore = minScore,
-                includeLevels = includeLevels,
-                excludeTypes = excludeTypes
+                minScore = minScore.toDouble(),
+                includeRelatedElements = includeRelatedElements
             )
-            
+
             // 如果不需要包含流信息，则直接返回基础上下文
             if (!config.includeControlFlow && !config.includeDataFlow) {
                 return@withContext baseContext
             }
-            
+
             // 增强上下文元素，添加流信息
             val enhancedElements = enhanceContextWithFlowInfo(baseContext.elements)
-            
+
             // 创建增强的上下文
             val enhancedContext = Context(
                 elements = enhancedElements,
@@ -132,12 +159,12 @@ class FlowAwareContextBuilder(
                     "maxFlowDepth" to config.maxFlowDepth
                 )
             )
-            
+
             // 缓存上下文
             if (contextCache.size < config.maxCacheSize) {
                 contextCache[cacheKey] = enhancedContext
             }
-            
+
             return@withContext enhancedContext
         } catch (e: Exception) {
             logger.error(e) { "构建流感知上下文时出错: $query" }
@@ -148,7 +175,7 @@ class FlowAwareContextBuilder(
             )
         }
     }
-    
+
     /**
      * 构建流感知文件上下文
      *
@@ -156,9 +183,9 @@ class FlowAwareContextBuilder(
      * @param maxElements 最大元素数量
      * @return 上下文
      */
-    suspend fun buildFileContext(
+    override suspend fun buildFileContext(
         filePath: Path,
-        maxElements: Int = config.defaultMaxElements
+        maxElements: Int
     ): Context = withContext(Dispatchers.IO) {
         try {
             // 首先使用基础上下文构建器构建文件上下文
@@ -166,15 +193,15 @@ class FlowAwareContextBuilder(
                 filePath = filePath,
                 maxElements = maxElements
             )
-            
+
             // 如果不需要包含流信息，则直接返回基础上下文
             if (!config.includeControlFlow && !config.includeDataFlow) {
                 return@withContext baseContext
             }
-            
+
             // 增强上下文元素，添加流信息
             val enhancedElements = enhanceContextWithFlowInfo(baseContext.elements)
-            
+
             // 创建增强的上下文
             val enhancedContext = Context(
                 elements = enhancedElements,
@@ -185,7 +212,7 @@ class FlowAwareContextBuilder(
                     "maxFlowDepth" to config.maxFlowDepth
                 )
             )
-            
+
             return@withContext enhancedContext
         } catch (e: Exception) {
             logger.error(e) { "构建流感知文件上下文时出错: $filePath" }
@@ -196,36 +223,33 @@ class FlowAwareContextBuilder(
             )
         }
     }
-    
+
     /**
      * 构建流感知符号上下文
      *
      * @param symbolName 符号名称
      * @param maxElements 最大元素数量
-     * @param minScore 最小分数
      * @return 上下文
      */
-    suspend fun buildSymbolContext(
+    override suspend fun buildSymbolContext(
         symbolName: String,
-        maxElements: Int = config.defaultMaxElements,
-        minScore: Float = config.defaultMinScore
+        maxElements: Int
     ): Context = withContext(Dispatchers.IO) {
         try {
             // 首先使用基础上下文构建器构建符号上下文
             val baseContext = baseContextBuilder.buildSymbolContext(
                 symbolName = symbolName,
-                maxElements = maxElements,
-                minScore = minScore
+                maxElements = maxElements
             )
-            
+
             // 如果不需要包含流信息，则直接返回基础上下文
             if (!config.includeControlFlow && !config.includeDataFlow) {
                 return@withContext baseContext
             }
-            
+
             // 增强上下文元素，添加流信息
             val enhancedElements = enhanceContextWithFlowInfo(baseContext.elements)
-            
+
             // 创建增强的上下文
             val enhancedContext = Context(
                 elements = enhancedElements,
@@ -236,7 +260,7 @@ class FlowAwareContextBuilder(
                     "maxFlowDepth" to config.maxFlowDepth
                 )
             )
-            
+
             return@withContext enhancedContext
         } catch (e: Exception) {
             logger.error(e) { "构建流感知符号上下文时出错: $symbolName" }
@@ -247,7 +271,7 @@ class FlowAwareContextBuilder(
             )
         }
     }
-    
+
     /**
      * 增强上下文元素，添加流信息
      *
@@ -256,11 +280,11 @@ class FlowAwareContextBuilder(
      */
     private suspend fun enhanceContextWithFlowInfo(elements: List<ContextElement>): List<ContextElement> {
         val enhancedElements = mutableListOf<ContextElement>()
-        
+
         for (element in elements) {
             // 添加原始元素
             enhancedElements.add(element)
-            
+
             // 只为方法和构造函数添加流信息
             if (element.element.type == CodeElementType.METHOD || element.element.type == CodeElementType.CONSTRUCTOR) {
                 // 添加控制流信息
@@ -279,7 +303,7 @@ class FlowAwareContextBuilder(
                         )
                     }
                 }
-                
+
                 // 添加数据流信息
                 if (config.includeDataFlow) {
                     val dataFlowGraph = flowAnalyzer.analyzeDataFlow(element.element)
@@ -298,34 +322,34 @@ class FlowAwareContextBuilder(
                 }
             }
         }
-        
+
         return enhancedElements
     }
-    
+
     /**
      * 格式化控制流图
      *
      * @param graph 控制流图
      * @return 格式化后的控制流文本
      */
-    private fun formatControlFlowGraph(graph: ControlFlowGraph): String {
+    private fun formatControlFlowGraph(graph: FlowGraph): String {
         val sb = StringBuilder()
-        
+
         sb.append("// 控制流图: ${graph.name}\n")
-        
+
         // 添加入口节点
         val entryNode = graph.entryNode
         if (entryNode != null) {
             sb.append("ENTRY\n")
-            
+
             // 使用深度优先搜索遍历图
             val visited = mutableSetOf<String>()
             formatFlowNode(graph, entryNode.id, sb, visited, 1)
         }
-        
+
         return sb.toString()
     }
-    
+
     /**
      * 格式化流节点
      *
@@ -336,7 +360,7 @@ class FlowAwareContextBuilder(
      * @param depth 当前深度
      */
     private fun formatFlowNode(
-        graph: ControlFlowGraph,
+        graph: FlowGraph,
         nodeId: String,
         sb: StringBuilder,
         visited: MutableSet<String>,
@@ -347,30 +371,30 @@ class FlowAwareContextBuilder(
             sb.append("  ".repeat(depth)).append("...\n")
             return
         }
-        
+
         // 检查是否已访问
         if (nodeId in visited) {
             sb.append("  ".repeat(depth)).append("(循环回到 ${nodeId})\n")
             return
         }
-        
+
         // 标记为已访问
         visited.add(nodeId)
-        
+
         // 获取节点
         val node = graph.getNode(nodeId) ?: return
-        
+
         // 格式化节点
         sb.append("  ".repeat(depth)).append("${node.type}: ${node.label}\n")
-        
+
         // 获取后继节点
         val successors = graph.getSuccessors(nodeId)
-        
+
         // 递归处理后继节点
         successors.forEach { successor ->
             // 获取边
             val edge = graph.getOutEdges(nodeId).find { it.target == successor.id }
-            
+
             // 添加边信息
             if (edge != null) {
                 sb.append("  ".repeat(depth + 1)).append("${edge.type}")
@@ -379,35 +403,35 @@ class FlowAwareContextBuilder(
                 }
                 sb.append("\n")
             }
-            
+
             // 递归处理后继节点
             formatFlowNode(graph, successor.id, sb, visited, depth + 2)
         }
-        
+
         // 如果是出口节点，则添加出口标记
         if (node.id in graph.exitNodes.map { it.id }) {
             sb.append("  ".repeat(depth)).append("EXIT\n")
         }
     }
-    
+
     /**
      * 格式化数据流图
      *
      * @param graph 数据流图
      * @return 格式化后的数据流文本
      */
-    private fun formatDataFlowGraph(graph: DataFlowGraph): String {
+    private fun formatDataFlowGraph(graph: FlowGraph): String {
         val sb = StringBuilder()
-        
+
         sb.append("// 数据流图: ${graph.name}\n")
-        
+
         // 添加节点信息
         graph.nodes.forEach { node ->
             sb.append("${node.type}: ${node.label}\n")
-            
+
             // 获取出边
             val outEdges = graph.edges.filter { it.source == node.id }
-            
+
             // 添加边信息
             outEdges.forEach { edge ->
                 val targetNode = graph.getNode(edge.target)
@@ -415,13 +439,13 @@ class FlowAwareContextBuilder(
                     sb.append("  -> ${targetNode.label}\n")
                 }
             }
-            
+
             sb.append("\n")
         }
-        
+
         return sb.toString()
     }
-    
+
     /**
      * 生成缓存键
      *
@@ -442,7 +466,7 @@ class FlowAwareContextBuilder(
         excludeTypes: Set<CodeElementType>
     ): String {
         val sb = StringBuilder()
-        
+
         sb.append("flow:query:$query")
         sb.append("|position:${position?.toString() ?: "null"}")
         sb.append("|maxElements:$maxElements")
@@ -452,10 +476,10 @@ class FlowAwareContextBuilder(
         sb.append("|includeControlFlow:${config.includeControlFlow}")
         sb.append("|includeDataFlow:${config.includeDataFlow}")
         sb.append("|maxFlowDepth:${config.maxFlowDepth}")
-        
+
         return sb.toString()
     }
-    
+
     /**
      * 清空上下文缓存
      */

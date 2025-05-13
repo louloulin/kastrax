@@ -1,5 +1,12 @@
 package ai.kastrax.codebase.flow
 
+import ai.kastrax.codebase.semantic.flow.CodeFlowAnalyzer
+import ai.kastrax.codebase.semantic.flow.CodeFlowAnalyzerConfig
+import ai.kastrax.codebase.semantic.flow.FlowEdgeType
+import ai.kastrax.codebase.semantic.flow.FlowGraph
+import ai.kastrax.codebase.semantic.flow.FlowNode
+import ai.kastrax.codebase.semantic.flow.FlowNodeType
+import ai.kastrax.codebase.semantic.flow.FlowType
 import ai.kastrax.codebase.semantic.model.CodeElement
 import ai.kastrax.codebase.semantic.model.CodeElementType
 import io.github.oshai.kotlinlogging.KotlinLogging
@@ -16,8 +23,8 @@ private val logger = KotlinLogging.logger {}
  * @property config 配置
  */
 class ControlFlowAnalyzer(
-    config: CodeFlowAnalyzerConfig
-) : AbstractCodeFlowAnalyzer(config) {
+    private val config: CodeFlowAnalyzerConfig
+) : CodeFlowAnalyzer {
     
     /**
      * 获取流类型
@@ -51,29 +58,83 @@ class ControlFlowAnalyzer(
             }
             
             // 创建流图
-            val graph = createFlowGraph(element)
+            val graph = FlowGraph(
+                id = "${element.id}:control-flow",
+                name = "${element.name} Control Flow",
+                type = FlowType.CONTROL_FLOW,
+                element = element
+            )
             
             // 创建入口和出口节点
-            val entryNode = createEntryNode(element)
-            val exitNode = createExitNode(element)
+            val entryNode = FlowNode(
+                id = "${element.id}:entry",
+                type = FlowNodeType.ENTRY,
+                element = element,
+                label = "ENTRY"
+            )
+            
+            val exitNode = FlowNode(
+                id = "${element.id}:exit",
+                type = FlowNodeType.EXIT,
+                element = element,
+                label = "EXIT"
+            )
             
             // 设置入口节点
-            graph.setEntryNode(entryNode)
+            graph.addNode(entryNode)
+            graph.entryNode = entryNode
             
             // 添加出口节点
-            graph.addExitNode(exitNode)
+            graph.addNode(exitNode)
+            graph.exitNodes.add(exitNode)
             
             // 分析方法体
             analyzeMethodBody(element, graph, entryNode, exitNode)
             
             // 缓存流图
-            cacheGraph(element, graph)
+            graphCache[element.id] = graph
             
             return@withContext graph
         } catch (e: Exception) {
             logger.error(e) { "控制流分析失败: ${element.qualifiedName}" }
             return@withContext null
         }
+    }
+    
+    /**
+     * 分析代码元素集合
+     *
+     * @param elements 代码元素集合
+     * @return 流图集合
+     */
+    override suspend fun analyzeAll(elements: Collection<CodeElement>): Map<CodeElement, FlowGraph> {
+        val result = mutableMapOf<CodeElement, FlowGraph>()
+        
+        for (element in elements) {
+            val graph = analyze(element)
+            if (graph != null) {
+                result[element] = graph
+            }
+        }
+        
+        return result
+    }
+    
+    /**
+     * 获取缓存的流图
+     *
+     * @param element 代码元素
+     * @return 流图，如果缓存中不存在则返回null
+     */
+    override fun getCachedGraph(element: CodeElement): FlowGraph? {
+        return graphCache[element.id]
+    }
+    
+    /**
+     * 清除缓存
+     */
+    override fun clearCache() {
+        graphCache.clear()
     }
     
     /**
@@ -102,145 +163,24 @@ class ControlFlowAnalyzer(
         
         // 连接语句节点和出口节点
         graph.addEdge(statementNode, exitNode, FlowEdgeType.SEQUENTIAL)
-        
-        // 分析方法调用
-        analyzeMethodCalls(element, graph, statementNode)
-        
-        // 分析条件语句
-        analyzeConditions(element, graph, statementNode)
-        
-        // 分析循环语句
-        analyzeLoops(element, graph, statementNode)
-        
-        // 分析异常处理
-        analyzeExceptionHandling(element, graph, statementNode, exitNode)
     }
     
     /**
-     * 分析方法调用
+     * 创建语句节点
      *
      * @param element 代码元素
-     * @param graph 流图
-     * @param parentNode 父节点
+     * @param label 标签
+     * @return 语句节点
      */
-    private fun analyzeMethodCalls(element: CodeElement, graph: FlowGraph, parentNode: FlowNode) {
-        // 获取方法调用信息
-        val methodCalls = element.metadata["methodCalls"] as? List<Map<String, String>> ?: emptyList()
-        
-        methodCalls.forEach { callInfo ->
-            val target = callInfo["target"] ?: "unknown"
-            val callNode = createCallNode(element, target)
-            graph.addNode(callNode)
-            
-            // 连接父节点和调用节点
-            graph.addEdge(parentNode, callNode, FlowEdgeType.CALL)
-        }
+    private fun createStatementNode(element: CodeElement, label: String = ""): FlowNode {
+        return FlowNode(
+            id = "${element.id}:statement:${System.nanoTime()}",
+            type = FlowNodeType.STATEMENT,
+            element = element,
+            label = label.ifEmpty { element.name }
+        )
     }
     
-    /**
-     * 分析条件语句
-     *
-     * @param element 代码元素
-     * @param graph 流图
-     * @param parentNode 父节点
-     */
-    private fun analyzeConditions(element: CodeElement, graph: FlowGraph, parentNode: FlowNode) {
-        // 获取条件语句信息
-        val conditions = element.metadata["conditions"] as? List<Map<String, Any>> ?: emptyList()
-        
-        conditions.forEach { conditionInfo ->
-            val condition = conditionInfo["condition"] as? String ?: "unknown"
-            val conditionNode = createConditionNode(element, condition)
-            graph.addNode(conditionNode)
-            
-            // 连接父节点和条件节点
-            graph.addEdge(parentNode, conditionNode, FlowEdgeType.SEQUENTIAL)
-            
-            // 创建真分支节点
-            val trueBranchNode = createStatementNode(element, "True Branch")
-            graph.addNode(trueBranchNode)
-            
-            // 连接条件节点和真分支节点
-            graph.addEdge(conditionNode, trueBranchNode, FlowEdgeType.CONDITIONAL, "true")
-            
-            // 创建假分支节点
-            val falseBranchNode = createStatementNode(element, "False Branch")
-            graph.addNode(falseBranchNode)
-            
-            // 连接条件节点和假分支节点
-            graph.addEdge(conditionNode, falseBranchNode, FlowEdgeType.CONDITIONAL, "false")
-        }
-    }
-    
-    /**
-     * 分析循环语句
-     *
-     * @param element 代码元素
-     * @param graph 流图
-     * @param parentNode 父节点
-     */
-    private fun analyzeLoops(element: CodeElement, graph: FlowGraph, parentNode: FlowNode) {
-        // 获取循环语句信息
-        val loops = element.metadata["loops"] as? List<Map<String, Any>> ?: emptyList()
-        
-        loops.forEach { loopInfo ->
-            val condition = loopInfo["condition"] as? String ?: "unknown"
-            val loopNode = createLoopNode(element, condition)
-            graph.addNode(loopNode)
-            
-            // 连接父节点和循环节点
-            graph.addEdge(parentNode, loopNode, FlowEdgeType.SEQUENTIAL)
-            
-            // 创建循环体节点
-            val loopBodyNode = createStatementNode(element, "Loop Body")
-            graph.addNode(loopBodyNode)
-            
-            // 连接循环节点和循环体节点
-            graph.addEdge(loopNode, loopBodyNode, FlowEdgeType.CONDITIONAL, "true")
-            
-            // 连接循环体节点和循环节点（回边）
-            graph.addEdge(loopBodyNode, loopNode, FlowEdgeType.LOOP_BACK)
-            
-            // 创建循环出口节点
-            val loopExitNode = createStatementNode(element, "Loop Exit")
-            graph.addNode(loopExitNode)
-            
-            // 连接循环节点和循环出口节点
-            graph.addEdge(loopNode, loopExitNode, FlowEdgeType.CONDITIONAL, "false")
-        }
-    }
-    
-    /**
-     * 分析异常处理
-     *
-     * @param element 代码元素
-     * @param graph 流图
-     * @param parentNode 父节点
-     * @param exitNode 出口节点
-     */
-    private fun analyzeExceptionHandling(element: CodeElement, graph: FlowGraph, parentNode: FlowNode, exitNode: FlowNode) {
-        // 获取异常处理信息
-        val exceptionHandlers = element.metadata["exceptionHandlers"] as? List<Map<String, Any>> ?: emptyList()
-        
-        exceptionHandlers.forEach { handlerInfo ->
-            val exceptionType = handlerInfo["exceptionType"] as? String ?: "Exception"
-            
-            // 创建 try 节点
-            val tryNode = createStatementNode(element, "try")
-            graph.addNode(tryNode)
-            
-            // 连接父节点和 try 节点
-            graph.addEdge(parentNode, tryNode, FlowEdgeType.SEQUENTIAL)
-            
-            // 创建 catch 节点
-            val catchNode = createCatchNode(element, exceptionType)
-            graph.addNode(catchNode)
-            
-            // 连接 try 节点和 catch 节点（异常边）
-            graph.addEdge(tryNode, catchNode, FlowEdgeType.EXCEPTION)
-            
-            // 连接 catch 节点和出口节点
-            graph.addEdge(catchNode, exitNode, FlowEdgeType.SEQUENTIAL)
-        }
-    }
+    // 缓存
+    private val graphCache = mutableMapOf<String, FlowGraph>()
 }

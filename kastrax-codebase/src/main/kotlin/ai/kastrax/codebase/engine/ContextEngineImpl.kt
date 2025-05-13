@@ -8,6 +8,11 @@ import ai.kastrax.codebase.context.ContextBuilder
 import ai.kastrax.codebase.context.ContextBuilderConfig
 import ai.kastrax.codebase.context.FlowAwareContextBuilder
 import ai.kastrax.codebase.context.FlowAwareContextBuilderConfig
+import ai.kastrax.codebase.context.IContextBuilder
+import ai.kastrax.codebase.flow.CodeFlowAnalyzerAdapter
+import ai.kastrax.codebase.flow.ControlFlowAnalyzer
+import ai.kastrax.codebase.flow.DataFlowAnalyzer
+import ai.kastrax.codebase.semantic.flow.CodeFlowAnalyzerConfig
 import ai.kastrax.codebase.context.ContextLevel
 import ai.kastrax.codebase.embedding.CodeEmbeddingService
 import ai.kastrax.codebase.embedding.CodeEmbeddingServiceConfig
@@ -16,9 +21,6 @@ import ai.kastrax.codebase.indexing.IndexTaskProcessor
 import ai.kastrax.codebase.indexing.IndexTaskType
 import ai.kastrax.codebase.semantic.CodeSemanticAnalyzer
 import ai.kastrax.codebase.semantic.CodeSemanticAnalyzerConfig
-import ai.kastrax.codebase.semantic.flow.CodeFlowAnalyzer
-import ai.kastrax.codebase.semantic.flow.CodeFlowAnalyzerConfig
-import ai.kastrax.codebase.semantic.flow.CodeFlowAnalyzerFactory
 import ai.kastrax.codebase.semantic.flow.FlowType
 import ai.kastrax.codebase.semantic.model.CodeElement
 import ai.kastrax.codebase.semantic.model.CodeElementType
@@ -141,11 +143,16 @@ class ContextEngineImpl(
     )
 
     // 代码流分析器
-    private val codeFlowAnalyzer: CodeFlowAnalyzer? = if (config.enableCodeFlowAnalysis) {
-        // 初始化代码流分析器工厂
-        CodeFlowAnalyzerFactory.init(config.codeFlowAnalyzerConfig)
-        // 获取控制流分析器
-        CodeFlowAnalyzerFactory.getAnalyzer(FlowType.CONTROL_FLOW)
+    private val controlFlowAnalyzer = if (config.enableCodeFlowAnalysis) {
+        ControlFlowAnalyzer(config.codeFlowAnalyzerConfig)
+    } else null
+
+    private val dataFlowAnalyzer = if (config.enableCodeFlowAnalysis) {
+        DataFlowAnalyzer(config.codeFlowAnalyzerConfig)
+    } else null
+
+    private val codeFlowAnalyzer = if (config.enableCodeFlowAnalysis && controlFlowAnalyzer != null && dataFlowAnalyzer != null) {
+        CodeFlowAnalyzerAdapter(controlFlowAnalyzer, dataFlowAnalyzer)
     } else null
 
     // 代码关系分析器
@@ -154,7 +161,7 @@ class ContextEngineImpl(
     } else null
 
     // 上下文构建器
-    private val contextBuilder = if (config.enableCodeFlowAnalysis) {
+    private val contextBuilder: IContextBuilder = if (config.enableCodeFlowAnalysis) {
         FlowAwareContextBuilder(
             vectorStore = codeVectorStore,
             embeddingService = codeEmbeddingService,
@@ -249,7 +256,7 @@ class ContextEngineImpl(
      * @param minScore 最小相似度分数
      * @return 上下文
      */
-    override suspend fun getQueryContext(query: String, maxResults: Int, minScore: Double): Context = withContext(Dispatchers.IO) {
+    override suspend fun getQueryContext(query: String, maxResults: Int, minScore: Double, includeRelated: Boolean): Context = withContext(Dispatchers.IO) {
         try {
             checkInitialized()
 
@@ -257,7 +264,8 @@ class ContextEngineImpl(
             val context = contextBuilder.buildContext(
                 query = query,
                 maxElements = maxResults,
-                minScore = minScore.toFloat()
+                minScore = minScore,
+                includeRelatedElements = includeRelated
             )
 
             emitEvent(
@@ -346,9 +354,8 @@ class ContextEngineImpl(
             // 构建编辑上下文
             val context = contextBuilder.buildContext(
                 query = "edit:$filePath",
-                position = position,
                 maxElements = maxResults,
-                minScore = minScore.toFloat()
+                minScore = minScore
             )
 
             emitEvent(
@@ -394,8 +401,7 @@ class ContextEngineImpl(
             // 构建符号上下文
             val context = contextBuilder.buildSymbolContext(
                 symbolName = symbolName,
-                maxElements = maxResults,
-                minScore = minScore.toFloat()
+                maxElements = maxResults
             )
 
             emitEvent(
@@ -501,8 +507,8 @@ class ContextEngineImpl(
 
                 // 如果启用了代码流分析，添加代码流分析器状态
                 if (config.enableCodeFlowAnalysis && codeFlowAnalyzer != null) {
-                    status["flowAnalyzerTypes"] = codeFlowAnalyzer.getSupportedFlowTypes().map { it.name }
-                    status["flowAnalyzerElementTypes"] = codeFlowAnalyzer.getSupportedElementTypes().map { it.name }
+                    status["flowAnalyzerTypes"] = listOf("CONTROL_FLOW", "DATA_FLOW")
+                    status["flowAnalyzerElementTypes"] = listOf("METHOD", "CONSTRUCTOR", "FUNCTION")
                 }
 
                 // 如果启用了代码关系分析，添加代码关系分析器状态
@@ -600,10 +606,17 @@ class ContextEngineImpl(
                     if (config.enableCodeFlowAnalysis && codeFlowAnalyzer != null) {
                         try {
                             // 分析控制流
-                            val flowGraph = codeFlowAnalyzer.analyzeFlow(fileElement)
+                            val controlFlowGraph = codeFlowAnalyzer.analyzeControlFlow(fileElement)
+                            // 分析数据流
+                            val dataFlowGraph = codeFlowAnalyzer.analyzeDataFlow(fileElement)
                             // 将流图信息添加到元素元数据中
-                            fileElement.metadata["flowGraph"] = flowGraph.id
-                            fileElement.metadata["hasFlowAnalysis"] = true
+                            if (controlFlowGraph != null) {
+                                fileElement.metadata["controlFlowGraph"] = controlFlowGraph.id
+                            }
+                            if (dataFlowGraph != null) {
+                                fileElement.metadata["dataFlowGraph"] = dataFlowGraph.id
+                            }
+                            fileElement.metadata["hasFlowAnalysis"] = (controlFlowGraph != null || dataFlowGraph != null)
                         } catch (e: Exception) {
                             logger.error(e) { "分析代码流失败: ${task.path}" }
                             fileElement.metadata["hasFlowAnalysis"] = false

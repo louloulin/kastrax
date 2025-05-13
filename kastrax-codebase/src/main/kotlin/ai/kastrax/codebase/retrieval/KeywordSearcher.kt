@@ -1,6 +1,6 @@
 package ai.kastrax.codebase.retrieval
 
-import ai.kastrax.codebase.index.CodeIndexer
+import ai.kastrax.codebase.indexing.CodeIndexer
 import ai.kastrax.codebase.semantic.model.CodeElement
 import ai.kastrax.codebase.semantic.model.CodeElementType
 import io.github.oshai.kotlinlogging.KotlinLogging

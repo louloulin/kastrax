@@ -58,7 +58,8 @@ data class ContextElement(
     val element: CodeElement,
     val level: ContextLevel,
     val relevance: Float,
-    val content: String
+    val content: String,
+    val metadata: Map<String, Any> = emptyMap()
 )
 
 /**
@@ -149,6 +150,53 @@ data class ContextBuilderConfig(
 )
 
 /**
+ * 上下文构建器接口
+ *
+ * 用于构建代码上下文
+ */
+interface IContextBuilder {
+    /**
+     * 构建查询上下文
+     *
+     * @param query 查询字符串
+     * @param maxElements 最大元素数量
+     * @param minScore 最小相似度分数
+     * @param includeRelatedElements 是否包含相关元素
+     * @return 上下文
+     */
+    suspend fun buildContext(
+        query: String,
+        maxElements: Int = 10,
+        minScore: Double = 0.5,
+        includeRelatedElements: Boolean = true
+    ): Context
+
+    /**
+     * 构建文件上下文
+     *
+     * @param filePath 文件路径
+     * @param maxElements 最大元素数量
+     * @return 上下文
+     */
+    suspend fun buildFileContext(
+        filePath: Path,
+        maxElements: Int = 20
+    ): Context
+
+    /**
+     * 构建符号上下文
+     *
+     * @param symbolName 符号名称
+     * @param maxElements 最大元素数量
+     * @return 上下文
+     */
+    suspend fun buildSymbolContext(
+        symbolName: String,
+        maxElements: Int = 20
+    ): Context
+}
+
+/**
  * 上下文构建器
  *
  * 用于构建多级上下文
@@ -165,9 +213,36 @@ class ContextBuilder(
     private val config: ContextBuilderConfig = ContextBuilderConfig(),
     private val contextCache: ConcurrentHashMap<String, Context> = ConcurrentHashMap(),
     private val relationAnalyzer: CodeRelationAnalyzer? = null
-) {
+) : IContextBuilder {
     /**
      * 构建上下文
+     *
+     * @param query 查询字符串
+     * @param maxElements 最大元素数量
+     * @param minScore 最小相似度分数
+     * @param includeRelatedElements 是否包含相关元素
+     * @return 上下文
+     */
+    override suspend fun buildContext(
+        query: String,
+        maxElements: Int,
+        minScore: Double,
+        includeRelatedElements: Boolean
+    ): Context = withContext(Dispatchers.IO) {
+        // 调用内部方法实现实际功能
+        return@withContext buildContextInternal(
+            query = query,
+            position = null,
+            maxElements = maxElements,
+            minScore = minScore.toFloat(),
+            includeLevels = ContextLevel.values().toSet(),
+            excludeTypes = emptySet(),
+            includeRelatedElements = includeRelatedElements
+        )
+    }
+
+    /**
+     * 构建上下文（内部实现）
      *
      * @param query 查询
      * @param position 位置
@@ -175,15 +250,17 @@ class ContextBuilder(
      * @param minScore 最小相似度分数
      * @param includeLevels 包含的级别
      * @param excludeTypes 排除的类型
+     * @param includeRelatedElements 是否包含相关元素
      * @return 上下文
      */
-    suspend fun buildContext(
+    internal suspend fun buildContextInternal(
         query: String,
         position: Location? = null,
         maxElements: Int = config.defaultMaxElements,
         minScore: Float = config.defaultMinScore,
         includeLevels: Set<ContextLevel> = ContextLevel.values().toSet(),
-        excludeTypes: Set<CodeElementType> = emptySet()
+        excludeTypes: Set<CodeElementType> = emptySet(),
+        includeRelatedElements: Boolean = true
     ): Context = withContext(Dispatchers.IO) {
         // 生成缓存键
         val cacheKey = generateCacheKey(query, position, maxElements, minScore, includeLevels, excludeTypes)
@@ -248,7 +325,7 @@ class ContextBuilder(
                     )
 
                     // 如果启用了相关元素分析，添加相关元素
-                    if (config.includeRelatedElements && relationAnalyzer != null) {
+                    if (includeRelatedElements && relationAnalyzer != null) {
                         val relatedElements = getRelatedElements(element)
                         relatedElements.forEach { relatedElement ->
                             val relatedLevel = getContextLevel(relatedElement)
@@ -315,9 +392,9 @@ class ContextBuilder(
      * @param maxElements 最大元素数量
      * @return 上下文
      */
-    suspend fun buildFileContext(
+    override suspend fun buildFileContext(
         filePath: Path,
-        maxElements: Int = config.defaultMaxElements
+        maxElements: Int
     ): Context = withContext(Dispatchers.IO) {
         try {
             // 查找文件中的所有元素
@@ -366,13 +443,11 @@ class ContextBuilder(
      *
      * @param symbolName 符号名称
      * @param maxElements 最大元素数量
-     * @param minScore 最小分数
      * @return 上下文
      */
-    suspend fun buildSymbolContext(
+    override suspend fun buildSymbolContext(
         symbolName: String,
-        maxElements: Int = config.defaultMaxElements,
-        minScore: Float = config.defaultMinScore
+        maxElements: Int
     ): Context = withContext(Dispatchers.IO) {
         try {
             // 生成查询向量
@@ -382,7 +457,7 @@ class ContextBuilder(
             val searchResults = vectorStore.similaritySearch(
                 vector = queryVector,
                 limit = maxElements * 2,
-                minScore = minScore,
+                minScore = config.defaultMinScore,
                 filter = { _, _, element -> element.name.contains(symbolName, ignoreCase = true) }
             )
 
@@ -413,7 +488,7 @@ class ContextBuilder(
                 metadata = mapOf(
                     "symbolName" to symbolName,
                     "maxElements" to maxElements,
-                    "minScore" to minScore
+                    "minScore" to config.defaultMinScore
                 )
             )
         } catch (e: Exception) {
@@ -587,9 +662,8 @@ class ContextBuilder(
                 buildContext(
                     query = query,
                     maxElements = maxElementsPerQuery,
-                    minScore = minScore,
-                    includeLevels = includeLevels,
-                    excludeTypes = excludeTypes
+                    minScore = minScore.toDouble(),
+                    includeRelatedElements = true
                 )
             }
 

@@ -1,7 +1,7 @@
 package ai.kastrax.codebase.context
 
-import ai.kastrax.codebase.flow.CodeFlowAnalyzer
-import ai.kastrax.codebase.flow.CodeFlowAnalyzerConfig
+import ai.kastrax.codebase.flow.CodeFlowAnalyzerAdapter
+import ai.kastrax.codebase.semantic.flow.CodeFlowAnalyzerConfig
 import ai.kastrax.codebase.semantic.model.CodeElement
 import ai.kastrax.codebase.semantic.model.CodeElementType
 import ai.kastrax.codebase.semantic.model.Location
@@ -22,26 +22,26 @@ import java.nio.file.Path
 import java.nio.file.Paths
 
 class FlowAwareContextBuilderTest {
-    
+
     private lateinit var vectorStore: CodeVectorStore
     private lateinit var embeddingService: EmbeddingService
-    private lateinit var flowAnalyzer: CodeFlowAnalyzer
+    private lateinit var flowAnalyzer: CodeFlowAnalyzerAdapter
     private lateinit var contextBuilder: FlowAwareContextBuilder
-    
+
     @BeforeEach
     fun setUp() {
         // 创建模拟对象
         vectorStore = mockk()
         embeddingService = mockk()
         flowAnalyzer = mockk()
-        
+
         // 配置模拟对象行为
         every { vectorStore.getAllIds() } returns listOf("test-method", "test-class")
         every { vectorStore.getElement("test-method") } returns createTestMethodElement()
         every { vectorStore.getElement("test-class") } returns createTestClassElement()
-        
+
         coEvery { embeddingService.embed(any()) } returns FloatArray(128) { 0.1f }
-        
+
         coEvery { vectorStore.similaritySearch(any(), any(), any(), any()) } returns listOf(
             CodeSearchResult(
                 id = "test-method",
@@ -54,10 +54,10 @@ class FlowAwareContextBuilderTest {
                 score = 0.8
             )
         )
-        
+
         coEvery { flowAnalyzer.analyzeControlFlow(any()) } returns null
         coEvery { flowAnalyzer.analyzeDataFlow(any()) } returns null
-        
+
         // 创建上下文构建器
         contextBuilder = FlowAwareContextBuilder(
             vectorStore = vectorStore,
@@ -69,7 +69,7 @@ class FlowAwareContextBuilderTest {
             )
         )
     }
-    
+
     @Test
     fun `test build context`() = runBlocking {
         // 构建上下文
@@ -78,7 +78,7 @@ class FlowAwareContextBuilderTest {
             maxElements = 5,
             minScore = 0.5f
         )
-        
+
         // 验证结果
         assertNotNull(context)
         assertTrue(context.elements.isNotEmpty())
@@ -86,19 +86,19 @@ class FlowAwareContextBuilderTest {
         assertTrue(context.metadata.containsKey("includeControlFlow"))
         assertTrue(context.metadata.containsKey("includeDataFlow"))
     }
-    
+
     @Test
     fun `test build file context`() = runBlocking {
         // 配置模拟对象行为
         every { vectorStore.getAllIds() } returns listOf("test-method", "test-class")
         every { vectorStore.getElement(any()) } returns createTestMethodElement()
-        
+
         // 构建文件上下文
         val context = contextBuilder.buildFileContext(
             filePath = Paths.get("src/test/resources/TestClass.java"),
             maxElements = 5
         )
-        
+
         // 验证结果
         assertNotNull(context)
         assertTrue(context.elements.isNotEmpty())
@@ -106,7 +106,7 @@ class FlowAwareContextBuilderTest {
         assertTrue(context.metadata.containsKey("includeControlFlow"))
         assertTrue(context.metadata.containsKey("includeDataFlow"))
     }
-    
+
     @Test
     fun `test build symbol context`() = runBlocking {
         // 构建符号上下文
@@ -115,7 +115,7 @@ class FlowAwareContextBuilderTest {
             maxElements = 5,
             minScore = 0.5f
         )
-        
+
         // 验证结果
         assertNotNull(context)
         assertTrue(context.elements.isNotEmpty())
@@ -123,7 +123,7 @@ class FlowAwareContextBuilderTest {
         assertTrue(context.metadata.containsKey("includeControlFlow"))
         assertTrue(context.metadata.containsKey("includeDataFlow"))
     }
-    
+
     /**
      * 创建测试方法元素
      *
@@ -131,7 +131,7 @@ class FlowAwareContextBuilderTest {
      */
     private fun createTestMethodElement(): CodeElement {
         val classElement = createTestClassElement()
-        
+
         val methodElement = CodeElement(
             id = "test-method",
             name = "testMethod",
@@ -147,7 +147,7 @@ class FlowAwareContextBuilderTest {
             visibility = Visibility.PUBLIC,
             parent = classElement
         )
-        
+
         // 添加方法体
         methodElement.metadata["body"] = """
             public void testMethod(int a, String b) {
@@ -156,24 +156,24 @@ class FlowAwareContextBuilderTest {
                 } else {
                     System.out.println("Non-positive: " + a);
                 }
-                
+
                 for (int i = 0; i < a; i++) {
                     System.out.println("Loop: " + i);
                 }
-                
+
                 try {
                     int result = a / 0;
                 } catch (Exception e) {
                     System.out.println("Exception: " + e.getMessage());
                 }
-                
+
                 return;
             }
         """.trimIndent()
-        
+
         return methodElement
     }
-    
+
     /**
      * 创建测试类元素
      *

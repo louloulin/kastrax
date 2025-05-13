@@ -95,8 +95,24 @@ abstract class ChapiCodeParser : AbstractCodeParser() {
             }
 
             // 解析可见性和修饰符
-            val visibility = parseVisibility(dataStruct.Modifiers)
-            val modifiers = parseModifiers(dataStruct.Modifiers)
+            // 解析可见性和修饰符
+            val modifiersList = try {
+                val modifiersField = dataStruct::class.java.getDeclaredField("Modifiers")
+                modifiersField.isAccessible = true
+                val modifiers = modifiersField.get(dataStruct)
+                if (modifiers is Array<*>) {
+                    modifiers.filterNotNull().map { it.toString() }
+                } else if (modifiers is Collection<*>) {
+                    modifiers.filterNotNull().map { it.toString() }
+                } else {
+                    emptyList()
+                }
+            } catch (e: Exception) {
+                emptyList<String>()
+            }
+
+            val visibility = parseVisibility(modifiersList)
+            val modifiers = parseModifiers(modifiersList)
 
             val classElement = CodeElement(
                 id = "${fileElement.id}:${elementType.name.lowercase()}:${dataStruct.NodeName}",
@@ -107,28 +123,90 @@ abstract class ChapiCodeParser : AbstractCodeParser() {
                     dataStruct.NodeName
                 },
                 type = elementType,
-                location = createLocationFromPosition(fileElement.location.filePath, dataStruct.Position),
+                location = createLocationFromPosition(fileElement.location.filePath, getPosition(dataStruct)),
                 visibility = visibility,
                 modifiers = modifiers,
                 parent = fileElement,
-                documentation = dataStruct.DocString,
+                documentation = getDocString(dataStruct),
                 language = getLanguageName()
             )
 
             // 添加继承和实现信息到元数据
-            if (dataStruct.Extend.isNotEmpty()) {
-                classElement.metadata["extends"] = dataStruct.Extend
+            // 获取继承信息
+            val extendList = try {
+                val extendField = dataStruct::class.java.getDeclaredField("Extend")
+                extendField.isAccessible = true
+                val extend = extendField.get(dataStruct)
+                if (extend is Array<*>) {
+                    extend.filterNotNull().map { it.toString() }
+                } else if (extend is Collection<*>) {
+                    extend.filterNotNull().map { it.toString() }
+                } else {
+                    emptyList()
+                }
+            } catch (e: Exception) {
+                emptyList<String>()
             }
 
-            if (dataStruct.Implements.isNotEmpty()) {
-                classElement.metadata["implements"] = dataStruct.Implements.joinToString(", ")
+            if (extendList.isNotEmpty()) {
+                classElement.metadata["extends"] = extendList
+            }
+
+            // 获取实现信息
+            val implementsList = try {
+                val implementsField = dataStruct::class.java.getDeclaredField("Implements")
+                implementsField.isAccessible = true
+                val implements = implementsField.get(dataStruct)
+                if (implements is Array<*>) {
+                    implements.filterNotNull().map { it.toString() }
+                } else if (implements is Collection<*>) {
+                    implements.filterNotNull().map { it.toString() }
+                } else {
+                    emptyList()
+                }
+            } catch (e: Exception) {
+                emptyList<String>()
+            }
+
+            if (implementsList.isNotEmpty()) {
+                classElement.metadata["implements"] = implementsList.joinToString(", ")
             }
 
             // 处理字段
-            processFields(classElement, dataStruct.Fields.toList())
+            val fieldsList = try {
+                val fieldsField = dataStruct::class.java.getDeclaredField("Fields")
+                fieldsField.isAccessible = true
+                val fields = fieldsField.get(dataStruct)
+                if (fields is Array<*>) {
+                    fields.filterNotNull()
+                } else if (fields is Collection<*>) {
+                    fields.filterNotNull()
+                } else {
+                    emptyList()
+                }
+            } catch (e: Exception) {
+                emptyList<Any>()
+            }
+
+            processFields(classElement, fieldsList)
 
             // 处理方法
-            processFunctions(classElement, dataStruct.Functions.toList())
+            val functionsList = try {
+                val functionsField = dataStruct::class.java.getDeclaredField("Functions")
+                functionsField.isAccessible = true
+                val functions = functionsField.get(dataStruct)
+                if (functions is Array<*>) {
+                    functions.filterNotNull()
+                } else if (functions is Collection<*>) {
+                    functions.filterNotNull()
+                } else {
+                    emptyList()
+                }
+            } catch (e: Exception) {
+                emptyList<Any>()
+            }
+
+            processFunctions(classElement, functionsList)
 
             fileElement.addChild(classElement)
         }
@@ -140,35 +218,82 @@ abstract class ChapiCodeParser : AbstractCodeParser() {
      * @param classElement 类元素
      * @param fields 字段列表
      */
-    private fun processFields(classElement: CodeElement, fields: List<CodeField>) {
+    private fun processFields(classElement: CodeElement, fields: List<Any>) {
+        // 将 Any 类型的字段转换为 CodeField 类型
         fields.forEach { field ->
-            // 解析可见性和修饰符
-            val visibility = parseVisibility(field.Modifiers)
-            val modifiers = parseModifiers(field.Modifiers)
+            try {
+                // 使用反射获取字段的属性
+                val typeValueField = field::class.java.getDeclaredField("TypeValue")
+                typeValueField.isAccessible = true
+                val typeValue = typeValueField.get(field) as? String ?: return@forEach
 
-            val fieldElement = CodeElement(
-                id = "${classElement.id}:field:${field.TypeValue}",
-                name = field.TypeValue,
-                qualifiedName = "${classElement.qualifiedName}.${field.TypeValue}",
-                type = CodeElementType.FIELD,
-                location = createLocationFromPosition(classElement.location.filePath, field.Position),
-                visibility = visibility,
-                modifiers = modifiers,
-                parent = classElement,
-                documentation = field.DocString,
-                language = getLanguageName()
-            )
+                val modifiersField = field::class.java.getDeclaredField("Modifiers")
+                modifiersField.isAccessible = true
+                val modifiers = modifiersField.get(field)
+                val modifiersList = if (modifiers is Array<*>) {
+                    modifiers.filterNotNull().map { it.toString() }
+                } else if (modifiers is Collection<*>) {
+                    modifiers.filterNotNull().map { it.toString() }
+                } else {
+                    emptyList<String>()
+                }
 
-            // 添加字段类型信息到元数据
-            fieldElement.metadata["type"] = field.TypeType
-            fieldElement.metadata["defaultValue"] = field.DefaultValue ?: ""
+                // 解析可见性和修饰符
+                val visibility = parseVisibility(modifiersList)
+                val fieldModifiers = parseModifiers(modifiersList)
 
-            // 添加注解信息
-            if (field.Annotations.isNotEmpty()) {
-                fieldElement.metadata["annotations"] = field.Annotations.joinToString(", ")
+                val fieldElement = CodeElement(
+                    id = "${classElement.id}:field:${typeValue}",
+                    name = typeValue,
+                        qualifiedName = "${classElement.qualifiedName}.${typeValue}",
+                    type = CodeElementType.FIELD,
+                    location = createLocationFromPosition(classElement.location.filePath, getPosition(field)),
+                    visibility = visibility,
+                    modifiers = fieldModifiers,
+                    parent = classElement,
+                    documentation = getDocString(field),
+                    language = getLanguageName()
+                )
+
+                // 添加字段类型信息到元数据
+                try {
+                    val typeTypeField = field::class.java.getDeclaredField("TypeType")
+                    typeTypeField.isAccessible = true
+                    val typeType = typeTypeField.get(field) as? String
+                    if (typeType != null) {
+                        fieldElement.metadata["type"] = typeType
+                    }
+
+                    val defaultValueField = field::class.java.getDeclaredField("DefaultValue")
+                    defaultValueField.isAccessible = true
+                    val defaultValue = defaultValueField.get(field)
+                    if (defaultValue != null) {
+                        fieldElement.metadata["defaultValue"] = defaultValue.toString()
+                    } else {
+                        fieldElement.metadata["defaultValue"] = ""
+                    }
+                } catch (e: Exception) {
+                    logger.debug { "Failed to get field type or default value: ${e.message}" }
+                }
+
+                // 添加注解信息
+                try {
+                    val annotationsField = field::class.java.getDeclaredField("Annotations")
+                    annotationsField.isAccessible = true
+                    val annotations = annotationsField.get(field)
+                    if (annotations is Array<*> && annotations.isNotEmpty()) {
+                        fieldElement.metadata["annotations"] = annotations.filterNotNull().joinToString(", ")
+                    } else if (annotations is Collection<*> && annotations.isNotEmpty()) {
+                        fieldElement.metadata["annotations"] = annotations.filterNotNull().joinToString(", ")
+                    }
+                } catch (e: Exception) {
+                    logger.debug { "Failed to get field annotations: ${e.message}" }
+                }
+
+                classElement.addChild(fieldElement)
+            } catch (e: Exception) {
+                logger.error { "Failed to process field: ${e.message}" }
             }
-
-            classElement.addChild(fieldElement)
         }
     }
 
@@ -178,70 +303,179 @@ abstract class ChapiCodeParser : AbstractCodeParser() {
      * @param classElement 类元素
      * @param functions 方法列表
      */
-    private fun processFunctions(classElement: CodeElement, functions: List<CodeFunction>) {
+    private fun processFunctions(classElement: CodeElement, functions: List<Any>) {
         functions.forEach { function ->
-            val elementType = if (function.IsConstructor) {
-                CodeElementType.CONSTRUCTOR
-            } else if (function.Name.startsWith("get") || function.Name.startsWith("set") || function.Name.startsWith("is")) {
-                // 识别getter和setter方法
-                CodeElementType.PROPERTY
-            } else {
-                CodeElementType.METHOD
-            }
+            try {
+                // 使用反射获取函数的属性
+                val isConstructorField = function::class.java.getDeclaredField("IsConstructor")
+                isConstructorField.isAccessible = true
+                val isConstructor = isConstructorField.get(function) as? Boolean ?: false
 
-            // 解析可见性和修饰符
-            val visibility = parseVisibility(function.Modifiers)
-            val modifiers = parseModifiers(function.Modifiers)
+                val nameField = function::class.java.getDeclaredField("Name")
+                nameField.isAccessible = true
+                val name = nameField.get(function) as? String ?: return@forEach
 
-            val methodElement = CodeElement(
-                id = "${classElement.id}:${elementType.name.lowercase()}:${function.Name}",
-                name = function.Name,
-                qualifiedName = "${classElement.qualifiedName}.${function.Name}",
-                type = elementType,
-                location = createLocationFromPosition(classElement.location.filePath, function.Position),
-                visibility = visibility,
-                modifiers = modifiers,
-                parent = classElement,
-                documentation = function.DocString,
-                language = getLanguageName()
-            )
+                val elementType = if (isConstructor) {
+                    CodeElementType.CONSTRUCTOR
+                } else if (name.startsWith("get") || name.startsWith("set") || name.startsWith("is")) {
+                    // 识别getter和setter方法
+                    CodeElementType.PROPERTY
+                } else {
+                    CodeElementType.METHOD
+                }
 
-            // 添加返回类型信息到元数据
-            methodElement.metadata["returnType"] = function.ReturnType
+                // 获取修饰符
+                val modifiersField = function::class.java.getDeclaredField("Modifiers")
+                modifiersField.isAccessible = true
+                val modifiers = modifiersField.get(function)
+                val modifiersList = if (modifiers is Array<*>) {
+                    modifiers.filterNotNull().map { it.toString() }
+                } else if (modifiers is Collection<*>) {
+                    modifiers.filterNotNull().map { it.toString() }
+                } else {
+                    emptyList<String>()
+                }
 
-            // 添加注解信息
-            if (function.Annotations.isNotEmpty()) {
-                methodElement.metadata["annotations"] = function.Annotations.joinToString(", ")
-            }
+                // 解析可见性和修饰符
+                val visibility = parseVisibility(modifiersList)
+                val functionModifiers = parseModifiers(modifiersList)
 
-            // 添加方法体信息
-            if (function.FunctionCalls.isNotEmpty()) {
-                methodElement.metadata["functionCalls"] = function.FunctionCalls.joinToString(", ") { it.Name }
-            }
-
-            // 处理参数
-            function.Parameters.forEach { param ->
-                val paramElement = CodeElement(
-                    id = "${methodElement.id}:parameter:${param.Name}",
-                    name = param.Name,
-                    qualifiedName = "${methodElement.qualifiedName}(${param.Name})",
-                    type = CodeElementType.PARAMETER,
-                    location = methodElement.location,
-                    parent = methodElement,
+                val methodElement = CodeElement(
+                    id = "${classElement.id}:${elementType.name.lowercase()}:${name}",
+                    name = name,
+                    qualifiedName = "${classElement.qualifiedName}.${name}",
+                    type = elementType,
+                    location = createLocationFromPosition(classElement.location.filePath, getPosition(function)),
+                    visibility = visibility,
+                    modifiers = functionModifiers,
+                    parent = classElement,
+                    documentation = getDocString(function),
                     language = getLanguageName()
                 )
 
-                // 添加参数类型信息
-                paramElement.metadata["type"] = param.TypeType
-                if (param.DefaultValue != null) {
-                    paramElement.metadata["defaultValue"] = param.DefaultValue
+                // 添加返回类型信息到元数据
+                try {
+                    val returnTypeField = function::class.java.getDeclaredField("ReturnType")
+                    returnTypeField.isAccessible = true
+                    val returnType = returnTypeField.get(function) as? String
+                    if (returnType != null) {
+                        methodElement.metadata["returnType"] = returnType
+                    }
+                } catch (e: Exception) {
+                    logger.debug { "Failed to get function return type: ${e.message}" }
                 }
 
-                // 添加参数元素到方法元素
-                methodElement.addChild(paramElement)
+                // 添加注解信息
+                try {
+                    val annotationsField = function::class.java.getDeclaredField("Annotations")
+                    annotationsField.isAccessible = true
+                    val annotations = annotationsField.get(function)
+                    if (annotations is Array<*> && annotations.isNotEmpty()) {
+                        methodElement.metadata["annotations"] = annotations.filterNotNull().joinToString(", ")
+                    } else if (annotations is Collection<*> && annotations.isNotEmpty()) {
+                        methodElement.metadata["annotations"] = annotations.filterNotNull().joinToString(", ")
+                    }
+                } catch (e: Exception) {
+                    logger.debug { "Failed to get function annotations: ${e.message}" }
+                }
+
+                // 添加方法体信息
+                try {
+                    val functionCallsField = function::class.java.getDeclaredField("FunctionCalls")
+                    functionCallsField.isAccessible = true
+                    val functionCalls = functionCallsField.get(function)
+                    if (functionCalls is Array<*> && functionCalls.isNotEmpty()) {
+                        methodElement.metadata["functionCalls"] = functionCalls.filterNotNull().joinToString(", ") {
+                            try {
+                                val nameField = it::class.java.getDeclaredField("Name")
+                                nameField.isAccessible = true
+                                (nameField.get(it) as? String) ?: "unknown"
+                            } catch (e: Exception) {
+                                "unknown"
+                            }
+                        }
+                    } else if (functionCalls is Collection<*> && functionCalls.isNotEmpty()) {
+                        methodElement.metadata["functionCalls"] = functionCalls.filterNotNull().joinToString(", ") {
+                            try {
+                                val nameField = it::class.java.getDeclaredField("Name")
+                                nameField.isAccessible = true
+                                (nameField.get(it) as? String) ?: "unknown"
+                            } catch (e: Exception) {
+                                "unknown"
+                            }
+                        }
+                    }
+                } catch (e: Exception) {
+                    logger.debug { "Failed to get function calls: ${e.message}" }
+                }
+
+                // 处理参数
+                try {
+                    val parametersField = function::class.java.getDeclaredField("Parameters")
+                    parametersField.isAccessible = true
+                    val parameters = parametersField.get(function)
+                    if (parameters is Array<*>) {
+                        parameters.filterNotNull().forEach { processParameter(it, methodElement) }
+                    } else if (parameters is Collection<*>) {
+                        parameters.filterNotNull().forEach { processParameter(it, methodElement) }
+                    }
+                } catch (e: Exception) {
+                    logger.debug { "Failed to get function parameters: ${e.message}" }
+                }
+
+                classElement.addChild(methodElement)
+            } catch (e: Exception) {
+                logger.error { "Failed to process function: ${e.message}" }
+            }
+        }
+    }
+
+    /**
+     * 处理参数
+     *
+     * @param param 参数对象
+     * @param methodElement 方法元素
+     */
+    private fun processParameter(param: Any, methodElement: CodeElement) {
+        try {
+            // 使用反射获取参数的属性
+            val nameField = param::class.java.getDeclaredField("Name")
+            nameField.isAccessible = true
+            val name = (nameField.get(param) as? String) ?: "unknown"
+
+            val paramElement = CodeElement(
+                id = "${methodElement.id}:parameter:${name}",
+                name = name,
+                qualifiedName = "${methodElement.qualifiedName}(${name})",
+                type = CodeElementType.PARAMETER,
+                location = methodElement.location,
+                parent = methodElement,
+                language = getLanguageName()
+            )
+
+            // 添加参数类型信息
+            try {
+                val typeTypeField = param::class.java.getDeclaredField("TypeType")
+                typeTypeField.isAccessible = true
+                val typeType = typeTypeField.get(param) as? String
+                if (typeType != null) {
+                    paramElement.metadata["type"] = typeType
+                }
+
+                val defaultValueField = param::class.java.getDeclaredField("DefaultValue")
+                defaultValueField.isAccessible = true
+                val defaultValue = defaultValueField.get(param)
+                if (defaultValue != null) {
+                    paramElement.metadata["defaultValue"] = defaultValue.toString()
+                }
+            } catch (e: Exception) {
+                logger.debug { "Failed to get parameter type or default value: ${e.message}" }
             }
 
-            classElement.addChild(methodElement)
+            // 添加参数元素到方法元素
+            methodElement.addChild(paramElement)
+        } catch (e: Exception) {
+            logger.error { "Failed to process parameter: ${e.message}" }
         }
     }
 
@@ -307,6 +541,70 @@ abstract class ChapiCodeParser : AbstractCodeParser() {
         }
 
         return result
+    }
+
+    /**
+     * 获取对象的 Position 属性
+     *
+     * @param obj 对象
+     * @return Position 对象
+     */
+    private fun getPosition(obj: Any): CodePosition? {
+        return try {
+            val positionField = obj::class.java.getDeclaredField("Position")
+            positionField.isAccessible = true
+            positionField.get(obj) as? CodePosition
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    /**
+     * 获取对象的 DocString 属性
+     *
+     * @param obj 对象
+     * @return 文档字符串
+     */
+    private fun getDocString(obj: Any): String {
+        return try {
+            val docStringField = obj::class.java.getDeclaredField("DocString")
+            docStringField.isAccessible = true
+            (docStringField.get(obj) as? String) ?: ""
+        } catch (e: Exception) {
+            ""
+        }
+    }
+
+    /**
+     * 获取对象的 Position 属性
+     *
+     * @param obj 对象
+     * @return Position 对象
+     */
+    private fun getPosition(obj: Any): CodePosition? {
+        return try {
+            val positionField = obj::class.java.getDeclaredField("Position")
+            positionField.isAccessible = true
+            positionField.get(obj) as? CodePosition
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    /**
+     * 获取对象的 DocString 属性
+     *
+     * @param obj 对象
+     * @return 文档字符串
+     */
+    private fun getDocString(obj: Any): String {
+        return try {
+            val docStringField = obj::class.java.getDeclaredField("DocString")
+            docStringField.isAccessible = true
+            (docStringField.get(obj) as? String) ?: ""
+        } catch (e: Exception) {
+            ""
+        }
     }
 
     /**

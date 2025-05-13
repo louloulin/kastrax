@@ -2,29 +2,7 @@ package ai.kastrax.codebase.symbol.model
 
 import java.util.UUID
 
-/**
- * 符号关系类型
- */
-enum class SymbolRelationType {
-    CONTAINS,
-    EXTENDS,
-    IMPLEMENTS,
-    REFERENCES,
-    CALLS,
-    OVERRIDES,
-    USES,
-    IMPORTS,
-    DEPENDS_ON,
-    DEFINED_BY,
-    DECLARED_BY,
-    INSTANTIATES,
-    ANNOTATES,
-    THROWS,
-    CATCHES,
-    RETURNS,
-    ASSIGNS,
-    UNKNOWN
-}
+// 符号关系类型已移至 SymbolRelationType.kt
 
 /**
  * 符号关系
@@ -52,7 +30,7 @@ data class SymbolRelation(
     fun getShortDescription(): String {
         return "${type.name.lowercase()} ($sourceId -> $targetId)"
     }
-    
+
     /**
      * 获取关系的详细描述
      *
@@ -62,25 +40,25 @@ data class SymbolRelation(
      */
     fun getDetailedDescription(sourceNode: SymbolNode?, targetNode: SymbolNode?): String {
         val sb = StringBuilder()
-        
+
         sb.append("Relation: ${type.name.lowercase()}\n")
-        
+
         if (sourceNode != null) {
             sb.append("Source: ${sourceNode.qualifiedName} (${sourceNode.type.name.lowercase()})\n")
         } else {
             sb.append("Source ID: $sourceId\n")
         }
-        
+
         if (targetNode != null) {
             sb.append("Target: ${targetNode.qualifiedName} (${targetNode.type.name.lowercase()})\n")
         } else {
             sb.append("Target ID: $targetId\n")
         }
-        
+
         if (metadata.isNotEmpty()) {
             sb.append("Metadata: $metadata\n")
         }
-        
+
         return sb.toString()
     }
 }

@@ -1,8 +1,9 @@
 package ai.kastrax.codebase.symbol.model
 
 import ai.kastrax.codebase.semantic.model.CodeElement
+import ai.kastrax.codebase.semantic.model.CodeElementType
 import ai.kastrax.codebase.semantic.relation.CodeRelation
-import ai.kastrax.codebase.semantic.relation.RelationType
+import ai.kastrax.codebase.semantic.relation.RelationType as SemanticRelationType
 import io.github.oshai.kotlinlogging.KotlinLogging
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
@@ -91,6 +92,16 @@ class SymbolRelationGraph(
      */
     fun getNode(nodeId: String): SymbolNode? {
         return nodes[nodeId]
+    }
+
+    /**
+     * 获取节点（别名）
+     *
+     * @param nodeId 节点ID
+     * @return 节点，如果找不到则返回 null
+     */
+    fun getNodeById(nodeId: String): SymbolNode? {
+        return getNode(nodeId)
     }
 
     /**
@@ -213,7 +224,7 @@ class SymbolRelationGraph(
      * @param type 关系类型
      * @return 关系集合
      */
-    fun getRelationsByType(type: RelationType): List<SymbolRelation> {
+    fun getRelationsByType(type: SymbolRelationType): List<SymbolRelation> {
         return edges.values.filter { it.type == type }
     }
 
@@ -224,7 +235,7 @@ class SymbolRelationGraph(
      * @param type 关系类型
      * @return 出边集合
      */
-    fun getOutgoingEdgesByType(nodeId: String, type: RelationType): List<SymbolRelation> {
+    fun getOutgoingEdgesByType(nodeId: String, type: SymbolRelationType): List<SymbolRelation> {
         return getOutgoingEdges(nodeId).filter { it.type == type }
     }
 
@@ -235,7 +246,7 @@ class SymbolRelationGraph(
      * @param type 关系类型
      * @return 入边集合
      */
-    fun getIncomingEdgesByType(nodeId: String, type: RelationType): List<SymbolRelation> {
+    fun getIncomingEdgesByType(nodeId: String, type: SymbolRelationType): List<SymbolRelation> {
         return getIncomingEdges(nodeId).filter { it.type == type }
     }
 
@@ -246,7 +257,7 @@ class SymbolRelationGraph(
      * @return 继承关系集合
      */
     fun getInheritanceRelations(nodeId: String): List<SymbolRelation> {
-        return getOutgoingEdgesByType(nodeId, RelationType.INHERITANCE)
+        return getOutgoingEdgesByType(nodeId, SymbolRelationType.EXTENDS)
     }
 
     /**
@@ -256,7 +267,7 @@ class SymbolRelationGraph(
      * @return 实现关系集合
      */
     fun getImplementationRelations(nodeId: String): List<SymbolRelation> {
-        return getOutgoingEdgesByType(nodeId, RelationType.IMPLEMENTATION)
+        return getOutgoingEdgesByType(nodeId, SymbolRelationType.IMPLEMENTS)
     }
 
     /**
@@ -266,7 +277,7 @@ class SymbolRelationGraph(
      * @return 使用关系集合
      */
     fun getUsageRelations(nodeId: String): List<SymbolRelation> {
-        return getOutgoingEdgesByType(nodeId, RelationType.USAGE)
+        return getOutgoingEdgesByType(nodeId, SymbolRelationType.USES)
     }
 
     /**
@@ -276,7 +287,7 @@ class SymbolRelationGraph(
      * @return 依赖关系集合
      */
     fun getDependencyRelations(nodeId: String): List<SymbolRelation> {
-        return getOutgoingEdgesByType(nodeId, RelationType.DEPENDENCY)
+        return getOutgoingEdgesByType(nodeId, SymbolRelationType.DEPENDS_ON)
     }
 
     /**
@@ -286,7 +297,7 @@ class SymbolRelationGraph(
      * @return 重写关系集合
      */
     fun getOverrideRelations(nodeId: String): List<SymbolRelation> {
-        return getOutgoingEdgesByType(nodeId, RelationType.OVERRIDE)
+        return getOutgoingEdgesByType(nodeId, SymbolRelationType.OVERRIDES)
     }
 
     /**
@@ -296,7 +307,7 @@ class SymbolRelationGraph(
      * @return 引用关系集合
      */
     fun getReferenceRelations(nodeId: String): List<SymbolRelation> {
-        return getOutgoingEdgesByType(nodeId, RelationType.REFERENCE)
+        return getOutgoingEdgesByType(nodeId, SymbolRelationType.REFERENCES)
     }
 
     /**
@@ -306,7 +317,7 @@ class SymbolRelationGraph(
      * @return 导入关系集合
      */
     fun getImportRelations(nodeId: String): List<SymbolRelation> {
-        return getOutgoingEdgesByType(nodeId, RelationType.IMPORT)
+        return getOutgoingEdgesByType(nodeId, SymbolRelationType.IMPORTS)
     }
 
     /**
@@ -332,7 +343,7 @@ class SymbolRelationGraph(
     fun getRelatedNodes(
         nodeId: String,
         maxDepth: Int = 1,
-        relationTypes: Set<RelationType> = RelationType.values().toSet()
+        relationTypes: Set<SymbolRelationType> = SymbolRelationType.values().toSet()
     ): Set<String> {
         if (!nodes.containsKey(nodeId) || maxDepth <= 0) {
             return emptySet()
@@ -401,8 +412,12 @@ class SymbolRelationGraph(
                 val node = SymbolNode(
                     id = element.id,
                     name = element.name,
-                    type = element.type,
-                    element = element
+                    qualifiedName = element.qualifiedName,
+                    type = convertToSymbolType(element.type),
+                    kind = "DEFINITION",
+                    location = element.location,
+                    codeElement = element,
+                    metadata = element.metadata.toMutableMap()
                 )
                 graph.addNode(node)
             }
@@ -414,11 +429,22 @@ class SymbolRelationGraph(
                     continue
                 }
 
+                val symbolRelationType = when (relation.type) {
+                    SemanticRelationType.INHERITANCE -> SymbolRelationType.EXTENDS
+                    SemanticRelationType.IMPLEMENTATION -> SymbolRelationType.IMPLEMENTS
+                    SemanticRelationType.USAGE -> SymbolRelationType.USES
+                    SemanticRelationType.DEPENDENCY -> SymbolRelationType.DEPENDS_ON
+                    SemanticRelationType.OVERRIDE -> SymbolRelationType.OVERRIDES
+                    SemanticRelationType.REFERENCE -> SymbolRelationType.REFERENCES
+                    SemanticRelationType.IMPORT -> SymbolRelationType.IMPORTS
+                    else -> SymbolRelationType.UNKNOWN
+                }
+
                 val edge = SymbolRelation(
                     id = relation.id,
                     sourceId = relation.sourceId,
                     targetId = relation.targetId,
-                    type = relation.type,
+                    type = symbolRelationType,
                     metadata = relation.metadata.toMutableMap()
                 )
                 graph.addEdge(edge)
@@ -434,16 +460,90 @@ class SymbolRelationGraph(
          * @param config 配置
          * @return 是否应该包含
          */
-        private fun shouldIncludeRelation(type: RelationType, config: SymbolRelationGraphConfig): Boolean {
+        private fun shouldIncludeRelation(type: SemanticRelationType, config: SymbolRelationGraphConfig): Boolean {
             return when (type) {
-                RelationType.INHERITANCE -> config.includeInheritance
-                RelationType.IMPLEMENTATION -> config.includeImplementation
-                RelationType.USAGE -> config.includeUsage
-                RelationType.DEPENDENCY -> config.includeDependency
-                RelationType.OVERRIDE -> config.includeOverride
-                RelationType.REFERENCE -> config.includeReference
-                RelationType.IMPORT -> config.includeImport
+                SemanticRelationType.INHERITANCE -> config.includeInheritance
+                SemanticRelationType.IMPLEMENTATION -> config.includeImplementation
+                SemanticRelationType.USAGE -> config.includeUsage
+                SemanticRelationType.DEPENDENCY -> config.includeDependency
+                SemanticRelationType.OVERRIDE -> config.includeOverride
+                SemanticRelationType.REFERENCE -> config.includeReference
+                SemanticRelationType.IMPORT -> config.includeImport
+                else -> false
             }
         }
+    }
+
+    /**
+     * 将代码元素类型转换为符号类型
+     *
+     * @param codeElementType 代码元素类型
+     * @return 符号类型
+     */
+    private fun convertToSymbolType(codeElementType: CodeElementType): SymbolType {
+        return when (codeElementType) {
+            CodeElementType.FILE -> SymbolType.FILE
+            CodeElementType.PACKAGE -> SymbolType.PACKAGE
+            CodeElementType.CLASS -> SymbolType.CLASS
+            CodeElementType.INTERFACE -> SymbolType.INTERFACE
+            CodeElementType.ENUM -> SymbolType.ENUM
+            CodeElementType.ANNOTATION -> SymbolType.ANNOTATION
+            CodeElementType.METHOD -> SymbolType.METHOD
+            CodeElementType.CONSTRUCTOR -> SymbolType.CONSTRUCTOR
+            CodeElementType.FIELD -> SymbolType.FIELD
+            CodeElementType.PROPERTY -> SymbolType.PROPERTY
+            CodeElementType.PARAMETER -> SymbolType.PARAMETER
+            CodeElementType.FUNCTION -> SymbolType.FUNCTION
+            CodeElementType.VARIABLE -> SymbolType.LOCAL_VARIABLE
+            CodeElementType.LOCAL_VARIABLE -> SymbolType.LOCAL_VARIABLE
+            CodeElementType.IMPORT -> SymbolType.IMPORT
+            CodeElementType.NAMESPACE -> SymbolType.NAMESPACE
+            CodeElementType.MODULE -> SymbolType.MODULE
+            CodeElementType.LAMBDA -> SymbolType.LAMBDA
+            CodeElementType.BLOCK -> SymbolType.BLOCK
+            CodeElementType.STATEMENT -> SymbolType.STATEMENT
+            CodeElementType.EXPRESSION -> SymbolType.EXPRESSION
+            CodeElementType.COMMENT -> SymbolType.COMMENT
+            CodeElementType.UNKNOWN -> SymbolType.UNKNOWN
+            else -> SymbolType.UNKNOWN
+        }
+    }
+
+    /**
+     * 获取所有节点
+     *
+     * @return 所有节点的列表
+     */
+    fun getAllNodes(): List<SymbolNode> {
+        return nodes.values.toList()
+    }
+
+    /**
+     * 根据名称获取节点
+     *
+     * @param name 节点名称
+     * @return 符合条件的节点列表
+     */
+    fun getNodesByName(name: String): List<SymbolNode> {
+        return nodes.values.filter { it.name == name }
+    }
+
+    /**
+     * 根据类型获取节点
+     *
+     * @param type 节点类型
+     * @return 符合条件的节点列表
+     */
+    fun getNodesByType(type: SymbolType): List<SymbolNode> {
+        return nodes.values.filter { it.type == type }
+    }
+
+    /**
+     * 获取节点数量
+     *
+     * @return 节点数量
+     */
+    fun getNodeCount(): Int {
+        return nodes.size
     }
 }

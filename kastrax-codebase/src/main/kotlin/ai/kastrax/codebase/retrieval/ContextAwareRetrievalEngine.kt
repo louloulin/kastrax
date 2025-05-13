@@ -4,6 +4,7 @@ import ai.kastrax.codebase.context.Context
 import ai.kastrax.codebase.context.ContextBuilder
 import ai.kastrax.codebase.context.ContextLevel
 import ai.kastrax.codebase.embedding.CodeEmbeddingService
+import ai.kastrax.codebase.retrieval.model.RetrievalResult
 import ai.kastrax.codebase.semantic.model.CodeElement
 import ai.kastrax.codebase.semantic.model.CodeElementType
 import ai.kastrax.codebase.semantic.model.Location
@@ -20,18 +21,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 
 private val logger = KotlinLogging.logger {}
 
-/**
- * 检索结果
- *
- * @property element 代码元素
- * @property score 分数
- * @property explanation 解释
- */
-data class RetrievalResult(
-    val element: CodeElement,
-    val score: Double,
-    val explanation: String? = null
-)
+// 使用 ai.kastrax.codebase.retrieval.model.RetrievalResult
 
 /**
  * 检索引擎类型
@@ -41,12 +31,12 @@ enum class RetrievalEngineType {
      * 上下文感知
      */
     CONTEXT_AWARE,
-    
+
     /**
      * 多因素
      */
     MULTIFACTOR,
-    
+
     /**
      * 自定义
      */
@@ -61,22 +51,22 @@ enum class RetrievalEngineEventType {
      * 初始化
      */
     INITIALIZED,
-    
+
     /**
      * 查询执行
      */
     QUERY_EXECUTED,
-    
+
     /**
      * 反馈接收
      */
     FEEDBACK_RECEIVED,
-    
+
     /**
      * 模型更新
      */
     MODEL_UPDATED,
-    
+
     /**
      * 错误
      */
@@ -286,9 +276,8 @@ class ContextAwareRetrievalEngine(
                 // 如果指定了位置，构建位置相关的上下文
                 contextBuilder.buildContext(
                     query = query,
-                    position = currentPosition,
                     maxElements = limit * 2,
-                    minScore = minScore.toFloat()
+                    minScore = minScore
                 )
             } else if (currentFile != null) {
                 // 如果指定了文件，构建文件相关的上下文
@@ -301,7 +290,7 @@ class ContextAwareRetrievalEngine(
                 contextBuilder.buildContext(
                     query = query,
                     maxElements = limit * 2,
-                    minScore = minScore.toFloat()
+                    minScore = minScore
                 )
             }
 
