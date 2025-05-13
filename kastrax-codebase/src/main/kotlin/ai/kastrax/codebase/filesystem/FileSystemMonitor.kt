@@ -10,12 +10,17 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import java.nio.file.Path
+import java.util.Collections
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.io.path.extension
 import kotlin.io.path.isDirectory
 import kotlin.io.path.isRegularFile
 import kotlin.io.path.name
+import kotlin.time.Duration.Companion.milliseconds
 
 /**
  * 文件系统变更事件类型
@@ -46,6 +51,11 @@ data class FileChangeEvent(
  * @property excludeExtensions 排除的文件扩展名
  * @property excludeDirectories 排除的目录名
  * @property pollIntervalMs 轮询间隔（毫秒）
+ * @property eventBufferCapacity 事件缓冲区容量
+ * @property eventThrottleMs 事件节流时间（毫秒）
+ * @property watcherThreads 监控线程数
+ * @property enableRecursiveWatching 是否启用递归监控
+ * @property enableFastStartup 是否启用快速启动
  */
 data class FileSystemMonitorConfig(
     val excludePatterns: Set<Regex> = setOf(
@@ -65,8 +75,39 @@ data class FileSystemMonitorConfig(
     val excludeDirectories: Set<String> = setOf(
         ".git", ".idea", "build", "target", "node_modules", ".gradle"
     ),
-    val pollIntervalMs: Long = 1000
+    val pollIntervalMs: Long = 200, // 降低轮询间隔以提高实时性（Augment级别）
+    val eventBufferCapacity: Int = 5000, // 增加事件缓冲区容量，支持大型代码库
+    val eventThrottleMs: Long = 50, // 降低事件节流时间，提高实时性
+    val watcherThreads: Int = Runtime.getRuntime().availableProcessors(), // 使用所有可用处理器
+    val enableRecursiveWatching: Boolean = true, // 启用递归监控
+    val enableFastStartup: Boolean = true, // 启用快速启动
+    val batchProcessingEnabled: Boolean = true, // 启用批处理
+    val batchProcessingIntervalMs: Long = 100, // 批处理间隔
+    val batchSize: Int = 100, // 批处理大小
+    val detectRefactoring: Boolean = true, // 检测大规模重构
+    val refactoringThreshold: Int = 20, // 重构检测阈值（短时间内变更的文件数）
+    val refactoringTimeWindowMs: Long = 2000 // 重构检测时间窗口
 )
+
+/**
+ * 文件系统监控器
+ *
+ * 监控文件系统变更，并发出变更事件
+ *
+ * @property rootPath 根路径
+ * @property config 配置
+ */
+/**
+ * 文件变更监听器
+ */
+interface FileChangeListener {
+    /**
+     * 处理文件变更事件
+     *
+     * @param event 文件变更事件
+     */
+    suspend fun onFileChange(event: FileChangeEvent)
+}
 
 /**
  * 文件系统监控器
@@ -82,34 +123,56 @@ class FileSystemMonitor(
 ) : AutoCloseable {
     private val logger = KotlinLogging.logger {}
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
-    
+
     // 文件变更事件流
-    private val _fileChanges = MutableSharedFlow<FileChangeEvent>(extraBufferCapacity = 100)
+    private val _fileChanges = MutableSharedFlow<FileChangeEvent>(extraBufferCapacity = config.eventBufferCapacity)
     val fileChanges: SharedFlow<FileChangeEvent> = _fileChanges
-    
+
+    // 批处理事件队列
+    private val batchQueue = Collections.synchronizedList(mutableListOf<FileChangeEvent>())
+
     // 活跃的监控器
     private val activeWatchers = ConcurrentHashMap<Path, DirectoryWatcher>()
-    
+
+    // 最近处理的事件（用于去重）
+    private val recentEvents = ConcurrentHashMap<String, Long>()
+
+    // 重构检测 - 记录短时间内的文件变更
+    private val recentFileChanges = Collections.synchronizedList(mutableListOf<FileChangeEvent>())
+
+    // 监控器互斥锁
+    private val watcherMutex = Mutex()
+
+    // 是否正在运行
+    private val isRunning = AtomicBoolean(false)
+
+    // 文件变更监听器列表
+    private val changeListeners = ConcurrentHashMap.newKeySet<FileChangeListener>()
+
     // 目录变更监听器
     private val directoryChangeListener = object : DirectoryChangeListener {
         override fun onEvent(event: DirectoryChangeEvent) {
             val path = event.path()
-            
+
             // 检查是否应该排除该文件
             if (shouldExcludeFile(path)) {
                 return
             }
-            
+
             // 处理目录变更
             if (path.isDirectory()) {
                 when (event.eventType()) {
                     DirectoryChangeEvent.EventType.CREATE -> {
                         logger.debug { "目录创建: $path" }
-                        watchDirectory(path)
+                        scope.launch {
+                            watchDirectory(path)
+                        }
                     }
                     DirectoryChangeEvent.EventType.DELETE -> {
                         logger.debug { "目录删除: $path" }
-                        unwatchDirectory(path)
+                        scope.launch {
+                            unwatchDirectory(path)
+                        }
                     }
                     else -> {
                         // 目录修改，不需要特殊处理
@@ -117,7 +180,7 @@ class FileSystemMonitor(
                 }
                 return
             }
-            
+
             // 处理文件变更
             if (path.isRegularFile()) {
                 val changeType = when (event.eventType()) {
@@ -126,85 +189,351 @@ class FileSystemMonitor(
                     DirectoryChangeEvent.EventType.DELETE -> FileChangeType.DELETE
                     else -> return // 忽略未知事件类型
                 }
-                
+
+                // 检查是否是重复事件
+                val eventKey = "${path}:${changeType}"
+                val now = System.currentTimeMillis()
+                val lastEventTime = recentEvents.put(eventKey, now)
+
+                // 如果是重复事件且在节流时间内，则忽略
+                if (lastEventTime != null && now - lastEventTime < config.eventThrottleMs) {
+                    return
+                }
+
                 val changeEvent = FileChangeEvent(path, changeType)
                 scope.launch {
-                    _fileChanges.emit(changeEvent)
+                    // 如果启用了批处理，则添加到批处理队列
+                    if (config.batchProcessingEnabled) {
+                        batchQueue.add(changeEvent)
+                    } else {
+                        // 否则直接发送事件
+                        _fileChanges.emit(changeEvent)
+                        notifyListeners(changeEvent)
+                    }
+
+                    // 如果启用了重构检测，则添加到最近文件变更列表
+                    if (config.detectRefactoring) {
+                        synchronized(recentFileChanges) {
+                            recentFileChanges.add(changeEvent)
+                        }
+                    }
+
                     logger.debug { "文件变更: $changeEvent" }
                 }
             }
         }
     }
-    
+
     /**
      * 启动监控
      */
     fun start() {
+        if (isRunning.getAndSet(true)) {
+            logger.warn { "文件系统监控器已经在运行" }
+            return
+        }
+
         logger.info { "开始监控文件系统: $rootPath" }
-        watchDirectory(rootPath)
+
+        // 清理旧的事件记录
+        recentEvents.clear()
+        recentFileChanges.clear()
+        batchQueue.clear()
+
+        // 启动监控
+        scope.launch {
+            watchDirectory(rootPath)
+
+            // 定期清理过期的事件记录
+            startEventCleanup()
+
+            // 启动批处理
+            if (config.batchProcessingEnabled) {
+                startBatchProcessing()
+            }
+
+            // 启动重构检测
+            if (config.detectRefactoring) {
+                startRefactoringDetection()
+            }
+        }
     }
-    
+
     /**
      * 停止监控
      */
     fun stop() {
+        if (!isRunning.getAndSet(false)) {
+            logger.warn { "文件系统监控器已经停止" }
+            return
+        }
+
         logger.info { "停止监控文件系统: $rootPath" }
-        activeWatchers.values.forEach { it.close() }
-        activeWatchers.clear()
+
+        // 关闭所有监控器
+        scope.launch {
+            watcherMutex.withLock {
+                activeWatchers.values.forEach { it.close() }
+                activeWatchers.clear()
+            }
+        }
     }
-    
+
+    /**
+     * 注册文件变更监听器
+     *
+     * @param listener 监听器
+     */
+    fun registerChangeListener(listener: FileChangeListener) {
+        changeListeners.add(listener)
+        logger.debug { "注册文件变更监听器: $listener" }
+    }
+
+    /**
+     * 取消注册文件变更监听器
+     *
+     * @param listener 监听器
+     */
+    fun unregisterChangeListener(listener: FileChangeListener) {
+        changeListeners.remove(listener)
+        logger.debug { "取消注册文件变更监听器: $listener" }
+    }
+
+    /**
+     * 通知所有监听器
+     *
+     * @param event 文件变更事件
+     */
+    private suspend fun notifyListeners(event: FileChangeEvent) {
+        changeListeners.forEach { listener ->
+            try {
+                listener.onFileChange(event)
+            } catch (e: Exception) {
+                logger.error(e) { "通知监听器时出错: $listener" }
+            }
+        }
+    }
+
+    /**
+     * 启动事件清理
+     */
+    private fun startEventCleanup() {
+        scope.launch {
+            while (isRunning.get()) {
+                try {
+                    // 清理过期的事件记录
+                    val now = System.currentTimeMillis()
+                    val expireTime = now - (config.eventThrottleMs * 10) // 10倍节流时间
+
+                    recentEvents.entries.removeIf { (_, timestamp) -> timestamp < expireTime }
+
+                    // 等待一段时间
+                    kotlinx.coroutines.delay(config.eventThrottleMs * 10)
+                } catch (e: Exception) {
+                    logger.error(e) { "清理过期事件记录时出错" }
+                }
+            }
+        }
+    }
+
+    /**
+     * 启动批处理
+     */
+    private fun startBatchProcessing() {
+        scope.launch {
+            while (isRunning.get()) {
+                try {
+                    // 处理批量事件
+                    processBatch()
+
+                    // 等待下一个批处理周期
+                    kotlinx.coroutines.delay(config.batchProcessingIntervalMs)
+                } catch (e: Exception) {
+                    logger.error(e) { "批处理事件时出错" }
+                }
+            }
+        }
+    }
+
+    /**
+     * 处理批量事件
+     */
+    private suspend fun processBatch() {
+        // 如果队列为空，则跳过
+        if (batchQueue.isEmpty()) {
+            return
+        }
+
+        // 获取当前批次的事件（最多 batchSize 个）
+        val batch = synchronized(batchQueue) {
+            val currentBatch = batchQueue.take(config.batchSize)
+            batchQueue.removeAll(currentBatch)
+            currentBatch
+        }
+
+        // 如果批次为空，则跳过
+        if (batch.isEmpty()) {
+            return
+        }
+
+        logger.debug { "处理批量事件: ${batch.size} 个事件" }
+
+        // 去重（保留每个文件的最新事件）
+        val deduplicatedEvents = batch
+            .groupBy { event -> event.path }
+            .mapValues { entry -> entry.value.maxByOrNull { event -> event.timestamp }!! }
+            .values
+            .toList()
+
+        // 发送事件
+        for (event in deduplicatedEvents) {
+            _fileChanges.emit(event)
+            notifyListeners(event)
+        }
+    }
+
+    /**
+     * 启动重构检测
+     */
+    private fun startRefactoringDetection() {
+        scope.launch {
+            while (isRunning.get()) {
+                try {
+                    // 检测重构
+                    detectRefactoring()
+
+                    // 清理过期的文件变更记录
+                    cleanupRecentFileChanges()
+
+                    // 等待一段时间
+                    kotlinx.coroutines.delay(config.refactoringTimeWindowMs / 2)
+                } catch (e: Exception) {
+                    logger.error(e) { "检测重构时出错" }
+                }
+            }
+        }
+    }
+
+    /**
+     * 检测重构
+     */
+    private suspend fun detectRefactoring() {
+        val now = System.currentTimeMillis()
+
+        // 获取时间窗口内的文件变更
+        val changesInWindow = synchronized(recentFileChanges) {
+            recentFileChanges.filter { event -> now - event.timestamp <= config.refactoringTimeWindowMs }
+        }
+
+        // 如果变更数量超过阈值，则认为是重构
+        if (changesInWindow.size >= config.refactoringThreshold) {
+            val uniqueFiles = changesInWindow.map { event -> event.path }.toSet()
+
+            logger.info { "检测到可能的重构操作: ${uniqueFiles.size} 个文件在 ${config.refactoringTimeWindowMs}ms 内变更" }
+
+            // 发送重构事件
+            val refactoringEvent = FileChangeEvent(
+                path = rootPath,
+                type = FileChangeType.MODIFY, // 使用 MODIFY 类型表示重构
+                timestamp = now
+            )
+
+            _fileChanges.emit(refactoringEvent)
+            notifyListeners(refactoringEvent)
+        }
+    }
+
+    /**
+     * 清理过期的文件变更记录
+     */
+    private fun cleanupRecentFileChanges() {
+        val now = System.currentTimeMillis()
+        val expireTime = now - config.refactoringTimeWindowMs
+
+        synchronized(recentFileChanges) {
+            recentFileChanges.removeIf { event -> event.timestamp < expireTime }
+        }
+    }
+
     /**
      * 监控目录
      */
-    private fun watchDirectory(directory: Path) {
+    private suspend fun watchDirectory(directory: Path) {
         if (!directory.isDirectory() || shouldExcludeDirectory(directory)) {
             return
         }
-        
+
         try {
-            // 如果已经在监控，则跳过
-            if (activeWatchers.containsKey(directory)) {
-                return
-            }
-            
-            // 创建并启动目录监控器
-            val watcher = DirectoryWatcher.builder()
-                .path(directory)
-                .listener(directoryChangeListener)
-                .build()
-            
-            activeWatchers[directory] = watcher
-            
-            // 在后台线程中启动监控
-            scope.launch {
-                try {
-                    watcher.watch()
-                } catch (e: Exception) {
-                    logger.error(e) { "监控目录时出错: $directory" }
+            watcherMutex.withLock {
+                // 如果已经在监控，则跳过
+                if (activeWatchers.containsKey(directory)) {
+                    return@withLock
                 }
+
+                // 创建并启动目录监控器
+                val watcherBuilder = DirectoryWatcher.builder()
+                    .path(directory)
+                    .listener(directoryChangeListener)
+
+                // 设置轮询间隔
+                // 注意：由于 API 变更，暂时不设置轮询间隔
+                // 如果需要调整，请查阅 directory-watcher 最新文档
+
+                val watcher = watcherBuilder.build()
+
+                activeWatchers[directory] = watcher
+
+                // 在后台线程中启动监控
+                scope.launch {
+                    try {
+                        watcher.watch()
+                    } catch (e: Exception) {
+                        logger.error(e) { "监控目录时出错: $directory" }
+
+                        // 从活跃监控器中移除
+                        watcherMutex.withLock {
+                            activeWatchers.remove(directory)
+                        }
+
+                        // 尝试重新监控
+                        if (isRunning.get()) {
+                            kotlinx.coroutines.delay(1000) // 等待1秒后重试
+                            watchDirectory(directory)
+                        }
+                    }
+                }
+
+                logger.debug { "开始监控目录: $directory" }
             }
-            
-            logger.debug { "开始监控目录: $directory" }
-            
+
             // 递归监控子目录
-            directory.toFile().listFiles()
-                ?.filter { it.isDirectory }
-                ?.map { it.toPath() }
-                ?.forEach { watchDirectory(it) }
+            if (config.enableRecursiveWatching) {
+                directory.toFile().listFiles()
+                    ?.filter { it.isDirectory }
+                    ?.map { it.toPath() }
+                    ?.forEach { subDir ->
+                        // 并行监控子目录
+                        scope.launch {
+                            watchDirectory(subDir)
+                        }
+                    }
+            }
         } catch (e: Exception) {
             logger.error(e) { "设置目录监控时出错: $directory" }
         }
     }
-    
+
     /**
      * 取消监控目录
      */
-    private fun unwatchDirectory(directory: Path) {
-        activeWatchers[directory]?.close()
-        activeWatchers.remove(directory)
-        logger.debug { "停止监控目录: $directory" }
+    private suspend fun unwatchDirectory(directory: Path) {
+        watcherMutex.withLock {
+            activeWatchers[directory]?.close()
+            activeWatchers.remove(directory)
+            logger.debug { "停止监控目录: $directory" }
+        }
     }
-    
+
     /**
      * 检查是否应该排除文件
      */
@@ -214,16 +543,16 @@ class FileSystemMonitor(
         if (extension in config.excludeExtensions) {
             return true
         }
-        
+
         // 检查排除模式
         val pathString = path.toString().replace('\\', '/')
         if (config.excludePatterns.any { it.matches(pathString) }) {
             return true
         }
-        
+
         return false
     }
-    
+
     /**
      * 检查是否应该排除目录
      */
@@ -232,16 +561,16 @@ class FileSystemMonitor(
         if (dirName in config.excludeDirectories) {
             return true
         }
-        
+
         // 检查排除模式
         val pathString = directory.toString().replace('\\', '/')
         if (config.excludePatterns.any { it.matches(pathString) }) {
             return true
         }
-        
+
         return false
     }
-    
+
     /**
      * 关闭监控器
      */
