@@ -25,9 +25,15 @@ interface ContextEngine {
      * @param query 查询文本
      * @param maxResults 最大结果数量
      * @param minScore 最小相似度分数
+     * @param includeRelated 是否包含相关元素
      * @return 上下文
      */
-    suspend fun getQueryContext(query: String, maxResults: Int = 10, minScore: Double = 0.0): Context
+    suspend fun getQueryContext(
+        query: String,
+        maxResults: Int = 10,
+        minScore: Double = 0.0,
+        includeRelated: Boolean = true
+    ): Context
 
     /**
      * 获取文件上下文

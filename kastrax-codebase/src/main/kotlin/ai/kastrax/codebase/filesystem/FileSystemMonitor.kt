@@ -57,6 +57,31 @@ data class FileChangeEvent(
  * @property enableRecursiveWatching 是否启用递归监控
  * @property enableFastStartup 是否启用快速启动
  */
+/**
+ * 文件系统监控器配置
+ *
+ * @property excludePatterns 排除的文件模式（正则表达式）
+ * @property excludeExtensions 排除的文件扩展名
+ * @property excludeDirectories 排除的目录名
+ * @property pollIntervalMs 轮询间隔（毫秒）
+ * @property eventBufferCapacity 事件缓冲区容量
+ * @property eventThrottleMs 事件节流时间（毫秒）
+ * @property watcherThreads 监控线程数
+ * @property enableRecursiveWatching 是否启用递归监控
+ * @property enableFastStartup 是否启用快速启动
+ * @property batchProcessingEnabled 是否启用批处理
+ * @property batchProcessingIntervalMs 批处理间隔（毫秒）
+ * @property batchSize 批处理大小
+ * @property detectRefactoring 是否检测大规模重构
+ * @property refactoringThreshold 重构检测阈值（短时间内变更的文件数）
+ * @property refactoringTimeWindowMs 重构检测时间窗口（毫秒）
+ * @property prioritizeActiveFiles 是否优先处理活跃文件
+ * @property activeFileTimeWindowMs 活跃文件时间窗口（毫秒）
+ * @property maxConcurrentWatchers 最大并发监控器数量
+ * @property watcherRestartDelayMs 监控器重启延迟（毫秒）
+ * @property enableWatcherHealthCheck 是否启用监控器健康检查
+ * @property watcherHealthCheckIntervalMs 监控器健康检查间隔（毫秒）
+ */
 data class FileSystemMonitorConfig(
     val excludePatterns: Set<Regex> = setOf(
         Regex("\\.git/.*"),
@@ -75,18 +100,24 @@ data class FileSystemMonitorConfig(
     val excludeDirectories: Set<String> = setOf(
         ".git", ".idea", "build", "target", "node_modules", ".gradle"
     ),
-    val pollIntervalMs: Long = 200, // 降低轮询间隔以提高实时性（Augment级别）
-    val eventBufferCapacity: Int = 5000, // 增加事件缓冲区容量，支持大型代码库
-    val eventThrottleMs: Long = 50, // 降低事件节流时间，提高实时性
+    val pollIntervalMs: Long = 100, // 降低轮询间隔以提高实时性（Augment级别）
+    val eventBufferCapacity: Int = 10000, // 增加事件缓冲区容量，支持大型代码库
+    val eventThrottleMs: Long = 20, // 降低事件节流时间，提高实时性
     val watcherThreads: Int = Runtime.getRuntime().availableProcessors(), // 使用所有可用处理器
     val enableRecursiveWatching: Boolean = true, // 启用递归监控
     val enableFastStartup: Boolean = true, // 启用快速启动
     val batchProcessingEnabled: Boolean = true, // 启用批处理
-    val batchProcessingIntervalMs: Long = 100, // 批处理间隔
-    val batchSize: Int = 100, // 批处理大小
+    val batchProcessingIntervalMs: Long = 50, // 批处理间隔，降低以提高实时性
+    val batchSize: Int = 200, // 批处理大小，增加以提高吞吐量
     val detectRefactoring: Boolean = true, // 检测大规模重构
-    val refactoringThreshold: Int = 20, // 重构检测阈值（短时间内变更的文件数）
-    val refactoringTimeWindowMs: Long = 2000 // 重构检测时间窗口
+    val refactoringThreshold: Int = 15, // 重构检测阈值（短时间内变更的文件数）
+    val refactoringTimeWindowMs: Long = 1000, // 重构检测时间窗口
+    val prioritizeActiveFiles: Boolean = true, // 优先处理活跃文件
+    val activeFileTimeWindowMs: Long = 30000, // 活跃文件时间窗口（30秒）
+    val maxConcurrentWatchers: Int = 100, // 最大并发监控器数量
+    val watcherRestartDelayMs: Long = 500, // 监控器重启延迟
+    val enableWatcherHealthCheck: Boolean = true, // 启用监控器健康检查
+    val watcherHealthCheckIntervalMs: Long = 10000 // 监控器健康检查间隔（10秒）
 )
 
 /**
@@ -117,6 +148,14 @@ interface FileChangeListener {
  * @property rootPath 根路径
  * @property config 配置
  */
+/**
+ * 文件系统监控器
+ *
+ * 监控文件系统变更，并发出变更事件。优化设计以实现毫秒级响应，支持大型代码库和高频变更。
+ *
+ * @property rootPath 根路径
+ * @property config 配置
+ */
 class FileSystemMonitor(
     private val rootPath: Path,
     private val config: FileSystemMonitorConfig = FileSystemMonitorConfig()
@@ -140,6 +179,9 @@ class FileSystemMonitor(
     // 重构检测 - 记录短时间内的文件变更
     private val recentFileChanges = Collections.synchronizedList(mutableListOf<FileChangeEvent>())
 
+    // 活跃文件集合 - 记录最近访问的文件
+    private val activeFiles = ConcurrentHashMap<Path, Long>()
+
     // 监控器互斥锁
     private val watcherMutex = Mutex()
 
@@ -148,6 +190,9 @@ class FileSystemMonitor(
 
     // 文件变更监听器列表
     private val changeListeners = ConcurrentHashMap.newKeySet<FileChangeListener>()
+
+    // 监控器健康状态
+    private val watcherHealth = ConcurrentHashMap<Path, Boolean>()
 
     // 目录变更监听器
     private val directoryChangeListener = object : DirectoryChangeListener {
@@ -239,6 +284,8 @@ class FileSystemMonitor(
         recentEvents.clear()
         recentFileChanges.clear()
         batchQueue.clear()
+        activeFiles.clear()
+        watcherHealth.clear()
 
         // 启动监控
         scope.launch {
@@ -255,6 +302,16 @@ class FileSystemMonitor(
             // 启动重构检测
             if (config.detectRefactoring) {
                 startRefactoringDetection()
+            }
+
+            // 启动活跃文件跟踪
+            if (config.prioritizeActiveFiles) {
+                startActiveFileTracking()
+            }
+
+            // 启动监控器健康检查
+            if (config.enableWatcherHealthCheck) {
+                startWatcherHealthCheck()
             }
         }
     }
@@ -385,10 +442,36 @@ class FileSystemMonitor(
             .values
             .toList()
 
+        // 如果启用了活跃文件优先级，则按优先级排序
+        val sortedEvents = if (config.prioritizeActiveFiles) {
+            deduplicatedEvents.sortedByDescending { event ->
+                // 活跃文件优先
+                activeFiles[event.path]?.let { lastAccessTime ->
+                    // 返回活跃度分数（最近访问的文件分数更高）
+                    val now = System.currentTimeMillis()
+                    val age = now - lastAccessTime
+                    if (age <= config.activeFileTimeWindowMs) {
+                        // 活跃文件，分数为 1.0 到 0.5，越近越高
+                        1.0 - (age.toDouble() / config.activeFileTimeWindowMs / 2)
+                    } else {
+                        // 非活跃文件，分数为 0.5 到 0.0
+                        0.5 * (1.0 - ((age - config.activeFileTimeWindowMs).toDouble() / config.activeFileTimeWindowMs).coerceAtMost(1.0))
+                    }
+                } ?: 0.0 // 未记录的文件最低优先级
+            }
+        } else {
+            deduplicatedEvents
+        }
+
         // 发送事件
-        for (event in deduplicatedEvents) {
+        for (event in sortedEvents) {
             _fileChanges.emit(event)
             notifyListeners(event)
+
+            // 更新活跃文件记录
+            if (config.prioritizeActiveFiles) {
+                activeFiles[event.path] = System.currentTimeMillis()
+            }
         }
     }
 
@@ -456,6 +539,86 @@ class FileSystemMonitor(
     }
 
     /**
+     * 启动活跃文件跟踪
+     */
+    private fun startActiveFileTracking() {
+        scope.launch {
+            while (isRunning.get()) {
+                try {
+                    // 清理过期的活跃文件记录
+                    val now = System.currentTimeMillis()
+                    val expireTime = now - (config.activeFileTimeWindowMs * 2) // 2倍活跃窗口时间
+
+                    activeFiles.entries.removeIf { (_, timestamp) -> timestamp < expireTime }
+
+                    // 等待一段时间
+                    kotlinx.coroutines.delay(config.activeFileTimeWindowMs / 2)
+                } catch (e: Exception) {
+                    logger.error(e) { "清理活跃文件记录时出错" }
+                }
+            }
+        }
+    }
+
+    /**
+     * 启动监控器健康检查
+     */
+    private fun startWatcherHealthCheck() {
+        scope.launch {
+            while (isRunning.get()) {
+                try {
+                    // 检查所有监控器的健康状态
+                    val unhealthyWatchers = mutableListOf<Path>()
+
+                    watcherMutex.withLock {
+                        activeWatchers.forEach { (path, _) ->
+                            val isHealthy = watcherHealth.getOrDefault(path, true)
+                            if (!isHealthy) {
+                                unhealthyWatchers.add(path)
+                            }
+                        }
+                    }
+
+                    // 重启不健康的监控器
+                    unhealthyWatchers.forEach { path ->
+                        logger.warn { "检测到不健康的监控器: $path，正在重启" }
+                        restartWatcher(path)
+                    }
+
+                    // 等待下一次检查
+                    kotlinx.coroutines.delay(config.watcherHealthCheckIntervalMs)
+                } catch (e: Exception) {
+                    logger.error(e) { "监控器健康检查时出错" }
+                }
+            }
+        }
+    }
+
+    /**
+     * 重启监控器
+     */
+    private suspend fun restartWatcher(directory: Path) {
+        try {
+            // 停止并移除旧的监控器
+            unwatchDirectory(directory)
+
+            // 等待一段时间
+            kotlinx.coroutines.delay(config.watcherRestartDelayMs)
+
+            // 启动新的监控器
+            watchDirectory(directory)
+
+            // 更新健康状态
+            watcherHealth[directory] = true
+
+            logger.info { "成功重启监控器: $directory" }
+        } catch (e: Exception) {
+            logger.error(e) { "重启监控器时出错: $directory" }
+            watcherHealth[directory] = false
+        }
+    }
+
+    /**
      * 监控目录
      */
     private suspend fun watchDirectory(directory: Path) {
@@ -467,6 +630,12 @@ class FileSystemMonitor(
             watcherMutex.withLock {
                 // 如果已经在监控，则跳过
                 if (activeWatchers.containsKey(directory)) {
+                    return@withLock
+                }
+
+                // 检查是否超过最大并发监控器数量
+                if (activeWatchers.size >= config.maxConcurrentWatchers) {
+                    logger.warn { "已达到最大并发监控器数量: ${config.maxConcurrentWatchers}，跳过监控: $directory" }
                     return@withLock
                 }
 
@@ -482,6 +651,7 @@ class FileSystemMonitor(
                 val watcher = watcherBuilder.build()
 
                 activeWatchers[directory] = watcher
+                watcherHealth[directory] = true
 
                 // 在后台线程中启动监控
                 scope.launch {
@@ -495,9 +665,12 @@ class FileSystemMonitor(
                             activeWatchers.remove(directory)
                         }
 
+                        // 标记为不健康
+                        watcherHealth[directory] = false
+
                         // 尝试重新监控
                         if (isRunning.get()) {
-                            kotlinx.coroutines.delay(1000) // 等待1秒后重试
+                            kotlinx.coroutines.delay(config.watcherRestartDelayMs) // 等待后重试
                             watchDirectory(directory)
                         }
                     }
@@ -510,6 +683,7 @@ class FileSystemMonitor(
             if (config.enableRecursiveWatching) {
                 directory.toFile().listFiles()
                     ?.filter { it.isDirectory }
+                    ?.filter { !shouldExcludeDirectory(it.toPath()) }
                     ?.map { it.toPath() }
                     ?.forEach { subDir ->
                         // 并行监控子目录
@@ -520,6 +694,7 @@ class FileSystemMonitor(
             }
         } catch (e: Exception) {
             logger.error(e) { "设置目录监控时出错: $directory" }
+            watcherHealth[directory] = false
         }
     }
 

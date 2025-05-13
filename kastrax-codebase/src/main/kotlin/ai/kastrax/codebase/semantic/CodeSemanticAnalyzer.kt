@@ -4,7 +4,16 @@ import ai.kastrax.codebase.semantic.model.CodeElement
 import ai.kastrax.codebase.semantic.model.CodeElementType
 import ai.kastrax.codebase.semantic.model.Location
 import ai.kastrax.codebase.semantic.parser.ChapiJavaCodeParser
+import ai.kastrax.codebase.semantic.parser.ChapiKotlinCodeParser
+import ai.kastrax.codebase.semantic.parser.ChapiPythonCodeParser
+import ai.kastrax.codebase.semantic.parser.ChapiTypeScriptCodeParser
+import ai.kastrax.codebase.semantic.parser.ChapiGoCodeParser
 import ai.kastrax.codebase.semantic.parser.CodeParserFactory
+// Tree-sitter parsers are temporarily disabled
+// import ai.kastrax.codebase.semantic.parser.treesitter.TreeSitterJavaCodeParser
+// import ai.kastrax.codebase.semantic.parser.treesitter.TreeSitterKotlinCodeParser
+// import ai.kastrax.codebase.semantic.parser.treesitter.TreeSitterPythonCodeParser
+// import ai.kastrax.codebase.semantic.parser.treesitter.TreeSitterTypeScriptCodeParser
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
@@ -28,6 +37,12 @@ private val logger = KotlinLogging.logger {}
  * @property excludeDirectories 排除的目录
  * @property maxFileSizeBytes 最大文件大小（字节）
  * @property maxConcurrentFiles 最大并发文件数
+ * @property useTreeSitterParser 是否使用 Tree-sitter 解析器
+ * @property useChapiParser 是否使用 Chapi 解析器
+ * @property enableSymbolRelationAnalysis 是否启用符号关系分析
+ * @property enableCodeFlowAnalysis 是否启用代码流分析
+ * @property enableIncrementalParsing 是否启用增量解析
+ * @property enableParallelParsing 是否启用并行解析
  */
 data class CodeSemanticAnalyzerConfig(
     val excludePatterns: Set<String> = setOf(
@@ -42,7 +57,13 @@ data class CodeSemanticAnalyzerConfig(
         ".git", ".idea", "build", "target", "node_modules", ".gradle"
     ),
     val maxFileSizeBytes: Long = 1024 * 1024, // 1MB
-    val maxConcurrentFiles: Int = 10
+    val maxConcurrentFiles: Int = 10,
+    val useTreeSitterParser: Boolean = true,
+    val useChapiParser: Boolean = true,
+    val enableSymbolRelationAnalysis: Boolean = true,
+    val enableCodeFlowAnalysis: Boolean = true,
+    val enableIncrementalParsing: Boolean = true,
+    val enableParallelParsing: Boolean = true
 )
 
 /**
@@ -67,7 +88,23 @@ class CodeSemanticAnalyzer(
      * 注册代码解析器
      */
     private fun registerParsers() {
-        CodeParserFactory.registerParser(ChapiJavaCodeParser())
+        // 注册 Chapi 解析器
+        if (config.useChapiParser) {
+            CodeParserFactory.registerParser(ChapiJavaCodeParser())
+            CodeParserFactory.registerParser(ChapiKotlinCodeParser())
+            CodeParserFactory.registerParser(ChapiPythonCodeParser())
+            CodeParserFactory.registerParser(ChapiTypeScriptCodeParser())
+            CodeParserFactory.registerParser(ChapiGoCodeParser())
+        }
+
+        // 注册 Tree-sitter 解析器
+        // 暂时禁用 Tree-sitter 解析器，等待正确的依赖
+        // if (config.useTreeSitterParser) {
+        //     CodeParserFactory.registerParser(TreeSitterJavaCodeParser())
+        //     CodeParserFactory.registerParser(TreeSitterKotlinCodeParser())
+        //     CodeParserFactory.registerParser(TreeSitterPythonCodeParser())
+        //     CodeParserFactory.registerParser(TreeSitterTypeScriptCodeParser())
+        // }
     }
 
     /**
@@ -78,17 +115,10 @@ class CodeSemanticAnalyzer(
      * @return 代码元素列表
      */
     suspend fun analyzeCode(code: String, language: String): List<CodeElement> = withContext(Dispatchers.IO) {
-        val parser = when (language.lowercase()) {
-            "java" -> CodeParserFactory.getParser(Path.of("dummy.java"))
-            "kt" -> CodeParserFactory.getParser(Path.of("dummy.kt"))
-            "py" -> CodeParserFactory.getParser(Path.of("dummy.py"))
-            "js", "ts" -> CodeParserFactory.getParser(Path.of("dummy.ts"))
-            "go" -> CodeParserFactory.getParser(Path.of("dummy.go"))
-            else -> null
-        }
+        val dummyPath = Path.of("dummy." + language.lowercase())
+        val parser = CodeParserFactory.getParser(dummyPath)
 
         if (parser != null) {
-            val dummyPath = Path.of("dummy." + language.lowercase())
             val fileElement = parser.parseFile(dummyPath, code)
             return@withContext fileElement.children
         }
@@ -125,13 +155,20 @@ class CodeSemanticAnalyzer(
         logger.info { "找到 ${codeFiles.size} 个代码文件" }
 
         // 并行分析代码文件
-        val fileElements = coroutineScope {
-            codeFiles.chunked(config.maxConcurrentFiles).flatMap { chunk ->
-                chunk.map { file ->
-                    async {
-                        analyzeFile(file)
-                    }
-                }.awaitAll()
+        val fileElements = if (config.enableParallelParsing) {
+            coroutineScope {
+                codeFiles.chunked(config.maxConcurrentFiles).flatMap { chunk ->
+                    chunk.map { file ->
+                        async {
+                            analyzeFile(file)
+                        }
+                    }.awaitAll()
+                }
+            }
+        } else {
+            // 串行分析
+            codeFiles.map { file ->
+                analyzeFile(file)
             }
         }
 

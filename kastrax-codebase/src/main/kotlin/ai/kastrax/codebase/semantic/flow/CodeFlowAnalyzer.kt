@@ -13,12 +13,22 @@ private val logger = KotlinLogging.logger {}
  * @property analyzeControlFlow 是否分析控制流
  * @property analyzeDataFlow 是否分析数据流
  * @property includeLibraries 是否包含库代码
+ * @property maxConcurrentTasks 最大并发任务数
+ * @property enableParallelAnalysis 是否启用并行分析
+ * @property maxMethodSize 最大方法大小（行数）
+ * @property enableIncrementalAnalysis 是否启用增量分析
+ * @property enableCaching 是否启用缓存
  */
 data class CodeFlowAnalyzerConfig(
     val maxDepth: Int = 10,
     val analyzeControlFlow: Boolean = true,
     val analyzeDataFlow: Boolean = true,
-    val includeLibraries: Boolean = false
+    val includeLibraries: Boolean = false,
+    val maxConcurrentTasks: Int = 10,
+    val enableParallelAnalysis: Boolean = true,
+    val maxMethodSize: Int = 1000,
+    val enableIncrementalAnalysis: Boolean = true,
+    val enableCaching: Boolean = true
 )
 
 /**
@@ -134,7 +144,7 @@ data class FlowGraph(
         nodes[node.id] = node
         return true
     }
-    
+
     /**
      * 添加边
      *
@@ -151,7 +161,7 @@ data class FlowGraph(
         edges[edge.id] = edge
         return true
     }
-    
+
     /**
      * 设置入口节点
      *
@@ -165,7 +175,7 @@ data class FlowGraph(
         entryNodeId = nodeId
         return true
     }
-    
+
     /**
      * 添加出口节点
      *
@@ -179,7 +189,7 @@ data class FlowGraph(
         exitNodeIds.add(nodeId)
         return true
     }
-    
+
     /**
      * 获取节点的后继节点
      *
@@ -192,7 +202,7 @@ data class FlowGraph(
             .map { it.targetId }
             .toSet()
     }
-    
+
     /**
      * 获取节点的前驱节点
      *
@@ -205,7 +215,7 @@ data class FlowGraph(
             .map { it.sourceId }
             .toSet()
     }
-    
+
     /**
      * 获取节点间的边
      *
@@ -218,7 +228,7 @@ data class FlowGraph(
             .filter { it.sourceId == sourceId && it.targetId == targetId }
             .toList()
     }
-    
+
     /**
      * 获取节点的出边
      *
@@ -230,7 +240,7 @@ data class FlowGraph(
             .filter { it.sourceId == nodeId }
             .toList()
     }
-    
+
     /**
      * 获取节点的入边
      *
@@ -257,14 +267,36 @@ interface CodeFlowAnalyzer {
      * @return 流图
      */
     suspend fun analyzeFlow(element: CodeElement): FlowGraph
-    
+
+    /**
+     * 分析指定类型的代码流
+     *
+     * @param element 代码元素
+     * @param type 流类型
+     * @return 流图
+     */
+    suspend fun analyzeFlow(element: CodeElement, type: FlowType): FlowGraph {
+        // 默认实现，子类可以重写
+        val graph = analyzeFlow(element)
+        return if (graph.type == type) {
+            graph
+        } else {
+            // 创建一个新的空图
+            FlowGraph(
+                id = java.util.UUID.randomUUID().toString(),
+                name = "${element.name} ${type.name}",
+                type = type
+            )
+        }
+    }
+
     /**
      * 获取支持的代码元素类型
      *
      * @return 支持的代码元素类型集合
      */
     fun getSupportedElementTypes(): Set<CodeElementType>
-    
+
     /**
      * 检查是否支持指定代码元素
      *
@@ -273,5 +305,32 @@ interface CodeFlowAnalyzer {
      */
     fun supportsElement(element: CodeElement): Boolean {
         return element.type in getSupportedElementTypes()
+    }
+
+    /**
+     * 获取支持的流类型
+     *
+     * @return 支持的流类型集合
+     */
+    fun getSupportedFlowTypes(): Set<FlowType> {
+        // 默认支持所有流类型
+        return FlowType.values().toSet()
+    }
+
+    /**
+     * 检查是否支持指定流类型
+     *
+     * @param type 流类型
+     * @return 是否支持
+     */
+    fun supportsFlowType(type: FlowType): Boolean {
+        return type in getSupportedFlowTypes()
+    }
+
+    /**
+     * 清除缓存
+     */
+    fun clearCache() {
+        // 默认实现为空
     }
 }

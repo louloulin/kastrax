@@ -6,6 +6,8 @@ import ai.kastrax.codebase.CodebaseIndexStatus
 import ai.kastrax.codebase.context.Context
 import ai.kastrax.codebase.context.ContextBuilder
 import ai.kastrax.codebase.context.ContextBuilderConfig
+import ai.kastrax.codebase.context.FlowAwareContextBuilder
+import ai.kastrax.codebase.context.FlowAwareContextBuilderConfig
 import ai.kastrax.codebase.context.ContextLevel
 import ai.kastrax.codebase.embedding.CodeEmbeddingService
 import ai.kastrax.codebase.embedding.CodeEmbeddingServiceConfig
@@ -14,10 +16,17 @@ import ai.kastrax.codebase.indexing.IndexTaskProcessor
 import ai.kastrax.codebase.indexing.IndexTaskType
 import ai.kastrax.codebase.semantic.CodeSemanticAnalyzer
 import ai.kastrax.codebase.semantic.CodeSemanticAnalyzerConfig
+import ai.kastrax.codebase.semantic.flow.CodeFlowAnalyzer
+import ai.kastrax.codebase.semantic.flow.CodeFlowAnalyzerConfig
+import ai.kastrax.codebase.semantic.flow.CodeFlowAnalyzerFactory
+import ai.kastrax.codebase.semantic.flow.FlowType
 import ai.kastrax.codebase.semantic.model.CodeElement
 import ai.kastrax.codebase.semantic.model.CodeElementType
 import ai.kastrax.codebase.semantic.model.Location
 import ai.kastrax.codebase.semantic.parser.CodeParserFactory
+import ai.kastrax.codebase.semantic.relation.CodeRelation
+import ai.kastrax.codebase.semantic.relation.CodeRelationAnalyzer
+import ai.kastrax.codebase.semantic.relation.CodeRelationAnalyzerConfig
 import ai.kastrax.codebase.vector.CodeSearchResult
 import ai.kastrax.codebase.vector.CodeVectorStore
 import ai.kastrax.store.VectorStore
@@ -45,6 +54,12 @@ private val logger = KotlinLogging.logger {}
  * @property embeddingDimension 嵌入向量维度
  * @property contextBuilderConfig 上下文构建器配置
  * @property semanticAnalyzerConfig 语义分析器配置
+ * @property codeFlowAnalyzerConfig 代码流分析器配置
+ * @property codeRelationAnalyzerConfig 代码关系分析器配置
+ * @property enableCodeFlowAnalysis 是否启用代码流分析
+ * @property enableCodeRelationAnalysis 是否启用代码关系分析
+ * @property enableTreeSitterParsing 是否启用 Tree-sitter 解析
+ * @property enableCaching 是否启用缓存
  */
 data class ContextEngineConfig(
     val enableFileSystemMonitoring: Boolean = true,
@@ -54,7 +69,13 @@ data class ContextEngineConfig(
     val maxConcurrentTasks: Int = 10,
     val embeddingDimension: Int = 1536,
     val contextBuilderConfig: ContextBuilderConfig = ContextBuilderConfig(),
-    val semanticAnalyzerConfig: CodeSemanticAnalyzerConfig = CodeSemanticAnalyzerConfig()
+    val semanticAnalyzerConfig: CodeSemanticAnalyzerConfig = CodeSemanticAnalyzerConfig(),
+    val codeFlowAnalyzerConfig: CodeFlowAnalyzerConfig = CodeFlowAnalyzerConfig(),
+    val codeRelationAnalyzerConfig: CodeRelationAnalyzerConfig = CodeRelationAnalyzerConfig(),
+    val enableCodeFlowAnalysis: Boolean = true,
+    val enableCodeRelationAnalysis: Boolean = true,
+    val enableTreeSitterParsing: Boolean = true,
+    val enableCaching: Boolean = true
 )
 
 /**
@@ -110,15 +131,54 @@ class ContextEngineImpl(
 
     // 语义分析器
     private val semanticAnalyzer = CodeSemanticAnalyzer(
-        config = config.semanticAnalyzerConfig
+        config = config.semanticAnalyzerConfig.copy(
+            useTreeSitterParser = config.enableTreeSitterParsing,
+            enableSymbolRelationAnalysis = config.enableCodeRelationAnalysis,
+            enableCodeFlowAnalysis = config.enableCodeFlowAnalysis,
+            enableIncrementalParsing = config.enableIncrementalIndexing,
+            enableParallelParsing = true
+        )
     )
 
+    // 代码流分析器
+    private val codeFlowAnalyzer: CodeFlowAnalyzer? = if (config.enableCodeFlowAnalysis) {
+        // 初始化代码流分析器工厂
+        CodeFlowAnalyzerFactory.init(config.codeFlowAnalyzerConfig)
+        // 获取控制流分析器
+        CodeFlowAnalyzerFactory.getAnalyzer(FlowType.CONTROL_FLOW)
+    } else null
+
+    // 代码关系分析器
+    private val codeRelationAnalyzer: CodeRelationAnalyzer? = if (config.enableCodeRelationAnalysis) {
+        CodeRelationAnalyzer(config.codeRelationAnalyzerConfig)
+    } else null
+
     // 上下文构建器
-    private val contextBuilder = ContextBuilder(
-        vectorStore = codeVectorStore,
-        embeddingService = codeEmbeddingService,
-        config = config.contextBuilderConfig
-    )
+    private val contextBuilder = if (config.enableCodeFlowAnalysis) {
+        FlowAwareContextBuilder(
+            vectorStore = codeVectorStore,
+            embeddingService = codeEmbeddingService,
+            flowAnalyzer = codeFlowAnalyzer ?: throw IllegalStateException("代码流分析器未初始化，但启用了代码流分析"),
+            config = FlowAwareContextBuilderConfig(
+                maxCacheSize = config.contextBuilderConfig.maxCacheSize,
+                defaultMaxElements = config.contextBuilderConfig.defaultMaxElements,
+                defaultMinScore = config.contextBuilderConfig.defaultMinScore,
+                includeRelatedElements = config.contextBuilderConfig.includeRelatedElements,
+                maxRelatedElements = config.contextBuilderConfig.maxRelatedElements,
+                includeControlFlow = true,
+                includeDataFlow = true,
+                maxFlowDepth = 3
+            ),
+            relationAnalyzer = codeRelationAnalyzer
+        )
+    } else {
+        ContextBuilder(
+            vectorStore = codeVectorStore,
+            embeddingService = codeEmbeddingService,
+            config = config.contextBuilderConfig,
+            relationAnalyzer = codeRelationAnalyzer
+        )
+    }
 
     // 代码库索引管理器
     private val indexManager = CodebaseIndexManager(
@@ -432,6 +492,29 @@ class ContextEngineImpl(
                 status["indexStatus"] = indexManager.getStatus().name
                 status["elementCount"] = codeVectorStore.getElementCount()
                 status["cacheSize"] = elementCache.size
+
+                // 增强功能状态
+                status["enableCodeFlowAnalysis"] = config.enableCodeFlowAnalysis
+                status["enableCodeRelationAnalysis"] = config.enableCodeRelationAnalysis
+                status["enableTreeSitterParsing"] = config.enableTreeSitterParsing
+                status["enableCaching"] = config.enableCaching
+
+                // 如果启用了代码流分析，添加代码流分析器状态
+                if (config.enableCodeFlowAnalysis && codeFlowAnalyzer != null) {
+                    status["flowAnalyzerTypes"] = codeFlowAnalyzer.getSupportedFlowTypes().map { it.name }
+                    status["flowAnalyzerElementTypes"] = codeFlowAnalyzer.getSupportedElementTypes().map { it.name }
+                }
+
+                // 如果启用了代码关系分析，添加代码关系分析器状态
+                if (config.enableCodeRelationAnalysis && codeRelationAnalyzer != null) {
+                    status["relationAnalyzerConfig"] = mapOf(
+                        "analyzeInheritance" to config.codeRelationAnalyzerConfig.analyzeInheritance,
+                        "analyzeUsage" to config.codeRelationAnalyzerConfig.analyzeUsage,
+                        "analyzeDependency" to config.codeRelationAnalyzerConfig.analyzeDependency,
+                        "analyzeOverride" to config.codeRelationAnalyzerConfig.analyzeOverride,
+                        "analyzeImplementation" to config.codeRelationAnalyzerConfig.analyzeImplementation
+                    )
+                }
             }
 
             return@withContext status
@@ -459,8 +542,20 @@ class ContextEngineImpl(
             // 清空缓存
             elementCache.clear()
 
+            // 清除代码流分析器缓存
+            if (config.enableCodeFlowAnalysis && codeFlowAnalyzer != null) {
+                codeFlowAnalyzer.clearCache()
+            }
+
+            // 清除代码关系分析器缓存
+            if (config.enableCodeRelationAnalysis && codeRelationAnalyzer != null) {
+                codeRelationAnalyzer.clearCache()
+            }
+
             // 标记为未初始化
             initialized.set(false)
+
+            logger.info { "上下文引擎已关闭" }
         } catch (e: Exception) {
             logger.error(e) { "关闭上下文引擎失败: ${e.message}" }
         }
@@ -501,6 +596,34 @@ class ContextEngineImpl(
                     val fileContent = task.path.toFile().readText()
                     val fileElement = semanticAnalyzer.parseFile(task.path, fileContent)
 
+                    // 如果启用了代码流分析，分析代码流
+                    if (config.enableCodeFlowAnalysis && codeFlowAnalyzer != null) {
+                        try {
+                            // 分析控制流
+                            val flowGraph = codeFlowAnalyzer.analyzeFlow(fileElement)
+                            // 将流图信息添加到元素元数据中
+                            fileElement.metadata["flowGraph"] = flowGraph.id
+                            fileElement.metadata["hasFlowAnalysis"] = true
+                        } catch (e: Exception) {
+                            logger.error(e) { "分析代码流失败: ${task.path}" }
+                            fileElement.metadata["hasFlowAnalysis"] = false
+                        }
+                    }
+
+                    // 如果启用了代码关系分析，分析代码关系
+                    if (config.enableCodeRelationAnalysis && codeRelationAnalyzer != null) {
+                        try {
+                            // 分析代码关系
+                            val relations = codeRelationAnalyzer.analyzeRelations(fileElement)
+                            // 将关系信息添加到元素元数据中
+                            fileElement.metadata["relationCount"] = relations.size
+                            fileElement.metadata["hasRelationAnalysis"] = true
+                        } catch (e: Exception) {
+                            logger.error(e) { "分析代码关系失败: ${task.path}" }
+                            fileElement.metadata["hasRelationAnalysis"] = false
+                        }
+                    }
+
                     // 获取所有子元素
                     val allElements = fileElement.getAllChildren() + fileElement
 
@@ -519,7 +642,9 @@ class ContextEngineImpl(
                     val count = codeVectorStore.addElements(elements, vectors)
 
                     // 缓存元素
-                    elements.forEach { elementCache[it.id] = it }
+                    if (config.enableCaching) {
+                        elements.forEach { elementCache[it.id] = it }
+                    }
 
                     // 发送事件
                     emitEvent(
@@ -527,7 +652,9 @@ class ContextEngineImpl(
                         "索引文件: ${task.path}",
                         mapOf(
                             "path" to task.path.toString(),
-                            "elementCount" to count
+                            "elementCount" to count,
+                            "hasFlowAnalysis" to (fileElement.metadata["hasFlowAnalysis"] == true),
+                            "hasRelationAnalysis" to (fileElement.metadata["hasRelationAnalysis"] == true)
                         )
                     )
                 } catch (e: Exception) {
@@ -557,7 +684,19 @@ class ContextEngineImpl(
                         codeVectorStore.deleteElements(elementsToDelete)
 
                         // 从缓存中删除
-                        elementsToDelete.forEach { elementCache.remove(it) }
+                        if (config.enableCaching) {
+                            elementsToDelete.forEach { elementCache.remove(it) }
+                        }
+
+                        // 清除代码流分析器缓存
+                        if (config.enableCodeFlowAnalysis && codeFlowAnalyzer != null) {
+                            codeFlowAnalyzer.clearCache()
+                        }
+
+                        // 清除代码关系分析器缓存
+                        if (config.enableCodeRelationAnalysis && codeRelationAnalyzer != null) {
+                            codeRelationAnalyzer.clearCache()
+                        }
 
                         // 发送事件
                         emitEvent(
@@ -592,6 +731,16 @@ class ContextEngineImpl(
                     // 清空缓存
                     elementCache.clear()
 
+                    // 清除代码流分析器缓存
+                    if (config.enableCodeFlowAnalysis && codeFlowAnalyzer != null) {
+                        codeFlowAnalyzer.clearCache()
+                    }
+
+                    // 清除代码关系分析器缓存
+                    if (config.enableCodeRelationAnalysis && codeRelationAnalyzer != null) {
+                        codeRelationAnalyzer.clearCache()
+                    }
+
                     // 发送事件
                     emitEvent(
                         ContextEngineEventType.INDEXING_STARTED,
@@ -622,6 +771,16 @@ class ContextEngineImpl(
 
                     // 清空缓存
                     elementCache.clear()
+
+                    // 清除代码流分析器缓存
+                    if (config.enableCodeFlowAnalysis && codeFlowAnalyzer != null) {
+                        codeFlowAnalyzer.clearCache()
+                    }
+
+                    // 清除代码关系分析器缓存
+                    if (config.enableCodeRelationAnalysis && codeRelationAnalyzer != null) {
+                        codeRelationAnalyzer.clearCache()
+                    }
 
                     // 发送事件
                     emitEvent(

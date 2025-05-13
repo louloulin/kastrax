@@ -10,6 +10,7 @@ import chapi.domain.core.CodeDataStruct
 import chapi.domain.core.CodeField
 import chapi.domain.core.CodeFunction
 import chapi.domain.core.CodeImport
+import chapi.domain.core.CodePosition
 import io.github.oshai.kotlinlogging.KotlinLogging
 import java.nio.file.Path
 
@@ -93,8 +94,9 @@ abstract class ChapiCodeParser : AbstractCodeParser() {
                 else -> CodeElementType.CLASS
             }
 
-            val visibility = Visibility.PUBLIC
-            val modifiers = setOf<Modifier>()
+            // 解析可见性和修饰符
+            val visibility = parseVisibility(dataStruct.Modifiers)
+            val modifiers = parseModifiers(dataStruct.Modifiers)
 
             val classElement = CodeElement(
                 id = "${fileElement.id}:${elementType.name.lowercase()}:${dataStruct.NodeName}",
@@ -105,13 +107,22 @@ abstract class ChapiCodeParser : AbstractCodeParser() {
                     dataStruct.NodeName
                 },
                 type = elementType,
-                location = fileElement.location, // 类的具体位置信息在 Chapi 中可能不完全可用
+                location = createLocationFromPosition(fileElement.location.filePath, dataStruct.Position),
                 visibility = visibility,
                 modifiers = modifiers,
                 parent = fileElement,
-                documentation = "",
+                documentation = dataStruct.DocString,
                 language = getLanguageName()
             )
+
+            // 添加继承和实现信息到元数据
+            if (dataStruct.Extend.isNotEmpty()) {
+                classElement.metadata["extends"] = dataStruct.Extend
+            }
+
+            if (dataStruct.Implements.isNotEmpty()) {
+                classElement.metadata["implements"] = dataStruct.Implements.joinToString(", ")
+            }
 
             // 处理字段
             processFields(classElement, dataStruct.Fields.toList())
@@ -131,24 +142,31 @@ abstract class ChapiCodeParser : AbstractCodeParser() {
      */
     private fun processFields(classElement: CodeElement, fields: List<CodeField>) {
         fields.forEach { field ->
-            val visibility = Visibility.PUBLIC
-            val modifiers = setOf<Modifier>()
+            // 解析可见性和修饰符
+            val visibility = parseVisibility(field.Modifiers)
+            val modifiers = parseModifiers(field.Modifiers)
 
             val fieldElement = CodeElement(
                 id = "${classElement.id}:field:${field.TypeValue}",
                 name = field.TypeValue,
                 qualifiedName = "${classElement.qualifiedName}.${field.TypeValue}",
                 type = CodeElementType.FIELD,
-                location = classElement.location, // 字段的具体位置信息在 Chapi 中可能不完全可用
+                location = createLocationFromPosition(classElement.location.filePath, field.Position),
                 visibility = visibility,
                 modifiers = modifiers,
                 parent = classElement,
-                documentation = "",
+                documentation = field.DocString,
                 language = getLanguageName()
             )
 
             // 添加字段类型信息到元数据
             fieldElement.metadata["type"] = field.TypeType
+            fieldElement.metadata["defaultValue"] = field.DefaultValue ?: ""
+
+            // 添加注解信息
+            if (field.Annotations.isNotEmpty()) {
+                fieldElement.metadata["annotations"] = field.Annotations.joinToString(", ")
+            }
 
             classElement.addChild(fieldElement)
         }
@@ -164,42 +182,64 @@ abstract class ChapiCodeParser : AbstractCodeParser() {
         functions.forEach { function ->
             val elementType = if (function.IsConstructor) {
                 CodeElementType.CONSTRUCTOR
+            } else if (function.Name.startsWith("get") || function.Name.startsWith("set") || function.Name.startsWith("is")) {
+                // 识别getter和setter方法
+                CodeElementType.PROPERTY
             } else {
                 CodeElementType.METHOD
             }
 
-            val visibility = Visibility.PUBLIC
-            val modifiers = setOf<Modifier>()
+            // 解析可见性和修饰符
+            val visibility = parseVisibility(function.Modifiers)
+            val modifiers = parseModifiers(function.Modifiers)
 
             val methodElement = CodeElement(
                 id = "${classElement.id}:${elementType.name.lowercase()}:${function.Name}",
                 name = function.Name,
                 qualifiedName = "${classElement.qualifiedName}.${function.Name}",
                 type = elementType,
-                location = classElement.location, // 方法的具体位置信息在 Chapi 中可能不完全可用
+                location = createLocationFromPosition(classElement.location.filePath, function.Position),
                 visibility = visibility,
                 modifiers = modifiers,
                 parent = classElement,
-                documentation = "",
+                documentation = function.DocString,
                 language = getLanguageName()
             )
 
             // 添加返回类型信息到元数据
             methodElement.metadata["returnType"] = function.ReturnType
 
-            // 处理参数 - 简化处理以避免类型问题
-            val paramElement = CodeElement(
-                id = "${methodElement.id}:parameter:param",
-                name = "param",
-                qualifiedName = "${methodElement.qualifiedName}(param)",
-                type = CodeElementType.PARAMETER,
-                location = methodElement.location,
-                parent = methodElement,
-                language = getLanguageName()
-            )
+            // 添加注解信息
+            if (function.Annotations.isNotEmpty()) {
+                methodElement.metadata["annotations"] = function.Annotations.joinToString(", ")
+            }
 
-            // 添加参数元素到方法元素
-            methodElement.addChild(paramElement)
+            // 添加方法体信息
+            if (function.FunctionCalls.isNotEmpty()) {
+                methodElement.metadata["functionCalls"] = function.FunctionCalls.joinToString(", ") { it.Name }
+            }
+
+            // 处理参数
+            function.Parameters.forEach { param ->
+                val paramElement = CodeElement(
+                    id = "${methodElement.id}:parameter:${param.Name}",
+                    name = param.Name,
+                    qualifiedName = "${methodElement.qualifiedName}(${param.Name})",
+                    type = CodeElementType.PARAMETER,
+                    location = methodElement.location,
+                    parent = methodElement,
+                    language = getLanguageName()
+                )
+
+                // 添加参数类型信息
+                paramElement.metadata["type"] = param.TypeType
+                if (param.DefaultValue != null) {
+                    paramElement.metadata["defaultValue"] = param.DefaultValue
+                }
+
+                // 添加参数元素到方法元素
+                methodElement.addChild(paramElement)
+            }
 
             classElement.addChild(methodElement)
         }
@@ -217,6 +257,7 @@ abstract class ChapiCodeParser : AbstractCodeParser() {
             "protected" in modifiers -> Visibility.PROTECTED
             "private" in modifiers -> Visibility.PRIVATE
             "internal" in modifiers -> Visibility.INTERNAL
+            "package" in modifiers -> Visibility.PACKAGE_PRIVATE
             else -> Visibility.UNKNOWN
         }
     }
@@ -231,7 +272,7 @@ abstract class ChapiCodeParser : AbstractCodeParser() {
         val result = mutableSetOf<Modifier>()
 
         modifiers.forEach { modifier ->
-            when (modifier) {
+            when (modifier.lowercase()) {
                 "static" -> result.add(Modifier.STATIC)
                 "final" -> result.add(Modifier.FINAL)
                 "abstract" -> result.add(Modifier.ABSTRACT)
@@ -258,9 +299,40 @@ abstract class ChapiCodeParser : AbstractCodeParser() {
                 "fun" -> result.add(Modifier.FUN)
                 "value" -> result.add(Modifier.VALUE)
                 "virtual" -> result.add(Modifier.VIRTUAL)
+                "readonly" -> result.add(Modifier.READONLY)
+                "async" -> result.add(Modifier.ASYNC)
+                "classmethod" -> result.add(Modifier.CLASS_METHOD)
+                "property" -> result.add(Modifier.PROPERTY)
             }
         }
 
         return result
+    }
+
+    /**
+     * 从Chapi的位置信息创建Location对象
+     *
+     * @param filePath 文件路径
+     * @param position Chapi位置信息
+     * @return Location对象
+     */
+    private fun createLocationFromPosition(filePath: Path, position: CodePosition?): Location {
+        if (position == null) {
+            return Location(
+                filePath = filePath,
+                startLine = 1,
+                startColumn = 1,
+                endLine = 1,
+                endColumn = 1
+            )
+        }
+
+        return Location(
+            filePath = filePath,
+            startLine = position.StartLine,
+            startColumn = position.StartLinePosition,
+            endLine = position.StopLine,
+            endColumn = position.StopLinePosition
+        )
     }
 }

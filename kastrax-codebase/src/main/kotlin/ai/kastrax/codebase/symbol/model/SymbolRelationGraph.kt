@@ -1,0 +1,449 @@
+package ai.kastrax.codebase.symbol.model
+
+import ai.kastrax.codebase.semantic.model.CodeElement
+import ai.kastrax.codebase.semantic.relation.CodeRelation
+import ai.kastrax.codebase.semantic.relation.RelationType
+import io.github.oshai.kotlinlogging.KotlinLogging
+import java.util.UUID
+import java.util.concurrent.ConcurrentHashMap
+
+private val logger = KotlinLogging.logger {}
+
+/**
+ * 符号关系图配置
+ *
+ * @property enableCaching 是否启用缓存
+ * @property maxCacheSize 最大缓存大小
+ * @property includeInheritance 是否包含继承关系
+ * @property includeImplementation 是否包含实现关系
+ * @property includeUsage 是否包含使用关系
+ * @property includeDependency 是否包含依赖关系
+ * @property includeOverride 是否包含重写关系
+ * @property includeReference 是否包含引用关系
+ * @property includeImport 是否包含导入关系
+ */
+data class SymbolRelationGraphConfig(
+    val enableCaching: Boolean = true,
+    val maxCacheSize: Int = 1000,
+    val includeInheritance: Boolean = true,
+    val includeImplementation: Boolean = true,
+    val includeUsage: Boolean = true,
+    val includeDependency: Boolean = true,
+    val includeOverride: Boolean = true,
+    val includeReference: Boolean = true,
+    val includeImport: Boolean = true
+)
+
+/**
+ * 符号关系图
+ *
+ * 表示代码元素之间的关系图
+ *
+ * @property id 唯一标识符
+ * @property name 名称
+ * @property nodes 节点集合
+ * @property edges 边集合
+ * @property metadata 元数据
+ */
+class SymbolRelationGraph(
+    val id: String = UUID.randomUUID().toString(),
+    val name: String = "Symbol Relation Graph",
+    val nodes: MutableMap<String, SymbolNode> = ConcurrentHashMap(),
+    val edges: MutableMap<String, SymbolRelation> = ConcurrentHashMap(),
+    val metadata: MutableMap<String, Any> = ConcurrentHashMap()
+) {
+    /**
+     * 添加节点
+     *
+     * @param node 节点
+     * @return 是否成功添加
+     */
+    fun addNode(node: SymbolNode): Boolean {
+        if (nodes.containsKey(node.id)) {
+            return false
+        }
+        nodes[node.id] = node
+        return true
+    }
+
+    /**
+     * 添加边
+     *
+     * @param edge 边
+     * @return 是否成功添加
+     */
+    fun addEdge(edge: SymbolRelation): Boolean {
+        if (edges.containsKey(edge.id)) {
+            return false
+        }
+        if (!nodes.containsKey(edge.sourceId) || !nodes.containsKey(edge.targetId)) {
+            return false
+        }
+        edges[edge.id] = edge
+        return true
+    }
+
+    /**
+     * 获取节点
+     *
+     * @param nodeId 节点ID
+     * @return 节点，如果找不到则返回 null
+     */
+    fun getNode(nodeId: String): SymbolNode? {
+        return nodes[nodeId]
+    }
+
+    /**
+     * 获取边
+     *
+     * @param edgeId 边ID
+     * @return 边，如果找不到则返回 null
+     */
+    fun getEdge(edgeId: String): SymbolRelation? {
+        return edges[edgeId]
+    }
+
+    /**
+     * 获取节点的出边
+     *
+     * @param nodeId 节点ID
+     * @return 出边集合
+     */
+    fun getOutgoingEdges(nodeId: String): List<SymbolRelation> {
+        return edges.values.filter { it.sourceId == nodeId }
+    }
+
+    /**
+     * 获取节点的入边
+     *
+     * @param nodeId 节点ID
+     * @return 入边集合
+     */
+    fun getIncomingEdges(nodeId: String): List<SymbolRelation> {
+        return edges.values.filter { it.targetId == nodeId }
+    }
+
+    /**
+     * 获取节点的相邻节点
+     *
+     * @param nodeId 节点ID
+     * @return 相邻节点ID集合
+     */
+    fun getAdjacentNodes(nodeId: String): Set<String> {
+        val outgoing = getOutgoingEdges(nodeId).map { it.targetId }
+        val incoming = getIncomingEdges(nodeId).map { it.sourceId }
+        return (outgoing + incoming).toSet()
+    }
+
+    /**
+     * 获取节点的后继节点
+     *
+     * @param nodeId 节点ID
+     * @return 后继节点ID集合
+     */
+    fun getSuccessors(nodeId: String): Set<String> {
+        return getOutgoingEdges(nodeId).map { it.targetId }.toSet()
+    }
+
+    /**
+     * 获取节点的前驱节点
+     *
+     * @param nodeId 节点ID
+     * @return 前驱节点ID集合
+     */
+    fun getPredecessors(nodeId: String): Set<String> {
+        return getIncomingEdges(nodeId).map { it.sourceId }.toSet()
+    }
+
+    /**
+     * 获取两个节点之间的最短路径
+     *
+     * @param sourceId 源节点ID
+     * @param targetId 目标节点ID
+     * @return 路径上的节点ID列表，如果不存在路径则返回空列表
+     */
+    fun getShortestPath(sourceId: String, targetId: String): List<String> {
+        if (!nodes.containsKey(sourceId) || !nodes.containsKey(targetId)) {
+            return emptyList()
+        }
+
+        if (sourceId == targetId) {
+            return listOf(sourceId)
+        }
+
+        // 广度优先搜索
+        val visited = mutableSetOf<String>()
+        val queue = ArrayDeque<String>()
+        val parent = mutableMapOf<String, String>()
+
+        visited.add(sourceId)
+        queue.add(sourceId)
+
+        while (queue.isNotEmpty()) {
+            val current = queue.removeFirst()
+
+            if (current == targetId) {
+                // 找到目标节点，构建路径
+                val path = mutableListOf<String>()
+                var node = current
+                while (node != sourceId) {
+                    path.add(0, node)
+                    node = parent[node]!!
+                }
+                path.add(0, sourceId)
+                return path
+            }
+
+            // 遍历相邻节点
+            for (neighbor in getSuccessors(current)) {
+                if (neighbor !in visited) {
+                    visited.add(neighbor)
+                    queue.add(neighbor)
+                    parent[neighbor] = current
+                }
+            }
+        }
+
+        return emptyList() // 没有找到路径
+    }
+
+    /**
+     * 获取特定类型的关系
+     *
+     * @param type 关系类型
+     * @return 关系集合
+     */
+    fun getRelationsByType(type: RelationType): List<SymbolRelation> {
+        return edges.values.filter { it.type == type }
+    }
+
+    /**
+     * 获取节点的特定类型的出边
+     *
+     * @param nodeId 节点ID
+     * @param type 关系类型
+     * @return 出边集合
+     */
+    fun getOutgoingEdgesByType(nodeId: String, type: RelationType): List<SymbolRelation> {
+        return getOutgoingEdges(nodeId).filter { it.type == type }
+    }
+
+    /**
+     * 获取节点的特定类型的入边
+     *
+     * @param nodeId 节点ID
+     * @param type 关系类型
+     * @return 入边集合
+     */
+    fun getIncomingEdgesByType(nodeId: String, type: RelationType): List<SymbolRelation> {
+        return getIncomingEdges(nodeId).filter { it.type == type }
+    }
+
+    /**
+     * 获取节点的继承关系
+     *
+     * @param nodeId 节点ID
+     * @return 继承关系集合
+     */
+    fun getInheritanceRelations(nodeId: String): List<SymbolRelation> {
+        return getOutgoingEdgesByType(nodeId, RelationType.INHERITANCE)
+    }
+
+    /**
+     * 获取节点的实现关系
+     *
+     * @param nodeId 节点ID
+     * @return 实现关系集合
+     */
+    fun getImplementationRelations(nodeId: String): List<SymbolRelation> {
+        return getOutgoingEdgesByType(nodeId, RelationType.IMPLEMENTATION)
+    }
+
+    /**
+     * 获取节点的使用关系
+     *
+     * @param nodeId 节点ID
+     * @return 使用关系集合
+     */
+    fun getUsageRelations(nodeId: String): List<SymbolRelation> {
+        return getOutgoingEdgesByType(nodeId, RelationType.USAGE)
+    }
+
+    /**
+     * 获取节点的依赖关系
+     *
+     * @param nodeId 节点ID
+     * @return 依赖关系集合
+     */
+    fun getDependencyRelations(nodeId: String): List<SymbolRelation> {
+        return getOutgoingEdgesByType(nodeId, RelationType.DEPENDENCY)
+    }
+
+    /**
+     * 获取节点的重写关系
+     *
+     * @param nodeId 节点ID
+     * @return 重写关系集合
+     */
+    fun getOverrideRelations(nodeId: String): List<SymbolRelation> {
+        return getOutgoingEdgesByType(nodeId, RelationType.OVERRIDE)
+    }
+
+    /**
+     * 获取节点的引用关系
+     *
+     * @param nodeId 节点ID
+     * @return 引用关系集合
+     */
+    fun getReferenceRelations(nodeId: String): List<SymbolRelation> {
+        return getOutgoingEdgesByType(nodeId, RelationType.REFERENCE)
+    }
+
+    /**
+     * 获取节点的导入关系
+     *
+     * @param nodeId 节点ID
+     * @return 导入关系集合
+     */
+    fun getImportRelations(nodeId: String): List<SymbolRelation> {
+        return getOutgoingEdgesByType(nodeId, RelationType.IMPORT)
+    }
+
+    /**
+     * 获取节点的所有关系
+     *
+     * @param nodeId 节点ID
+     * @return 关系集合
+     */
+    fun getAllRelations(nodeId: String): List<SymbolRelation> {
+        val outgoing = getOutgoingEdges(nodeId)
+        val incoming = getIncomingEdges(nodeId)
+        return outgoing + incoming
+    }
+
+    /**
+     * 获取节点的相关节点
+     *
+     * @param nodeId 节点ID
+     * @param maxDepth 最大深度
+     * @param relationTypes 关系类型集合
+     * @return 相关节点ID集合
+     */
+    fun getRelatedNodes(
+        nodeId: String,
+        maxDepth: Int = 1,
+        relationTypes: Set<RelationType> = RelationType.values().toSet()
+    ): Set<String> {
+        if (!nodes.containsKey(nodeId) || maxDepth <= 0) {
+            return emptySet()
+        }
+
+        val result = mutableSetOf<String>()
+        val visited = mutableSetOf<String>()
+        val queue = ArrayDeque<Pair<String, Int>>() // 节点ID和深度
+
+        visited.add(nodeId)
+        queue.add(nodeId to 0)
+
+        while (queue.isNotEmpty()) {
+            val (current, depth) = queue.removeFirst()
+
+            if (current != nodeId) {
+                result.add(current)
+            }
+
+            if (depth < maxDepth) {
+                // 获取符合条件的相邻节点
+                val neighbors = getAllRelations(current)
+                    .filter { it.type in relationTypes }
+                    .map { if (it.sourceId == current) it.targetId else it.sourceId }
+
+                for (neighbor in neighbors) {
+                    if (neighbor !in visited) {
+                        visited.add(neighbor)
+                        queue.add(neighbor to depth + 1)
+                    }
+                }
+            }
+        }
+
+        return result
+    }
+
+    /**
+     * 从代码关系构建符号关系图
+     *
+     * @param codeElements 代码元素集合
+     * @param codeRelations 代码关系集合
+     * @param config 配置
+     * @return 符号关系图
+     */
+    companion object {
+        /**
+         * 从代码关系构建符号关系图
+         *
+         * @param codeElements 代码元素集合
+         * @param codeRelations 代码关系集合
+         * @param config 配置
+         * @return 符号关系图
+         */
+        fun fromCodeRelations(
+            codeElements: List<CodeElement>,
+            codeRelations: List<CodeRelation>,
+            config: SymbolRelationGraphConfig = SymbolRelationGraphConfig()
+        ): SymbolRelationGraph {
+            val graph = SymbolRelationGraph(
+                name = "Symbol Relation Graph from Code Relations"
+            )
+
+            // 添加节点
+            for (element in codeElements) {
+                val node = SymbolNode(
+                    id = element.id,
+                    name = element.name,
+                    type = element.type,
+                    element = element
+                )
+                graph.addNode(node)
+            }
+
+            // 添加边
+            for (relation in codeRelations) {
+                // 根据配置过滤关系类型
+                if (!shouldIncludeRelation(relation.type, config)) {
+                    continue
+                }
+
+                val edge = SymbolRelation(
+                    id = relation.id,
+                    sourceId = relation.sourceId,
+                    targetId = relation.targetId,
+                    type = relation.type,
+                    metadata = relation.metadata.toMutableMap()
+                )
+                graph.addEdge(edge)
+            }
+
+            return graph
+        }
+
+        /**
+         * 检查是否应该包含关系
+         *
+         * @param type 关系类型
+         * @param config 配置
+         * @return 是否应该包含
+         */
+        private fun shouldIncludeRelation(type: RelationType, config: SymbolRelationGraphConfig): Boolean {
+            return when (type) {
+                RelationType.INHERITANCE -> config.includeInheritance
+                RelationType.IMPLEMENTATION -> config.includeImplementation
+                RelationType.USAGE -> config.includeUsage
+                RelationType.DEPENDENCY -> config.includeDependency
+                RelationType.OVERRIDE -> config.includeOverride
+                RelationType.REFERENCE -> config.includeReference
+                RelationType.IMPORT -> config.includeImport
+            }
+        }
+    }
+}

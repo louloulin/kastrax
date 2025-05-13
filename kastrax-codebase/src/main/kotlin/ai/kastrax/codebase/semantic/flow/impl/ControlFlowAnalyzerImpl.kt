@@ -5,8 +5,12 @@ import ai.kastrax.codebase.semantic.model.CodeElement
 import ai.kastrax.codebase.semantic.model.CodeElementType
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.withContext
 import java.util.*
+import java.util.concurrent.ConcurrentHashMap
 
 /**
  * 控制流分析器实现
@@ -20,6 +24,15 @@ class ControlFlowAnalyzerImpl(
 ) : CodeFlowAnalyzer {
     private val logger = KotlinLogging.logger {}
 
+    // 流图缓存
+    private val graphCache = ConcurrentHashMap<String, FlowGraph>()
+
+    /**
+     * 分析代码元素的流图
+     *
+     * @param element 代码元素
+     * @return 流图
+     */
     override suspend fun analyzeFlow(element: CodeElement): FlowGraph = withContext(Dispatchers.Default) {
         logger.info { "开始分析控制流: ${element.qualifiedName}" }
 
@@ -59,11 +72,65 @@ class ControlFlowAnalyzerImpl(
         }
     }
 
+    /**
+     * 分析指定类型的代码流
+     *
+     * @param element 代码元素
+     * @param type 流类型
+     * @return 流图
+     */
+    override suspend fun analyzeFlow(element: CodeElement, type: FlowType): FlowGraph = withContext(Dispatchers.Default) {
+        // 只支持控制流
+        if (type != FlowType.CONTROL_FLOW) {
+            logger.warn { "不支持的流类型: $type" }
+            return@withContext createEmptyFlowGraph(element)
+        }
+
+        // 检查缓存
+        val cacheKey = "${element.id}:${type.name}"
+        if (config.enableCaching && graphCache.containsKey(cacheKey)) {
+            return@withContext graphCache[cacheKey]!!
+        }
+
+        // 分析控制流
+        val flowGraph = analyzeFlow(element)
+
+        // 缓存流图
+        if (config.enableCaching) {
+            graphCache[cacheKey] = flowGraph
+        }
+
+        return@withContext flowGraph
+    }
+
+    /**
+     * 获取支持的代码元素类型
+     *
+     * @return 支持的代码元素类型集合
+     */
     override fun getSupportedElementTypes(): Set<CodeElementType> = setOf(
         CodeElementType.METHOD,
         CodeElementType.CLASS,
-        CodeElementType.FILE
+        CodeElementType.FILE,
+        CodeElementType.FUNCTION,
+        CodeElementType.CONSTRUCTOR
     )
+
+    /**
+     * 获取支持的流类型
+     *
+     * @return 支持的流类型集合
+     */
+    override fun getSupportedFlowTypes(): Set<FlowType> = setOf(
+        FlowType.CONTROL_FLOW
+    )
+
+    /**
+     * 清除缓存
+     */
+    override fun clearCache() {
+        graphCache.clear()
+    }
 
     /**
      * 分析方法/函数的控制流
@@ -152,7 +219,7 @@ class ControlFlowAnalyzerImpl(
      * @param element 类元素
      * @param flowGraph 流图
      */
-    private fun analyzeClassFlow(element: CodeElement, flowGraph: FlowGraph) {
+    private suspend fun analyzeClassFlow(element: CodeElement, flowGraph: FlowGraph) {
         // 创建入口节点
         val entryNodeId = UUID.randomUUID().toString()
         val entryNode = FlowNode(
@@ -180,7 +247,7 @@ class ControlFlowAnalyzerImpl(
         flowGraph.addExitNode(exitNodeId)
 
         // 分析类的方法
-        val methods = element.children.filter { it.type == CodeElementType.METHOD || it.type == CodeElementType.CONSTRUCTOR }
+        val methods = element.children.filter { it.type == CodeElementType.METHOD || it.type == CodeElementType.CONSTRUCTOR || it.type == CodeElementType.FUNCTION }
 
         if (methods.isEmpty()) {
             // 如果类没有方法，直接连接入口和出口
@@ -198,39 +265,65 @@ class ControlFlowAnalyzerImpl(
             return
         }
 
-        // 为每个方法创建节点
-        for (method in methods) {
-            val methodNodeId = UUID.randomUUID().toString()
-            val methodNode = FlowNode(
-                id = methodNodeId,
-                type = FlowNodeType.CALL,
-                element = method,
-                metadata = mutableMapOf(
-                    "label" to "Method: ${method.name}"
-                )
-            )
-            flowGraph.addNode(methodNode)
-
-            // 连接入口和方法节点
-            val entryEdgeId = UUID.randomUUID().toString()
-            val entryEdge = FlowEdge(
-                id = entryEdgeId,
-                sourceId = entryNodeId,
-                targetId = methodNodeId,
-                type = FlowEdgeType.CALL
-            )
-            flowGraph.addEdge(entryEdge)
-
-            // 连接方法节点和出口节点
-            val exitEdgeId = UUID.randomUUID().toString()
-            val exitEdge = FlowEdge(
-                id = exitEdgeId,
-                sourceId = methodNodeId,
-                targetId = exitNodeId,
-                type = FlowEdgeType.RETURN
-            )
-            flowGraph.addEdge(exitEdge)
+        // 并行或串行分析方法
+        if (config.enableParallelAnalysis) {
+            // 并行分析方法
+            coroutineScope {
+                methods.chunked(config.maxConcurrentTasks).forEach { chunk ->
+                    chunk.map { method ->
+                        async {
+                            analyzeMethodInClass(method, flowGraph, entryNodeId, exitNodeId)
+                        }
+                    }.awaitAll()
+                }
+            }
+        } else {
+            // 串行分析方法
+            methods.forEach { method ->
+                analyzeMethodInClass(method, flowGraph, entryNodeId, exitNodeId)
+            }
         }
+    }
+
+    /**
+     * 在类中分析方法
+     *
+     * @param method 方法元素
+     * @param flowGraph 流图
+     * @param entryNodeId 入口节点ID
+     * @param exitNodeId 出口节点ID
+     */
+    private fun analyzeMethodInClass(method: CodeElement, flowGraph: FlowGraph, entryNodeId: String, exitNodeId: String) {
+        val methodNodeId = UUID.randomUUID().toString()
+        val methodNode = FlowNode(
+            id = methodNodeId,
+            type = FlowNodeType.CALL,
+            element = method,
+            metadata = mutableMapOf(
+                "label" to "Method: ${method.name}"
+            )
+        )
+        flowGraph.addNode(methodNode)
+
+        // 连接入口和方法节点
+        val entryEdgeId = UUID.randomUUID().toString()
+        val entryEdge = FlowEdge(
+            id = entryEdgeId,
+            sourceId = entryNodeId,
+            targetId = methodNodeId,
+            type = FlowEdgeType.CALL
+        )
+        flowGraph.addEdge(entryEdge)
+
+        // 连接方法节点和出口节点
+        val exitEdgeId = UUID.randomUUID().toString()
+        val exitEdge = FlowEdge(
+            id = exitEdgeId,
+            sourceId = methodNodeId,
+            targetId = exitNodeId,
+            type = FlowEdgeType.RETURN
+        )
+        flowGraph.addEdge(exitEdge)
     }
 
     /**

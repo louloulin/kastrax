@@ -47,6 +47,18 @@ dependencies {
     implementation("org.jetbrains.kotlin:kotlin-compiler-embeddable:1.9.20")
     implementation("com.github.javaparser:javaparser-core:3.25.5")
 
+    // Tree-sitter 代码解析依赖
+//    implementation("io.github.bonede:tree-sitter:0.24.5")
+//    implementation("io.github.bonede:tree-sitter-java:0.23.4")
+//    implementation("io.github.bonede:tree-sitter-kotlin:0.3.8.1")
+//    implementation("io.github.bonede:tree-sitter-python:0.23.4")
+//    implementation("io.github.bonede:tree-sitter-typescript:0.21.1")
+//    implementation("io.github.bonede:tree-sitter-go:0.23.3")
+//    implementation("io.github.bonede:tree-sitter-javascript:0.23.1")
+//    implementation("io.github.bonede:tree-sitter-cpp:0.23.4")
+//    implementation("io.github.bonede:tree-sitter-c-sharp:0.23.1")
+//    implementation("io.github.bonede:tree-sitter-rust:0.23.1")
+
     // Chapi 代码分析依赖
     implementation("com.phodal.chapi:chapi-domain:2.1.1")
     implementation("com.phodal.chapi:chapi-ast-java:2.1.1")

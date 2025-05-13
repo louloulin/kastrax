@@ -24,6 +24,7 @@ enum class CodeElementType {
     STATEMENT,
     EXPRESSION,
     COMMENT,
+    FUNCTION,
     UNKNOWN
 }
 
@@ -69,6 +70,10 @@ enum class Modifier {
     FUN,
     VALUE,
     VIRTUAL,
+    CLASS_METHOD,
+    PROPERTY,
+    READONLY,
+    ASYNC,
     UNKNOWN
 }
 
@@ -94,10 +99,10 @@ data class Location(
      * @return 是否有效
      */
     fun isValid(): Boolean {
-        return startLine > 0 && startColumn > 0 && endLine >= startLine && 
+        return startLine > 0 && startColumn > 0 && endLine >= startLine &&
                (endLine > startLine || endColumn >= startColumn)
     }
-    
+
     /**
      * 检查位置是否包含另一个位置
      *
@@ -108,11 +113,11 @@ data class Location(
         if (filePath != other.filePath) {
             return false
         }
-        
+
         return (startLine < other.startLine || (startLine == other.startLine && startColumn <= other.startColumn)) &&
                (endLine > other.endLine || (endLine == other.endLine && endColumn >= other.endColumn))
     }
-    
+
     /**
      * 检查位置是否与另一个位置重叠
      *
@@ -123,11 +128,11 @@ data class Location(
         if (filePath != other.filePath) {
             return false
         }
-        
+
         return !(endLine < other.startLine || (endLine == other.startLine && endColumn < other.startColumn) ||
                 startLine > other.endLine || (startLine == other.endLine && startColumn > other.endColumn))
     }
-    
+
     override fun toString(): String {
         return "$filePath:$startLine:$startColumn-$endLine:$endColumn"
     }
@@ -173,7 +178,7 @@ data class CodeElement(
     fun addChild(child: CodeElement) {
         children.add(child)
     }
-    
+
     /**
      * 移除子元素
      *
@@ -183,7 +188,7 @@ data class CodeElement(
     fun removeChild(child: CodeElement): Boolean {
         return children.remove(child)
     }
-    
+
     /**
      * 查找子元素
      *
@@ -193,7 +198,7 @@ data class CodeElement(
     fun findChild(predicate: (CodeElement) -> Boolean): CodeElement? {
         return children.find(predicate)
     }
-    
+
     /**
      * 查找所有符合条件的子元素
      *
@@ -203,7 +208,7 @@ data class CodeElement(
     fun findChildren(predicate: (CodeElement) -> Boolean): List<CodeElement> {
         return children.filter(predicate)
     }
-    
+
     /**
      * 获取所有子元素（递归）
      *
@@ -211,15 +216,15 @@ data class CodeElement(
      */
     fun getAllChildren(): List<CodeElement> {
         val result = mutableListOf<CodeElement>()
-        
+
         for (child in children) {
             result.add(child)
             result.addAll(child.getAllChildren())
         }
-        
+
         return result
     }
-    
+
     /**
      * 获取所有祖先元素
      *
@@ -228,15 +233,15 @@ data class CodeElement(
     fun getAllAncestors(): List<CodeElement> {
         val result = mutableListOf<CodeElement>()
         var current = parent
-        
+
         while (current != null) {
             result.add(current)
             current = current.parent
         }
-        
+
         return result
     }
-    
+
     /**
      * 获取根元素
      *
@@ -244,14 +249,14 @@ data class CodeElement(
      */
     fun getRoot(): CodeElement {
         var current = this
-        
+
         while (current.parent != null) {
             current = current.parent!!
         }
-        
+
         return current
     }
-    
+
     /**
      * 检查是否包含指定位置
      *
@@ -261,7 +266,7 @@ data class CodeElement(
     fun containsPosition(position: Location): Boolean {
         return location.contains(position)
     }
-    
+
     /**
      * 获取最深的包含指定位置的子元素
      *
@@ -272,17 +277,17 @@ data class CodeElement(
         if (!containsPosition(position)) {
             return null
         }
-        
+
         for (child in children) {
             val deepest = child.getDeepestElementAtPosition(position)
             if (deepest != null) {
                 return deepest
             }
         }
-        
+
         return this
     }
-    
+
     /**
      * 获取元素的简短描述
      *
@@ -291,10 +296,10 @@ data class CodeElement(
     fun getShortDescription(): String {
         val visibilityStr = if (visibility != Visibility.UNKNOWN) visibility.name.lowercase() + " " else ""
         val modifiersStr = if (modifiers.isNotEmpty()) modifiers.joinToString(" ") { it.name.lowercase() } + " " else ""
-        
+
         return "$visibilityStr$modifiersStr${type.name.lowercase()} $name"
     }
-    
+
     /**
      * 获取元素的详细描述
      *
@@ -302,34 +307,34 @@ data class CodeElement(
      */
     fun getDetailedDescription(): String {
         val sb = StringBuilder()
-        
+
         sb.append(getShortDescription())
         sb.append("\n")
         sb.append("Qualified name: $qualifiedName\n")
         sb.append("Location: $location\n")
-        
+
         if (documentation.isNotEmpty()) {
             sb.append("Documentation: $documentation\n")
         }
-        
+
         if (metadata.isNotEmpty()) {
             sb.append("Metadata: $metadata\n")
         }
-        
+
         return sb.toString()
     }
-    
+
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (javaClass != other?.javaClass) return false
-        
+
         other as CodeElement
-        
+
         if (id != other.id) return false
-        
+
         return true
     }
-    
+
     override fun hashCode(): Int {
         return id.hashCode()
     }

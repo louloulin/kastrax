@@ -3,6 +3,8 @@ package ai.kastrax.codebase.context
 import ai.kastrax.codebase.semantic.model.CodeElement
 import ai.kastrax.codebase.semantic.model.CodeElementType
 import ai.kastrax.codebase.semantic.model.Location
+import ai.kastrax.codebase.semantic.relation.CodeRelationAnalyzer
+import ai.kastrax.codebase.semantic.relation.RelationType
 import ai.kastrax.codebase.vector.CodeSearchResult
 import ai.kastrax.codebase.vector.CodeVectorStore
 import ai.kastrax.store.embedding.EmbeddingService
@@ -135,11 +137,15 @@ data class Context(
  * @property maxCacheSize 最大缓存大小
  * @property defaultMaxElements 默认最大元素数量
  * @property defaultMinScore 默认最小分数
+ * @property includeRelatedElements 是否包含相关元素
+ * @property maxRelatedElements 最大相关元素数量
  */
 data class ContextBuilderConfig(
     val maxCacheSize: Int = 100,
     val defaultMaxElements: Int = 20,
-    val defaultMinScore: Float = 0.5f
+    val defaultMinScore: Float = 0.5f,
+    val includeRelatedElements: Boolean = true,
+    val maxRelatedElements: Int = 10
 )
 
 /**
@@ -151,12 +157,14 @@ data class ContextBuilderConfig(
  * @property embeddingService 嵌入服务
  * @property config 配置
  * @property contextCache 上下文缓存
+ * @property relationAnalyzer 代码关系分析器
  */
 class ContextBuilder(
     private val vectorStore: CodeVectorStore,
     private val embeddingService: EmbeddingService,
     private val config: ContextBuilderConfig = ContextBuilderConfig(),
-    private val contextCache: ConcurrentHashMap<String, Context> = ConcurrentHashMap()
+    private val contextCache: ConcurrentHashMap<String, Context> = ConcurrentHashMap(),
+    private val relationAnalyzer: CodeRelationAnalyzer? = null
 ) {
     /**
      * 构建上下文
@@ -238,6 +246,33 @@ class ContextBuilder(
                             content = content
                         )
                     )
+
+                    // 如果启用了相关元素分析，添加相关元素
+                    if (config.includeRelatedElements && relationAnalyzer != null) {
+                        val relatedElements = getRelatedElements(element)
+                        relatedElements.forEach { relatedElement ->
+                            val relatedLevel = getContextLevel(relatedElement)
+                            if (relatedLevel in includeLevels && contextElements.none { it.element.id == relatedElement.id }) {
+                                val relatedContent = getElementContent(relatedElement)
+                                val relationType = relatedElement.metadata["relationType"] as? String ?: "UNKNOWN"
+                                val relationDescription = relatedElement.metadata["relationDescription"] as? String ?: ""
+
+                                contextElements.add(
+                                    ContextElement(
+                                        element = relatedElement,
+                                        level = relatedLevel,
+                                        relevance = result.score.toFloat() * 0.8f, // 相关元素的相关性稍低
+                                        content = relatedContent,
+                                        metadata = mapOf(
+                                            "relationType" to relationType,
+                                            "relationDescription" to relationDescription,
+                                            "relatedTo" to element.id
+                                        )
+                                    )
+                                )
+                            }
+                        }
+                    }
                 }
             }
 
@@ -728,5 +763,59 @@ class ContextBuilder(
         sb.append("|excludeTypes:${excludeTypes.joinToString(",") { it.name }}")
 
         return sb.toString()
+    }
+
+    /**
+     * 获取与给定元素相关的元素
+     *
+     * @param element 代码元素
+     * @return 相关元素列表
+     */
+    private fun getRelatedElements(element: CodeElement): List<CodeElement> {
+        if (relationAnalyzer == null) {
+            return emptyList()
+        }
+
+        try {
+            // 获取元素的所有关系
+            val relations = relationAnalyzer.getElementRelations(element.id)
+
+            // 收集相关元素
+            val relatedElements = mutableListOf<CodeElement>()
+
+            // 根据关系类型获取相关元素
+            relations.forEach { relation ->
+                val relatedId = if (relation.sourceId == element.id) relation.targetId else relation.sourceId
+                val relatedElement = vectorStore.getElement(relatedId)
+
+                if (relatedElement != null) {
+                    // 根据关系类型设置优先级
+                    val priority = when (relation.type) {
+                        RelationType.INHERITANCE -> 1
+                        RelationType.IMPLEMENTATION -> 2
+                        RelationType.OVERRIDE -> 3
+                        RelationType.USAGE -> 4
+                        RelationType.DEPENDENCY -> 5
+                        RelationType.REFERENCE -> 6
+                        RelationType.IMPORT -> 7
+                    }
+
+                    // 添加关系信息到元素元数据
+                    relatedElement.metadata["relationPriority"] = priority
+                    relatedElement.metadata["relationType"] = relation.type.name
+                    relatedElement.metadata["relationDescription"] = relation.metadata["description"] ?: ""
+
+                    relatedElements.add(relatedElement)
+                }
+            }
+
+            // 根据优先级排序并限制数量
+            return relatedElements
+                .sortedBy { it.metadata["relationPriority"] as Int }
+                .take(config.maxRelatedElements)
+        } catch (e: Exception) {
+            logger.error(e) { "获取相关元素时发生错误: ${e.message}" }
+            return emptyList()
+        }
     }
 }
