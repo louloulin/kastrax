@@ -1,23 +1,5 @@
 package ai.kastrax.codebase.semantic.parser
 
-// TODO: 暂时注释掉，等待依赖问题解决
-
-// 空实现以避免语法错误
-class ChapiTypeScriptCodeParser : AbstractCodeParser() {
-    override fun parseFile(filePath: java.nio.file.Path, content: String): ai.kastrax.codebase.semantic.model.CodeElement {
-        return createFileElement(filePath, content)
-    }
-
-    override fun getSupportedExtensions(): Set<String> {
-        return setOf("ts", "js", "tsx", "jsx")
-    }
-
-    override fun getLanguageName(): String {
-        return "typescript"
-    }
-}
-
-/*
 import chapi.domain.core.CodeContainer
 import chapi.ast.typescriptast.TypeScriptAnalyser
 
@@ -57,4 +39,3 @@ class ChapiTypeScriptCodeParser : ChapiCodeParser() {
         return "typescript"
     }
 }
-*/
