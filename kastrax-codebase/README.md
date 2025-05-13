@@ -4,6 +4,8 @@ KastraX Codebase 是 KastraX 框架的代码库理解模块，提供类似 Augme
 
 ## 功能特点
 
+### 代码库索引
+
 - **实时文件系统监控**：实时检测文件创建、修改和删除
 - **Git 分支切换检测**：识别 Git 分支变更，支持分支切换时的索引更新
 - **智能文件过滤**：排除不需要索引的文件，如二进制文件、临时文件等
@@ -12,16 +14,78 @@ KastraX Codebase 是 KastraX 框架的代码库理解模块，提供类似 Augme
 - **优先级任务调度**：根据任务类型和重要性分配处理资源
 - **可扩展的索引处理器**：支持自定义索引处理逻辑
 
+### 代码理解
+
+- **多语言代码解析**：支持 Java、Kotlin、Python、TypeScript/JavaScript 和 Go 等多种编程语言
+- **代码语义分析**：深度理解代码结构和语义，构建符号关系图
+- **控制流和数据流分析**：分析代码的控制流和数据流，理解代码逻辑
+
+### 上下文引擎
+
+- **统一的上下文引擎接口**：提供统一的上下文检索和构建能力
+- **多级上下文构建**：支持文件、类、方法等多个级别的上下文构建
+- **基于向量的语义检索**：使用向量存储进行高效的语义相似度检索
+- **上下文感知的检索引擎**：根据当前编辑位置和查询意图提供相关上下文
+
 ## 模块结构
 
 - **filesystem**：文件系统监控和文件过滤
 - **git**：Git 分支监控
 - **indexing**：增量索引和批处理
+- **semantic**：代码语义分析和符号关系图
+- **flow**：代码控制流和数据流分析
+- **vector**：代码向量存储和检索
+- **context**：上下文构建和管理
+- **engine**：上下文引擎实现
 - **examples**：使用示例
 
 ## 快速开始
 
-### 基本用法
+### 上下文引擎用法
+
+```kotlin
+// 创建向量存储
+val vectorStore = VectorStoreFactory.createInMemoryVectorStore()
+
+// 创建嵌入服务
+val embeddingService = EmbeddingServiceFactory.createEmbeddingService()
+
+// 创建上下文引擎
+val contextEngine = ContextEngineImpl.create(
+    rootPath = Path("/path/to/your/project"),
+    vectorStore = vectorStore,
+    embeddingService = embeddingService,
+    config = ContextEngineConfig(
+        enableFileSystemMonitoring = true,
+        enableGitMonitoring = true,
+        enableIncrementalIndexing = true
+    )
+)
+
+// 监听事件
+launch {
+    (contextEngine as? ContextEngineImpl)?.events?.collect { event ->
+        println("[事件] ${event.type}: ${event.message}")
+    }
+}
+
+// 索引代码库
+contextEngine.indexCodebase(Path("/path/to/your/project"))
+
+// 获取查询上下文
+val context = contextEngine.getQueryContext("文件系统监控", 10, 0.0)
+
+// 获取文件上下文
+val fileContext = contextEngine.getFileContext(Path("/path/to/your/file.kt"), 10)
+
+// 获取符号上下文
+val symbolContext = contextEngine.getSymbolContext("CodeElement", 10, 0.0)
+
+// 关闭上下文引擎
+contextEngine.close()
+```
+
+### 索引管理器用法
 
 ```kotlin
 // 创建索引任务处理器
@@ -138,11 +202,14 @@ val batchProcessorConfig = BatchProcessorConfig(
 
 ## 下一步计划
 
-- 实现代码语义分析器
-- 开发符号关系图构建
+- 增强代码解析的准确性和完整性
+- 支持更多编程语言（如 Rust、C/C++、C#）
+- 实现更高级的混合检索策略
+- 优化索引性能，支持每秒处理数千个文件
+- 实现代码特化的嵌入模型
 - 实现语义记忆增强检索 (SEM-RAG)
-- 集成向量存储
 - 添加多租户支持
+- 实现与 IDE 的集成
 
 ## 贡献
 

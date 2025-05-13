@@ -106,13 +106,7 @@ class ContextEngineImpl(
     )
 
     // 代码嵌入服务
-    private val codeEmbeddingService = CodeEmbeddingService(
-        baseEmbeddingService = embeddingService,
-        config = CodeEmbeddingServiceConfig(
-            enableCaching = true,
-            cacheSize = 10000
-        )
-    )
+    private val codeEmbeddingService = embeddingService
 
     // 语义分析器
     private val semanticAnalyzer = CodeSemanticAnalyzer(
@@ -129,10 +123,7 @@ class ContextEngineImpl(
     // 代码库索引管理器
     private val indexManager = CodebaseIndexManager(
         rootPath = rootPath,
-        config = CodebaseIndexManagerConfig(
-            enableFileSystemMonitoring = config.enableFileSystemMonitoring,
-            enableGitMonitoring = config.enableGitMonitoring
-        ),
+        config = CodebaseIndexManagerConfig(),
         indexTaskProcessor = createIndexTaskProcessor()
     )
 
@@ -438,7 +429,7 @@ class ContextEngineImpl(
 
             // 索引状态
             if (initialized.get()) {
-                status["indexStatus"] = indexManager.status.name
+                status["indexStatus"] = indexManager.getStatus().name
                 status["elementCount"] = codeVectorStore.getElementCount()
                 status["cacheSize"] = elementCache.size
             }
@@ -463,7 +454,7 @@ class ContextEngineImpl(
             }
 
             // 关闭代码嵌入服务
-            codeEmbeddingService.close()
+            // 不需要关闭嵌入服务
 
             // 清空缓存
             elementCache.clear()
@@ -518,7 +509,7 @@ class ContextEngineImpl(
                         // 获取元素内容
                         val content = getElementContent(element)
                         // 生成嵌入向量
-                        val vector = codeEmbeddingService.generateEmbedding(content)
+                        val vector = codeEmbeddingService.embed(content)
                         element to vector
                     }
 

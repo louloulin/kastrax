@@ -6,7 +6,6 @@ import ai.kastrax.codebase.semantic.CodeSemanticAnalyzerConfig
 import ai.kastrax.codebase.semantic.model.CodeElementType
 import ai.kastrax.codebase.semantic.model.Location
 import ai.kastrax.codebase.semantic.parser.ChapiJavaCodeParser
-import ai.kastrax.codebase.semantic.parser.ChapiKotlinCodeParser
 import ai.kastrax.codebase.semantic.parser.CodeParserFactory
 import ai.kastrax.store.VectorStore
 import ai.kastrax.store.embedding.EmbeddingService
@@ -36,7 +35,6 @@ class ContextEngineTest {
     fun setUp() {
         // 注册代码解析器
         CodeParserFactory.registerParser(ChapiJavaCodeParser())
-        CodeParserFactory.registerParser(ChapiKotlinCodeParser())
 
         // 创建向量存储
         vectorStore = InMemoryVectorStore()
@@ -45,7 +43,6 @@ class ContextEngineTest {
         embeddingService = mockk()
         coEvery { embeddingService.embed(any()) } returns FloatArray(1536) { 0.1f }
         coEvery { embeddingService.embedBatch(any()) } returns List(10) { FloatArray(1536) { 0.1f } }
-        coEvery { embeddingService.dimension } returns 1536
 
         // 创建上下文引擎
         contextEngine = ContextEngineImpl.create(
@@ -55,18 +52,7 @@ class ContextEngineTest {
             config = ContextEngineConfig(
                 enableFileSystemMonitoring = false,
                 enableGitMonitoring = false,
-                contextBuilderConfig = ContextBuilderConfig(
-                    maxCacheSize = 100,
-                    includeLevels = setOf(
-                        ContextLevel.FILE,
-                        ContextLevel.CLASS,
-                        ContextLevel.METHOD
-                    ),
-                    excludeTypes = setOf(
-                        CodeElementType.IMPORT,
-                        CodeElementType.PACKAGE
-                    )
-                ),
+                contextBuilderConfig = ContextBuilderConfig(),
                 semanticAnalyzerConfig = CodeSemanticAnalyzerConfig(
                     excludePatterns = setOf("**/*.class", "**/*.jar", "**/*.git/**"),
                     excludeDirectories = setOf("build", "target", "node_modules")
@@ -160,15 +146,15 @@ class ContextEngineTest {
         Files.writeString(javaFile, """
             public class Test {
                 private String name;
-                
+
                 public Test(String name) {
                     this.name = name;
                 }
-                
+
                 public String getName() {
                     return name;
                 }
-                
+
                 public void setName(String name) {
                     this.name = name;
                 }

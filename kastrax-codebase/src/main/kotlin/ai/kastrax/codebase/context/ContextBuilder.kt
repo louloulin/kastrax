@@ -327,6 +327,71 @@ class ContextBuilder(
     }
 
     /**
+     * 构建符号上下文
+     *
+     * @param symbolName 符号名称
+     * @param maxElements 最大元素数量
+     * @param minScore 最小分数
+     * @return 上下文
+     */
+    suspend fun buildSymbolContext(
+        symbolName: String,
+        maxElements: Int = config.defaultMaxElements,
+        minScore: Float = config.defaultMinScore
+    ): Context = withContext(Dispatchers.IO) {
+        try {
+            // 生成查询向量
+            val queryVector = embeddingService.embed(symbolName).toList()
+
+            // 执行相似度搜索
+            val searchResults = vectorStore.similaritySearch(
+                vector = queryVector,
+                limit = maxElements * 2,
+                minScore = minScore,
+                filter = { _, _, element -> element.name.contains(symbolName, ignoreCase = true) }
+            )
+
+            // 构建上下文元素
+            val contextElements = mutableListOf<ContextElement>()
+
+            searchResults.forEach { result ->
+                val element = result.element
+                val level = getContextLevel(element)
+                val content = getElementContent(element)
+                contextElements.add(
+                    ContextElement(
+                        element = element,
+                        level = level,
+                        relevance = result.score.toFloat(),
+                        content = content
+                    )
+                )
+            }
+
+            // 限制元素数量
+            val finalElements = contextElements.sortedByDescending { it.relevance }.take(maxElements)
+
+            // 创建上下文
+            return@withContext Context(
+                elements = finalElements,
+                query = "symbol:$symbolName",
+                metadata = mapOf(
+                    "symbolName" to symbolName,
+                    "maxElements" to maxElements,
+                    "minScore" to minScore
+                )
+            )
+        } catch (e: Exception) {
+            logger.error(e) { "构建符号上下文时出错: $symbolName" }
+            return@withContext Context(
+                elements = emptyList(),
+                query = "symbol:$symbolName",
+                metadata = mapOf("error" to e.message.toString())
+            )
+        }
+    }
+
+    /**
      * 构建类型上下文
      *
      * @param typeName 类型名称

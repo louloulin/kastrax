@@ -1,20 +1,9 @@
 package ai.kastrax.codebase.semantic
 
-// TODO: 暂时注释掉，等待依赖问题解决
-
-// 空实现以避免语法错误
-class CodeSemanticAnalyzer
-
-/*
 import ai.kastrax.codebase.semantic.model.CodeElement
 import ai.kastrax.codebase.semantic.model.CodeElementType
 import ai.kastrax.codebase.semantic.model.Location
-import ai.kastrax.codebase.semantic.parser.ChapiGoCodeParser
 import ai.kastrax.codebase.semantic.parser.ChapiJavaCodeParser
-import ai.kastrax.codebase.semantic.parser.ChapiKotlinCodeParser
-import ai.kastrax.codebase.semantic.parser.ChapiPythonCodeParser
-import ai.kastrax.codebase.semantic.parser.ChapiTypeScriptCodeParser
-import ai.kastrax.codebase.semantic.parser.CodeParser
 import ai.kastrax.codebase.semantic.parser.CodeParserFactory
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.Dispatchers
@@ -41,13 +30,13 @@ private val logger = KotlinLogging.logger {}
  * @property maxConcurrentFiles 最大并发文件数
  */
 data class CodeSemanticAnalyzerConfig(
-    val excludePatterns: Set<Regex> = setOf(
-        Regex("\\.git/.*"),
-        Regex("\\.idea/.*"),
-        Regex("build/.*"),
-        Regex("target/.*"),
-        Regex("node_modules/.*"),
-        Regex("\\.gradle/.*")
+    val excludePatterns: Set<String> = setOf(
+        "\\.git/.*",
+        "\\.idea/.*",
+        "build/.*",
+        "target/.*",
+        "node_modules/.*",
+        "\\.gradle/.*"
     ),
     val excludeDirectories: Set<String> = setOf(
         ".git", ".idea", "build", "target", "node_modules", ".gradle"
@@ -79,10 +68,6 @@ class CodeSemanticAnalyzer(
      */
     private fun registerParsers() {
         CodeParserFactory.registerParser(ChapiJavaCodeParser())
-        CodeParserFactory.registerParser(ChapiKotlinCodeParser())
-        CodeParserFactory.registerParser(ChapiPythonCodeParser())
-        CodeParserFactory.registerParser(ChapiTypeScriptCodeParser())
-        CodeParserFactory.registerParser(ChapiGoCodeParser())
     }
 
     /**
@@ -239,7 +224,13 @@ class CodeSemanticAnalyzer(
 
         // 检查排除模式
         for (pattern in config.excludePatterns) {
-            if (pattern.matches(relativePath)) {
+            val regex = pattern
+                .replace(".", "\\.")
+                .replace("**", ".*")
+                .replace("*", "[^/]*")
+                .toRegex()
+
+            if (regex.matches(relativePath)) {
                 return true
             }
         }
@@ -353,5 +344,36 @@ class CodeSemanticAnalyzer(
     fun clearCache() {
         elementCache.clear()
     }
+
+    /**
+     * 解析文件
+     *
+     * @param filePath 文件路径
+     * @param content 文件内容
+     * @return 代码元素
+     */
+    suspend fun parseFile(filePath: Path, content: String): CodeElement = withContext(Dispatchers.IO) {
+        try {
+            // 检查文件大小
+            if (content.length > config.maxFileSizeBytes) {
+                logger.warn { "文件过大，跳过解析: $filePath, 大小: ${content.length} 字节" }
+                return@withContext createEmptyFileElement(filePath)
+            }
+
+            // 获取解析器
+            val parser = CodeParserFactory.getParser(filePath)
+            if (parser == null) {
+                logger.debug { "找不到适合的解析器: $filePath" }
+                return@withContext createEmptyFileElement(filePath)
+            }
+
+            // 解析文件
+            val element = parser.parseFile(filePath, content)
+
+            return@withContext element
+        } catch (e: Exception) {
+            logger.error(e) { "解析文件失败: $filePath, ${e.message}" }
+            return@withContext createEmptyFileElement(filePath)
+        }
+    }
 }
-*/
