@@ -73,7 +73,7 @@ data class FlowGraph(
      *
      * @param node 入口节点
      */
-    fun setEntryNode(node: FlowNode) {
+    fun setGraphEntryNode(node: FlowNode) {
         entryNode = node
         nodes.add(node)
     }

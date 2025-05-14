@@ -25,6 +25,9 @@ enum class CodeElementType {
     EXPRESSION,
     COMMENT,
     FUNCTION,
+    VARIABLE,
+    NAMESPACE,
+    MODULE,
     UNKNOWN
 }
 

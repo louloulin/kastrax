@@ -26,24 +26,22 @@
   - [x] 修复类继承结构
   - [x] 添加模式检测方法
   - [x] 修复 PatternMatch 构造函数参数问题
-  - [ ] 修复字符串与布尔值比较问题
-  - [ ] 修复 detectPatternsFromFlowGraph 方法的冲突
-  - [ ] 修复 Type inference failed 问题
+  - [x] 修复字符串与布尔值比较问题
+  - [x] 修复 detectPatternsFromFlowGraph 方法的冲突
+  - [x] 修复 Type inference failed 问题
 
 ### 待解决问题
-- [ ] 修复 DesignPatternDetector.kt 中的 model 引用问题
+- [x] 修复 DesignPatternDetector.kt 中的 model 引用问题
 - [ ] 修复 HybridRetriever.kt 中的 combinedScore、vectorScore 和 keywordScore 引用问题
-- [ ] 修复 SymbolRelationGraphBuilder.kt 中的 VARIABLE、NAMESPACE、MODULE 常量引用
-- [ ] 修复 SymbolRelationGraph.kt 中的 VARIABLE、NAMESPACE、MODULE 常量引用
+- [x] 修复 SymbolRelationGraphBuilder.kt 中的 VARIABLE、NAMESPACE、MODULE 常量引用
+- [x] 修复 SymbolRelationGraph.kt 中的 VARIABLE、NAMESPACE、MODULE 常量引用
 
 ## 下一步计划
-1. 修复 DesignPatternDetector.kt 中的 model 引用问题
-2. 修复 DesignPatternDetector.kt 中的字符串与布尔值比较问题
-3. 修复 DesignPatternDetector.kt 中的 Type inference failed 问题
-4. 修复 DesignPatternDetector.kt 中的 detectPatternsFromFlowGraph 方法的冲突
-5. 修复 HybridRetriever.kt 中的 combinedScore、vectorScore 和 keywordScore 引用问题
-6. 修复 SymbolRelationGraphBuilder.kt 和 SymbolRelationGraph.kt 中的常量引用问题
-7. 添加测试验证
+1. 修复 HybridRetriever.kt 中的 combinedScore、vectorScore 和 keywordScore 引用问题
+2. 修复测试代码中的类型不匹配问题
+3. 修复测试代码中的协程调用问题
+4. 修复 ChapiCodeParserTest.kt 中的未解析引用问题
+5. 添加测试验证
 
 ## 问题概述
 
