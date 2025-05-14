@@ -192,6 +192,40 @@ class CodeVectorStore(
     }
 
     /**
+     * 搜索
+     *
+     * @param embedding 查询向量
+     * @param limit 返回结果的最大数量
+     * @param minScore 最小相似度分数
+     * @param filter 过滤函数
+     * @return 搜索结果列表
+     */
+    suspend fun search(
+        embedding: FloatArray,
+        limit: Int = 10,
+        minScore: Double = 0.0
+    ): List<ai.kastrax.codebase.retrieval.model.RetrievalResult> = withContext(Dispatchers.IO) {
+        try {
+            val results = similaritySearch(
+                vector = embedding.toList(),
+                limit = limit,
+                minScore = minScore.toFloat()
+            )
+
+            return@withContext results.map { result ->
+                ai.kastrax.codebase.retrieval.model.RetrievalResult(
+                    element = result.element,
+                    score = result.score,
+                    explanation = "向量相似度: ${result.score}"
+                )
+            }
+        } catch (e: Exception) {
+            logger.error(e) { "搜索失败: ${e.message}" }
+            return@withContext emptyList()
+        }
+    }
+
+    /**
      * 相似度搜索
      *
      * @param vector 查询向量

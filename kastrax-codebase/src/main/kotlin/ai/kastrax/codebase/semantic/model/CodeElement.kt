@@ -171,6 +171,7 @@ data class CodeElement(
     val children: MutableList<CodeElement> = mutableListOf(),
     val documentation: String = "",
     val language: String = "",
+    val content: String = "",
     val metadata: MutableMap<String, Any> = mutableMapOf()
 ) {
     /**

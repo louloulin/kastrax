@@ -3,6 +3,7 @@ package ai.kastrax.codebase.search
 import ai.kastrax.codebase.embedding.CodeEmbeddingService
 import ai.kastrax.codebase.embedding.CodeEmbeddingServiceConfig
 import ai.kastrax.codebase.indexing.CodeIndexer
+import ai.kastrax.codebase.retrieval.model.RetrievalResult
 import ai.kastrax.codebase.semantic.model.CodeElement
 import ai.kastrax.codebase.semantic.model.CodeElementType
 import ai.kastrax.codebase.semantic.model.Location
@@ -17,10 +18,12 @@ import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
+import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
+import kotlin.test.assertFalse
 
 class SearchFacadeTest {
 
@@ -45,10 +48,13 @@ class SearchFacadeTest {
         val testElements = createTestElements(tempDir)
 
         coEvery { codeIndexer.getAllElements() } returns testElements
-        coEvery { codeIndexer.getElementsByType(any()) } returns testElements.filter { it.type == CodeElementType.CLASS }
+        coEvery { codeIndexer.getElementsByType(any<String>()) } returns testElements.filter { it.type == CodeElementType.CLASS }
+        coEvery { codeIndexer.getElementsByType(any<CodeElementType>()) } returns testElements.filter { it.type == CodeElementType.CLASS }
+        coEvery { codeIndexer.getElementsByFilePath(any()) } returns testElements
         // 使用自定义函数来模拟 getElementsByFilePath
         every { runBlocking { codeIndexer.getAllElements() } } returns testElements
-        every { runBlocking { codeIndexer.getElementsByType(any()) } } returns testElements.filter { it.type == CodeElementType.CLASS }
+        every { runBlocking { codeIndexer.getElementsByType(any<String>()) } } returns testElements.filter { it.type == CodeElementType.CLASS }
+        every { runBlocking { codeIndexer.getElementsByType(any<CodeElementType>()) } } returns testElements.filter { it.type == CodeElementType.CLASS }
 
         coEvery { baseEmbeddingService.embed(any()) } returns FloatArray(384) { 0.1f }
 
@@ -69,7 +75,12 @@ class SearchFacadeTest {
             embeddingService = embeddingService,
             config = SearchFacadeConfig(
                 enableCaching = true,
-                maxCacheSize = 10
+                maxCacheSize = 10,
+                enableHighlighting = true,
+                enablePagination = true,
+                enableFiltering = true,
+                enableHistoryTracking = true,
+                enableStructureAwareSearch = true
             )
         )
     }
@@ -180,5 +191,155 @@ class SearchFacadeTest {
                 "lastModified" to System.currentTimeMillis()
             )
         )
+    }
+
+    @Test
+    fun testStructureAwareSearch() = runBlocking {
+        // 执行结构感知搜索
+        val request = SearchRequest(
+            query = "test",
+            paths = emptyList(),
+            type = SearchType.STRUCTURE,
+            options = mapOf(
+                "limit" to 5,
+                "minScore" to 0.5
+            )
+        )
+
+        val response = searchFacade.search(request)
+
+        // 验证结果
+        assertNotNull(response)
+        assertTrue(response.results.isNotEmpty())
+        assertEquals(SearchType.STRUCTURE, response.metadata["searchType"])
+    }
+
+    @Test
+    fun testSearchWithHighlighting() = runBlocking {
+        // 创建测试文件
+        val testFile = Files.createTempFile("test", ".kt")
+        Files.writeString(testFile, """
+            package com.example
+
+            /**
+             * This is a test class
+             */
+            class TestClass {
+                /**
+                 * This is a test method
+                 */
+                fun testMethod() {
+                    // This is a test comment
+                    val testVariable = "test value"
+                    println(testVariable)
+                }
+            }
+        """.trimIndent())
+
+        // 执行搜索
+        val request = SearchRequest(
+            query = "test",
+            paths = listOf(testFile),
+            type = SearchType.TEXT,
+            options = mapOf(
+                "limit" to 5,
+                "minScore" to 0.5
+            )
+        )
+
+        val response = searchFacade.search(request)
+
+        // 验证结果
+        assertNotNull(response)
+        assertTrue(response.results.isNotEmpty())
+        assertTrue(response.highlightResults.isNotEmpty())
+    }
+
+    @Test
+    fun testSearchWithPagination() = runBlocking {
+        // 执行搜索
+        val request = SearchRequest(
+            query = "test",
+            paths = emptyList(),
+            type = SearchType.HYBRID,
+            options = mapOf(
+                "limit" to 5,
+                "minScore" to 0.5,
+                "page" to 1,
+                "pageSize" to 2
+            )
+        )
+
+        val response = searchFacade.search(request)
+
+        // 验证结果
+        assertNotNull(response)
+        assertNotNull(response.pagedResult)
+        assertEquals(1, response.pagedResult?.pageNumber)
+        assertEquals(2, response.pagedResult?.pageSize)
+    }
+
+    @Test
+    fun testSearchWithFiltering() = runBlocking {
+        // 执行搜索
+        val request = SearchRequest(
+            query = "test",
+            paths = emptyList(),
+            type = SearchType.HYBRID,
+            options = mapOf(
+                "limit" to 5,
+                "minScore" to 0.5,
+                "types" to setOf(CodeElementType.CLASS),
+                "visibilities" to setOf(Visibility.PUBLIC)
+            )
+        )
+
+        val response = searchFacade.search(request)
+
+        // 验证结果
+        assertNotNull(response)
+        assertTrue(response.results.isNotEmpty())
+        assertTrue(response.results.all { it.element.type == CodeElementType.CLASS })
+        assertTrue(response.results.all { it.element.visibility == Visibility.PUBLIC })
+    }
+
+    @Test
+    fun testSearchHistory() = runBlocking {
+        // 执行多次搜索
+        for (i in 1..3) {
+            val request = SearchRequest(
+                query = "test query $i",
+                paths = emptyList(),
+                type = SearchType.HYBRID
+            )
+
+            searchFacade.search(request)
+        }
+
+        // 获取搜索历史
+        val history = searchFacade.getSearchHistory()
+
+        // 验证结果
+        assertNotNull(history)
+        assertEquals(3, history.size)
+        assertEquals("test query 3", history[0].query)
+    }
+
+    @Test
+    fun testStreamSearch() = runBlocking {
+        // 执行流式搜索
+        val request = SearchRequest(
+            query = "test",
+            paths = emptyList(),
+            type = SearchType.HYBRID
+        )
+
+        val results = mutableListOf<RetrievalResult>()
+        searchFacade.streamSearch(request).collect { result ->
+            results.add(result)
+        }
+
+        // 验证结果
+        assertTrue(results.isNotEmpty())
     }
 }

@@ -62,6 +62,22 @@ interface CodeIndexer {
     suspend fun getElementsByType(type: String): Collection<CodeElement>
 
     /**
+     * 根据类型获取代码元素
+     *
+     * @param type 元素类型
+     * @return 代码元素集合
+     */
+    suspend fun getElementsByType(type: ai.kastrax.codebase.semantic.model.CodeElementType): Collection<CodeElement>
+
+    /**
+     * 根据文件路径获取代码元素
+     *
+     * @param filePath 文件路径
+     * @return 代码元素集合
+     */
+    suspend fun getElementsByFilePath(filePath: java.nio.file.Path): Collection<CodeElement>
+
+    /**
      * 根据关键词搜索代码元素
      *
      * @param keywords 关键词

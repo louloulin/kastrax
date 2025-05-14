@@ -454,6 +454,16 @@ class InMemoryCodeIndexer(
     }
 
     /**
+     * 根据类型获取代码元素
+     *
+     * @param type 元素类型
+     * @return 代码元素集合
+     */
+    override suspend fun getElementsByType(type: CodeElementType): Collection<CodeElement> {
+        return typeToElements[type]?.toList() ?: emptyList()
+    }
+
+    /**
      * 根据ID获取代码元素
      *
      * @param id 元素ID
@@ -515,19 +525,11 @@ class InMemoryCodeIndexer(
      * @param filePath 文件路径
      * @return 指定文件的元素列表
      */
-    fun getElementsByFilePath(filePath: Path): List<CodeElement> {
+    override suspend fun getElementsByFilePath(filePath: Path): Collection<CodeElement> {
         return filePathToElements[filePath]?.toList() ?: emptyList()
     }
 
-    /**
-     * 获取指定类型的所有元素
-     *
-     * @param type 元素类型
-     * @return 指定类型的元素列表
-     */
-    fun getElementsByType(type: CodeElementType): List<CodeElement> {
-        return typeToElements[type]?.toList() ?: emptyList()
-    }
+
 
     /**
      * 获取索引状态

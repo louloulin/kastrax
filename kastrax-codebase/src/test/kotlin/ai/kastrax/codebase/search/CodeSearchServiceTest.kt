@@ -45,10 +45,13 @@ class CodeSearchServiceTest {
         val testElements = createTestElements(tempDir)
 
         coEvery { codeIndexer.getAllElements() } returns testElements
-        coEvery { codeIndexer.getElementsByType(any()) } returns testElements.filter { it.type == CodeElementType.CLASS }
+        coEvery { codeIndexer.getElementsByType(any<String>()) } returns testElements.filter { it.type == CodeElementType.CLASS }
+        coEvery { codeIndexer.getElementsByType(any<CodeElementType>()) } returns testElements.filter { it.type == CodeElementType.CLASS }
+        coEvery { codeIndexer.getElementsByFilePath(any()) } returns testElements
         // 使用自定义函数来模拟 getElementsByFilePath
         every { runBlocking { codeIndexer.getAllElements() } } returns testElements
-        every { runBlocking { codeIndexer.getElementsByType(any()) } } returns testElements.filter { it.type == CodeElementType.CLASS }
+        every { runBlocking { codeIndexer.getElementsByType(any<String>()) } } returns testElements.filter { it.type == CodeElementType.CLASS }
+        every { runBlocking { codeIndexer.getElementsByType(any<CodeElementType>()) } } returns testElements.filter { it.type == CodeElementType.CLASS }
 
         coEvery { baseEmbeddingService.embed(any()) } returns FloatArray(384) { 0.1f }
 

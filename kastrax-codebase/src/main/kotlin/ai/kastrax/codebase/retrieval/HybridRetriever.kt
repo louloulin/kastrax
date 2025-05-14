@@ -76,6 +76,31 @@ class HybridRetriever(
     private val cache = ConcurrentHashMap<String, List<HybridRetrievalResult>>()
 
     /**
+     * 搜索
+     *
+     * @param query 查询
+     * @param limit 限制数量
+     * @param minScore 最小分数
+     * @param vectorWeight 向量权重
+     * @param keywordWeight 关键词权重
+     * @return 检索结果列表
+     */
+    suspend fun search(
+        query: String,
+        limit: Int = config.defaultLimit,
+        minScore: Double = config.defaultMinScore.toDouble(),
+        vectorWeight: Double = config.vectorWeight.toDouble(),
+        keywordWeight: Double = config.keywordWeight.toDouble()
+    ): List<RetrievalResult> = withContext(Dispatchers.Default) {
+        // 调用检索方法
+        return@withContext retrieve(
+            query = query,
+            limit = limit,
+            minScore = minScore
+        )
+    }
+
+    /**
      * 检索
      *
      * @param query 查询

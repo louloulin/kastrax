@@ -5,9 +5,12 @@ import ai.kastrax.codebase.indexing.CodeIndexer
 import ai.kastrax.codebase.retrieval.CodeRelevanceRanker
 import ai.kastrax.codebase.retrieval.HybridRetriever
 import ai.kastrax.codebase.retrieval.KeywordSearcher
+import ai.kastrax.codebase.retrieval.KeywordSearchResult
 import ai.kastrax.codebase.retrieval.model.RetrievalResult
 import ai.kastrax.codebase.semantic.model.CodeElement
 import ai.kastrax.codebase.semantic.model.CodeElementType
+import ai.kastrax.codebase.semantic.model.Location
+import ai.kastrax.codebase.semantic.model.Visibility
 import ai.kastrax.codebase.vector.CodeVectorStore
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.Dispatchers
@@ -19,6 +22,8 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.withContext
 import java.nio.file.Path
 import java.util.concurrent.ConcurrentHashMap
+import java.time.Instant
+import java.util.UUID
 
 private val logger = KotlinLogging.logger {}
 
@@ -59,7 +64,12 @@ enum class SearchType {
     /**
      * 符号搜索
      */
-    SYMBOL
+    SYMBOL,
+
+    /**
+     * 结构感知搜索
+     */
+    STRUCTURE
 }
 
 /**
@@ -72,7 +82,11 @@ enum class SearchType {
 data class SearchResponse(
     val query: String,
     val results: List<RetrievalResult>,
-    val metadata: Map<String, Any> = emptyMap()
+    val metadata: Map<String, Any> = emptyMap(),
+    val highlightResults: List<HighlightResult> = emptyList(),
+    val pagedResult: PagedResult<RetrievalResult>? = null,
+    val executionTimeMs: Long = 0,
+    val timestamp: Long = System.currentTimeMillis()
 )
 
 /**
@@ -93,7 +107,25 @@ data class SearchFacadeConfig(
     val maxCacheSize: Int = 100,
     val enableReranking: Boolean = true,
     val enableParallelSearch: Boolean = true,
-    val maxParallelSearches: Int = 4
+    val maxParallelSearches: Int = 4,
+    val enableHighlighting: Boolean = true,
+    val enablePagination: Boolean = true,
+    val enableFiltering: Boolean = true,
+    val enableHistoryTracking: Boolean = true,
+    val enableStructureAwareSearch: Boolean = true
+)
+
+/**
+ * 处理后的搜索结果
+ *
+ * @property results 搜索结果列表
+ * @property highlightResults 高亮结果列表
+ * @property pagedResult 分页结果
+ */
+data class ProcessedSearchResults(
+    val results: List<RetrievalResult>,
+    val highlightResults: List<HighlightResult> = emptyList(),
+    val pagedResult: PagedResult<RetrievalResult>? = null
 )
 
 /**
@@ -131,6 +163,31 @@ class SearchFacade(
     // 相关性排序器
     private val relevanceRanker = CodeRelevanceRanker()
 
+    // 结构感知搜索器
+    private val structureAwareSearcher = if (config.enableStructureAwareSearch) {
+        StructureAwareSearcher(codeIndexer)
+    } else null
+
+    // 搜索结果高亮器
+    private val resultHighlighter = if (config.enableHighlighting) {
+        SearchResultHighlighter()
+    } else null
+
+    // 搜索结果分页器
+    private val resultPaginator = if (config.enablePagination) {
+        SearchResultPaginator()
+    } else null
+
+    // 搜索结果过滤器
+    private val resultFilter = if (config.enableFiltering) {
+        SearchResultFilter()
+    } else null
+
+    // 搜索历史管理器
+    private val historyManager = if (config.enableHistoryTracking) {
+        SearchHistoryManager()
+    } else null
+
     /**
      * 搜索
      *
@@ -155,21 +212,33 @@ class SearchFacade(
             SearchType.VECTOR -> vectorSearch(request)
             SearchType.HYBRID -> hybridSearch(request)
             SearchType.SYMBOL -> symbolSearch(request)
+            SearchType.STRUCTURE -> structureAwareSearch(request)
         }
 
         val endTime = System.currentTimeMillis()
         val searchTime = endTime - startTime
 
+        // 处理搜索结果
+        val processedResults = processSearchResults(request, results)
+
         // 创建响应
         val response = SearchResponse(
             query = request.query,
-            results = results,
+            results = processedResults.results,
             metadata = mapOf(
                 "searchTime" to searchTime,
-                "totalResults" to results.size,
-                "searchType" to request.type
-            )
+                "totalResults" to processedResults.results.size,
+                "searchType" to request.type,
+                "filters" to (request.options["filters"] ?: emptyMap<String, Any>())
+            ),
+            highlightResults = processedResults.highlightResults,
+            pagedResult = processedResults.pagedResult,
+            executionTimeMs = searchTime,
+            timestamp = System.currentTimeMillis()
         )
+
+        // 记录搜索历史
+        recordSearchHistory(request, processedResults.results.size, searchTime)
 
         // 缓存结果
         if (config.enableCaching) {
@@ -184,8 +253,150 @@ class SearchFacade(
             cache[cacheKey] = response
         }
 
-        logger.info { "搜索完成: ${request.query}, 找到 ${results.size} 个结果, 耗时 ${searchTime}ms" }
         return@withContext response
+    }
+
+    /**
+     * 处理搜索结果
+     *
+     * @param request 搜索请求
+     * @param results 搜索结果列表
+     * @return 处理后的搜索结果
+     */
+    private suspend fun processSearchResults(
+        request: SearchRequest,
+        results: List<RetrievalResult>
+    ): ProcessedSearchResults = withContext(Dispatchers.Default) {
+        var processedResults = results
+        var highlightResults = emptyList<HighlightResult>()
+        var pagedResult: PagedResult<RetrievalResult>? = null
+
+        // 应用过滤
+        if (config.enableFiltering && resultFilter != null) {
+            val filterCriteria = createFilterCriteria(request)
+            processedResults = resultFilter.filterResults(processedResults, filterCriteria)
+        }
+
+        // 应用高亮
+        if (config.enableHighlighting && resultHighlighter != null) {
+            highlightResults = resultHighlighter.highlight(processedResults, request.query)
+        }
+
+        // 应用分页
+        if (config.enablePagination && resultPaginator != null) {
+            val pageNumber = request.options["page"] as? Int ?: 1
+            val pageSize = request.options["pageSize"] as? Int ?: config.defaultLimit
+            pagedResult = resultPaginator.paginateRetrievalResults(processedResults, pageNumber, pageSize)
+            processedResults = pagedResult.items
+        }
+
+        return@withContext ProcessedSearchResults(
+            results = processedResults,
+            highlightResults = highlightResults,
+            pagedResult = pagedResult
+        )
+    }
+
+    /**
+     * 创建过滤条件
+     *
+     * @param request 搜索请求
+     * @return 过滤条件
+     */
+    private fun createFilterCriteria(request: SearchRequest): FilterCriteria {
+        val options = request.options
+
+        // 从选项中提取过滤条件
+        val types = options["types"] as? Set<CodeElementType>
+        val visibilities = options["visibilities"] as? Set<Visibility>
+        val includePaths = options["includePaths"] as? List<String>
+        val excludePaths = options["excludePaths"] as? List<String>
+        val minScore = options["minScore"] as? Double ?: config.defaultMinScore
+        val maxScore = options["maxScore"] as? Double
+        val includePatterns = options["includePatterns"] as? List<String>
+        val excludePatterns = options["excludePatterns"] as? List<String>
+
+        return resultFilter?.createFilterCriteria(
+            types = types,
+            visibilities = visibilities,
+            includePaths = includePaths,
+            excludePaths = excludePaths,
+            minScore = minScore,
+            maxScore = maxScore,
+            includePatterns = includePatterns,
+            excludePatterns = excludePatterns
+        ) ?: FilterCriteria(minScore = minScore)
+    }
+
+    /**
+     * 记录搜索历史
+     *
+     * @param request 搜索请求
+     * @param resultCount 结果数量
+     * @param executionTimeMs 执行时间（毫秒）
+     */
+    private suspend fun recordSearchHistory(
+        request: SearchRequest,
+        resultCount: Int,
+        executionTimeMs: Long
+    ) {
+        if (config.enableHistoryTracking && historyManager != null) {
+            val filters = request.options.filterKeys { it.startsWith("filter") || it in setOf("types", "visibilities", "includePaths", "excludePaths") }
+                .mapValues { it.value.toString() }
+
+            historyManager.addHistory(
+                query = request.query,
+                resultCount = resultCount,
+                searchType = request.type.name,
+                filters = filters,
+                executionTimeMs = executionTimeMs
+            )
+        }
+    }
+
+    /**
+     * 结构感知搜索
+     *
+     * @param request 搜索请求
+     * @return 搜索结果列表
+     */
+    private suspend fun structureAwareSearch(request: SearchRequest): List<RetrievalResult> = withContext(Dispatchers.Default) {
+        if (!config.enableStructureAwareSearch || structureAwareSearcher == null) {
+            logger.warn { "结构感知搜索未启用，回退到混合搜索" }
+            return@withContext hybridSearch(request)
+        }
+
+        logger.info { "执行结构感知搜索: ${request.query}" }
+
+        try {
+            val limit = request.options["limit"] as? Int ?: config.defaultLimit
+            val minScore = request.options["minScore"] as? Float ?: config.defaultMinScore.toFloat()
+            val types = request.options["types"] as? Set<CodeElementType>
+
+            val structureResults = structureAwareSearcher.search(
+                query = request.query,
+                limit = limit,
+                minScore = minScore,
+                types = types
+            )
+
+            // 转换为检索结果
+            val retrievalResults = structureResults.map {
+                structureAwareSearcher.convertToRetrievalResult(it)
+            }
+
+            // 应用重排序
+            val finalResults = if (config.enableReranking) {
+                relevanceRanker.rerank(retrievalResults, request.query)
+            } else {
+                retrievalResults
+            }
+
+            return@withContext finalResults
+        } catch (e: Exception) {
+            logger.error(e) { "结构感知搜索失败: ${e.message}" }
+            return@withContext emptyList()
+        }
     }
 
     /**
@@ -195,38 +406,59 @@ class SearchFacade(
      * @return 搜索结果列表
      */
     private suspend fun textSearch(request: SearchRequest): List<RetrievalResult> = withContext(Dispatchers.Default) {
-        logger.debug { "执行文本搜索: ${request.query}" }
+        logger.info { "执行文本搜索: ${request.query}" }
 
         try {
-            // 获取选项
             val limit = request.options["limit"] as? Int ?: config.defaultLimit
             val minScore = request.options["minScore"] as? Double ?: config.defaultMinScore
 
-            // 执行 ripgrep 搜索
-            val results = mutableListOf<RetrievalResult>()
-
-            ripgrepSearcher.search(request.query, request.paths, request.options).collect { result ->
-                val retrievalResult = ripgrepSearcher.convertToRetrievalResult(result)
-                results.add(retrievalResult)
-
-                // 限制结果数量
-                if (results.size >= limit) {
-                    return@collect
+            // 使用 ripgrep 搜索
+            val searchResults = mutableListOf<RipgrepSearchResult>()
+            if (request.paths.isEmpty()) {
+                ripgrepSearcher.search(request.query, emptyList()).collect { result ->
+                    searchResults.add(result)
+                }
+            } else {
+                ripgrepSearcher.search(request.query, request.paths).collect { result ->
+                    searchResults.add(result)
                 }
             }
 
-            // 重排序
-            val rerankedResults = if (config.enableReranking) {
-                relevanceRanker.rankResults(results, request.query)
-            } else {
-                results
+            // 转换为检索结果
+            val retrievalResults = searchResults.map { result ->
+                val fileName = result.filePath.substringAfterLast("/").substringAfterLast("\\")
+                val element = CodeElement(
+                    id = UUID.randomUUID().toString(),
+                    name = fileName,
+                    qualifiedName = result.filePath,
+                    type = CodeElementType.FILE,
+                    visibility = Visibility.PUBLIC,
+                    location = Location(
+                        filePath = result.filePath,
+                        startLine = result.lineNumber,
+                        endLine = result.lineNumber,
+                        startColumn = 0,
+                        endColumn = 0
+                    ),
+                    content = result.lineText,
+                    metadata = mutableMapOf(
+                        "match" to result.matchText,
+                        "lineNumber" to result.lineNumber,
+                        "columnNumber" to result.columnNumber
+                    )
+                )
+
+                RetrievalResult(
+                    element = element,
+                    score = 1.0, // 文本搜索默认分数
+                    explanation = "文本匹配: ${result.matchText}"
+                )
             }
 
-            return@withContext rerankedResults
-                .filter { it.score >= minScore }
-                .take(limit)
+            // 限制结果数量
+            return@withContext retrievalResults.take(limit)
         } catch (e: Exception) {
-            logger.error(e) { "文本搜索时发生错误: ${e.message}" }
+            logger.error(e) { "文本搜索失败: ${e.message}" }
             return@withContext emptyList()
         }
     }
@@ -238,35 +470,32 @@ class SearchFacade(
      * @return 搜索结果列表
      */
     private suspend fun vectorSearch(request: SearchRequest): List<RetrievalResult> = withContext(Dispatchers.Default) {
-        logger.debug { "执行向量搜索: ${request.query}" }
+        logger.info { "执行向量搜索: ${request.query}" }
 
         try {
-            // 获取选项
             val limit = request.options["limit"] as? Int ?: config.defaultLimit
             val minScore = request.options["minScore"] as? Double ?: config.defaultMinScore
 
-            // 将查询转换为向量
-            val queryVector = embeddingService.embed(request.query).toList()
+            // 生成查询嵌入
+            val queryEmbedding = embeddingService.embed(request.query)
 
-            // 执行相似度搜索
-            val searchResults = vectorStore.similaritySearch(
-                vector = queryVector,
+            // 搜索向量存储
+            val searchResults = vectorStore.search(
+                embedding = queryEmbedding,
                 limit = limit,
-                minScore = minScore.toFloat()
+                minScore = minScore
             )
 
-            // 转换为检索结果
-            val results = searchResults.map { result ->
-                RetrievalResult(
-                    element = result.element,
-                    score = result.score,
-                    explanation = "向量搜索结果，相似度: ${result.score}"
-                )
+            // 应用重排序
+            val finalResults = if (config.enableReranking) {
+                relevanceRanker.rerank(searchResults, request.query)
+            } else {
+                searchResults
             }
 
-            return@withContext results
+            return@withContext finalResults
         } catch (e: Exception) {
-            logger.error(e) { "向量搜索时发生错误: ${e.message}" }
+            logger.error(e) { "向量搜索失败: ${e.message}" }
             return@withContext emptyList()
         }
     }
@@ -277,56 +506,35 @@ class SearchFacade(
      * @param request 搜索请求
      * @return 搜索结果列表
      */
-    private suspend fun hybridSearch(request: SearchRequest): List<RetrievalResult> = coroutineScope {
-        logger.debug { "执行混合搜索: ${request.query}" }
+    private suspend fun hybridSearch(request: SearchRequest): List<RetrievalResult> = withContext(Dispatchers.Default) {
+        logger.info { "执行混合搜索: ${request.query}" }
 
         try {
-            // 获取选项
             val limit = request.options["limit"] as? Int ?: config.defaultLimit
             val minScore = request.options["minScore"] as? Double ?: config.defaultMinScore
+            val vectorWeight = request.options["vectorWeight"] as? Double ?: 0.7
+            val keywordWeight = request.options["keywordWeight"] as? Double ?: 0.3
 
-            // 并行执行文本搜索和向量搜索
-            val textResults = if (config.enableParallelSearch) {
-                async { textSearch(request.copy(type = SearchType.TEXT)) }
-            } else {
-                null
-            }
-
-            // 执行混合检索
-            val hybridResults = hybridRetriever.retrieve(
+            // 使用混合检索器
+            val searchResults = hybridRetriever.search(
                 query = request.query,
                 limit = limit,
-                minScore = minScore
+                minScore = minScore,
+                vectorWeight = vectorWeight,
+                keywordWeight = keywordWeight
             )
 
-            // 合并结果
-            val combinedResults = mutableListOf<RetrievalResult>()
-            combinedResults.addAll(hybridResults)
-
-            // 添加文本搜索结果（如果有）
-            if (textResults != null) {
-                val textSearchResults = textResults.await()
-
-                // 去重
-                val existingIds = combinedResults.map { it.element.id }.toSet()
-                val newTextResults = textSearchResults.filter { it.element.id !in existingIds }
-
-                combinedResults.addAll(newTextResults)
-            }
-
-            // 重排序
-            val rerankedResults = if (config.enableReranking) {
-                relevanceRanker.rankResults(combinedResults, request.query)
+            // 应用重排序
+            val finalResults = if (config.enableReranking) {
+                relevanceRanker.rerank(searchResults, request.query)
             } else {
-                combinedResults.sortedByDescending { it.score }
+                searchResults
             }
 
-            return@coroutineScope rerankedResults
-                .filter { it.score >= minScore }
-                .take(limit)
+            return@withContext finalResults
         } catch (e: Exception) {
-            logger.error(e) { "混合搜索时发生错误: ${e.message}" }
-            return@coroutineScope emptyList()
+            logger.error(e) { "混合搜索失败: ${e.message}" }
+            return@withContext emptyList()
         }
     }
 
@@ -337,43 +545,40 @@ class SearchFacade(
      * @return 搜索结果列表
      */
     private suspend fun symbolSearch(request: SearchRequest): List<RetrievalResult> = withContext(Dispatchers.Default) {
-        logger.debug { "执行符号搜索: ${request.query}" }
+        logger.info { "执行符号搜索: ${request.query}" }
 
         try {
-            // 获取选项
             val limit = request.options["limit"] as? Int ?: config.defaultLimit
             val minScore = request.options["minScore"] as? Double ?: config.defaultMinScore
-            val types = request.options["types"] as? Set<CodeElementType>
+            val exactMatch = request.options["exactMatch"] as? Boolean ?: false
 
-            // 获取所有代码元素
-            val allElements = codeIndexer.getAllElements()
-
-            // 过滤符号类型
-            val filteredElements = if (types != null && types.isNotEmpty()) {
-                allElements.filter { it.type in types }
-            } else {
-                allElements
-            }
-
-            // 执行关键词搜索
+            // 使用关键词搜索器
             val searchResults = keywordSearcher.search(
                 query = request.query,
                 limit = limit,
-                minScore = minScore
+                minScore = minScore,
+                exactMatch = exactMatch
             )
 
             // 转换为检索结果
-            val results = searchResults.map { result ->
+            val retrievalResults = searchResults.map { result ->
                 RetrievalResult(
                     element = result.element,
                     score = result.score.toDouble(),
-                    explanation = "符号搜索结果，相关度: ${result.score}"
+                    explanation = "符号匹配: ${result.element.name}"
                 )
             }
 
-            return@withContext results
+            // 应用重排序
+            val finalResults = if (config.enableReranking) {
+                relevanceRanker.rerank(retrievalResults, request.query)
+            } else {
+                retrievalResults
+            }
+
+            return@withContext finalResults
         } catch (e: Exception) {
-            logger.error(e) { "符号搜索时发生错误: ${e.message}" }
+            logger.error(e) { "符号搜索失败: ${e.message}" }
             return@withContext emptyList()
         }
     }
@@ -385,16 +590,13 @@ class SearchFacade(
      * @return 元素列表
      */
     suspend fun searchByFilePath(filePath: Path): List<CodeElement> = withContext(Dispatchers.Default) {
-        logger.debug { "按文件路径搜索: $filePath" }
+        logger.info { "按文件路径搜索: $filePath" }
 
         try {
-            // 获取所有元素
-            val allElements = codeIndexer.getAllElements()
-
-            // 过滤指定文件路径的元素
-            return@withContext allElements.filter { it.location.filePath.equals(filePath.toString()) }.toList()
+            val elements = codeIndexer.getElementsByFilePath(filePath)
+            return@withContext elements.toList()
         } catch (e: Exception) {
-            logger.error(e) { "按文件路径搜索时发生错误: ${e.message}" }
+            logger.error(e) { "按文件路径搜索失败: ${e.message}" }
             return@withContext emptyList()
         }
     }
@@ -407,12 +609,13 @@ class SearchFacade(
      * @return 元素列表
      */
     suspend fun searchByType(type: CodeElementType, limit: Int = config.defaultLimit): List<CodeElement> = withContext(Dispatchers.Default) {
-        logger.debug { "按元素类型搜索: $type" }
+        logger.info { "按元素类型搜索: $type" }
 
         try {
-            return@withContext codeIndexer.getElementsByType(type.name).toList().take(limit)
+            val elements = codeIndexer.getElementsByType(type)
+            return@withContext elements.toList().take(limit)
         } catch (e: Exception) {
-            logger.error(e) { "按元素类型搜索时发生错误: ${e.message}" }
+            logger.error(e) { "按元素类型搜索失败: ${e.message}" }
             return@withContext emptyList()
         }
     }
@@ -426,22 +629,43 @@ class SearchFacade(
      * @return 元素列表
      */
     suspend fun searchByName(name: String, exactMatch: Boolean = false, limit: Int = config.defaultLimit): List<CodeElement> = withContext(Dispatchers.Default) {
-        logger.debug { "按元素名称搜索: $name (精确匹配: $exactMatch)" }
+        logger.info { "按元素名称搜索: $name (精确匹配: $exactMatch)" }
 
         try {
             val allElements = codeIndexer.getAllElements()
 
-            val results = if (exactMatch) {
+            val matchedElements = if (exactMatch) {
                 allElements.filter { it.name == name }
             } else {
                 allElements.filter { it.name.contains(name, ignoreCase = true) }
             }
 
-            return@withContext results.take(limit)
+            return@withContext matchedElements.take(limit)
         } catch (e: Exception) {
-            logger.error(e) { "按元素名称搜索时发生错误: ${e.message}" }
+            logger.error(e) { "按元素名称搜索失败: ${e.message}" }
             return@withContext emptyList()
         }
+    }
+
+    /**
+     * 获取搜索历史
+     *
+     * @param limit 限制数量
+     * @return 历史记录列表
+     */
+    suspend fun getSearchHistory(limit: Int = 20): List<SearchHistoryEntry> {
+        return historyManager?.getHistory(limit) ?: emptyList()
+    }
+
+    /**
+     * 搜索历史记录
+     *
+     * @param query 查询
+     * @param limit 限制数量
+     * @return 历史记录列表
+     */
+    suspend fun searchHistory(query: String, limit: Int = 20): List<SearchHistoryEntry> {
+        return historyManager?.searchHistory(query, limit) ?: emptyList()
     }
 
     /**
@@ -449,35 +673,37 @@ class SearchFacade(
      */
     fun clearCache() {
         cache.clear()
-        logger.info { "搜索门面缓存已清除" }
+        structureAwareSearcher?.clearCache()
+        logger.info { "搜索缓存已清除" }
+    }
+
+    /**
+     * 清除历史记录
+     */
+    suspend fun clearHistory() {
+        historyManager?.clearHistory()
+        logger.info { "搜索历史记录已清除" }
     }
 
     /**
      * 流式搜索
      *
      * @param request 搜索请求
-     * @return 搜索结果流
+     * @return 结果流
      */
     fun streamSearch(request: SearchRequest): Flow<RetrievalResult> = flow {
         logger.info { "开始流式搜索: ${request.query} (类型: ${request.type})" }
 
-        try {
-            when (request.type) {
-                SearchType.TEXT -> {
-                    // 执行 ripgrep 搜索
-                    ripgrepSearcher.search(request.query, request.paths, request.options).collect { result ->
-                        val retrievalResult = ripgrepSearcher.convertToRetrievalResult(result)
-                        emit(retrievalResult)
-                    }
-                }
-                else -> {
-                    // 对于其他类型，执行普通搜索并发送结果
-                    val results = search(request).results
-                    results.forEach { emit(it) }
-                }
-            }
-        } catch (e: Exception) {
-            logger.error(e) { "流式搜索时发生错误: ${e.message}" }
+        val results = when (request.type) {
+            SearchType.TEXT -> textSearch(request)
+            SearchType.VECTOR -> vectorSearch(request)
+            SearchType.HYBRID -> hybridSearch(request)
+            SearchType.SYMBOL -> symbolSearch(request)
+            SearchType.STRUCTURE -> structureAwareSearch(request)
+        }
+
+        for (result in results) {
+            emit(result)
         }
     }
 }

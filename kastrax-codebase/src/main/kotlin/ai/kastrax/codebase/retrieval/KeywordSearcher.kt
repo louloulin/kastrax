@@ -75,12 +75,14 @@ class KeywordSearcher(
      * @param query 查询
      * @param limit 限制数量
      * @param minScore 最小分数
+     * @param exactMatch 是否精确匹配
      * @return 搜索结果列表
      */
     suspend fun search(
         query: String,
         limit: Int = config.defaultLimit,
-        minScore: Double = config.defaultMinScore.toDouble()
+        minScore: Double = config.defaultMinScore.toDouble(),
+        exactMatch: Boolean = false
     ): List<KeywordSearchResult> = withContext(Dispatchers.Default) {
         logger.info { "开始关键词搜索: $query" }
 
