@@ -32,7 +32,7 @@
 
 ### 待解决问题
 - [x] 修复 DesignPatternDetector.kt 中的 model 引用问题
-- [ ] 修复 HybridRetriever.kt 中的 combinedScore、vectorScore 和 keywordScore 引用问题
+- [x] 修复 HybridRetriever.kt 中的 combinedScore、vectorScore 和 keywordScore 引用问题
 - [x] 修复 SymbolRelationGraphBuilder.kt 中的 VARIABLE、NAMESPACE、MODULE 常量引用
 - [x] 修复 SymbolRelationGraph.kt 中的 VARIABLE、NAMESPACE、MODULE 常量引用
 
