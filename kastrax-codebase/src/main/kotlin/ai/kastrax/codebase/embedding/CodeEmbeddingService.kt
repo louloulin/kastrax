@@ -19,13 +19,15 @@ private val logger = KotlinLogging.logger {}
  * @property batchSize 批处理大小
  * @property useGpu 是否使用 GPU
  * @property modelVersion 模型版本
+ * @property embeddingDimension 嵌入维度
  */
 data class CodeEmbeddingServiceConfig(
     val cacheSize: Int = 10000,
     val cacheExpirationDuration: Duration = 24.hours,
     val batchSize: Int = 32,
     val useGpu: Boolean = false,
-    val modelVersion: String = "latest"
+    val modelVersion: String = "latest",
+    val embeddingDimension: Int = 1536
 )
 
 /**
@@ -43,7 +45,7 @@ class CodeEmbeddingService(
     // 缓存嵌入服务
     private val cachedEmbeddingService: CachedEmbeddingService = CachedEmbeddingService(
         delegate = object : ai.kastrax.rag.embedding.EmbeddingService() {
-            override val dimension: Int = 1536
+            override val dimension: Int = config.embeddingDimension
             override suspend fun embed(text: String): FloatArray = baseEmbeddingService.embed(text)
             override suspend fun embedBatch(texts: List<String>): List<FloatArray> = baseEmbeddingService.embedBatch(texts)
             override fun close() {}

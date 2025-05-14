@@ -86,10 +86,10 @@ class HybridRetriever(
     suspend fun retrieve(
         query: String,
         limit: Int = config.defaultLimit,
-        minScore: Float = config.defaultMinScore
+        minScore: Double = config.defaultMinScore.toDouble()
     ): List<RetrievalResult> = withContext(Dispatchers.Default) {
         // 先获取 HybridRetrievalResult
-        val hybridResults = retrieveHybrid(query, limit, minScore)
+        val hybridResults = retrieveHybrid(query, limit, minScore.toFloat())
 
         // 转换为通用的 RetrievalResult 类型
         return@withContext hybridResults.map { hybrid -> hybrid.toRetrievalResult() }
@@ -229,7 +229,7 @@ class HybridRetriever(
             val searchResults = keywordSearcher.search(
                 query = query,
                 limit = limit,
-                minScore = minScore.toFloat()
+                minScore = minScore.toDouble()
             )
 
             // 转换为检索结果

@@ -118,7 +118,7 @@ data class Context(
      * @return 上下文元素列表
      */
     fun getElementsByFilePath(filePath: Path): List<ContextElement> {
-        return elements.filter { it.element.location.filePath == filePath }
+        return elements.filter { it.element.location.filePath == filePath.toString() }
     }
 
     /**
@@ -805,7 +805,7 @@ class ContextBuilder(
         // 查找指定文件路径的所有元素
         return vectorStore.getAllIds()
             .mapNotNull { vectorStore.getElement(it) }
-            .filter { it.location.filePath == filePath }
+            .filter { it.location.filePath == filePath.toString() }
     }
 
     /**

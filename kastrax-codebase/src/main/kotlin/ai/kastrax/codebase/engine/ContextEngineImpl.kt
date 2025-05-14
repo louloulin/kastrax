@@ -16,9 +16,21 @@ import ai.kastrax.codebase.semantic.flow.CodeFlowAnalyzerConfig
 import ai.kastrax.codebase.context.ContextLevel
 import ai.kastrax.codebase.embedding.CodeEmbeddingService
 import ai.kastrax.codebase.embedding.CodeEmbeddingServiceConfig
+import ai.kastrax.codebase.indexing.CodeIndexer
+import ai.kastrax.codebase.indexing.InMemoryCodeIndexer
+import ai.kastrax.codebase.indexing.InMemoryCodeIndexerConfig
 import ai.kastrax.codebase.indexing.IncrementalIndexTask
 import ai.kastrax.codebase.indexing.IndexTaskProcessor
 import ai.kastrax.codebase.indexing.IndexTaskType
+import ai.kastrax.codebase.retrieval.CodeRelevanceRanker
+import ai.kastrax.codebase.retrieval.CodeRelevanceRankerConfig
+import ai.kastrax.codebase.retrieval.HybridRetriever
+import ai.kastrax.codebase.retrieval.KeywordSearcher
+import ai.kastrax.codebase.retrieval.model.RetrievalResult
+import ai.kastrax.codebase.search.CodeSearchService
+import ai.kastrax.codebase.search.CodeSearchServiceConfig
+import ai.kastrax.codebase.search.MatchType
+import ai.kastrax.codebase.search.SearchMode
 import ai.kastrax.codebase.semantic.CodeSemanticAnalyzer
 import ai.kastrax.codebase.semantic.CodeSemanticAnalyzerConfig
 import ai.kastrax.codebase.semantic.flow.FlowType
@@ -39,7 +51,9 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.withContext
+import java.nio.file.Files
 import java.nio.file.Path
+import java.nio.file.Paths
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicBoolean
 
@@ -129,7 +143,47 @@ class ContextEngineImpl(
     )
 
     // 代码嵌入服务
-    private val codeEmbeddingService = embeddingService
+    private val codeEmbeddingService = CodeEmbeddingService(
+        baseEmbeddingService = embeddingService,
+        config = CodeEmbeddingServiceConfig(embeddingDimension = config.embeddingDimension)
+    )
+
+    // 代码索引器
+    private val codeIndexer = InMemoryCodeIndexer(
+        embeddingService = codeEmbeddingService,
+        vectorStore = codeVectorStore,
+        config = InMemoryCodeIndexerConfig(
+            batchSize = 50,
+            excludePatterns = listOf(
+                Regex("node_modules"),
+                Regex("\\.git"),
+                Regex("\\.idea"),
+                Regex("\\.gradle"),
+                Regex("build"),
+                Regex("dist"),
+                Regex("target")
+            )
+        )
+    )
+
+    // 代码相关性排序器
+    private val codeRelevanceRanker = CodeRelevanceRanker(
+        config = CodeRelevanceRankerConfig()
+    )
+
+    // 代码搜索服务
+    private val codeSearchService = CodeSearchService(
+        codeIndexer = codeIndexer,
+        vectorStore = codeVectorStore,
+        embeddingService = codeEmbeddingService,
+        config = CodeSearchServiceConfig(
+            vectorWeight = 0.7,
+            keywordWeight = 0.3,
+            enableHybridSearch = true,
+            enableFuzzySearch = true,
+            enableTypeFiltering = true
+        )
+    )
 
     // 语义分析器
     private val semanticAnalyzer = CodeSemanticAnalyzer(
@@ -164,7 +218,7 @@ class ContextEngineImpl(
     private val contextBuilder: IContextBuilder = if (config.enableCodeFlowAnalysis) {
         FlowAwareContextBuilder(
             vectorStore = codeVectorStore,
-            embeddingService = codeEmbeddingService,
+            embeddingService = embeddingService,
             flowAnalyzer = codeFlowAnalyzer ?: throw IllegalStateException("代码流分析器未初始化，但启用了代码流分析"),
             config = FlowAwareContextBuilderConfig(
                 maxCacheSize = config.contextBuilderConfig.maxCacheSize,
@@ -181,7 +235,7 @@ class ContextEngineImpl(
     } else {
         ContextBuilder(
             vectorStore = codeVectorStore,
-            embeddingService = codeEmbeddingService,
+            embeddingService = embeddingService,
             config = config.contextBuilderConfig,
             relationAnalyzer = codeRelationAnalyzer
         )
@@ -480,6 +534,83 @@ class ContextEngineImpl(
     }
 
     /**
+     * 搜索代码
+     *
+     * @param query 查询字符串
+     * @param limit 限制结果数量
+     * @param minScore 最小分数
+     * @param types 元素类型过滤
+     * @param searchMode 搜索模式
+     * @return 检索结果列表
+     */
+    override suspend fun searchCode(
+        query: String,
+        limit: Int,
+        minScore: Double,
+        types: Set<CodeElementType>?,
+        searchMode: SearchMode
+    ): List<RetrievalResult> = withContext(Dispatchers.IO) {
+        try {
+            checkInitialized()
+            return@withContext codeSearchService.search(query, limit, minScore, types, searchMode)
+        } catch (e: Exception) {
+            logger.error(e) { "搜索代码失败: $query, ${e.message}" }
+            return@withContext emptyList()
+        }
+    }
+
+    /**
+     * 按文件路径搜索
+     *
+     * @param filePath 文件路径
+     * @return 元素列表
+     */
+    override suspend fun searchByFilePath(filePath: Path): List<CodeElement> = withContext(Dispatchers.IO) {
+        try {
+            checkInitialized()
+            return@withContext codeSearchService.searchByFilePath(filePath)
+        } catch (e: Exception) {
+            logger.error(e) { "按文件路径搜索失败: $filePath, ${e.message}" }
+            return@withContext emptyList()
+        }
+    }
+
+    /**
+     * 按元素类型搜索
+     *
+     * @param type 元素类型
+     * @param limit 限制结果数量
+     * @return 元素列表
+     */
+    override suspend fun searchByType(type: CodeElementType, limit: Int): List<CodeElement> = withContext(Dispatchers.IO) {
+        try {
+            checkInitialized()
+            return@withContext codeSearchService.searchByType(type, limit)
+        } catch (e: Exception) {
+            logger.error(e) { "按元素类型搜索失败: $type, ${e.message}" }
+            return@withContext emptyList()
+        }
+    }
+
+    /**
+     * 按元素名称搜索
+     *
+     * @param name 元素名称
+     * @param exactMatch 是否精确匹配
+     * @param limit 限制结果数量
+     * @return 元素列表
+     */
+    override suspend fun searchByName(name: String, exactMatch: Boolean, limit: Int): List<CodeElement> = withContext(Dispatchers.IO) {
+        try {
+            checkInitialized()
+            return@withContext codeSearchService.searchByName(name, exactMatch, limit)
+        } catch (e: Exception) {
+            logger.error(e) { "按元素名称搜索失败: $name, ${e.message}" }
+            return@withContext emptyList()
+        }
+    }
+
+    /**
      * 获取状态
      *
      * @return 状态信息
@@ -599,7 +730,7 @@ class ContextEngineImpl(
             private suspend fun processAddOrUpdateTask(task: IncrementalIndexTask) {
                 try {
                     // 解析文件
-                    val fileContent = task.path.toFile().readText()
+                    val fileContent = Files.readString(task.path)
                     val fileElement = semanticAnalyzer.parseFile(task.path, fileContent)
 
                     // 如果启用了代码流分析，分析代码流
@@ -689,7 +820,7 @@ class ContextEngineImpl(
                 try {
                     // 查找与文件相关的所有元素
                     val elementsToDelete = elementCache.values
-                        .filter { it.location.filePath == task.path }
+                        .filter { it.location.filePath == task.path.toString() }
                         .map { it.id }
 
                     if (elementsToDelete.isNotEmpty()) {
@@ -833,7 +964,7 @@ class ContextEngineImpl(
         val content = when (element.type) {
             CodeElementType.FILE -> {
                 try {
-                    element.location.filePath.toFile().readText()
+                    Files.readString(Paths.get(element.location.filePath))
                 } catch (e: Exception) {
                     logger.error(e) { "读取文件内容失败: ${element.location.filePath}, ${e.message}" }
                     ""

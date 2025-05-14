@@ -1,7 +1,10 @@
 package ai.kastrax.codebase.engine
 
 import ai.kastrax.codebase.context.Context
+import ai.kastrax.codebase.retrieval.model.RetrievalResult
+import ai.kastrax.codebase.search.SearchMode
 import ai.kastrax.codebase.semantic.model.CodeElement
+import ai.kastrax.codebase.semantic.model.CodeElementType
 import ai.kastrax.codebase.semantic.model.Location
 import java.nio.file.Path
 
@@ -80,6 +83,51 @@ interface ContextEngine {
      * @return 代码元素列表
      */
     suspend fun getCodeElements(ids: List<String>): List<CodeElement>
+
+    /**
+     * 搜索代码
+     *
+     * @param query 查询字符串
+     * @param limit 限制结果数量
+     * @param minScore 最小分数
+     * @param types 元素类型过滤
+     * @param searchMode 搜索模式
+     * @return 检索结果列表
+     */
+    suspend fun searchCode(
+        query: String,
+        limit: Int = 20,
+        minScore: Double = 0.5,
+        types: Set<CodeElementType>? = null,
+        searchMode: SearchMode = SearchMode.HYBRID
+    ): List<RetrievalResult>
+
+    /**
+     * 按文件路径搜索
+     *
+     * @param filePath 文件路径
+     * @return 元素列表
+     */
+    suspend fun searchByFilePath(filePath: Path): List<CodeElement>
+
+    /**
+     * 按元素类型搜索
+     *
+     * @param type 元素类型
+     * @param limit 限制结果数量
+     * @return 元素列表
+     */
+    suspend fun searchByType(type: CodeElementType, limit: Int = 20): List<CodeElement>
+
+    /**
+     * 按元素名称搜索
+     *
+     * @param name 元素名称
+     * @param exactMatch 是否精确匹配
+     * @param limit 限制结果数量
+     * @return 元素列表
+     */
+    suspend fun searchByName(name: String, exactMatch: Boolean = false, limit: Int = 20): List<CodeElement>
 
     /**
      * 获取状态

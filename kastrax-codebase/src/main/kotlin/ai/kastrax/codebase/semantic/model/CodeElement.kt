@@ -90,7 +90,7 @@ enum class Modifier {
  * @property endColumn 结束列
  */
 data class Location(
-    val filePath: Path,
+    val filePath: String,
     val startLine: Int,
     val startColumn: Int,
     val endLine: Int,

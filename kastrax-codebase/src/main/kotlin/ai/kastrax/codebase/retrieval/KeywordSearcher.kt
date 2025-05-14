@@ -80,7 +80,7 @@ class KeywordSearcher(
     suspend fun search(
         query: String,
         limit: Int = config.defaultLimit,
-        minScore: Float = config.defaultMinScore
+        minScore: Double = config.defaultMinScore.toDouble()
     ): List<KeywordSearchResult> = withContext(Dispatchers.Default) {
         logger.info { "开始关键词搜索: $query" }
 
@@ -109,7 +109,7 @@ class KeywordSearcher(
             // 计算每个元素的分数
             val scoredElements = allElements.map { element ->
                 val score = calculateScore(element, queryTerms)
-                val highlights = if (score >= minScore) {
+                val highlights = if (score >= minScore.toFloat()) {
                     generateHighlights(element, queryTerms)
                 } else {
                     emptyMap()
@@ -119,7 +119,7 @@ class KeywordSearcher(
 
             // 过滤和排序结果
             val results = scoredElements
-                .filter { it.score >= minScore }
+                .filter { it.score >= minScore.toFloat() }
                 .sortedByDescending { it.score }
                 .take(limit)
 
