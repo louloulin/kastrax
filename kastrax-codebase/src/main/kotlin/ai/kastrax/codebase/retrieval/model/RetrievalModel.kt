@@ -1,8 +1,9 @@
 package ai.kastrax.codebase.retrieval.model
 
-import ai.kastrax.codebase.embedding.EmbeddingService
+import ai.kastrax.codebase.embedding.CodeEmbeddingService
 import ai.kastrax.codebase.semantic.memory.SemanticMemory
 import ai.kastrax.codebase.semantic.memory.SemanticMemorySearchResult
+import ai.kastrax.rag.embedding.EmbeddingService
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -63,20 +64,6 @@ data class RetrievalContext(
     val metadata: Map<String, Any> = emptyMap()
 )
 
-/**
- * 检索特征
- *
- * @property name 特征名称
- * @property weight 特征权重
- * @property value 特征值
- */
-data class RetrievalFeature(
-    val name: String,
-    val weight: Double,
-    val value: Double
-)
-
-// 使用 ai.kastrax.codebase.retrieval.model.RetrievalResult 和 ai.kastrax.codebase.retrieval.model.MemoryRetrievalResult
 
 /**
  * 检索模型
@@ -178,4 +165,3 @@ abstract class RetrievalModel(
         queryCache.clear()
     }
 }
-*/

@@ -642,6 +642,19 @@ class CodeRelationAnalyzer(
     }
 
     /**
+     * 根据ID获取代码元素
+     *
+     * @param elementId 元素ID
+     * @return 代码元素，如果不存在则返回null
+     */
+    fun getElementById(elementId: String): CodeElement? {
+        // 这里需要实现从元素ID到元素的映射
+        // 由于当前实现中没有保存元素的引用，这里返回null
+        // 在实际使用时，需要维护一个元素ID到元素的映射
+        return null
+    }
+
+    /**
      * 清除缓存
      */
     fun clearCache() {

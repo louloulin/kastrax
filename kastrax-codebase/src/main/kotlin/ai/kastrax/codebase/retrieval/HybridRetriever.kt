@@ -128,11 +128,26 @@ class HybridRetriever(
             }
         }
 
+        // 将结果转换为 HybridRetrievalResult 类型
+        val hybridResults = results.map { result ->
+            when (result) {
+                is HybridRetrievalResult -> result
+                is RetrievalResult -> HybridRetrievalResult(
+                    element = result.element,
+                    vectorScore = result.score.toFloat(),
+                    keywordScore = 0f,
+                    combinedScore = result.score.toFloat(),
+                    source = RetrievalSource.VECTOR
+                )
+                else -> throw IllegalArgumentException("Unsupported result type: ${result::class.java}")
+            }
+        }
+
         // 重排序
         val rerankedResults = if (config.enableReranking) {
-            rerank(results as List<HybridRetrievalResult>, query, config.rerankingMethod)
+            rerankHybrid(hybridResults, query, config.rerankingMethod)
         } else {
-            results as List<HybridRetrievalResult>
+            hybridResults
         }
 
         // 缓存结果
@@ -145,7 +160,7 @@ class HybridRetriever(
                     cache.remove(keyToRemove)
                 }
             }
-            cache[cacheKey] = rerankedResults
+            cache[cacheKey] = hybridResults
         }
 
         logger.info { "混合检索完成: $query, 找到 ${rerankedResults.size} 个结果" }
@@ -373,8 +388,8 @@ class HybridRetriever(
                 // 倒数排名融合
                 val elementToRanks = mutableMapOf<String, MutableList<Int>>()
 
-                // 收集向量排名
-                results.sortedByDescending { it.vectorScore }
+                // 收集排名
+                results.sortedByDescending { it.combinedScore }
                     .forEachIndexed { index, result ->
                         elementToRanks.getOrPut(result.element.id) { mutableListOf() }
                             .add(index + 1) // 排名从1开始

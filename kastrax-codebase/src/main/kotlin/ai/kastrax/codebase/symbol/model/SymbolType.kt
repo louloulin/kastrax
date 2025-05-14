@@ -75,46 +75,6 @@ enum class SymbolType {
     LOCAL_VARIABLE,
 
     /**
-     * 类型参数
-     */
-    TYPE_PARAMETER,
-
-    /**
-     * 枚举常量
-     */
-    ENUM_CONSTANT,
-
-    /**
-     * 注解成员
-     */
-    ANNOTATION_MEMBER,
-
-    /**
-     * Lambda
-     */
-    LAMBDA,
-
-    /**
-     * 语句
-     */
-    STATEMENT,
-
-    /**
-     * 表达式
-     */
-    EXPRESSION,
-
-    /**
-     * 块
-     */
-    BLOCK,
-
-    /**
-     * 注释
-     */
-    COMMENT,
-
-    /**
      * 导入
      */
     IMPORT,
@@ -130,9 +90,29 @@ enum class SymbolType {
     MODULE,
 
     /**
-     * 库
+     * Lambda
      */
-    LIBRARY,
+    LAMBDA,
+
+    /**
+     * 块
+     */
+    BLOCK,
+
+    /**
+     * 语句
+     */
+    STATEMENT,
+
+    /**
+     * 表达式
+     */
+    EXPRESSION,
+
+    /**
+     * 注释
+     */
+    COMMENT,
 
     /**
      * 未知

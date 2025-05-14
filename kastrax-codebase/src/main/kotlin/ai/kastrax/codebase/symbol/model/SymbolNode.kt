@@ -73,30 +73,7 @@ data class SymbolNode(
         metadata = metadata
     )
 
-    /**
-     * 构造函数，接受 CodeElement 和字符串类型的 kind 参数
-     */
-    constructor(
-        id: String = UUID.randomUUID().toString(),
-        name: String,
-        qualifiedName: String,
-        type: SymbolType,
-        kind: String,
-        location: Location,
-        visibility: Visibility = Visibility.UNKNOWN,
-        codeElement: CodeElement? = null,
-        metadata: MutableMap<String, Any> = mutableMapOf()
-    ) : this(
-        id = id,
-        name = name,
-        qualifiedName = qualifiedName,
-        type = type,
-        kind = try { SymbolKind.valueOf(kind.uppercase()) } catch (e: Exception) { SymbolKind.UNKNOWN },
-        location = location,
-        visibility = visibility,
-        codeElement = codeElement,
-        metadata = metadata
-    )
+
     /**
      * 获取符号的简短描述
      *

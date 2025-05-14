@@ -2,38 +2,17 @@ package ai.kastrax.codebase.symbol.model
 
 import ai.kastrax.codebase.semantic.model.CodeElement
 import ai.kastrax.codebase.semantic.model.CodeElementType
+import ai.kastrax.codebase.semantic.model.CodeElementTypeConstants.VARIABLE
+import ai.kastrax.codebase.semantic.model.CodeElementTypeConstants.NAMESPACE
+import ai.kastrax.codebase.semantic.model.CodeElementTypeConstants.MODULE
 import ai.kastrax.codebase.semantic.relation.CodeRelation
 import ai.kastrax.codebase.semantic.relation.RelationType as SemanticRelationType
 import io.github.oshai.kotlinlogging.KotlinLogging
+import java.util.LinkedList
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 
 private val logger = KotlinLogging.logger {}
-
-/**
- * 符号关系图配置
- *
- * @property enableCaching 是否启用缓存
- * @property maxCacheSize 最大缓存大小
- * @property includeInheritance 是否包含继承关系
- * @property includeImplementation 是否包含实现关系
- * @property includeUsage 是否包含使用关系
- * @property includeDependency 是否包含依赖关系
- * @property includeOverride 是否包含重写关系
- * @property includeReference 是否包含引用关系
- * @property includeImport 是否包含导入关系
- */
-data class SymbolRelationGraphConfig(
-    val enableCaching: Boolean = true,
-    val maxCacheSize: Int = 1000,
-    val includeInheritance: Boolean = true,
-    val includeImplementation: Boolean = true,
-    val includeUsage: Boolean = true,
-    val includeDependency: Boolean = true,
-    val includeOverride: Boolean = true,
-    val includeReference: Boolean = true,
-    val includeImport: Boolean = true
-)
 
 /**
  * 符号关系图
@@ -122,6 +101,17 @@ class SymbolRelationGraph(
      */
     fun getOutgoingEdges(nodeId: String): List<SymbolRelation> {
         return edges.values.filter { it.sourceId == nodeId }
+    }
+
+    /**
+     * 获取两个节点之间的关系
+     *
+     * @param sourceId 源节点ID
+     * @param targetId 目标节点ID
+     * @return 符号关系，如果不存在则返回 null
+     */
+    fun getRelation(sourceId: String, targetId: String): SymbolRelation? {
+        return edges.values.find { it.sourceId == sourceId && it.targetId == targetId }
     }
 
     /**
@@ -413,7 +403,32 @@ class SymbolRelationGraph(
                     id = element.id,
                     name = element.name,
                     qualifiedName = element.qualifiedName,
-                    type = convertToSymbolType(element.type),
+                    type = when (element.type) {
+                        CodeElementType.FILE -> SymbolType.FILE
+                        CodeElementType.PACKAGE -> SymbolType.PACKAGE
+                        CodeElementType.CLASS -> SymbolType.CLASS
+                        CodeElementType.INTERFACE -> SymbolType.INTERFACE
+                        CodeElementType.ENUM -> SymbolType.ENUM
+                        CodeElementType.ANNOTATION -> SymbolType.ANNOTATION
+                        CodeElementType.METHOD -> SymbolType.METHOD
+                        CodeElementType.CONSTRUCTOR -> SymbolType.CONSTRUCTOR
+                        CodeElementType.FIELD -> SymbolType.FIELD
+                        CodeElementType.PROPERTY -> SymbolType.PROPERTY
+                        CodeElementType.PARAMETER -> SymbolType.PARAMETER
+                        CodeElementType.FUNCTION -> SymbolType.FUNCTION
+                        CodeElementType.VARIABLE -> SymbolType.LOCAL_VARIABLE
+                        CodeElementType.LOCAL_VARIABLE -> SymbolType.LOCAL_VARIABLE
+                        CodeElementType.IMPORT -> SymbolType.IMPORT
+                        CodeElementType.NAMESPACE -> SymbolType.NAMESPACE
+                        CodeElementType.MODULE -> SymbolType.MODULE
+                        CodeElementType.LAMBDA -> SymbolType.LAMBDA
+                        CodeElementType.BLOCK -> SymbolType.BLOCK
+                        CodeElementType.STATEMENT -> SymbolType.STATEMENT
+                        CodeElementType.EXPRESSION -> SymbolType.EXPRESSION
+                        CodeElementType.COMMENT -> SymbolType.COMMENT
+                        CodeElementType.UNKNOWN -> SymbolType.UNKNOWN
+                        else -> SymbolType.UNKNOWN
+                    },
                     kind = "DEFINITION",
                     location = element.location,
                     codeElement = element,
@@ -545,5 +560,134 @@ class SymbolRelationGraph(
      */
     fun getNodeCount(): Int {
         return nodes.size
+    }
+
+    /**
+     * 获取相邻节点
+     *
+     * @param nodeId 节点ID
+     * @return 相邻节点列表
+     */
+    fun getNeighbors(nodeId: String): List<SymbolNode> {
+        val neighborIds = getAdjacentNodes(nodeId)
+        return neighborIds.mapNotNull { getNode(it) }
+    }
+
+    /**
+     * 获取所有符号关系
+     *
+     * @return 符号关系列表
+     */
+    fun getAllRelations(): List<SymbolRelation> {
+        return edges.values.toList()
+    }
+
+    /**
+     * 将代码元素类型转换为符号类型
+     *
+     * @param elementType 代码元素类型
+     * @return 符号类型
+     */
+
+
+    /**
+     * 获取最短路径关系
+     *
+     * @param sourceId 源节点ID
+     * @param targetId 目标节点ID
+     * @return 符号关系列表
+     */
+    fun getShortestPathAsRelations(sourceId: String, targetId: String): List<SymbolRelation> {
+        // 使用广度优先搜索找到最短路径
+        val visited = mutableSetOf<String>()
+        val queue = LinkedList<Pair<String, List<String>>>()
+        queue.add(sourceId to listOf(sourceId))
+        visited.add(sourceId)
+
+        while (queue.isNotEmpty()) {
+            val (currentId, path) = queue.poll()
+
+            if (currentId == targetId) {
+                // 找到目标节点，返回路径上的关系
+                val relations = mutableListOf<SymbolRelation>()
+                for (i in 0 until path.size - 1) {
+                    val fromId = path[i]
+                    val toId = path[i + 1]
+                    val relation = getRelation(fromId, toId)
+                    if (relation != null) {
+                        relations.add(relation)
+                    }
+                }
+                return relations
+            }
+
+            // 遍历相邻节点
+            val neighbors = getAdjacentNodes(currentId)
+            for (neighborId in neighbors) {
+                if (!visited.contains(neighborId)) {
+                    visited.add(neighborId)
+                    queue.add(neighborId to path + neighborId)
+                }
+            }
+        }
+
+        return emptyList()
+    }
+
+    /**
+     * 获取与节点相关的所有节点对象
+     *
+     * @param nodeId 节点ID
+     * @param maxDepth 最大深度
+     * @param relationTypes 关系类型集合
+     * @return 符号节点列表
+     */
+    fun getRelatedNodesAsSymbols(
+        nodeId: String,
+        maxDepth: Int = 1,
+        relationTypes: Set<SymbolRelationType> = SymbolRelationType.values().toSet()
+    ): List<SymbolNode> {
+        if (maxDepth <= 0) {
+            return emptyList()
+        }
+
+        val visited = mutableSetOf<String>()
+        val result = mutableSetOf<String>()
+        val queue = LinkedList<Pair<String, Int>>()
+
+        queue.add(nodeId to 0)
+        visited.add(nodeId)
+
+        while (queue.isNotEmpty()) {
+            val (currentId, depth) = queue.poll()
+
+            if (currentId != nodeId) {
+                result.add(currentId)
+            }
+
+            if (depth < maxDepth) {
+                // 获取指定类型的关系
+                val outgoingRelations = getOutgoingEdges(currentId).filter { relationTypes.contains(it.type) }
+                val incomingRelations = getIncomingEdges(currentId).filter { relationTypes.contains(it.type) }
+
+                // 遍历出度关系
+                for (relation in outgoingRelations) {
+                    if (!visited.contains(relation.targetId)) {
+                        visited.add(relation.targetId)
+                        queue.add(relation.targetId to depth + 1)
+                    }
+                }
+
+                // 遍历入度关系
+                for (relation in incomingRelations) {
+                    if (!visited.contains(relation.sourceId)) {
+                        visited.add(relation.sourceId)
+                        queue.add(relation.sourceId to depth + 1)
+                    }
+                }
+            }
+        }
+
+        return result.mapNotNull { getNode(it) }
     }
 }

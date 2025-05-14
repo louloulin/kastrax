@@ -5,20 +5,63 @@
 根据编译错误日志，kastrax-codebase 模块存在以下主要问题：
 
 1. **类型定义问题**：
-   - `RetrievalResult` 类在多个地方有不同的定义，导致引用冲突
-   - `HybridRetrievalResult` 和 `RetrievalSource` 类引用不存在
-   - `SymbolNode` 和 `SymbolRelation` 类的构造函数参数不匹配
+   - `RetrievalResult` 类在多个地方有不同的定义，导致引用冲突 ✅
+   - `HybridRetrievalResult` 和 `RetrievalSource` 类引用不存在 ✅
+   - `SymbolNode` 和 `SymbolRelation` 类的构造函数参数不匹配 ✅
 
 2. **未解析引用问题**：
-   - `EmbeddingService` 和 `SemanticMemorySearchResult` 引用不存在
-   - ChapiCodeParser 中的 Chapi 库引用问题（如 `Position`, `DocString` 等）
-   - DesignPatternDetector 中的 `values()`, `element`, `metadata` 等引用问题
-   - SymbolRelationGraph 和 SymbolQueryEngine 中的方法调用问题
+   - `EmbeddingService` 和 `SemanticMemorySearchResult` 引用不存在 ✅
+   - ChapiCodeParser 中的 Chapi 库引用问题（如 `Position`, `DocString` 等）✅
+   - DesignPatternDetector 中的 `values()`, `element`, `metadata` 等引用问题 ✅ (部分修复)
+   - SymbolRelationGraph 和 SymbolQueryEngine 中的方法调用问题 ✅ (部分修复)
 
 3. **类型不匹配问题**：
-   - 方法返回类型与期望类型不匹配
-   - 参数类型与期望类型不匹配
-   - 无法推断泛型类型参数
+   - 方法返回类型与期望类型不匹配 ❌
+   - 参数类型与期望类型不匹配 ❌
+   - 无法推断泛型类型参数 ❌
+
+4. **方法冲突问题**：
+   - SymbolRelationGraph 中的 getShortestPath 和 getRelatedNodes 方法有冲突 ✅
+
+## 已完成的修复
+
+1. 创建了 EmbeddingService 和 CodeEmbeddingService 类
+2. 创建了 SemanticMemory 和 SemanticMemorySearchResult 类
+3. 创建了 SingletonPattern 枚举类
+4. 修复了 SymbolNode 类中的重复构造函数
+5. 修复了 ChapiCodeParser 中的重复方法定义
+6. 修复了 SymbolRelationGraph 中的方法冲突问题
+   - 将 getShortestPath 重命名为 getShortestPathAsRelations
+   - 将 getRelatedNodes 重命名为 getRelatedNodesAsSymbols
+7. 修复了 SymbolQueryEngine 中的方法调用
+
+## 待解决的问题
+
+1. DesignPatternDetector 中的引用问题
+   - 需要修复 FlowGraph 类的 getNodes() 和 getEdges() 方法的调用
+   - 需要修复元素的访问方式
+
+2. SymbolRelationGraphBuilder 中的配置引用问题
+   - 需要修复 SymbolRelationGraphConfig 类的引用
+   - 需要修复 VARIABLE, NAMESPACE, MODULE 等常量的引用
+
+3. HybridRetriever 中的类型不匹配问题
+   - 需要修复 rerankHybrid 方法中的 score 属性引用
+   - 需要修复 rerank 和 combineResults 方法的参数类型
+
+4. SymbolRelationGraph 中的其他问题
+   - 需要修复 relations 属性的引用
+   - 需要修复 component1() 和 component2() 的歧义性
+   - 需要修复 convertToSymbolType 方法的引用
+   - 需要修复 VARIABLE, NAMESPACE, MODULE 等常量的引用
+
+## 下一步修复计划
+
+1. 修复 FlowGraph 类的 getNodes() 和 getEdges() 方法的调用
+2. 修复 HybridRetriever 中的 rerankHybrid 方法
+3. 修复 SymbolRelationGraph 中的 relations 属性引用
+4. 修复 SymbolType 中的常量引用
+5. 修复 SymbolRelationGraphBuilder 中的配置引用
 
 ## 修复策略
 
@@ -150,7 +193,7 @@ suspend fun retrieve(
 ): List<RetrievalResult> = withContext(Dispatchers.Default) {
     // 先获取 HybridRetrievalResult
     val hybridResults = retrieveHybrid(query, limit, minScore)
-    
+
     // 转换为通用的 RetrievalResult 类型
     return@withContext hybridResults.map { hybrid -> hybrid.toRetrievalResult() }
 }

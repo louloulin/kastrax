@@ -543,37 +543,9 @@ abstract class ChapiCodeParser : AbstractCodeParser() {
         return result
     }
 
-    /**
-     * 获取对象的 Position 属性
-     *
-     * @param obj 对象
-     * @return Position 对象
-     */
-    private fun getPosition(obj: Any): CodePosition? {
-        return try {
-            val positionField = obj::class.java.getDeclaredField("Position")
-            positionField.isAccessible = true
-            positionField.get(obj) as? CodePosition
-        } catch (e: Exception) {
-            null
-        }
-    }
 
-    /**
-     * 获取对象的 DocString 属性
-     *
-     * @param obj 对象
-     * @return 文档字符串
-     */
-    private fun getDocString(obj: Any): String {
-        return try {
-            val docStringField = obj::class.java.getDeclaredField("DocString")
-            docStringField.isAccessible = true
-            (docStringField.get(obj) as? String) ?: ""
-        } catch (e: Exception) {
-            ""
-        }
-    }
+
+
 
     /**
      * 获取对象的 Position 属性

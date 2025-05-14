@@ -179,7 +179,7 @@ class SymbolQueryEngine(private val graph: SymbolRelationGraph) {
      * @return 符号关系列表，表示从源节点到目标节点的路径
      */
     fun getShortestPath(sourceId: String, targetId: String): List<SymbolRelation> {
-        return graph.getShortestPath(sourceId, targetId)
+        return graph.getShortestPathAsRelations(sourceId, targetId)
     }
 
     /**
@@ -195,7 +195,7 @@ class SymbolQueryEngine(private val graph: SymbolRelationGraph) {
         maxDepth: Int = 1,
         relationTypes: Set<SymbolRelationType> = SymbolRelationType.values().toSet()
     ): List<SymbolNode> {
-        return graph.getRelatedNodes(nodeId, maxDepth, relationTypes)
+        return graph.getRelatedNodesAsSymbols(nodeId, maxDepth, relationTypes)
     }
 
     /**

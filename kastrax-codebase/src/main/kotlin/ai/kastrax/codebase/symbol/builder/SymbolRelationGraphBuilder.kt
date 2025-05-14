@@ -2,14 +2,18 @@ package ai.kastrax.codebase.symbol.builder
 
 import ai.kastrax.codebase.semantic.model.CodeElement
 import ai.kastrax.codebase.semantic.model.CodeElementType
+import ai.kastrax.codebase.semantic.model.CodeElementTypeConstants.VARIABLE
+import ai.kastrax.codebase.semantic.model.CodeElementTypeConstants.NAMESPACE
+import ai.kastrax.codebase.semantic.model.CodeElementTypeConstants.MODULE
 import ai.kastrax.codebase.semantic.relation.CodeRelation
 import ai.kastrax.codebase.semantic.relation.RelationType
+import ai.kastrax.codebase.semantic.relation.CodeRelationAnalyzer
 import ai.kastrax.codebase.symbol.model.SymbolNode
 import ai.kastrax.codebase.symbol.model.SymbolRelation
 import ai.kastrax.codebase.symbol.model.SymbolRelationGraph
+import ai.kastrax.codebase.symbol.model.SymbolType
 import ai.kastrax.codebase.symbol.model.SymbolRelationGraphConfig
 import ai.kastrax.codebase.symbol.model.SymbolRelationType
-import ai.kastrax.codebase.symbol.model.SymbolType
 
 /**
  * 符号关系图构建器
@@ -48,7 +52,7 @@ class SymbolRelationGraphBuilder {
 
                 if (sourceNode != null && targetNode != null) {
                     val edge = createSymbolRelation(relation)
-                    graph.addRelation(edge)
+                    graph.addEdge(edge)
                 }
             }
         }
@@ -166,10 +170,17 @@ class SymbolRelationGraphBuilder {
             CodeElementType.PARAMETER -> config.includeParameters
             CodeElementType.FUNCTION -> config.includeFunctions
             CodeElementType.VARIABLE -> config.includeVariables
+            CodeElementType.LOCAL_VARIABLE -> config.includeLocalVariables
             CodeElementType.IMPORT -> config.includeImports
             CodeElementType.NAMESPACE -> config.includeNamespaces
             CodeElementType.MODULE -> config.includeModules
-            CodeElementType.UNKNOWN -> false
+            CodeElementType.LAMBDA -> config.includeLambdas
+            CodeElementType.BLOCK -> config.includeBlocks
+            CodeElementType.STATEMENT -> config.includeStatements
+            CodeElementType.EXPRESSION -> config.includeExpressions
+            CodeElementType.COMMENT -> config.includeComments
+            CodeElementType.UNKNOWN -> true
+            else -> true
         }
     }
 
