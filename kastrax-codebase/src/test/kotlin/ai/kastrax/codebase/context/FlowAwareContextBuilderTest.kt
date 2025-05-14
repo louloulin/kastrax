@@ -44,12 +44,10 @@ class FlowAwareContextBuilderTest {
 
         coEvery { vectorStore.similaritySearch(any(), any(), any(), any()) } returns listOf(
             CodeSearchResult(
-                id = "test-method",
                 element = createTestMethodElement(),
                 score = 0.9
             ),
             CodeSearchResult(
-                id = "test-class",
                 element = createTestClassElement(),
                 score = 0.8
             )
@@ -76,7 +74,7 @@ class FlowAwareContextBuilderTest {
         val context = contextBuilder.buildContext(
             query = "test method",
             maxElements = 5,
-            minScore = 0.5f
+            minScore = 0.5
         )
 
         // 验证结果
@@ -112,8 +110,7 @@ class FlowAwareContextBuilderTest {
         // 构建符号上下文
         val context = contextBuilder.buildSymbolContext(
             symbolName = "testMethod",
-            maxElements = 5,
-            minScore = 0.5f
+            maxElements = 5
         )
 
         // 验证结果
