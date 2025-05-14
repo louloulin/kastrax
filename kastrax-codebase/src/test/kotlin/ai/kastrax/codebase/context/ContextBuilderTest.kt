@@ -182,7 +182,7 @@ class ContextBuilderTest {
             qualifiedName = "com.example.$name",
             type = CodeElementType.CLASS,
             location = Location(
-                filePath = testFilePath,
+                filePath = testFilePath.toString(),
                 startLine = 1,
                 startColumn = 1,
                 endLine = 10,
@@ -201,7 +201,7 @@ class ContextBuilderTest {
             qualifiedName = "${parent.qualifiedName}.$name",
             type = CodeElementType.METHOD,
             location = Location(
-                filePath = testFilePath,
+                filePath = testFilePath.toString(),
                 startLine = 2,
                 startColumn = 1,
                 endLine = 5,
@@ -221,7 +221,7 @@ class ContextBuilderTest {
             qualifiedName = "${parent.qualifiedName}.$name",
             type = CodeElementType.FIELD,
             location = Location(
-                filePath = testFilePath,
+                filePath = testFilePath.toString(),
                 startLine = 6,
                 startColumn = 1,
                 endLine = 6,

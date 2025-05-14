@@ -135,7 +135,7 @@ class FlowAwareContextBuilderTest {
             qualifiedName = "com.example.TestClass.testMethod",
             type = CodeElementType.METHOD,
             location = Location(
-                filePath = Paths.get("src/test/resources/TestClass.java"),
+                filePath = Paths.get("src/test/resources/TestClass.java").toString(),
                 startLine = 10,
                 startColumn = 1,
                 endLine = 20,
@@ -183,7 +183,7 @@ class FlowAwareContextBuilderTest {
             qualifiedName = "com.example.TestClass",
             type = CodeElementType.CLASS,
             location = Location(
-                filePath = Paths.get("src/test/resources/TestClass.java"),
+                filePath = Paths.get("src/test/resources/TestClass.java").toString(),
                 startLine = 1,
                 startColumn = 1,
                 endLine = 30,

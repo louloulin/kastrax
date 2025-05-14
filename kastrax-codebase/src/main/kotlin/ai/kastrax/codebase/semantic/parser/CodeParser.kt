@@ -21,14 +21,14 @@ interface CodeParser {
      * @return 代码元素（文件级别）
      */
     fun parseFile(filePath: Path, content: String): CodeElement
-    
+
     /**
      * 获取支持的文件扩展名
      *
      * @return 支持的文件扩展名集合
      */
     fun getSupportedExtensions(): Set<String>
-    
+
     /**
      * 检查是否支持指定文件
      *
@@ -48,7 +48,7 @@ interface CodeParser {
  */
 object CodeParserFactory {
     private val parsers = mutableListOf<CodeParser>()
-    
+
     /**
      * 注册解析器
      *
@@ -57,7 +57,7 @@ object CodeParserFactory {
     fun registerParser(parser: CodeParser) {
         parsers.add(parser)
     }
-    
+
     /**
      * 获取适合指定文件的解析器
      *
@@ -67,7 +67,7 @@ object CodeParserFactory {
     fun getParser(filePath: Path): CodeParser? {
         return parsers.find { it.supportsFile(filePath) }
     }
-    
+
     /**
      * 解析代码文件
      *
@@ -98,15 +98,15 @@ abstract class AbstractCodeParser : CodeParser {
         val lines = content.lines()
         val endLine = lines.size
         val endColumn = if (endLine > 0) lines.last().length + 1 else 1
-        
+
         val location = Location(
-            filePath = filePath,
+            filePath = filePath.toString(),
             startLine = 1,
             startColumn = 1,
             endLine = endLine,
             endColumn = endColumn
         )
-        
+
         return CodeElement(
             id = filePath.toString(),
             name = filePath.fileName.toString(),
@@ -116,7 +116,7 @@ abstract class AbstractCodeParser : CodeParser {
             language = getLanguageName()
         )
     }
-    
+
     /**
      * 获取语言名称
      *

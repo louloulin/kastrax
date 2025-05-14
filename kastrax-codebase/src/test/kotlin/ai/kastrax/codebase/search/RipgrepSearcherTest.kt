@@ -11,17 +11,17 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 class RipgrepSearcherTest {
-    
+
     @Test
     fun testFindRipgrepBinary() {
         val searcher = RipgrepSearcher()
-        
+
         // 使用反射获取私有方法
         val findRipgrepBinaryMethod = RipgrepSearcher::class.java.getDeclaredMethod("findRipgrepBinary")
         findRipgrepBinaryMethod.isAccessible = true
-        
+
         val rgPath = findRipgrepBinaryMethod.invoke(searcher) as? Path
-        
+
         // 如果找不到 ripgrep，尝试安装它
         if (rgPath == null) {
             runBlocking {
@@ -32,11 +32,11 @@ class RipgrepSearcherTest {
             println("Found ripgrep at: $rgPath")
         }
     }
-    
+
     @Test
     fun testBuildCommand(@TempDir tempDir: Path) {
         val searcher = RipgrepSearcher()
-        
+
         // 使用反射获取私有方法
         val buildCommandMethod = RipgrepSearcher::class.java.getDeclaredMethod(
             "buildCommand",
@@ -46,10 +46,10 @@ class RipgrepSearcherTest {
             Map::class.java
         )
         buildCommandMethod.isAccessible = true
-        
+
         // 创建一个假的 ripgrep 路径
         val fakePath = tempDir.resolve("rg")
-        
+
         // 构建命令
         val command = buildCommandMethod.invoke(
             searcher,
@@ -62,7 +62,7 @@ class RipgrepSearcherTest {
                 "contextLines" to 3
             )
         ) as List<String>
-        
+
         // 验证命令
         assertEquals(fakePath.toString(), command[0])
         assertTrue(command.contains("--json"))
@@ -74,7 +74,7 @@ class RipgrepSearcherTest {
         assertTrue(command.contains("test"))
         assertTrue(command.contains(tempDir.toString()))
     }
-    
+
     @Test
     fun testSearch(@TempDir tempDir: Path) = runBlocking {
         // 创建测试文件
@@ -85,9 +85,9 @@ class RipgrepSearcherTest {
             The word test appears multiple times.
             This is the last line.
         """.trimIndent().toByteArray())
-        
+
         val searcher = RipgrepSearcher()
-        
+
         // 执行搜索
         val results = searcher.search(
             query = "test",
@@ -96,25 +96,25 @@ class RipgrepSearcherTest {
                 "ignoreCase" to true
             )
         ).toList()
-        
+
         // 验证结果
         assertNotNull(results)
         assertTrue(results.isNotEmpty())
-        
+
         // 检查第一个结果
         val firstResult = results.firstOrNull()
         assertNotNull(firstResult)
-        assertEquals(testFile, firstResult.filePath)
+        assertEquals(testFile.toString(), firstResult.filePath)
         assertTrue(firstResult.matchText.contains("test", ignoreCase = true))
     }
-    
+
     @Test
     fun testConvertToRetrievalResult(@TempDir tempDir: Path) {
         val searcher = RipgrepSearcher()
-        
+
         // 创建测试结果
         val result = RipgrepSearchResult(
-            filePath = tempDir.resolve("test.txt"),
+            filePath = tempDir.resolve("test.txt").toString(),
             lineNumber = 1,
             columnNumber = 10,
             matchText = "test",
@@ -122,10 +122,10 @@ class RipgrepSearcherTest {
             beforeContext = listOf("Before line 1", "Before line 2"),
             afterContext = listOf("After line 1", "After line 2")
         )
-        
+
         // 转换为 RetrievalResult
         val retrievalResult = searcher.convertToRetrievalResult(result)
-        
+
         // 验证结果
         assertNotNull(retrievalResult)
         assertEquals("${tempDir.resolve("test.txt")}:1", retrievalResult.element.id)

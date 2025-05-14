@@ -60,7 +60,7 @@ class SemanticMemoryGenerator(
      */
     suspend fun generateMemoriesFromCodeElement(element: CodeElement): List<SemanticMemory> = withContext(Dispatchers.Default) {
         val memories = mutableListOf<SemanticMemory>()
-        
+
         // 生成代码结构记忆
         if (config.generateCodeStructureMemories) {
             val structureMemory = generateCodeStructureMemory(element)
@@ -68,7 +68,7 @@ class SemanticMemoryGenerator(
                 memories.add(structureMemory)
             }
         }
-        
+
         // 生成符号定义记忆
         if (config.generateSymbolDefinitionMemories) {
             val definitionMemory = generateSymbolDefinitionMemory(element)
@@ -76,7 +76,7 @@ class SemanticMemoryGenerator(
                 memories.add(definitionMemory)
             }
         }
-        
+
         // 递归处理子元素
         val childMemories = coroutineScope {
             element.children.chunked(config.maxConcurrentTasks).flatMap { chunk ->
@@ -87,12 +87,12 @@ class SemanticMemoryGenerator(
                 }.awaitAll().flatten()
             }
         }
-        
+
         memories.addAll(childMemories)
-        
+
         return@withContext memories
     }
-    
+
     /**
      * 从符号节点生成记忆
      *
@@ -105,7 +105,7 @@ class SemanticMemoryGenerator(
         graph: ai.kastrax.codebase.symbol.model.SymbolGraph
     ): List<SemanticMemory> = withContext(Dispatchers.Default) {
         val memories = mutableListOf<SemanticMemory>()
-        
+
         // 生成符号定义记忆
         if (config.generateSymbolDefinitionMemories) {
             val definitionMemory = generateSymbolDefinitionMemory(node)
@@ -113,40 +113,40 @@ class SemanticMemoryGenerator(
                 memories.add(definitionMemory)
             }
         }
-        
+
         // 生成符号引用记忆
         if (config.generateSymbolReferenceMemories) {
             val referenceMemories = generateSymbolReferenceMemories(node, graph)
             memories.addAll(referenceMemories)
         }
-        
+
         // 生成继承记忆
         if (config.generateInheritanceMemories) {
             val inheritanceMemories = generateInheritanceMemories(node, graph)
             memories.addAll(inheritanceMemories)
         }
-        
+
         // 生成实现记忆
         if (config.generateImplementationMemories) {
             val implementationMemories = generateImplementationMemories(node, graph)
             memories.addAll(implementationMemories)
         }
-        
+
         // 生成调用层次结构记忆
         if (config.generateCallHierarchyMemories) {
             val callHierarchyMemories = generateCallHierarchyMemories(node, graph)
             memories.addAll(callHierarchyMemories)
         }
-        
+
         // 生成导入依赖记忆
         if (config.generateImportDependencyMemories) {
             val importDependencyMemories = generateImportDependencyMemories(node, graph)
             memories.addAll(importDependencyMemories)
         }
-        
+
         return@withContext memories
     }
-    
+
     /**
      * 生成代码结构记忆
      *
@@ -165,31 +165,31 @@ class SemanticMemoryGenerator(
             )) {
             return null
         }
-        
+
         val content = buildString {
             append("${element.type.name.lowercase()} ${element.name}")
-            
+
             if (element.children.isNotEmpty()) {
                 append(" 包含 ${element.children.size} 个子元素：")
-                
+
                 // 按类型分组子元素
                 val childrenByType = element.children.groupBy { it.type }
-                
+
                 childrenByType.forEach { (type, children) ->
                     append("\n- ${children.size} 个 ${type.name.lowercase()}")
-                    
+
                     // 列出前几个子元素
                     children.take(5).forEach { child ->
                         append("\n  - ${child.name}")
                     }
-                    
+
                     if (children.size > 5) {
                         append("\n  - ... 等 ${children.size - 5} 个")
                     }
                 }
             }
         }
-        
+
         return SemanticMemory(
             type = MemoryType.CODE_STRUCTURE,
             content = content,
@@ -201,7 +201,7 @@ class SemanticMemoryGenerator(
             }
         )
     }
-    
+
     /**
      * 生成符号定义记忆
      *
@@ -222,27 +222,27 @@ class SemanticMemoryGenerator(
             )) {
             return null
         }
-        
+
         val content = buildString {
-            append("${element.type.name.lowercase()} ${element.name} 定义在 ${element.location.filePath.fileName}:${element.location.startLine}")
-            
+            append("${element.type.name.lowercase()} ${element.name} 定义在 ${element.location.filePath.substringAfterLast('/')}:${element.location.startLine}")
+
             // 添加可见性和修饰符
             val visibilityStr = if (element.visibility != ai.kastrax.codebase.semantic.model.Visibility.UNKNOWN) {
                 element.visibility.name.lowercase()
             } else {
                 ""
             }
-            
+
             val modifiersStr = if (element.modifiers.isNotEmpty()) {
                 element.modifiers.joinToString(" ") { it.name.lowercase() }
             } else {
                 ""
             }
-            
+
             if (visibilityStr.isNotEmpty() || modifiersStr.isNotEmpty()) {
                 append("\n修饰符: $visibilityStr $modifiersStr".trim())
             }
-            
+
             // 添加文档注释
             if (element.documentation.isNotEmpty()) {
                 append("\n文档: ${element.documentation.take(200)}")
@@ -251,7 +251,7 @@ class SemanticMemoryGenerator(
                 }
             }
         }
-        
+
         return SemanticMemory(
             type = MemoryType.SYMBOL_DEFINITION,
             content = content,
@@ -263,7 +263,7 @@ class SemanticMemoryGenerator(
             }
         )
     }
-    
+
     /**
      * 生成符号定义记忆
      *
@@ -284,34 +284,34 @@ class SemanticMemoryGenerator(
             )) {
             return null
         }
-        
+
         val content = buildString {
-            append("${node.type.name.lowercase()} ${node.name} 定义在 ${node.location.filePath.fileName}:${node.location.startLine}")
-            
+            append("${node.type.name.lowercase()} ${node.name} 定义在 ${node.location.filePath.substringAfterLast('/')}:${node.location.startLine}")
+
             // 添加可见性
             val visibilityStr = if (node.visibility != ai.kastrax.codebase.semantic.model.Visibility.UNKNOWN) {
                 node.visibility.name.lowercase()
             } else {
                 ""
             }
-            
+
             if (visibilityStr.isNotEmpty()) {
                 append("\n可见性: $visibilityStr")
             }
-            
+
             // 添加元数据
             if (node.metadata.isNotEmpty()) {
                 append("\n元数据:")
                 node.metadata.entries.take(5).forEach { (key, value) ->
                     append("\n- $key: $value")
                 }
-                
+
                 if (node.metadata.size > 5) {
                     append("\n- ... 等 ${node.metadata.size - 5} 项")
                 }
             }
         }
-        
+
         return SemanticMemory(
             type = MemoryType.SYMBOL_DEFINITION,
             content = content,
@@ -323,7 +323,7 @@ class SemanticMemoryGenerator(
             }
         )
     }
-    
+
     /**
      * 生成符号引用记忆
      *
@@ -336,49 +336,49 @@ class SemanticMemoryGenerator(
         graph: ai.kastrax.codebase.symbol.model.SymbolGraph
     ): List<SemanticMemory> {
         val memories = mutableListOf<SemanticMemory>()
-        
+
         // 获取引用关系
         val referenceRelations = graph.getOutgoingRelations(node.id, SymbolRelationType.REFERENCES)
-        
+
         if (referenceRelations.isEmpty()) {
             return emptyList()
         }
-        
+
         // 获取被引用的符号
         val referencedSymbols = referenceRelations.mapNotNull { relation ->
             graph.getNode(relation.targetId)
         }
-        
+
         // 按类型分组被引用的符号
         val referencedSymbolsByType = referencedSymbols.groupBy { it.type }
-        
+
         // 为每种类型生成一个记忆
         referencedSymbolsByType.forEach { (type, symbols) ->
             val content = buildString {
                 append("${node.type.name.lowercase()} ${node.name} 引用了 ${symbols.size} 个 ${type.name.lowercase()}:")
-                
+
                 symbols.take(10).forEach { symbol ->
                     append("\n- ${symbol.name}")
                 }
-                
+
                 if (symbols.size > 10) {
                     append("\n- ... 等 ${symbols.size - 10} 个")
                 }
             }
-            
+
             val memory = SemanticMemory(
                 type = MemoryType.SYMBOL_REFERENCE,
                 content = content,
                 sourceSymbols = listOf(node) + symbols.take(10),
                 importance = ImportanceLevel.MEDIUM
             )
-            
+
             memories.add(memory)
         }
-        
+
         return memories
     }
-    
+
     /**
      * 生成继承记忆
      *
@@ -391,71 +391,71 @@ class SemanticMemoryGenerator(
         graph: ai.kastrax.codebase.symbol.model.SymbolGraph
     ): List<SemanticMemory> {
         val memories = mutableListOf<SemanticMemory>()
-        
+
         // 只为类和接口生成继承记忆
         if (node.type !in setOf(SymbolType.CLASS, SymbolType.INTERFACE)) {
             return emptyList()
         }
-        
+
         // 获取继承关系
         val extendsRelations = graph.getOutgoingRelations(node.id, SymbolRelationType.EXTENDS)
         val extendedByRelations = graph.getIncomingRelations(node.id, SymbolRelationType.EXTENDS)
-        
+
         // 生成父类记忆
         if (extendsRelations.isNotEmpty()) {
             val parentSymbols = extendsRelations.mapNotNull { relation ->
                 graph.getNode(relation.targetId)
             }
-            
+
             val content = buildString {
                 append("${node.type.name.lowercase()} ${node.name} 继承自:")
-                
+
                 parentSymbols.forEach { symbol ->
                     append("\n- ${symbol.name}")
                 }
             }
-            
+
             val memory = SemanticMemory(
                 type = MemoryType.INHERITANCE,
                 content = content,
                 sourceSymbols = listOf(node) + parentSymbols,
                 importance = ImportanceLevel.HIGH
             )
-            
+
             memories.add(memory)
         }
-        
+
         // 生成子类记忆
         if (extendedByRelations.isNotEmpty()) {
             val childSymbols = extendedByRelations.mapNotNull { relation ->
                 graph.getNode(relation.sourceId)
             }
-            
+
             val content = buildString {
                 append("${node.type.name.lowercase()} ${node.name} 被以下类继承:")
-                
+
                 childSymbols.take(10).forEach { symbol ->
                     append("\n- ${symbol.name}")
                 }
-                
+
                 if (childSymbols.size > 10) {
                     append("\n- ... 等 ${childSymbols.size - 10} 个")
                 }
             }
-            
+
             val memory = SemanticMemory(
                 type = MemoryType.INHERITANCE,
                 content = content,
                 sourceSymbols = listOf(node) + childSymbols.take(10),
                 importance = ImportanceLevel.MEDIUM
             )
-            
+
             memories.add(memory)
         }
-        
+
         return memories
     }
-    
+
     /**
      * 生成实现记忆
      *
@@ -468,66 +468,66 @@ class SemanticMemoryGenerator(
         graph: ai.kastrax.codebase.symbol.model.SymbolGraph
     ): List<SemanticMemory> {
         val memories = mutableListOf<SemanticMemory>()
-        
+
         // 获取实现关系
         val implementsRelations = graph.getOutgoingRelations(node.id, SymbolRelationType.IMPLEMENTS)
         val implementedByRelations = graph.getIncomingRelations(node.id, SymbolRelationType.IMPLEMENTS)
-        
+
         // 生成实现接口记忆
         if (implementsRelations.isNotEmpty() && node.type == SymbolType.CLASS) {
             val interfaceSymbols = implementsRelations.mapNotNull { relation ->
                 graph.getNode(relation.targetId)
             }
-            
+
             val content = buildString {
                 append("${node.type.name.lowercase()} ${node.name} 实现了以下接口:")
-                
+
                 interfaceSymbols.forEach { symbol ->
                     append("\n- ${symbol.name}")
                 }
             }
-            
+
             val memory = SemanticMemory(
                 type = MemoryType.IMPLEMENTATION,
                 content = content,
                 sourceSymbols = listOf(node) + interfaceSymbols,
                 importance = ImportanceLevel.HIGH
             )
-            
+
             memories.add(memory)
         }
-        
+
         // 生成被实现记忆
         if (implementedByRelations.isNotEmpty() && node.type == SymbolType.INTERFACE) {
             val implementingSymbols = implementedByRelations.mapNotNull { relation ->
                 graph.getNode(relation.sourceId)
             }
-            
+
             val content = buildString {
                 append("${node.type.name.lowercase()} ${node.name} 被以下类实现:")
-                
+
                 implementingSymbols.take(10).forEach { symbol ->
                     append("\n- ${symbol.name}")
                 }
-                
+
                 if (implementingSymbols.size > 10) {
                     append("\n- ... 等 ${implementingSymbols.size - 10} 个")
                 }
             }
-            
+
             val memory = SemanticMemory(
                 type = MemoryType.IMPLEMENTATION,
                 content = content,
                 sourceSymbols = listOf(node) + implementingSymbols.take(10),
                 importance = ImportanceLevel.MEDIUM
             )
-            
+
             memories.add(memory)
         }
-        
+
         return memories
     }
-    
+
     /**
      * 生成调用层次结构记忆
      *
@@ -540,75 +540,75 @@ class SemanticMemoryGenerator(
         graph: ai.kastrax.codebase.symbol.model.SymbolGraph
     ): List<SemanticMemory> {
         val memories = mutableListOf<SemanticMemory>()
-        
+
         // 只为方法生成调用层次结构记忆
         if (node.type !in setOf(SymbolType.METHOD, SymbolType.CONSTRUCTOR)) {
             return emptyList()
         }
-        
+
         // 获取调用关系
         val callsRelations = graph.getOutgoingRelations(node.id, SymbolRelationType.CALLS)
         val calledByRelations = graph.getIncomingRelations(node.id, SymbolRelationType.CALLS)
-        
+
         // 生成调用方法记忆
         if (callsRelations.isNotEmpty()) {
             val calledSymbols = callsRelations.mapNotNull { relation ->
                 graph.getNode(relation.targetId)
             }
-            
+
             val content = buildString {
                 append("${node.type.name.lowercase()} ${node.name} 调用了以下方法:")
-                
+
                 calledSymbols.take(10).forEach { symbol ->
                     append("\n- ${symbol.name}")
                 }
-                
+
                 if (calledSymbols.size > 10) {
                     append("\n- ... 等 ${calledSymbols.size - 10} 个")
                 }
             }
-            
+
             val memory = SemanticMemory(
                 type = MemoryType.CALL_HIERARCHY,
                 content = content,
                 sourceSymbols = listOf(node) + calledSymbols.take(10),
                 importance = ImportanceLevel.MEDIUM
             )
-            
+
             memories.add(memory)
         }
-        
+
         // 生成被调用记忆
         if (calledByRelations.isNotEmpty()) {
             val callerSymbols = calledByRelations.mapNotNull { relation ->
                 graph.getNode(relation.sourceId)
             }
-            
+
             val content = buildString {
                 append("${node.type.name.lowercase()} ${node.name} 被以下方法调用:")
-                
+
                 callerSymbols.take(10).forEach { symbol ->
                     append("\n- ${symbol.name}")
                 }
-                
+
                 if (callerSymbols.size > 10) {
                     append("\n- ... 等 ${callerSymbols.size - 10} 个")
                 }
             }
-            
+
             val memory = SemanticMemory(
                 type = MemoryType.CALL_HIERARCHY,
                 content = content,
                 sourceSymbols = listOf(node) + callerSymbols.take(10),
                 importance = ImportanceLevel.MEDIUM
             )
-            
+
             memories.add(memory)
         }
-        
+
         return memories
     }
-    
+
     /**
      * 生成导入依赖记忆
      *
@@ -621,52 +621,52 @@ class SemanticMemoryGenerator(
         graph: ai.kastrax.codebase.symbol.model.SymbolGraph
     ): List<SemanticMemory> {
         val memories = mutableListOf<SemanticMemory>()
-        
+
         // 只为类、接口和文件生成导入依赖记忆
         if (node.type !in setOf(SymbolType.CLASS, SymbolType.INTERFACE, SymbolType.MODULE)) {
             return emptyList()
         }
-        
+
         // 获取导入关系
         val importsRelations = graph.getOutgoingRelations(node.id, SymbolRelationType.IMPORTS)
-        
+
         // 生成导入记忆
         if (importsRelations.isNotEmpty()) {
             val importedSymbols = importsRelations.mapNotNull { relation ->
                 graph.getNode(relation.targetId)
             }
-            
+
             // 按类型分组导入的符号
             val importedSymbolsByType = importedSymbols.groupBy { it.type }
-            
+
             // 为每种类型生成一个记忆
             importedSymbolsByType.forEach { (type, symbols) ->
                 val content = buildString {
                     append("${node.type.name.lowercase()} ${node.name} 导入了 ${symbols.size} 个 ${type.name.lowercase()}:")
-                    
+
                     symbols.take(10).forEach { symbol ->
                         append("\n- ${symbol.name}")
                     }
-                    
+
                     if (symbols.size > 10) {
                         append("\n- ... 等 ${symbols.size - 10} 个")
                     }
                 }
-                
+
                 val memory = SemanticMemory(
                     type = MemoryType.IMPORT_DEPENDENCY,
                     content = content,
                     sourceSymbols = listOf(node) + symbols.take(10),
                     importance = ImportanceLevel.MEDIUM
                 )
-                
+
                 memories.add(memory)
             }
         }
-        
+
         return memories
     }
-    
+
     /**
      * 生成库使用记忆
      *
@@ -682,28 +682,28 @@ class SemanticMemoryGenerator(
         if (node.type !in setOf(SymbolType.CLASS, SymbolType.INTERFACE)) {
             return null
         }
-        
+
         if (librarySymbols.isEmpty()) {
             return null
         }
-        
+
         val content = buildString {
             append("${node.type.name.lowercase()} ${node.name} 使用了以下库:")
-            
+
             // 按库分组符号
             val symbolsByLibrary = librarySymbols.groupBy { symbol ->
                 symbol.qualifiedName.split('.').take(2).joinToString(".")
             }
-            
+
             symbolsByLibrary.entries.take(10).forEach { (library, symbols) ->
                 append("\n- $library (${symbols.size} 个符号)")
             }
-            
+
             if (symbolsByLibrary.size > 10) {
                 append("\n- ... 等 ${symbolsByLibrary.size - 10} 个库")
             }
         }
-        
+
         return SemanticMemory(
             type = MemoryType.LIBRARY_USAGE,
             content = content,
@@ -711,7 +711,7 @@ class SemanticMemoryGenerator(
             importance = ImportanceLevel.MEDIUM
         )
     }
-    
+
     /**
      * 生成语义关系记忆
      *
@@ -732,7 +732,7 @@ class SemanticMemoryGenerator(
             append(description)
             append(" ${targetNode.type.name.lowercase()} ${targetNode.name}")
         }
-        
+
         return SemanticMemory(
             type = MemoryType.SEMANTIC_RELATION,
             content = content,
@@ -743,7 +743,7 @@ class SemanticMemoryGenerator(
             )
         )
     }
-    
+
     /**
      * 生成自定义记忆
      *

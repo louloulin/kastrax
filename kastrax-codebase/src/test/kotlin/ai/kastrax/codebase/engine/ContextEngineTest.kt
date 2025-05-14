@@ -116,7 +116,7 @@ class ContextEngineTest {
         // 获取编辑上下文
         val filePath = tempDir.resolve("Test.java")
         val position = Location(
-            filePath = filePath,
+            filePath = filePath.toString(),
             startLine = 5,
             startColumn = 1,
             endLine = 5,

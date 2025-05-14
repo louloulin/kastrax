@@ -586,7 +586,7 @@ abstract class ChapiCodeParser : AbstractCodeParser() {
      * @param position Chapi位置信息
      * @return Location对象
      */
-    private fun createLocationFromPosition(filePath: Path, position: CodePosition?): Location {
+    private fun createLocationFromPosition(filePath: String, position: CodePosition?): Location {
         if (position == null) {
             return Location(
                 filePath = filePath,

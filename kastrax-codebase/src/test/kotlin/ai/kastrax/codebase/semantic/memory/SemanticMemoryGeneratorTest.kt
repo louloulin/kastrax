@@ -11,15 +11,16 @@ import ai.kastrax.codebase.symbol.model.SymbolType
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import java.nio.file.Paths
 import kotlin.io.path.Path
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 class SemanticMemoryGeneratorTest {
-    
+
     private lateinit var memoryGenerator: SemanticMemoryGenerator
     private lateinit var symbolGraph: SymbolGraph
-    
+
     @BeforeEach
     fun setUp() {
         memoryGenerator = SemanticMemoryGenerator(
@@ -35,10 +36,10 @@ class SemanticMemoryGeneratorTest {
                 generateSemanticRelationMemories = true
             )
         )
-        
+
         symbolGraph = SymbolGraph("test-graph")
     }
-    
+
     @Test
     fun `test generating memories from code element`() = runBlocking {
         // 创建代码元素
@@ -48,7 +49,7 @@ class SemanticMemoryGeneratorTest {
             qualifiedName = "com.example.TestClass",
             type = CodeElementType.CLASS,
             location = Location(
-                filePath = Path("TestClass.java"),
+                filePath = Paths.get("TestClass.java").toString(),
                 startLine = 1,
                 startColumn = 1,
                 endLine = 20,
@@ -57,14 +58,14 @@ class SemanticMemoryGeneratorTest {
             visibility = Visibility.PUBLIC,
             documentation = "This is a test class."
         )
-        
+
         val methodElement = CodeElement(
             id = "method1",
             name = "testMethod",
             qualifiedName = "com.example.TestClass.testMethod",
             type = CodeElementType.METHOD,
             location = Location(
-                filePath = Path("TestClass.java"),
+                filePath = Paths.get("TestClass.java").toString(),
                 startLine = 5,
                 startColumn = 5,
                 endLine = 8,
@@ -74,14 +75,14 @@ class SemanticMemoryGeneratorTest {
             documentation = "This is a test method.",
             parent = classElement
         )
-        
+
         val fieldElement = CodeElement(
             id = "field1",
             name = "testField",
             qualifiedName = "com.example.TestClass.testField",
             type = CodeElementType.FIELD,
             location = Location(
-                filePath = Path("TestClass.java"),
+                filePath = Paths.get("TestClass.java").toString(),
                 startLine = 3,
                 startColumn = 5,
                 endLine = 3,
@@ -90,36 +91,36 @@ class SemanticMemoryGeneratorTest {
             visibility = Visibility.PRIVATE,
             parent = classElement
         )
-        
+
         // 添加子元素
         classElement.children.add(methodElement)
         classElement.children.add(fieldElement)
-        
+
         // 生成记忆
         val memories = memoryGenerator.generateMemoriesFromCodeElement(classElement)
-        
+
         // 验证记忆
         assertTrue(memories.isNotEmpty())
-        
+
         // 验证代码结构记忆
         val structureMemories = memories.filter { it.type == MemoryType.CODE_STRUCTURE }
         assertTrue(structureMemories.isNotEmpty())
-        
+
         val classStructureMemory = structureMemories.find { it.sourceElements.any { element -> element.id == "class1" } }
         assertTrue(classStructureMemory != null)
         assertTrue(classStructureMemory!!.content.contains("TestClass"))
         assertTrue(classStructureMemory.content.contains("2 个子元素"))
-        
+
         // 验证符号定义记忆
         val definitionMemories = memories.filter { it.type == MemoryType.SYMBOL_DEFINITION }
         assertTrue(definitionMemories.isNotEmpty())
-        
+
         val classDefinitionMemory = definitionMemories.find { it.sourceElements.any { element -> element.id == "class1" } }
         assertTrue(classDefinitionMemory != null)
         assertTrue(classDefinitionMemory!!.content.contains("TestClass"))
         assertTrue(classDefinitionMemory.content.contains("文档: This is a test class."))
     }
-    
+
     @Test
     fun `test generating memories from symbol node`() = runBlocking {
         // 创建符号节点
@@ -130,7 +131,7 @@ class SemanticMemoryGeneratorTest {
             type = SymbolType.CLASS,
             kind = ai.kastrax.codebase.symbol.model.SymbolKind.DEFINITION,
             location = Location(
-                filePath = Path("TestClass.java"),
+                filePath = Paths.get("TestClass.java").toString(),
                 startLine = 1,
                 startColumn = 1,
                 endLine = 20,
@@ -138,7 +139,7 @@ class SemanticMemoryGeneratorTest {
             ),
             visibility = Visibility.PUBLIC
         )
-        
+
         val interfaceSymbol = SymbolNode(
             id = "symbol2",
             name = "TestInterface",
@@ -146,7 +147,7 @@ class SemanticMemoryGeneratorTest {
             type = SymbolType.INTERFACE,
             kind = ai.kastrax.codebase.symbol.model.SymbolKind.DEFINITION,
             location = Location(
-                filePath = Path("TestInterface.java"),
+                filePath = Paths.get("TestInterface.java").toString(),
                 startLine = 1,
                 startColumn = 1,
                 endLine = 10,
@@ -154,7 +155,7 @@ class SemanticMemoryGeneratorTest {
             ),
             visibility = Visibility.PUBLIC
         )
-        
+
         val methodSymbol = SymbolNode(
             id = "symbol3",
             name = "testMethod",
@@ -162,7 +163,7 @@ class SemanticMemoryGeneratorTest {
             type = SymbolType.METHOD,
             kind = ai.kastrax.codebase.symbol.model.SymbolKind.DEFINITION,
             location = Location(
-                filePath = Path("TestClass.java"),
+                filePath = Paths.get("TestClass.java").toString(),
                 startLine = 5,
                 startColumn = 5,
                 endLine = 8,
@@ -170,12 +171,12 @@ class SemanticMemoryGeneratorTest {
             ),
             visibility = Visibility.PUBLIC
         )
-        
+
         // 添加符号到图
         symbolGraph.addNode(classSymbol)
         symbolGraph.addNode(interfaceSymbol)
         symbolGraph.addNode(methodSymbol)
-        
+
         // 添加关系
         symbolGraph.addRelation(
             ai.kastrax.codebase.symbol.model.SymbolRelation(
@@ -184,7 +185,7 @@ class SemanticMemoryGeneratorTest {
                 type = SymbolRelationType.IMPLEMENTS
             )
         )
-        
+
         symbolGraph.addRelation(
             ai.kastrax.codebase.symbol.model.SymbolRelation(
                 sourceId = methodSymbol.id,
@@ -192,26 +193,26 @@ class SemanticMemoryGeneratorTest {
                 type = SymbolRelationType.REFERENCES
             )
         )
-        
+
         // 生成记忆
         val memories = memoryGenerator.generateMemoriesFromSymbolNode(classSymbol, symbolGraph)
-        
+
         // 验证记忆
         assertTrue(memories.isNotEmpty())
-        
+
         // 验证符号定义记忆
         val definitionMemories = memories.filter { it.type == MemoryType.SYMBOL_DEFINITION }
         assertTrue(definitionMemories.isNotEmpty())
-        
+
         val classDefinitionMemory = definitionMemories.find { it.sourceSymbols.any { symbol -> symbol.id == "symbol1" } }
         assertTrue(classDefinitionMemory != null)
         assertTrue(classDefinitionMemory!!.content.contains("TestClass"))
-        
+
         // 验证实现记忆
         val implementationMemories = memories.filter { it.type == MemoryType.IMPLEMENTATION }
         assertTrue(implementationMemories.isNotEmpty())
-        
-        val implementsMemory = implementationMemories.find { 
+
+        val implementsMemory = implementationMemories.find {
             it.sourceSymbols.any { symbol -> symbol.id == "symbol1" } &&
             it.sourceSymbols.any { symbol -> symbol.id == "symbol2" }
         }
@@ -220,7 +221,7 @@ class SemanticMemoryGeneratorTest {
         assertTrue(implementsMemory.content.contains("实现了以下接口"))
         assertTrue(implementsMemory.content.contains("TestInterface"))
     }
-    
+
     @Test
     fun `test generating custom memory`() {
         // 创建自定义记忆
@@ -229,7 +230,7 @@ class SemanticMemoryGeneratorTest {
             importance = ImportanceLevel.HIGH,
             metadata = mapOf("key1" to "value1", "key2" to "value2")
         )
-        
+
         // 验证记忆
         assertEquals(MemoryType.CUSTOM, memory.type)
         assertEquals("This is a custom memory", memory.content)
@@ -238,7 +239,7 @@ class SemanticMemoryGeneratorTest {
         assertEquals("value1", memory.metadata["key1"])
         assertEquals("value2", memory.metadata["key2"])
     }
-    
+
     @Test
     fun `test generating semantic relation memory`() {
         // 创建符号节点
@@ -249,7 +250,7 @@ class SemanticMemoryGeneratorTest {
             type = SymbolType.CLASS,
             kind = ai.kastrax.codebase.symbol.model.SymbolKind.DEFINITION,
             location = Location(
-                filePath = Path("TestClass.java"),
+                filePath = Paths.get("TestClass.java").toString(),
                 startLine = 1,
                 startColumn = 1,
                 endLine = 20,
@@ -257,7 +258,7 @@ class SemanticMemoryGeneratorTest {
             ),
             visibility = Visibility.PUBLIC
         )
-        
+
         val interfaceSymbol = SymbolNode(
             id = "symbol2",
             name = "TestInterface",
@@ -265,7 +266,7 @@ class SemanticMemoryGeneratorTest {
             type = SymbolType.INTERFACE,
             kind = ai.kastrax.codebase.symbol.model.SymbolKind.DEFINITION,
             location = Location(
-                filePath = Path("TestInterface.java"),
+                filePath = Paths.get("TestInterface.java").toString(),
                 startLine = 1,
                 startColumn = 1,
                 endLine = 10,
@@ -273,7 +274,7 @@ class SemanticMemoryGeneratorTest {
             ),
             visibility = Visibility.PUBLIC
         )
-        
+
         // 生成语义关系记忆
         val memory = memoryGenerator.generateSemanticRelationMemory(
             sourceNode = classSymbol,
@@ -281,7 +282,7 @@ class SemanticMemoryGeneratorTest {
             relationType = SymbolRelationType.IMPLEMENTS,
             description = "实现了接口"
         )
-        
+
         // 验证记忆
         assertEquals(MemoryType.SEMANTIC_RELATION, memory.type)
         assertTrue(memory.content.contains("TestClass"))

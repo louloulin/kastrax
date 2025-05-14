@@ -142,7 +142,7 @@ class CodeSemanticAnalyzer(
             qualifiedName = rootPath.toString(),
             type = CodeElementType.FILE,
             location = Location(
-                filePath = rootPath,
+                filePath = rootPath.toString(),
                 startLine = 1,
                 startColumn = 1,
                 endLine = 1,
@@ -295,7 +295,7 @@ class CodeSemanticAnalyzer(
             qualifiedName = filePath.toString(),
             type = CodeElementType.FILE,
             location = Location(
-                filePath = filePath,
+                filePath = filePath.toString(),
                 startLine = 1,
                 startColumn = 1,
                 endLine = 1,
