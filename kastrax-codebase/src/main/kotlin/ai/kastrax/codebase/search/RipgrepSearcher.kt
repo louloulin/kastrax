@@ -22,11 +22,13 @@ private val logger = KotlinLogging.logger {}
  *
  * @property contextLines 上下文行数
  * @property ignoreCase 是否忽略大小写
+ * @property caseSensitive 是否大小写敏感
  * @property wordMatch 是否全词匹配
  * @property useRegex 是否使用正则表达式
  * @property followSymlinks 是否跟随符号链接
  * @property maxFileSize 最大文件大小（字节）
  * @property timeout 超时时间（秒）
+ * @property defaultTimeout 默认超时时间（秒）
  * @property excludePatterns 排除模式列表
  * @property includePatterns 包含模式列表
  * @property fileTypes 文件类型列表
@@ -34,22 +36,38 @@ private val logger = KotlinLogging.logger {}
  * @property respectGitignore 是否尊重 .gitignore
  * @property hiddenFiles 是否搜索隐藏文件
  * @property binaryFiles 是否搜索二进制文件
+ * @property excludeBinary 是否排除二进制文件
+ * @property multiline 是否支持多行匹配
+ * @property maxDepth 最大搜索深度
+ * @property maxCount 最大计数
+ * @property maxMatches 最大匹配数
+ * @property enableCaching 是否启用缓存
+ * @property maxCacheSize 最大缓存大小
  */
 data class RipgrepConfig(
     val contextLines: Int = 2,
     val ignoreCase: Boolean = false,
+    val caseSensitive: Boolean = true,
     val wordMatch: Boolean = false,
     val useRegex: Boolean = true,
     val followSymlinks: Boolean = false,
     val maxFileSize: Long = 1024 * 1024, // 1MB
     val timeout: Long = 30, // 30 seconds
+    val defaultTimeout: Long = 30, // 30 seconds
     val excludePatterns: List<String> = emptyList(),
     val includePatterns: List<String> = emptyList(),
     val fileTypes: List<String> = emptyList(),
     val excludeFileTypes: List<String> = emptyList(),
     val respectGitignore: Boolean = true,
     val hiddenFiles: Boolean = false,
-    val binaryFiles: Boolean = false
+    val binaryFiles: Boolean = false,
+    val excludeBinary: Boolean = true,
+    val multiline: Boolean = false,
+    val maxDepth: Int = 0,
+    val maxCount: Int = 0,
+    val maxMatches: Int = 0,
+    val enableCaching: Boolean = true,
+    val maxCacheSize: Int = 100
 )
 
 /**
@@ -282,6 +300,222 @@ class RipgrepSearcher(
         }
 
         return command
+    }
+
+    /**
+     * 搜索文件
+     *
+     * @param query 查询字符串
+     * @param basePath 基础路径
+     * @param filePattern 文件模式
+     * @param options 搜索选项
+     * @return 搜索结果字符串
+     */
+    suspend fun searchFiles(
+        query: String,
+        basePath: Path,
+        filePattern: String? = null,
+        options: Map<String, Any> = emptyMap()
+    ): String = withContext(Dispatchers.IO) {
+        logger.info { "搜索文件: $query, 模式: $filePattern" }
+
+        try {
+            // 查找 ripgrep 二进制文件
+            val rgPath = findRipgrepBinary() ?: throw RipgrepSearchException("Ripgrep 二进制文件未找到，请先安装: https://github.com/BurntSushi/ripgrep#installation")
+
+            // 构建命令行
+            val cmd = mutableListOf<String>()
+            cmd.add(rgPath.toString())
+
+            // 添加查询
+            cmd.add("-e")
+            cmd.add(query)
+
+            // 添加文件模式
+            if (filePattern != null) {
+                cmd.add("--glob")
+                cmd.add(filePattern)
+            }
+
+            // 添加上下文行数
+            val contextLines = options["contextLines"] as? Int ?: config.contextLines
+            cmd.add("--context")
+            cmd.add(contextLines.toString())
+
+            // 添加大小写敏感选项
+            val caseSensitive = options["caseSensitive"] as? Boolean ?: config.caseSensitive
+            if (!caseSensitive) {
+                cmd.add("-i")
+            }
+
+            // 添加多行匹配选项
+            val multiline = options["multiline"] as? Boolean ?: config.multiline
+            if (multiline) {
+                cmd.add("-U")
+            }
+
+            // 添加全词匹配选项
+            val wordMatch = options["wordMatch"] as? Boolean ?: config.wordMatch
+            if (wordMatch) {
+                cmd.add("-w")
+            }
+
+            // 添加隐藏文件选项
+            val hiddenFiles = options["hiddenFiles"] as? Boolean ?: config.hiddenFiles
+            if (hiddenFiles) {
+                cmd.add("--hidden")
+            }
+
+            // 添加尊重 .gitignore 选项
+            val respectGitignore = options["respectGitignore"] as? Boolean ?: config.respectGitignore
+            if (!respectGitignore) {
+                cmd.add("--no-ignore")
+            }
+
+            // 添加排除二进制文件选项
+            val excludeBinary = options["excludeBinary"] as? Boolean ?: config.excludeBinary
+            if (excludeBinary) {
+                cmd.add("--text")
+            }
+
+            // 添加搜索路径
+            cmd.add(basePath.toString())
+
+            // 执行命令
+            val processBuilder = ProcessBuilder(cmd)
+            processBuilder.directory(basePath.toFile())
+            processBuilder.redirectErrorStream(true)
+            val process = processBuilder.start()
+
+            // 设置超时
+            val timeout = options["timeout"] as? Long ?: config.defaultTimeout
+            val completed = process.waitFor(timeout, TimeUnit.SECONDS)
+
+            if (!completed) {
+                process.destroy()
+                throw RipgrepSearchException("搜索超时")
+            }
+
+            // 读取输出
+            val reader = process.inputStream.bufferedReader()
+            val output = reader.readText()
+            reader.close()
+
+            // 格式化结果
+            return@withContext formatSearchResults(output, query, basePath, options)
+        } catch (e: Exception) {
+            logger.error(e) { "搜索文件失败: ${e.message}" }
+            throw RipgrepSearchException("搜索文件失败: ${e.message}")
+        }
+    }
+
+    /**
+     * 格式化搜索结果
+     *
+     * @param output 输出
+     * @param query 查询字符串
+     * @param basePath 基础路径
+     * @param options 搜索选项
+     * @return 格式化后的结果
+     */
+    private fun formatSearchResults(
+        output: String,
+        query: String,
+        basePath: Path,
+        options: Map<String, Any> = emptyMap()
+    ): String {
+        if (output.isBlank()) {
+            return "未找到匹配的结果。"
+        }
+
+        val formatAsMarkdown = options["formatAsMarkdown"] as? Boolean ?: true
+        val contextLines = options["contextLines"] as? Int ?: config.contextLines
+
+        // 解析输出
+        val lines = output.lines()
+        val results = mutableMapOf<String, MutableList<Pair<Int, String>>>()
+
+        var currentFile: String? = null
+        var lineNumber = 0
+
+        for (line in lines) {
+            if (line.startsWith(basePath.toString())) {
+                // 文件行
+                val parts = line.split(":", limit = 2)
+                if (parts.size >= 2) {
+                    currentFile = parts[0]
+                    lineNumber = parts[1].toIntOrNull() ?: 0
+                    val content = if (parts.size > 2) parts[2] else ""
+                    results.computeIfAbsent(currentFile) { mutableListOf() }.add(lineNumber to content)
+                }
+            } else if (currentFile != null && line.isNotBlank()) {
+                // 内容行
+                results[currentFile]?.add(lineNumber to line)
+            }
+        }
+
+        // 格式化结果
+        val sb = StringBuilder()
+
+        if (formatAsMarkdown) {
+            sb.appendLine("搜索结果: $query")
+            sb.appendLine("找到 ${results.size} 个匹配文件")
+            sb.appendLine()
+
+            for ((file, matches) in results) {
+                val relativePath = basePath.relativize(Paths.get(file)).toString()
+                sb.appendLine("### $relativePath")
+                sb.appendLine()
+                sb.appendLine("```")
+
+                // 添加匹配行及上下文
+                val fileContent = try {
+                    Files.readAllLines(Paths.get(file))
+                } catch (e: Exception) {
+                    emptyList()
+                }
+
+                val displayLines = mutableSetOf<Int>()
+                for ((lineNum, _) in matches) {
+                    val start = maxOf(1, lineNum - contextLines)
+                    val end = minOf(fileContent.size, lineNum + contextLines)
+                    for (i in start..end) {
+                        displayLines.add(i)
+                    }
+                }
+
+                for (lineNum in displayLines.sorted()) {
+                    val content = fileContent.getOrNull(lineNum - 1) ?: continue
+                    val isMatch = matches.any { it.first == lineNum }
+                    if (isMatch) {
+                        sb.appendLine("$lineNum: $content  <- 匹配")
+                    } else {
+                        sb.appendLine("$lineNum: $content")
+                    }
+                }
+
+                sb.appendLine("```")
+                sb.appendLine()
+            }
+        } else {
+            sb.appendLine("搜索结果: $query")
+            sb.appendLine("找到 ${results.size} 个匹配文件")
+            sb.appendLine()
+
+            for ((file, matches) in results) {
+                val relativePath = basePath.relativize(Paths.get(file)).toString()
+                sb.appendLine(relativePath)
+
+                // 添加匹配行
+                for ((lineNum, content) in matches) {
+                    sb.appendLine("$lineNum: $content")
+                }
+
+                sb.appendLine()
+            }
+        }
+
+        return sb.toString()
     }
 
     /**
