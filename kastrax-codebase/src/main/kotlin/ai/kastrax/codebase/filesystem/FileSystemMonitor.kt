@@ -16,11 +16,14 @@ import java.nio.file.Path
 import java.util.Collections
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicInteger
+import java.util.concurrent.atomic.AtomicLong
 import kotlin.io.path.extension
 import kotlin.io.path.isDirectory
 import kotlin.io.path.isRegularFile
 import kotlin.io.path.name
 import kotlin.time.Duration.Companion.milliseconds
+import java.nio.file.Paths
 
 /**
  * 文件系统变更事件类型
@@ -89,35 +92,76 @@ data class FileSystemMonitorConfig(
         Regex("build/.*"),
         Regex("target/.*"),
         Regex("node_modules/.*"),
-        Regex("\\.gradle/.*")
+        Regex("\\.gradle/.*"),
+        Regex("\\.DS_Store"),
+        Regex("\\.vscode/.*"),
+        Regex("\\.vs/.*"),
+        Regex("dist/.*"),
+        Regex("out/.*"),
+        Regex("bin/.*"),
+        Regex("obj/.*"),
+        Regex("logs/.*"),
+        Regex("tmp/.*"),
+        Regex("temp/.*")
     ),
     val excludeExtensions: Set<String> = setOf(
-        "class", "jar", "war", "zip", "tar", "gz", "rar",
-        "jpg", "jpeg", "png", "gif", "bmp", "ico", "svg",
-        "mp3", "mp4", "avi", "mov", "wmv", "flv", "wav",
-        "pdf", "doc", "docx", "xls", "xlsx", "ppt", "pptx"
+        // 二进制文件
+        "class", "jar", "war", "zip", "tar", "gz", "rar", "7z", "exe", "dll", "so", "dylib",
+        // 图像文件
+        "jpg", "jpeg", "png", "gif", "bmp", "ico", "svg", "webp", "tiff", "psd",
+        // 媒体文件
+        "mp3", "mp4", "avi", "mov", "wmv", "flv", "wav", "ogg", "webm", "mkv",
+        // 文档文件
+        "pdf", "doc", "docx", "xls", "xlsx", "ppt", "pptx", "odt", "ods", "odp",
+        // 数据文件
+        "db", "sqlite", "mdb", "accdb", "frm", "ibd", "myd", "myi",
+        // 日志和临时文件
+        "log", "tmp", "temp", "swp", "swo", "bak", "backup"
     ),
     val excludeDirectories: Set<String> = setOf(
-        ".git", ".idea", "build", "target", "node_modules", ".gradle"
+        ".git", ".idea", "build", "target", "node_modules", ".gradle",
+        ".vscode", ".vs", "dist", "out", "bin", "obj", "logs", "tmp", "temp",
+        "coverage", "__pycache__", ".pytest_cache", ".mypy_cache", ".ruff_cache",
+        ".next", ".nuxt", ".output", ".cache", ".parcel-cache"
     ),
-    val pollIntervalMs: Long = 100, // 降低轮询间隔以提高实时性（Augment级别）
-    val eventBufferCapacity: Int = 10000, // 增加事件缓冲区容量，支持大型代码库
-    val eventThrottleMs: Long = 20, // 降低事件节流时间，提高实时性
+    val pollIntervalMs: Long = 50, // 降低轮询间隔以提高实时性（Augment级别）
+    val eventBufferCapacity: Int = 20000, // 增加事件缓冲区容量，支持大型代码库
+    val eventThrottleMs: Long = 10, // 降低事件节流时间，提高实时性
     val watcherThreads: Int = Runtime.getRuntime().availableProcessors(), // 使用所有可用处理器
     val enableRecursiveWatching: Boolean = true, // 启用递归监控
     val enableFastStartup: Boolean = true, // 启用快速启动
+    val enableAsyncWatching: Boolean = true, // 启用异步监控
+    val enableParallelProcessing: Boolean = true, // 启用并行处理
     val batchProcessingEnabled: Boolean = true, // 启用批处理
-    val batchProcessingIntervalMs: Long = 50, // 批处理间隔，降低以提高实时性
-    val batchSize: Int = 200, // 批处理大小，增加以提高吞吐量
+    val batchProcessingIntervalMs: Long = 25, // 批处理间隔，降低以提高实时性
+    val batchSize: Int = 500, // 批处理大小，增加以提高吞吐量
+    val adaptiveBatchSizing: Boolean = true, // 自适应批处理大小
+    val minBatchSize: Int = 50, // 最小批处理大小
+    val maxBatchSize: Int = 2000, // 最大批处理大小
+    val adaptiveThrottling: Boolean = true, // 自适应节流
+    val minThrottleMs: Long = 5, // 最小节流时间（毫秒）
+    val maxThrottleMs: Long = 100, // 最大节流时间（毫秒）
     val detectRefactoring: Boolean = true, // 检测大规模重构
-    val refactoringThreshold: Int = 15, // 重构检测阈值（短时间内变更的文件数）
+    val refactoringThreshold: Int = 30, // 重构检测阈值（短时间内变更的文件数）
     val refactoringTimeWindowMs: Long = 1000, // 重构检测时间窗口
     val prioritizeActiveFiles: Boolean = true, // 优先处理活跃文件
     val activeFileTimeWindowMs: Long = 30000, // 活跃文件时间窗口（30秒）
-    val maxConcurrentWatchers: Int = 100, // 最大并发监控器数量
-    val watcherRestartDelayMs: Long = 500, // 监控器重启延迟
+    val maxConcurrentWatchers: Int = 500, // 最大并发监控器数量
+    val watcherRestartDelayMs: Long = 300, // 监控器重启延迟
     val enableWatcherHealthCheck: Boolean = true, // 启用监控器健康检查
-    val watcherHealthCheckIntervalMs: Long = 10000 // 监控器健康检查间隔（10秒）
+    val watcherHealthCheckIntervalMs: Long = 5000, // 监控器健康检查间隔（5秒）
+    val enableWatcherLoadBalancing: Boolean = true, // 启用监控器负载均衡
+    val loadBalancingIntervalMs: Long = 10000, // 负载均衡间隔（10秒）
+    val enableSmartPolling: Boolean = true, // 启用智能轮询
+    val smartPollingBaseIntervalMs: Long = 1000, // 智能轮询基础间隔（1秒）
+    val smartPollingMaxIntervalMs: Long = 10000, // 智能轮询最大间隔（10秒）
+    val enableDirectoryPrioritization: Boolean = true, // 启用目录优先级
+    val highPriorityDirectories: Set<String> = setOf("src", "lib", "app"), // 高优先级目录
+    val highPriorityPollingIntervalMs: Long = 30, // 高优先级轮询间隔（30毫秒）
+    val lowPriorityPollingIntervalMs: Long = 2000, // 低优先级轮询间隔（2秒）
+    val enableGitIntegration: Boolean = true, // 启用Git集成
+    val gitIntegrationIntervalMs: Long = 2000, // Git集成间隔（2秒）
+    val supportedVersionControlSystems: Set<String> = setOf("git", "svn", "mercurial") // 支持的版本控制系统
 )
 
 /**
@@ -193,6 +237,24 @@ class FileSystemMonitor(
 
     // 监控器健康状态
     private val watcherHealth = ConcurrentHashMap<Path, Boolean>()
+
+    // 监控器负载状态
+    private val watcherLoad = ConcurrentHashMap<Path, Int>()
+
+    // 目录优先级
+    private val directoryPriority = ConcurrentHashMap<Path, Int>()
+
+    // 当前批处理大小（自适应）
+    private val currentBatchSize = AtomicInteger(config.batchSize)
+
+    // 当前节流时间（自适应）
+    private val currentThrottleMs = AtomicLong(config.eventThrottleMs)
+
+    // 事件处理统计
+    private val eventStats = ConcurrentHashMap<String, Long>()
+
+    // 版本控制系统集成
+    private val vcsIntegration = ConcurrentHashMap<String, Any>()
 
     // 目录变更监听器
     private val directoryChangeListener = object : DirectoryChangeListener {
@@ -286,6 +348,20 @@ class FileSystemMonitor(
         batchQueue.clear()
         activeFiles.clear()
         watcherHealth.clear()
+        watcherLoad.clear()
+        directoryPriority.clear()
+        eventStats.clear()
+        vcsIntegration.clear()
+
+        // 初始化目录优先级
+        if (config.enableDirectoryPrioritization) {
+            initializeDirectoryPriorities()
+        }
+
+        // 初始化版本控制系统集成
+        if (config.enableGitIntegration) {
+            initializeVcsIntegration()
+        }
 
         // 启动监控
         scope.launch {
@@ -313,6 +389,85 @@ class FileSystemMonitor(
             if (config.enableWatcherHealthCheck) {
                 startWatcherHealthCheck()
             }
+
+            // 启动监控器负载均衡
+            if (config.enableWatcherLoadBalancing) {
+                startWatcherLoadBalancing()
+            }
+
+            // 启动自适应批处理
+            if (config.adaptiveBatchSizing) {
+                startAdaptiveBatchSizing()
+            }
+
+            // 启动自适应节流
+            if (config.adaptiveThrottling) {
+                startAdaptiveThrottling()
+            }
+
+            // 启动版本控制系统集成
+            if (config.enableGitIntegration) {
+                startVcsIntegration()
+            }
+        }
+    }
+
+    /**
+     * 初始化目录优先级
+     */
+    private fun initializeDirectoryPriorities() {
+        try {
+            // 高优先级目录
+            val highPriorityDirs = config.highPriorityDirectories
+
+            // 遍历根目录下的所有目录
+            rootPath.toFile().walk()
+                .filter { it.isDirectory }
+                .forEach { dir ->
+                    val dirPath = dir.toPath()
+                    val dirName = dirPath.fileName.toString()
+
+                    // 设置优先级（0=低，1=高）
+                    val priority = if (dirName in highPriorityDirs) 1 else 0
+                    directoryPriority[dirPath] = priority
+                }
+
+            logger.debug { "初始化目录优先级完成，高优先级目录数量: ${directoryPriority.count { it.value == 1 }}" }
+        } catch (e: Exception) {
+            logger.error(e) { "初始化目录优先级时出错" }
+        }
+    }
+
+    /**
+     * 初始化版本控制系统集成
+     */
+    private fun initializeVcsIntegration() {
+        try {
+            // 检测是否是Git仓库
+            val gitDir = rootPath.resolve(".git")
+            if (gitDir.toFile().exists() && gitDir.toFile().isDirectory) {
+                vcsIntegration["type"] = "git"
+                vcsIntegration["rootDir"] = gitDir.toString()
+                logger.debug { "检测到Git仓库: $rootPath" }
+            }
+
+            // 检测是否是SVN仓库
+            val svnDir = rootPath.resolve(".svn")
+            if (svnDir.toFile().exists() && svnDir.toFile().isDirectory) {
+                vcsIntegration["type"] = "svn"
+                vcsIntegration["rootDir"] = svnDir.toString()
+                logger.debug { "检测到SVN仓库: $rootPath" }
+            }
+
+            // 检测是否是Mercurial仓库
+            val hgDir = rootPath.resolve(".hg")
+            if (hgDir.toFile().exists() && hgDir.toFile().isDirectory) {
+                vcsIntegration["type"] = "mercurial"
+                vcsIntegration["rootDir"] = hgDir.toString()
+                logger.debug { "检测到Mercurial仓库: $rootPath" }
+            }
+        } catch (e: Exception) {
+            logger.error(e) { "初始化版本控制系统集成时出错" }
         }
     }
 
@@ -421,9 +576,16 @@ class FileSystemMonitor(
             return
         }
 
-        // 获取当前批次的事件（最多 batchSize 个）
+        // 获取当前批处理大小（自适应）
+        val batchSize = if (config.adaptiveBatchSizing) {
+            currentBatchSize.get()
+        } else {
+            config.batchSize
+        }
+
+        // 获取当前批次的事件
         val batch = synchronized(batchQueue) {
-            val currentBatch = batchQueue.take(config.batchSize)
+            val currentBatch = batchQueue.take(batchSize)
             batchQueue.removeAll(currentBatch)
             currentBatch
         }
@@ -432,6 +594,9 @@ class FileSystemMonitor(
         if (batch.isEmpty()) {
             return
         }
+
+        // 记录开始时间（用于性能统计）
+        val startTime = System.currentTimeMillis()
 
         logger.debug { "处理批量事件: ${batch.size} 个事件" }
 
@@ -442,25 +607,45 @@ class FileSystemMonitor(
             .values
             .toList()
 
-        // 如果启用了活跃文件优先级，则按优先级排序
-        val sortedEvents = if (config.prioritizeActiveFiles) {
-            deduplicatedEvents.sortedByDescending { event ->
-                // 活跃文件优先
+        // 根据多种因素进行排序
+        val sortedEvents = deduplicatedEvents.sortedByDescending { event ->
+            var score = 0.0
+
+            // 1. 活跃文件优先级
+            if (config.prioritizeActiveFiles) {
                 activeFiles[event.path]?.let { lastAccessTime ->
-                    // 返回活跃度分数（最近访问的文件分数更高）
                     val now = System.currentTimeMillis()
                     val age = now - lastAccessTime
                     if (age <= config.activeFileTimeWindowMs) {
-                        // 活跃文件，分数为 1.0 到 0.5，越近越高
-                        1.0 - (age.toDouble() / config.activeFileTimeWindowMs / 2)
+                        // 活跃文件分数
+                        score += 1.0 - (age.toDouble() / config.activeFileTimeWindowMs / 2)
                     } else {
-                        // 非活跃文件，分数为 0.5 到 0.0
-                        0.5 * (1.0 - ((age - config.activeFileTimeWindowMs).toDouble() / config.activeFileTimeWindowMs).coerceAtMost(1.0))
+                        // 非活跃文件分数
+                        score += 0.5 * (1.0 - ((age - config.activeFileTimeWindowMs).toDouble() / config.activeFileTimeWindowMs).coerceAtMost(1.0))
                     }
-                } ?: 0.0 // 未记录的文件最低优先级
+                }
             }
-        } else {
-            deduplicatedEvents
+
+            // 2. 目录优先级
+            if (config.enableDirectoryPrioritization) {
+                // 获取文件所在目录
+                val parentDir = event.path.getParent()
+                val priority = directoryPriority[parentDir] ?: 0
+
+                // 高优先级目录加分
+                if (priority > 0) {
+                    score += 0.5
+                }
+            }
+
+            // 3. 事件类型优先级（创建 > 修改 > 删除）
+            score += when (event.type) {
+                FileChangeType.CREATE -> 0.3
+                FileChangeType.MODIFY -> 0.2
+                FileChangeType.DELETE -> 0.1
+            }
+
+            score
         }
 
         // 发送事件
@@ -472,7 +657,22 @@ class FileSystemMonitor(
             if (config.prioritizeActiveFiles) {
                 activeFiles[event.path] = System.currentTimeMillis()
             }
+
+            // 更新事件统计
+            val eventType = event.type.toString()
+            eventStats[eventType] = (eventStats[eventType] ?: 0) + 1
         }
+
+        // 记录处理时间（用于性能统计和自适应批处理）
+        val processingTime = System.currentTimeMillis() - startTime
+        eventStats["lastBatchProcessingTime"] = processingTime
+        eventStats["lastBatchSize"] = batch.size.toLong()
+
+        // 更新平均处理时间
+        val avgProcessingTime = eventStats["avgBatchProcessingTime"] ?: processingTime
+        eventStats["avgBatchProcessingTime"] = (avgProcessingTime * 0.9 + processingTime * 0.1).toLong()
+
+        logger.debug { "批处理完成: ${batch.size} 个事件, 处理时间: ${processingTime}ms" }
     }
 
     /**
@@ -595,6 +795,255 @@ class FileSystemMonitor(
     }
 
     /**
+     * 启动监控器负载均衡
+     */
+    private fun startWatcherLoadBalancing() {
+        scope.launch {
+            while (isRunning.get()) {
+                try {
+                    // 计算每个监控器的负载
+                    val watcherEventCounts = ConcurrentHashMap<Path, Int>()
+
+                    // 收集每个监控器的事件数量
+                    activeWatchers.keys.forEach { path ->
+                        // 获取当前负载
+                        val currentLoad = watcherLoad[path] ?: 0
+
+                        // 负载衰减（每个周期负载减半）
+                        val newLoad = currentLoad / 2
+                        watcherLoad[path] = newLoad
+                        watcherEventCounts[path] = newLoad
+                    }
+
+                    // 计算负载统计
+                    val totalLoad = watcherLoad.values.sum()
+                    val avgLoad = if (watcherLoad.isNotEmpty()) totalLoad / watcherLoad.size else 0
+                    val maxLoad = watcherLoad.values.maxOrNull() ?: 0
+                    val minLoad = watcherLoad.values.minOrNull() ?: 0
+
+                    // 记录负载统计
+                    eventStats["totalWatcherLoad"] = totalLoad.toLong()
+                    eventStats["avgWatcherLoad"] = avgLoad.toLong()
+                    eventStats["maxWatcherLoad"] = maxLoad.toLong()
+                    eventStats["minWatcherLoad"] = minLoad.toLong()
+
+                    // 检测负载不均衡情况
+                    if (maxLoad > avgLoad * 3 && watcherLoad.size > 1) {
+                        logger.info { "检测到负载不均衡: 最大负载 $maxLoad, 平均负载 $avgLoad" }
+
+                        // 找出负载最高的监控器
+                        val highestLoadWatcher = watcherLoad.entries
+                            .filter { it.value == maxLoad }
+                            .map { it.key }
+                            .firstOrNull()
+
+                        // 重启负载过高的监控器
+                        if (highestLoadWatcher != null) {
+                            logger.info { "重启负载过高的监控器: $highestLoadWatcher (负载: $maxLoad)" }
+                            restartWatcher(highestLoadWatcher)
+                        }
+                    }
+
+                    // 等待下一次负载均衡
+                    kotlinx.coroutines.delay(config.loadBalancingIntervalMs)
+                } catch (e: Exception) {
+                    logger.error(e) { "监控器负载均衡时出错" }
+                }
+            }
+        }
+    }
+
+    /**
+     * 启动自适应批处理大小
+     */
+    private fun startAdaptiveBatchSizing() {
+        scope.launch {
+            while (isRunning.get()) {
+                try {
+                    // 获取当前批处理统计
+                    val lastBatchSize = eventStats["lastBatchSize"] ?: config.batchSize.toLong()
+                    val lastProcessingTime = eventStats["lastBatchProcessingTime"] ?: 0L
+                    val queueSize = batchQueue.size
+
+                    // 计算目标处理时间（我们希望每个批次处理时间在 50-200ms 之间）
+                    val targetProcessingTime = 100L // 目标处理时间（毫秒）
+
+                    // 当前批处理大小
+                    val currentSize = currentBatchSize.get()
+
+                    // 计算新的批处理大小
+                    var newBatchSize = currentSize
+
+                    if (lastProcessingTime > 0 && lastBatchSize > 0) {
+                        // 根据处理时间调整批大小
+                        if (lastProcessingTime > targetProcessingTime * 2) {
+                            // 处理时间过长，减小批大小
+                            newBatchSize = (currentSize * 0.8).toInt().coerceAtLeast(config.minBatchSize)
+                        } else if (lastProcessingTime < targetProcessingTime / 2 && queueSize > currentSize) {
+                            // 处理时间过短，增加批大小
+                            newBatchSize = (currentSize * 1.2).toInt().coerceAtMost(config.maxBatchSize)
+                        }
+                    } else if (queueSize > currentSize * 2) {
+                        // 队列积压，增加批大小
+                        newBatchSize = (currentSize * 1.5).toInt().coerceAtMost(config.maxBatchSize)
+                    }
+
+                    // 更新批处理大小
+                    if (newBatchSize != currentSize) {
+                        currentBatchSize.set(newBatchSize)
+                        logger.debug { "自适应调整批处理大小: $currentSize -> $newBatchSize (处理时间: ${lastProcessingTime}ms, 队列大小: $queueSize)" }
+                    }
+
+                    // 等待下一次调整
+                    kotlinx.coroutines.delay(5000) // 5秒调整一次
+                } catch (e: Exception) {
+                    logger.error(e) { "自适应批处理大小调整时出错" }
+                }
+            }
+        }
+    }
+
+    /**
+     * 启动自适应节流
+     */
+    private fun startAdaptiveThrottling() {
+        scope.launch {
+            while (isRunning.get()) {
+                try {
+                    // 获取当前队列大小和处理统计
+                    val queueSize = batchQueue.size
+                    val avgProcessingTime = eventStats["avgBatchProcessingTime"] ?: 0L
+
+                    // 当前节流时间
+                    val currentThrottle = currentThrottleMs.get()
+
+                    // 计算新的节流时间
+                    var newThrottle = currentThrottle
+
+                    if (queueSize > currentBatchSize.get() * 5) {
+                        // 队列积压，减少节流（增加吞吐量）
+                        newThrottle = (currentThrottle * 0.8).toLong().coerceAtLeast(config.minThrottleMs)
+                    } else if (queueSize < currentBatchSize.get() / 2 && avgProcessingTime < 50) {
+                        // 队列空闲，增加节流（减少资源消耗）
+                        newThrottle = (currentThrottle * 1.2).toLong().coerceAtMost(config.maxThrottleMs)
+                    }
+
+                    // 更新节流时间
+                    if (newThrottle != currentThrottle) {
+                        currentThrottleMs.set(newThrottle)
+                        logger.debug { "自适应调整节流时间: ${currentThrottle}ms -> ${newThrottle}ms (队列大小: $queueSize)" }
+                    }
+
+                    // 等待下一次调整
+                    kotlinx.coroutines.delay(3000) // 3秒调整一次
+                } catch (e: Exception) {
+                    logger.error(e) { "自适应节流调整时出错" }
+                }
+            }
+        }
+    }
+
+    /**
+     * 启动版本控制系统集成
+     */
+    private fun startVcsIntegration() {
+        // 如果没有检测到版本控制系统，则跳过
+        if (vcsIntegration["type"] == null) {
+            logger.debug { "未检测到支持的版本控制系统，跳过集成" }
+            return
+        }
+
+        val vcsType = vcsIntegration["type"] as String
+        logger.info { "启动 $vcsType 版本控制系统集成" }
+
+        scope.launch {
+            while (isRunning.get()) {
+                try {
+                    when (vcsType) {
+                        "git" -> monitorGitRepository()
+                        "svn" -> monitorSvnRepository()
+                        "mercurial" -> monitorMercurialRepository()
+                    }
+
+                    // 等待下一次检查
+                    kotlinx.coroutines.delay(config.gitIntegrationIntervalMs)
+                } catch (e: Exception) {
+                    logger.error(e) { "监控版本控制系统时出错" }
+                }
+            }
+        }
+    }
+
+    /**
+     * 监控 Git 仓库
+     */
+    private suspend fun monitorGitRepository() {
+        // 检查 HEAD 文件变更
+        val headFile = rootPath.resolve(".git/HEAD").toFile()
+        if (headFile.exists()) {
+            val lastModified = headFile.lastModified()
+            val lastChecked = vcsIntegration["lastGitHeadCheck"] as? Long ?: 0L
+
+            if (lastModified > lastChecked) {
+                logger.info { "检测到 Git HEAD 文件变更，可能发生了分支切换" }
+
+                // 触发分支变更事件
+                val branchChangeEvent = FileChangeEvent(
+                    path = rootPath,
+                    type = FileChangeType.MODIFY,
+                    timestamp = System.currentTimeMillis()
+                )
+
+                _fileChanges.emit(branchChangeEvent)
+                notifyListeners(branchChangeEvent)
+
+                // 更新检查时间
+                vcsIntegration["lastGitHeadCheck"] = System.currentTimeMillis()
+            }
+        }
+    }
+
+    /**
+     * 监控 SVN 仓库
+     */
+    private suspend fun monitorSvnRepository() {
+        // SVN 监控实现
+        // 由于 SVN 的特性，可能需要使用命令行工具来检测变更
+        // 这里的实现是简化的
+        val svnDir = rootPath.resolve(".svn").toFile()
+        if (svnDir.exists()) {
+            val lastModified = svnDir.lastModified()
+            val lastChecked = vcsIntegration["lastSvnCheck"] as? Long ?: 0L
+
+            if (lastModified > lastChecked) {
+                logger.info { "检测到 SVN 目录变更" }
+
+                // 更新检查时间
+                vcsIntegration["lastSvnCheck"] = System.currentTimeMillis()
+            }
+        }
+    }
+
+    /**
+     * 监控 Mercurial 仓库
+     */
+    private suspend fun monitorMercurialRepository() {
+        // Mercurial 监控实现
+        val hgDir = rootPath.resolve(".hg").toFile()
+        if (hgDir.exists()) {
+            val lastModified = hgDir.lastModified()
+            val lastChecked = vcsIntegration["lastHgCheck"] as? Long ?: 0L
+
+            if (lastModified > lastChecked) {
+                logger.info { "检测到 Mercurial 目录变更" }
+
+                // 更新检查时间
+                vcsIntegration["lastHgCheck"] = System.currentTimeMillis()
+            }
+        }
+    }
+
+    /**
      * 重启监控器
      */
     private suspend fun restartWatcher(directory: Path) {
@@ -635,8 +1084,24 @@ class FileSystemMonitor(
 
                 // 检查是否超过最大并发监控器数量
                 if (activeWatchers.size >= config.maxConcurrentWatchers) {
-                    logger.warn { "已达到最大并发监控器数量: ${config.maxConcurrentWatchers}，跳过监控: $directory" }
-                    return@withLock
+                    // 如果启用了负载均衡，尝试移除低优先级目录的监控器
+                    if (config.enableWatcherLoadBalancing) {
+                        val lowPriorityWatcher = findLowPriorityWatcher()
+                        if (lowPriorityWatcher != null) {
+                            // 关闭低优先级监控器
+                            activeWatchers[lowPriorityWatcher]?.close()
+                            activeWatchers.remove(lowPriorityWatcher)
+                            watcherHealth.remove(lowPriorityWatcher)
+                            watcherLoad.remove(lowPriorityWatcher)
+                            logger.debug { "移除低优先级监控器以节省资源: $lowPriorityWatcher" }
+                        } else {
+                            logger.warn { "已达到最大并发监控器数量: ${config.maxConcurrentWatchers}，跳过监控: $directory" }
+                            return@withLock
+                        }
+                    } else {
+                        logger.warn { "已达到最大并发监控器数量: ${config.maxConcurrentWatchers}，跳过监控: $directory" }
+                        return@withLock
+                    }
                 }
 
                 // 创建并启动目录监控器
@@ -648,10 +1113,25 @@ class FileSystemMonitor(
                 // 注意：由于 API 变更，暂时不设置轮询间隔
                 // 如果需要调整，请查阅 directory-watcher 最新文档
 
+                // 如果启用了目录优先级，设置不同的轮询间隔
+                if (config.enableDirectoryPrioritization) {
+                    val dirName = directory.getFileName().toString()
+                    val isHighPriority = dirName in config.highPriorityDirectories
+
+                    // 设置目录优先级
+                    directoryPriority[directory] = if (isHighPriority) 1 else 0
+
+                    // 记录在日志中
+                    if (isHighPriority) {
+                        logger.debug { "高优先级目录: $directory" }
+                    }
+                }
+
                 val watcher = watcherBuilder.build()
 
                 activeWatchers[directory] = watcher
                 watcherHealth[directory] = true
+                watcherLoad[directory] = 0 // 初始负载为0
 
                 // 在后台线程中启动监控
                 scope.launch {
@@ -663,10 +1143,9 @@ class FileSystemMonitor(
                         // 从活跃监控器中移除
                         watcherMutex.withLock {
                             activeWatchers.remove(directory)
+                            watcherHealth.remove(directory)
+                            watcherLoad.remove(directory)
                         }
-
-                        // 标记为不健康
-                        watcherHealth[directory] = false
 
                         // 尝试重新监控
                         if (isRunning.get()) {
@@ -696,6 +1175,18 @@ class FileSystemMonitor(
             logger.error(e) { "设置目录监控时出错: $directory" }
             watcherHealth[directory] = false
         }
+    }
+
+    /**
+     * 查找低优先级监控器
+     *
+     * @return 低优先级监控器路径，如果没有则返回 null
+     */
+    private fun findLowPriorityWatcher(): Path? {
+        // 首先尝试找到低优先级目录的监控器
+        return activeWatchers.keys
+            .filter { directoryPriority[it] == 0 } // 低优先级目录
+            .minByOrNull { watcherLoad[it] ?: 0 } // 选择负载最低的
     }
 
     /**

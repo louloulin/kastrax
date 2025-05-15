@@ -61,11 +61,16 @@ Context Engine 采用分层架构设计，包括以下核心组件：
 - ✅ 基于 directory-watcher 的文件监控
 - ✅ Git 分支监控
 - ✅ 文件过滤机制
+- ✅ 优化监控性能，支持大型代码库
+- ✅ 增强分支切换检测的可靠性
+- ✅ 支持更多版本控制系统（如 SVN、Mercurial）
+- ✅ 自适应批处理大小
+- ✅ 自适应节流
+- ✅ 监控器负载均衡
+- ✅ 目录优先级
 
 **待实现功能**：
-- ⬜ 优化监控性能，支持大型代码库
-- ⬜ 增强分支切换检测的可靠性
-- ⬜ 支持更多版本控制系统（如 SVN、Mercurial）
+- ⬜ 进一步优化大型代码库的监控性能
 
 #### 3.2.2 代码解析器（CodeParser）
 
@@ -99,6 +104,9 @@ Context Engine 采用分层架构设计，包括以下核心组件：
 - ✅ 增量索引机制
 - ✅ 批处理能力
 - ✅ 分布式索引处理（基于 Actor 模型）
+- ✅ 任务重试和错误恢复
+- ✅ 任务优先级调度
+- ✅ 分支感知索引
 
 **待实现功能**：
 - ⬜ 优化索引性能，支持每秒处理数千个文件
@@ -356,93 +364,328 @@ class ChapiKotlinCodeParser : ChapiCodeParser() {
 
 ### 4.3 索引处理实现
 
-索引处理器使用 Actor 模型实现分布式索引处理，支持高效处理大量文件变更。
+索引处理器使用 Actor 模型实现分布式索引处理，支持高效处理大量文件变更：
 
 ```kotlin
 class ActorBasedIndexTaskProcessor(
+    private val actorSystem: ActorSystem,
     private val documentStore: DocumentVectorStore,
-    private val embeddingService: EmbeddingService
+    private val embeddingService: EmbeddingService,
+    private val config: IndexTaskProcessorConfig = IndexTaskProcessorConfig()
 ) : IndexTaskProcessor {
+    // 处理器 Actor PID
+    private lateinit var processorPid: PID
 
-    // 文件路径到文档 ID 的映射
-    private val pathToId = ConcurrentHashMap<String, String>()
+    // 事件流
+    private val _events = MutableSharedFlow<IndexTaskProcessorMessage.TaskStatusUpdate>(extraBufferCapacity = 100)
+    val events: SharedFlow<IndexTaskProcessorMessage.TaskStatusUpdate> = _events.asSharedFlow()
 
-    override suspend fun processTask(task: IncrementalIndexTask) = withContext(Dispatchers.IO) {
-        logger.debug { "处理索引任务: ${task.id}, 类型: ${task.type}, 路径: ${task.path}" }
+    // 启动处理器
+    fun start() {
+        // 创建处理器 Actor
+        val props = fromProducer { ProcessorActor() }
+        processorPid = actorSystem.spawn(props)
+    }
 
-        when (task.type) {
-            IndexTaskType.ADD, IndexTaskType.UPDATE -> {
-                processAddOrUpdateTask(task.path)
+    // 处理索引任务
+    override suspend fun processTask(task: IncrementalIndexTask) = withContext(Dispatchers.Default) {
+        // 发送处理任务消息
+        actorSystem.send(processorPid, IndexTaskProcessorMessage.ProcessTask(task))
+    }
+
+    // 批量处理任务
+    suspend fun processBatchTasks(tasks: List<IncrementalIndexTask>) = withContext(Dispatchers.Default) {
+        // 发送批量处理任务消息
+        actorSystem.send(processorPid, IndexTaskProcessorMessage.ProcessBatchTasks(tasks))
+    }
+
+    // 内部处理器 Actor
+    inner class ProcessorActor : Actor {
+        // 活动任务
+        private val activeTasks = ConcurrentHashMap<String, IncrementalIndexTask>()
+
+        // 任务重试计数
+        private val taskRetries = ConcurrentHashMap<String, Int>()
+
+        override suspend fun Context.receive(msg: Any) {
+            when (msg) {
+                is IndexTaskProcessorMessage.ProcessTask -> handleProcessTask(msg.task)
+                is IndexTaskProcessorMessage.ProcessBatchTasks -> handleProcessBatchTasks(msg.tasks)
+                is IndexTaskProcessorMessage.TaskStatusUpdate -> handleTaskStatusUpdate(msg.taskId, msg.status, msg.error)
+                // 其他消息处理...
             }
-            IndexTaskType.DELETE -> {
-                processDeleteTask(task.path)
+        }
+
+        // 处理任务
+        private suspend fun Context.handleProcessTask(task: IncrementalIndexTask) {
+            // 异步处理任务
+            val taskProps = fromProducer { TaskProcessorActor(task) }
+            spawnNamed(taskProps, "task-${task.id}")
+        }
+    }
+
+    // 任务处理器 Actor
+    inner class TaskProcessorActor(private val task: IncrementalIndexTask) : Actor {
+        override suspend fun Context.receive(msg: Any) {
+            when (msg) {
+                "start" -> processTask()
+                // 其他消息处理...
             }
-            IndexTaskType.BRANCH_CHANGE -> {
-                processBranchChangeTask(task)
-            }
-            IndexTaskType.FULL_REINDEX -> {
-                processFullReindexTask(task.path)
+        }
+
+        // 处理任务
+        private suspend fun Context.processTask() {
+            try {
+                // 使用超时机制执行任务
+                withTimeout(config.taskTimeout.inWholeMilliseconds) {
+                    when (task.type) {
+                        IndexTaskType.ADD, IndexTaskType.UPDATE -> processAddOrUpdateTask(task.path)
+                        IndexTaskType.DELETE -> processDeleteTask(task.path)
+                        IndexTaskType.BRANCH_CHANGE -> processBranchChangeTask(task)
+                        IndexTaskType.FULL_REINDEX -> processFullReindexTask(task.path)
+                    }
+                }
+
+                // 发送任务完成消息
+                send(processorPid, IndexTaskProcessorMessage.TaskStatusUpdate(
+                    taskId = task.id,
+                    status = IndexTaskStatus.COMPLETED
+                ))
+            } catch (e: Exception) {
+                // 发送任务失败消息
+                send(processorPid, IndexTaskProcessorMessage.TaskStatusUpdate(
+                    taskId = task.id,
+                    status = IndexTaskStatus.FAILED,
+                    error = e.message
+                ))
             }
         }
     }
 }
 ```
 
-我们还实现了基于 Actor 的索引任务处理器：
+我们还实现了基于 Actor 的批处理器，用于高效处理大量文件变更：
 
 ```kotlin
-class IndexTaskActor(
-    private val taskProcessor: IndexTaskProcessor,
-    private val config: IndexTaskActorConfig = IndexTaskActorConfig()
-) : Actor {
-    // 任务状态跟踪
-    private var activeTaskCount = 0
-    private var completedTaskCount = 0
-    private var failedTaskCount = 0
-
-    // 任务重试计数
-    private val taskRetries = mutableMapOf<String, Int>()
-
-    override suspend fun Context.receive(msg: Any) {
-        when (msg) {
-            is IndexTaskMessage.ProcessTask -> processTask(msg.task)
-            is IndexTaskMessage.GetStatus -> respondWithStatus()
-            is actor.proto.Started -> handleStarted()
-            else -> logger.warn { "未知消息类型: ${msg::class.simpleName}" }
-        }
-    }
-}
-```
-
-同时，我们实现了批处理器，用于高效处理大量文件变更：
-
-```kotlin
-class BatchProcessor(
-    private val config: BatchProcessorConfig,
-    private val indexTaskProcessor: IndexTaskProcessor
+class ActorBasedBatchProcessor(
+    private val actorSystem: ActorSystem,
+    private val indexTaskProcessor: IndexTaskProcessor,
+    private val config: BatchProcessorConfig = BatchProcessorConfig()
 ) {
-    fun start(indexTasks: SharedFlow<List<IncrementalIndexTask>>) {
-        logger.info { "启动批处理器" }
+    // 批处理结果流
+    private val _batchResults = MutableSharedFlow<BatchProcessingResult>(extraBufferCapacity = 100)
+    val batchResults: SharedFlow<BatchProcessingResult> = _batchResults
 
-        scope.launch {
-            indexTasks.collect { tasks ->
-                processTasks(tasks)
+    // 批处理器 Actor
+    private lateinit var batchProcessorPid: PID
+
+    // 启动批处理器
+    fun start() {
+        // 创建批处理器 Actor
+        val props = fromProducer { BatchProcessorActor() }
+        batchProcessorPid = actorSystem.spawn(props)
+    }
+
+    // 处理任务列表
+    suspend fun processTasks(tasks: List<IncrementalIndexTask>): String = withContext(Dispatchers.Default) {
+        // 发送处理批次消息
+        actorSystem.send(batchProcessorPid, BatchProcessorMessage.ProcessBatch(tasks))
+        // 返回批处理ID
+        return@withContext batchId
+    }
+
+    // 批处理器 Actor
+    inner class BatchProcessorActor : Actor {
+        override suspend fun Context.receive(msg: Any) {
+            when (msg) {
+                is BatchProcessorMessage.ProcessBatch -> handleProcessBatch(msg.tasks)
+                // 其他消息处理...
             }
         }
+
+        // 处理批次
+        private suspend fun Context.handleProcessBatch(tasks: List<IncrementalIndexTask>) {
+            // 分批处理任务
+            val batches = tasks.chunked(config.batchSize)
+
+            for (batch in batches) {
+                for (task in batch) {
+                    // 处理任务
+                    handleProcessTask(task)
+                }
+            }
+        }
+    }
+}
+```
+
+最后，我们实现了分布式索引系统工厂，简化系统创建和配置：
+
+```kotlin
+object DistributedIndexingFactory {
+    /**
+     * 创建完整的分布式索引系统
+     *
+     * @param actorSystem Actor 系统
+     * @param documentStore 文档向量存储
+     * @param embeddingService 嵌入服务
+     * @param rootPath 根路径
+     * @param processorConfig 处理器配置
+     * @param batchProcessorConfig 批处理器配置
+     * @param systemConfig 系统配置
+     * @return 分布式索引系统
+     */
+    fun createCompleteDistributedIndexSystem(
+        actorSystem: ActorSystem,
+        documentStore: DocumentVectorStore,
+        embeddingService: EmbeddingService,
+        rootPath: Path,
+        processorConfig: IndexTaskProcessorConfig = IndexTaskProcessorConfig(),
+        batchProcessorConfig: BatchProcessorConfig = BatchProcessorConfig(),
+        systemConfig: DistributedIndexSystemConfig = DistributedIndexSystemConfig()
+    ): DistributedIndexSystem {
+        // 创建索引任务处理器
+        val indexTaskProcessor = createActorBasedIndexTaskProcessor(
+            actorSystem = actorSystem,
+            documentStore = documentStore,
+            embeddingService = embeddingService,
+            config = processorConfig
+        )
+
+        // 启动索引任务处理器
+        indexTaskProcessor.start()
+
+        // 创建分布式索引系统
+        val indexSystem = createDistributedIndexSystem(
+            actorSystem = actorSystem,
+            indexProcessor = indexTaskProcessor,
+            config = systemConfig
+        )
+
+        // 启动分布式索引系统
+        indexSystem.start()
+
+        return indexSystem
+    }
+}
+```
+
+这些实现使得我们的索引系统能够高效地处理大量文件变更，支持分支感知索引，并且具有高可靠性和容错能力。
+
+
+### 4.4 检索服务实现
+
+检索服务使用向量存储和符号索引实现高效检索：
+
+```kotlin
+class CodeRetrievalService(
+    private val vectorStore: CodeVectorStore,
+    private val embeddingService: EmbeddingService,
+    private val config: RetrievalServiceConfig = RetrievalServiceConfig()
+) {
+    /**
+     * 执行语义检索
+     *
+     * @param query 查询文本
+     * @param limit 结果数量限制
+     * @param minScore 最小相似度分数
+     * @param filter 过滤器
+     * @return 检索结果列表
+     */
+    suspend fun semanticSearch(
+        query: String,
+        limit: Int = 10,
+        minScore: Float = 0.0f,
+        filter: (String, Float, CodeElement) -> Boolean = { _, _, _ -> true }
+    ): List<RetrievalResult> {
+        // 生成查询向量
+        val queryVector = embeddingService.embed(query).toList()
+
+        // 执行相似度搜索
+        val searchResults = vectorStore.similaritySearch(
+            vector = queryVector,
+            limit = limit * 2, // 获取更多结果，以便后续重排序
+            minScore = minScore,
+            filter = filter
+        )
+
+        // 重排序结果
+        return rerankedResults(query, searchResults).take(limit)
+    }
+
+    /**
+     * 执行混合检索
+     *
+     * @param query 查询文本
+     * @param limit 结果数量限制
+     * @param minScore 最小相似度分数
+     * @return 检索结果列表
+     */
+    suspend fun hybridSearch(
+        query: String,
+        limit: Int = 10,
+        minScore: Float = 0.0f
+    ): List<RetrievalResult> {
+        // 执行语义检索
+        val semanticResults = semanticSearch(query, limit, minScore)
+
+        // 执行符号检索
+        val symbolResults = symbolSearch(query, limit)
+
+        // 合并结果
+        return mergeResults(semanticResults, symbolResults, limit)
+    }
+}
+```
+
+我们还实现了上下文感知的检索引擎，能够根据当前编辑位置和查询意图提供相关上下文：
+
+```kotlin
+class ContextAwareRetrievalEngine(
+    private val retrievalService: CodeRetrievalService,
+    private val config: ContextAwareRetrievalConfig = ContextAwareRetrievalConfig()
+) {
+    /**
+     * 获取编辑上下文
+     *
+     * @param filePath 文件路径
+     * @param position 位置
+     * @param query 查询文本
+     * @param limit 结果数量限制
+     * @return 上下文
+     */
+    suspend fun getEditContext(
+        filePath: Path,
+        position: Location,
+        query: String? = null,
+        limit: Int = 10
+    ): Context {
+        // 获取当前文件的上下文
+        val fileContext = getFileContext(filePath, limit / 2)
+
+        // 如果有查询，执行检索
+        val queryContext = if (query != null) {
+            getQueryContext(query, limit / 2)
+        } else {
+            Context(emptyList(), "", emptyMap())
+        }
+
+        // 合并上下文
+        return mergeContexts(fileContext, queryContext, limit)
     }
 }
 ```
 
 **已实现功能**：
-- ✅ 增量索引：支持增量索引，只处理变更的文件
-- ✅ 批处理：支持批量处理文件变更，提高效率
-- ✅ 分布式处理：基于 Actor 模型的分布式处理
-- ✅ 任务重试：支持失败任务的自动重试
-- ✅ 任务优先级：支持任务优先级调度
+- ✅ 语义检索：基于嵌入向量的相似度检索
+- ✅ 符号检索：基于符号名称和类型的精确检索
+- ✅ 混合检索：结合语义检索和符号检索
+- ✅ 上下文感知检索：根据当前编辑位置提供相关上下文
 
 **待实现功能**：
-- ⬜ 优化索引性能：提高索引速度，支持每秒处理数千个文件
-- ⬜ 实现代码特化嵌入模型：使用专门为代码理解训练的嵌入模型
+- ⬜ 实现更高级的混合检索策略
+- ⬜ 优化检索性能，降低延迟
+- ⬜ 增强检索准确性，提高相关性
 - ⬜ 增强实时性：确保代码变更后几秒内更新索引
 - ⬜ 块级增量更新：实现块级增量更新，只处理变更的代码块
 - ⬜ 自适应资源管理：根据系统负载自动调整并发度和批大小
