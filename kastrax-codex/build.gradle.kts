@@ -81,7 +81,7 @@ dependencies {
     implementation("ai.kastrax:kastrax-memory-api:0.1.0")
     implementation("ai.kastrax:kastrax-memory-impl:0.1.0")
     implementation("ai.kastrax:kastrax-zod:0.1.0")
-    implementation("ai.kastrax:kastrax-integrations:kastrax-deepseek:0.1.0")
+    implementation("ai.kastrax:kastrax-deepseek:0.1.0")
 
     // 原有依赖
     implementation(platform("com.fasterxml.jackson:jackson-bom:2.18.3"))

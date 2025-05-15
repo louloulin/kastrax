@@ -14,6 +14,6 @@ includeBuild("/Users/louloulin/Documents/linchong/agent/kastra/kastrax") {
         substitute(module("ai.kastrax:kastrax-memory-api")).using(project(":kastrax-memory-api"))
         substitute(module("ai.kastrax:kastrax-memory-impl")).using(project(":kastrax-memory-impl"))
         substitute(module("ai.kastrax:kastrax-zod")).using(project(":kastrax-zod"))
-        substitute(module("ai.kastrax:kastrax-integrations:kastrax-deepseek")).using(project(":kastrax-integrations:kastrax-deepseek"))
+        substitute(module("ai.kastrax:kastrax-deepseek")).using(project(":kastrax-integrations:kastrax-deepseek"))
     }
 }
