@@ -2,8 +2,7 @@ package ai.kastrax.code.memory
 
 import ai.kastrax.code.common.KastraXCodeBase
 import ai.kastrax.code.model.Context
-import ai.kastrax.memory.api.Memory
-import ai.kastrax.memory.api.MemoryType
+import ai.kastrax.memory.api.MessageRole
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
@@ -23,15 +22,15 @@ class ShortTermMemory(
     private val project: Project,
     private val config: ShortTermMemoryConfig = ShortTermMemoryConfig()
 ) : KastraXCodeBase(component = "SHORT_TERM_MEMORY") {
-    
+
     override val logger = KotlinLogging.logger {}
-    
+
     // 代码记忆系统
     private val memorySystem by lazy { CodeMemorySystemImpl.getInstance(project) }
-    
+
     // 当前会话ID
     private var sessionId: String = UUID.randomUUID().toString()
-    
+
     /**
      * 存储对话消息
      *
@@ -47,9 +46,9 @@ class ShortTermMemory(
     ): Boolean = withContext(Dispatchers.IO) {
         try {
             logger.info { "存储对话消息: $role" }
-            
+
             // 创建记忆
-            val memory = Memory(
+            val memory = SimpleMemory(
                 content = content,
                 metadata = metadata + mapOf(
                     "role" to role,
@@ -58,7 +57,7 @@ class ShortTermMemory(
                 ),
                 timestamp = Instant.now()
             )
-            
+
             // 存储记忆
             return@withContext memorySystem.storeConversationMemory(sessionId, memory)
         } catch (e: Exception) {
@@ -66,7 +65,7 @@ class ShortTermMemory(
             return@withContext false
         }
     }
-    
+
     /**
      * 存储上下文
      *
@@ -80,9 +79,9 @@ class ShortTermMemory(
     ): Boolean = withContext(Dispatchers.IO) {
         try {
             logger.info { "存储上下文: ${context.query}" }
-            
+
             // 创建记忆
-            val memory = Memory(
+            val memory = SimpleMemory(
                 content = context.query,
                 metadata = metadata + mapOf(
                     "session_id" to sessionId,
@@ -91,33 +90,33 @@ class ShortTermMemory(
                 ),
                 timestamp = Instant.now()
             )
-            
+
             // 存储记忆
             val stored = memorySystem.storeConversationMemory(sessionId, memory)
-            
+
             // 存储上下文元素
             val contextStored = memorySystem.storeCodeContextMemory(context)
-            
+
             return@withContext stored && contextStored
         } catch (e: Exception) {
             logger.error(e) { "存储上下文时出错: ${context.query}" }
             return@withContext false
         }
     }
-    
+
     /**
      * 检索对话历史
      *
      * @param limit 限制数量
      * @return 记忆列表
      */
-    suspend fun retrieveConversationHistory(limit: Int = 10): List<Memory> = withContext(Dispatchers.IO) {
+    suspend fun retrieveConversationHistory(limit: Int = 10): List<SimpleMemory> = withContext(Dispatchers.IO) {
         try {
             logger.info { "检索对话历史" }
-            
+
             // 检索记忆
             val memories = memorySystem.retrieveConversationMemory(sessionId, limit)
-            
+
             // 过滤消息类型的记忆
             return@withContext memories.filter { it.metadata["type"] == "message" }
         } catch (e: Exception) {
@@ -125,7 +124,7 @@ class ShortTermMemory(
             return@withContext emptyList()
         }
     }
-    
+
     /**
      * 检索最近的上下文
      *
@@ -135,34 +134,34 @@ class ShortTermMemory(
     suspend fun retrieveRecentContexts(limit: Int = 5): List<Context> = withContext(Dispatchers.IO) {
         try {
             logger.info { "检索最近的上下文" }
-            
+
             // 检索记忆
             val memories = memorySystem.retrieveConversationMemory(sessionId, limit * 2)
-            
+
             // 过滤上下文类型的记忆
             val contextMemories = memories.filter { it.metadata["type"] == "context" }
                 .take(limit)
-            
+
             // 转换为上下文
             val contexts = mutableListOf<Context>()
-            
+
             for (memory in contextMemories) {
                 val query = memory.content
                 val elements = memorySystem.retrieveCodeContextMemory(query, 10, 0.0)
-                
+
                 contexts.add(Context(
                     elements = elements,
                     query = query
                 ))
             }
-            
+
             return@withContext contexts
         } catch (e: Exception) {
             logger.error(e) { "检索最近的上下文时出错" }
             return@withContext emptyList()
         }
     }
-    
+
     /**
      * 清除当前会话
      *
@@ -171,20 +170,20 @@ class ShortTermMemory(
     suspend fun clearSession(): Boolean = withContext(Dispatchers.IO) {
         try {
             logger.info { "清除当前会话" }
-            
+
             // 清除对话记忆
             val cleared = memorySystem.clearConversationMemory(sessionId)
-            
+
             // 创建新会话ID
             sessionId = UUID.randomUUID().toString()
-            
+
             return@withContext cleared
         } catch (e: Exception) {
             logger.error(e) { "清除当前会话时出错" }
             return@withContext false
         }
     }
-    
+
     /**
      * 获取当前会话ID
      *
@@ -193,7 +192,7 @@ class ShortTermMemory(
     fun getSessionId(): String {
         return sessionId
     }
-    
+
     /**
      * 设置当前会话ID
      *
@@ -202,7 +201,7 @@ class ShortTermMemory(
     fun setSessionId(id: String) {
         sessionId = id
     }
-    
+
     companion object {
         /**
          * 获取项目的短期记忆实例

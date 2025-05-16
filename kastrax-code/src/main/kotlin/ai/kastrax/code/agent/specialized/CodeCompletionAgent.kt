@@ -33,9 +33,9 @@ class CodeCompletionAgent(
     private val project: Project,
     private val config: CodeCompletionAgentConfig = CodeCompletionAgentConfig()
 ) : KastraXCodeBase(component = "CODE_COMPLETION_AGENT"), CodeAgent {
-    
+
     override val logger = KotlinLogging.logger {}
-    
+
     // 底层智能体
     private val agent: Agent by lazy {
         Agent(
@@ -49,22 +49,22 @@ class CodeCompletionAgent(
             )
         )
     }
-    
+
     // LLM提供者
     private val llmProvider: LLMProvider by lazy {
         LLMProvider.getInstance()
     }
-    
+
     // 代码上下文引擎
     private val contextEngine: CodeContextEngine by lazy {
         CodeContextEngine.getInstance(project)
     }
-    
+
     // 短期记忆
     private val shortTermMemory: ShortTermMemory by lazy {
         ShortTermMemory.getInstance(project)
     }
-    
+
     /**
      * 获取代码补全
      *
@@ -82,7 +82,7 @@ class CodeCompletionAgent(
     ): List<CompletionResult> = withContext(Dispatchers.IO) {
         try {
             logger.info { "获取代码补全: $prefix, 语言: $language" }
-            
+
             // 创建补全请求
             val request = CompletionRequest(
                 code = code,
@@ -90,13 +90,13 @@ class CodeCompletionAgent(
                 language = language,
                 maxCompletions = maxCompletions
             )
-            
+
             // 获取上下文
             val context = getCompletionContext(code, prefix, language)
-            
+
             // 创建提示
             val prompt = createCompletionPrompt(request, context)
-            
+
             // 调用LLM
             val llmRequest = LLMRequest(
                 model = config.model,
@@ -104,9 +104,9 @@ class CodeCompletionAgent(
                 temperature = config.temperature,
                 maxTokens = config.maxTokens
             )
-            
+
             val llmResponse = llmProvider.complete(llmRequest)
-            
+
             // 解析补全结果
             return@withContext parseCompletionResults(llmResponse, maxCompletions)
         } catch (e: Exception) {
@@ -114,7 +114,7 @@ class CodeCompletionAgent(
             return@withContext emptyList()
         }
     }
-    
+
     /**
      * 获取内联补全
      *
@@ -130,20 +130,20 @@ class CodeCompletionAgent(
     ): CompletionResult? = withContext(Dispatchers.IO) {
         try {
             logger.info { "获取内联补全, 语言: $language" }
-            
+
             // 获取前缀
             val prefix = code.substring(0, cursorPosition)
-            
+
             // 获取补全
             val completions = getCompletions(code, prefix, language, 1)
-            
+
             return@withContext completions.firstOrNull()
         } catch (e: Exception) {
             logger.error(e) { "获取内联补全时出错, 语言: $language" }
             return@withContext null
         }
     }
-    
+
     /**
      * 获取补全上下文
      *
@@ -155,11 +155,11 @@ class CodeCompletionAgent(
     private suspend fun getCompletionContext(code: String, prefix: String, language: String): Context {
         // 创建查询
         val query = "code completion for $language: $prefix"
-        
+
         // 获取上下文
         return contextEngine.getQueryContext(query, 10, 0.0, true)
     }
-    
+
     /**
      * 创建补全提示
      *
@@ -169,7 +169,7 @@ class CodeCompletionAgent(
      */
     private fun createCompletionPrompt(request: CompletionRequest, context: Context): String {
         val sb = StringBuilder()
-        
+
         // 系统提示
         sb.appendLine("你是一个专业的代码补全助手，擅长根据上下文提供高质量的代码补全建议。")
         sb.appendLine("请根据提供的代码和前缀，生成最多${request.maxCompletions}个可能的代码补全。")
@@ -192,7 +192,7 @@ class CodeCompletionAgent(
             }
         """.trimIndent())
         sb.appendLine()
-        
+
         // 上下文
         if (context.elements.isNotEmpty()) {
             sb.appendLine("## 相关上下文")
@@ -204,23 +204,23 @@ class CodeCompletionAgent(
                 sb.appendLine()
             }
         }
-        
+
         // 当前代码
         sb.appendLine("## 当前代码")
         sb.appendLine("```${request.language}")
         sb.appendLine(request.code)
         sb.appendLine("```")
         sb.appendLine()
-        
+
         // 前缀
         sb.appendLine("## 需要补全的前缀")
         sb.appendLine("```")
         sb.appendLine(request.prefix)
         sb.appendLine("```")
-        
+
         return sb.toString()
     }
-    
+
     /**
      * 解析补全结果
      *
@@ -233,13 +233,13 @@ class CodeCompletionAgent(
             // 提取JSON部分
             val jsonPattern = "\\{[\\s\\S]*?\"completions\"[\\s\\S]*?\\}".toRegex()
             val jsonMatch = jsonPattern.find(llmResponse.content)
-            
+
             if (jsonMatch != null) {
                 val jsonString = jsonMatch.value
-                
+
                 // 解析JSON
                 val json = kotlinx.serialization.json.Json.decodeFromString<CompletionResultsJson>(jsonString)
-                
+
                 // 转换为补全结果
                 return json.completions.take(maxCompletions).map { completion ->
                     CompletionResult(
@@ -250,11 +250,11 @@ class CodeCompletionAgent(
                     )
                 }
             }
-            
+
             // 如果无法解析JSON，尝试直接提取补全
             val completionPattern = "```[\\s\\S]*?([\\s\\S]*?)```".toRegex()
             val completionMatches = completionPattern.findAll(llmResponse.content)
-            
+
             if (completionMatches.count() > 0) {
                 return completionMatches.take(maxCompletions).mapIndexed { index, match ->
                     val text = match.groupValues[1].trim()
@@ -266,7 +266,7 @@ class CodeCompletionAgent(
                     )
                 }.toList()
             }
-            
+
             // 如果都无法解析，返回空列表
             return emptyList()
         } catch (e: Exception) {
@@ -274,7 +274,7 @@ class CodeCompletionAgent(
             return emptyList()
         }
     }
-    
+
     /**
      * 生成代码
      *
@@ -285,10 +285,10 @@ class CodeCompletionAgent(
     override suspend fun generateCode(prompt: String, language: String): String = withContext(Dispatchers.IO) {
         try {
             logger.info { "生成代码: $prompt, 语言: $language" }
-            
+
             // 获取上下文
             val context = contextEngine.getQueryContext(prompt, 10, 0.0, true)
-            
+
             // 创建代理上下文
             val agentContext = AgentContext(
                 input = prompt,
@@ -297,21 +297,21 @@ class CodeCompletionAgent(
                     "context" to context.getContent()
                 )
             )
-            
+
             // 调用代理
             val response = agent.process(agentContext)
-            
+
             // 存储到短期记忆
             shortTermMemory.storeMessage("user", prompt)
             shortTermMemory.storeMessage("assistant", response.output)
-            
+
             return@withContext response.output
         } catch (e: Exception) {
             logger.error(e) { "生成代码时出错: $prompt, 语言: $language" }
             return@withContext "生成代码时出错: ${e.message}"
         }
     }
-    
+
     /**
      * 解释代码
      *
@@ -322,7 +322,7 @@ class CodeCompletionAgent(
     override suspend fun explainCode(code: String, detailLevel: DetailLevel): String = withContext(Dispatchers.IO) {
         try {
             logger.info { "解释代码, 详细程度: $detailLevel" }
-            
+
             // 创建代理上下文
             val agentContext = AgentContext(
                 input = code,
@@ -331,21 +331,21 @@ class CodeCompletionAgent(
                     "detailLevel" to detailLevel.name
                 )
             )
-            
+
             // 调用代理
             val response = agent.process(agentContext)
-            
+
             // 存储到短期记忆
             shortTermMemory.storeMessage("user", "请解释以下代码：\n$code")
             shortTermMemory.storeMessage("assistant", response.output)
-            
+
             return@withContext response.output
         } catch (e: Exception) {
             logger.error(e) { "解释代码时出错, 详细程度: $detailLevel" }
             return@withContext "解释代码时出错: ${e.message}"
         }
     }
-    
+
     /**
      * 重构代码
      *
@@ -356,10 +356,10 @@ class CodeCompletionAgent(
     override suspend fun refactorCode(code: String, instructions: String): String = withContext(Dispatchers.IO) {
         try {
             logger.info { "重构代码: $instructions" }
-            
+
             // 获取上下文
             val context = contextEngine.getQueryContext(instructions, 10, 0.0, true)
-            
+
             // 创建代理上下文
             val agentContext = AgentContext(
                 input = "$instructions\n\n$code",
@@ -368,21 +368,21 @@ class CodeCompletionAgent(
                     "context" to context.getContent()
                 )
             )
-            
+
             // 调用代理
             val response = agent.process(agentContext)
-            
+
             // 存储到短期记忆
             shortTermMemory.storeMessage("user", "请根据以下指令重构代码：\n$instructions\n\n代码：\n$code")
             shortTermMemory.storeMessage("assistant", response.output)
-            
+
             return@withContext response.output
         } catch (e: Exception) {
             logger.error(e) { "重构代码时出错: $instructions" }
             return@withContext "重构代码时出错: ${e.message}"
         }
     }
-    
+
     /**
      * 生成测试
      *
@@ -393,7 +393,7 @@ class CodeCompletionAgent(
     override suspend fun generateTest(code: String, framework: String): String = withContext(Dispatchers.IO) {
         try {
             logger.info { "生成测试: $framework" }
-            
+
             // 创建代理上下文
             val agentContext = AgentContext(
                 input = code,
@@ -402,21 +402,43 @@ class CodeCompletionAgent(
                     "framework" to framework
                 )
             )
-            
+
             // 调用代理
             val response = agent.process(agentContext)
-            
+
             // 存储到短期记忆
             shortTermMemory.storeMessage("user", "请为以下代码生成$framework测试：\n$code")
             shortTermMemory.storeMessage("assistant", response.output)
-            
+
             return@withContext response.output
         } catch (e: Exception) {
             logger.error(e) { "生成测试时出错: $framework" }
             return@withContext "生成测试时出错: ${e.message}"
         }
     }
-    
+
+    /**
+     * 补全代码
+     *
+     * @param code 当前代码
+     * @param language 编程语言
+     * @param maxTokens 最大生成令牌数
+     * @return 补全的代码
+     */
+    override suspend fun complete(code: String, language: String, maxTokens: Int): String = withContext(Dispatchers.IO) {
+        try {
+            logger.info { "补全代码, 语言: $language" }
+
+            // 获取内联补全
+            val completion = getInlineCompletion(code, code.length, language)
+
+            return@withContext completion?.text ?: ""
+        } catch (e: Exception) {
+            logger.error(e) { "补全代码时出错, 语言: $language" }
+            return@withContext ""
+        }
+    }
+
     companion object {
         /**
          * 获取项目的代码补全智能体实例

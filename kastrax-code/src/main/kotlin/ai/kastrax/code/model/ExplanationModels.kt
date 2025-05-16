@@ -26,22 +26,4 @@ data class ExplanationResult(
     val detailLevel: DetailLevel
 )
 
-/**
- * 详细程度
- */
-enum class DetailLevel {
-    /**
-     * 简要
-     */
-    BRIEF,
-    
-    /**
-     * 正常
-     */
-    NORMAL,
-    
-    /**
-     * 详细
-     */
-    DETAILED
-}
+

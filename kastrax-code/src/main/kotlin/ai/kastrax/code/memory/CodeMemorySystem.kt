@@ -2,7 +2,6 @@ package ai.kastrax.code.memory
 
 import ai.kastrax.code.model.Context
 import ai.kastrax.code.model.ContextElement
-import ai.kastrax.memory.api.Memory
 import ai.kastrax.memory.api.MemoryType
 
 /**
@@ -18,8 +17,8 @@ interface CodeMemorySystem {
      * @param memory 记忆
      * @return 是否成功存储
      */
-    suspend fun storeConversationMemory(conversationId: String, memory: Memory): Boolean
-    
+    suspend fun storeConversationMemory(conversationId: String, memory: SimpleMemory): Boolean
+
     /**
      * 检索对话记忆
      *
@@ -27,8 +26,8 @@ interface CodeMemorySystem {
      * @param limit 限制数量
      * @return 记忆列表
      */
-    suspend fun retrieveConversationMemory(conversationId: String, limit: Int = 10): List<Memory>
-    
+    suspend fun retrieveConversationMemory(conversationId: String, limit: Int = 10): List<SimpleMemory>
+
     /**
      * 存储代码上下文记忆
      *
@@ -36,7 +35,7 @@ interface CodeMemorySystem {
      * @return 是否成功存储
      */
     suspend fun storeCodeContextMemory(context: Context): Boolean
-    
+
     /**
      * 检索代码上下文记忆
      *
@@ -46,7 +45,7 @@ interface CodeMemorySystem {
      * @return 上下文元素列表
      */
     suspend fun retrieveCodeContextMemory(query: String, limit: Int = 10, minScore: Double = 0.0): List<ContextElement>
-    
+
     /**
      * 存储项目记忆
      *
@@ -54,8 +53,8 @@ interface CodeMemorySystem {
      * @param memory 记忆
      * @return 是否成功存储
      */
-    suspend fun storeProjectMemory(projectId: String, memory: Memory): Boolean
-    
+    suspend fun storeProjectMemory(projectId: String, memory: SimpleMemory): Boolean
+
     /**
      * 检索项目记忆
      *
@@ -64,8 +63,8 @@ interface CodeMemorySystem {
      * @param limit 限制数量
      * @return 记忆列表
      */
-    suspend fun retrieveProjectMemory(projectId: String, memoryType: MemoryType? = null, limit: Int = 10): List<Memory>
-    
+    suspend fun retrieveProjectMemory(projectId: String, memoryType: MemoryType? = null, limit: Int = 10): List<SimpleMemory>
+
     /**
      * 存储用户偏好记忆
      *
@@ -75,7 +74,7 @@ interface CodeMemorySystem {
      * @return 是否成功存储
      */
     suspend fun storeUserPreferenceMemory(userId: String, key: String, value: String): Boolean
-    
+
     /**
      * 检索用户偏好记忆
      *
@@ -84,7 +83,7 @@ interface CodeMemorySystem {
      * @return 值
      */
     suspend fun retrieveUserPreferenceMemory(userId: String, key: String): String?
-    
+
     /**
      * 清除对话记忆
      *
@@ -92,14 +91,14 @@ interface CodeMemorySystem {
      * @return 是否成功清除
      */
     suspend fun clearConversationMemory(conversationId: String): Boolean
-    
+
     /**
      * 清除代码上下文记忆
      *
      * @return 是否成功清除
      */
     suspend fun clearCodeContextMemory(): Boolean
-    
+
     /**
      * 清除项目记忆
      *
@@ -107,7 +106,7 @@ interface CodeMemorySystem {
      * @return 是否成功清除
      */
     suspend fun clearProjectMemory(projectId: String): Boolean
-    
+
     /**
      * 清除用户偏好记忆
      *
@@ -115,7 +114,7 @@ interface CodeMemorySystem {
      * @return 是否成功清除
      */
     suspend fun clearUserPreferenceMemory(userId: String): Boolean
-    
+
     /**
      * 关闭记忆系统
      */

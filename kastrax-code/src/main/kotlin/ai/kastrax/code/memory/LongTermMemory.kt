@@ -1,7 +1,7 @@
 package ai.kastrax.code.memory
 
 import ai.kastrax.code.common.KastraXCodeBase
-import ai.kastrax.memory.api.Memory
+
 import ai.kastrax.memory.api.MemoryType
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
@@ -19,15 +19,15 @@ import java.util.UUID
  */
 @Service(Service.Level.APPLICATION)
 class LongTermMemory : KastraXCodeBase(component = "LONG_TERM_MEMORY") {
-    
+
     override val logger = KotlinLogging.logger {}
-    
+
     // 代码记忆系统
     private var memorySystem: CodeMemorySystem? = null
-    
+
     // 用户ID
     private val userId: String by lazy { System.getProperty("user.name") ?: "unknown" }
-    
+
     /**
      * 初始化
      *
@@ -36,7 +36,7 @@ class LongTermMemory : KastraXCodeBase(component = "LONG_TERM_MEMORY") {
     fun initialize(project: Project) {
         memorySystem = CodeMemorySystemImpl.getInstance(project)
     }
-    
+
     /**
      * 存储编码风格
      *
@@ -52,13 +52,13 @@ class LongTermMemory : KastraXCodeBase(component = "LONG_TERM_MEMORY") {
     ): Boolean = withContext(Dispatchers.IO) {
         try {
             logger.info { "存储编码风格: $language" }
-            
+
             // 检查记忆系统是否已初始化
             val memorySystem = this@LongTermMemory.memorySystem
                 ?: throw IllegalStateException("Memory system not initialized")
-            
+
             // 创建记忆
-            val memory = Memory(
+            val memory = SimpleMemory(
                 content = style,
                 metadata = metadata + mapOf(
                     "language" to language,
@@ -67,7 +67,7 @@ class LongTermMemory : KastraXCodeBase(component = "LONG_TERM_MEMORY") {
                 ),
                 timestamp = Instant.now()
             )
-            
+
             // 存储记忆
             return@withContext memorySystem.storeUserPreferenceMemory(userId, "coding_style:$language", style)
         } catch (e: Exception) {
@@ -75,7 +75,7 @@ class LongTermMemory : KastraXCodeBase(component = "LONG_TERM_MEMORY") {
             return@withContext false
         }
     }
-    
+
     /**
      * 检索编码风格
      *
@@ -85,11 +85,11 @@ class LongTermMemory : KastraXCodeBase(component = "LONG_TERM_MEMORY") {
     suspend fun retrieveCodingStyle(language: String): String? = withContext(Dispatchers.IO) {
         try {
             logger.info { "检索编码风格: $language" }
-            
+
             // 检查记忆系统是否已初始化
             val memorySystem = this@LongTermMemory.memorySystem
                 ?: throw IllegalStateException("Memory system not initialized")
-            
+
             // 检索记忆
             return@withContext memorySystem.retrieveUserPreferenceMemory(userId, "coding_style:$language")
         } catch (e: Exception) {
@@ -97,7 +97,7 @@ class LongTermMemory : KastraXCodeBase(component = "LONG_TERM_MEMORY") {
             return@withContext null
         }
     }
-    
+
     /**
      * 存储常用模式
      *
@@ -113,13 +113,13 @@ class LongTermMemory : KastraXCodeBase(component = "LONG_TERM_MEMORY") {
     ): Boolean = withContext(Dispatchers.IO) {
         try {
             logger.info { "存储常用模式: $name" }
-            
+
             // 检查记忆系统是否已初始化
             val memorySystem = this@LongTermMemory.memorySystem
                 ?: throw IllegalStateException("Memory system not initialized")
-            
+
             // 创建记忆
-            val memory = Memory(
+            val memory = SimpleMemory(
                 content = pattern,
                 metadata = metadata + mapOf(
                     "name" to name,
@@ -128,7 +128,7 @@ class LongTermMemory : KastraXCodeBase(component = "LONG_TERM_MEMORY") {
                 ),
                 timestamp = Instant.now()
             )
-            
+
             // 存储记忆
             return@withContext memorySystem.storeUserPreferenceMemory(userId, "common_pattern:$name", pattern)
         } catch (e: Exception) {
@@ -136,7 +136,7 @@ class LongTermMemory : KastraXCodeBase(component = "LONG_TERM_MEMORY") {
             return@withContext false
         }
     }
-    
+
     /**
      * 检索常用模式
      *
@@ -146,11 +146,11 @@ class LongTermMemory : KastraXCodeBase(component = "LONG_TERM_MEMORY") {
     suspend fun retrieveCommonPattern(name: String): String? = withContext(Dispatchers.IO) {
         try {
             logger.info { "检索常用模式: $name" }
-            
+
             // 检查记忆系统是否已初始化
             val memorySystem = this@LongTermMemory.memorySystem
                 ?: throw IllegalStateException("Memory system not initialized")
-            
+
             // 检索记忆
             return@withContext memorySystem.retrieveUserPreferenceMemory(userId, "common_pattern:$name")
         } catch (e: Exception) {
@@ -158,7 +158,7 @@ class LongTermMemory : KastraXCodeBase(component = "LONG_TERM_MEMORY") {
             return@withContext null
         }
     }
-    
+
     /**
      * 存储跨项目知识
      *
@@ -174,13 +174,13 @@ class LongTermMemory : KastraXCodeBase(component = "LONG_TERM_MEMORY") {
     ): Boolean = withContext(Dispatchers.IO) {
         try {
             logger.info { "存储跨项目知识: $key" }
-            
+
             // 检查记忆系统是否已初始化
             val memorySystem = this@LongTermMemory.memorySystem
                 ?: throw IllegalStateException("Memory system not initialized")
-            
+
             // 创建记忆
-            val memory = Memory(
+            val memory = SimpleMemory(
                 content = content,
                 metadata = metadata + mapOf(
                     "key" to key,
@@ -189,7 +189,7 @@ class LongTermMemory : KastraXCodeBase(component = "LONG_TERM_MEMORY") {
                 ),
                 timestamp = Instant.now()
             )
-            
+
             // 存储记忆
             return@withContext memorySystem.storeUserPreferenceMemory(userId, "cross_project:$key", content)
         } catch (e: Exception) {
@@ -197,7 +197,7 @@ class LongTermMemory : KastraXCodeBase(component = "LONG_TERM_MEMORY") {
             return@withContext false
         }
     }
-    
+
     /**
      * 检索跨项目知识
      *
@@ -207,11 +207,11 @@ class LongTermMemory : KastraXCodeBase(component = "LONG_TERM_MEMORY") {
     suspend fun retrieveCrossProjectKnowledge(key: String): String? = withContext(Dispatchers.IO) {
         try {
             logger.info { "检索跨项目知识: $key" }
-            
+
             // 检查记忆系统是否已初始化
             val memorySystem = this@LongTermMemory.memorySystem
                 ?: throw IllegalStateException("Memory system not initialized")
-            
+
             // 检索记忆
             return@withContext memorySystem.retrieveUserPreferenceMemory(userId, "cross_project:$key")
         } catch (e: Exception) {
@@ -219,7 +219,7 @@ class LongTermMemory : KastraXCodeBase(component = "LONG_TERM_MEMORY") {
             return@withContext null
         }
     }
-    
+
     /**
      * 清除用户记忆
      *
@@ -228,11 +228,11 @@ class LongTermMemory : KastraXCodeBase(component = "LONG_TERM_MEMORY") {
     suspend fun clearUserMemory(): Boolean = withContext(Dispatchers.IO) {
         try {
             logger.info { "清除用户记忆" }
-            
+
             // 检查记忆系统是否已初始化
             val memorySystem = this@LongTermMemory.memorySystem
                 ?: throw IllegalStateException("Memory system not initialized")
-            
+
             // 清除用户记忆
             return@withContext memorySystem.clearUserPreferenceMemory(userId)
         } catch (e: Exception) {
@@ -240,7 +240,7 @@ class LongTermMemory : KastraXCodeBase(component = "LONG_TERM_MEMORY") {
             return@withContext false
         }
     }
-    
+
     companion object {
         /**
          * 获取长期记忆实例

@@ -44,6 +44,7 @@ dependencies {
     // Kotlin 协程
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-jdk8:1.7.3")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-swing:1.7.3")
 
     // 日志
     implementation("io.github.oshai:kotlin-logging-jvm:5.1.0")
