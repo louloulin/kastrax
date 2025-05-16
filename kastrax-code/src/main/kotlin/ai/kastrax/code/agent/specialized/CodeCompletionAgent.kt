@@ -8,16 +8,14 @@ import ai.kastrax.code.model.CompletionRequest
 import ai.kastrax.code.model.CompletionResult
 import ai.kastrax.code.model.Context
 import ai.kastrax.code.model.DetailLevel
-import ai.kastrax.code.mock.Agent
-import ai.kastrax.code.mock.AgentConfig
-import ai.kastrax.code.mock.AgentContext
-import ai.kastrax.code.mock.AgentResponse
-import ai.kastrax.code.mock.DeepSeekProvider
-import ai.kastrax.code.mock.DeepSeekModel
-import ai.kastrax.code.mock.deepSeek
-import ai.kastrax.code.mock.LlmMessage
-import ai.kastrax.code.mock.LlmMessageRole
-import ai.kastrax.code.mock.LlmOptions
+import ai.kastrax.core.agent.Agent
+import ai.kastrax.core.agent.AgentGenerateOptions
+import ai.kastrax.core.llm.LlmMessage
+import ai.kastrax.core.llm.LlmMessageRole
+import ai.kastrax.core.llm.LlmProvider
+import ai.kastrax.core.llm.LlmResponse
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import ai.kastrax.integrations.deepseek.deepSeek
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
@@ -39,28 +37,23 @@ class CodeCompletionAgent(
 
     // 使用父类的logger
 
-    // 底层智能体
-    private val agent: Agent by lazy {
-        Agent(
-            id = "code-completion-agent",
-            config = AgentConfig(
-                name = "代码补全智能体",
-                description = "提供智能代码补全功能",
-                model = config.model,
-                temperature = config.temperature,
-                maxTokens = config.maxTokens
-            )
-        )
-    }
-
     // DeepSeek提供者
-    private val llmProvider by lazy {
+    private val llmProvider: LlmProvider by lazy {
         deepSeek {
             model(DeepSeekModel.DEEPSEEK_CODER)
-            apiKey(System.getenv("DEEPSEEK_API_KEY") ?: "mock-api-key")
+            apiKey(System.getenv("DEEPSEEK_API_KEY") ?: "")
             temperature(0.2)
             maxTokens(1000)
         }
+    }
+
+    // 底层智能体
+    private val agent: Agent by lazy {
+        Agent(
+            name = "代码补全智能体",
+            instructions = "你是一个专业的代码补全助手，擅长根据上下文提供高质量的代码补全建议。",
+            model = llmProvider
+        )
     }
 
     // 代码上下文引擎
@@ -106,13 +99,23 @@ class CodeCompletionAgent(
             val prompt = createCompletionPrompt(request, context)
 
             // 调用LLM
-            val response = llmProvider.generate(
-                prompt = prompt,
-                options = LlmOptions(
-                    temperature = config.temperature,
-                    maxTokens = config.maxTokens
+            val messages = listOf(
+                LlmMessage(
+                    role = LlmMessageRole.SYSTEM,
+                    content = "你是一个专业的代码补全助手，擅长根据上下文提供高质量的代码补全建议。"
+                ),
+                LlmMessage(
+                    role = LlmMessageRole.USER,
+                    content = prompt
                 )
             )
+
+            val options = AgentGenerateOptions(
+                temperature = config.temperature,
+                maxTokens = config.maxTokens
+            )
+
+            val response = llmProvider.generate(messages, options)
 
             // 解析补全结果
             return@withContext parseCompletionResults(response, maxCompletions)
@@ -235,7 +238,7 @@ class CodeCompletionAgent(
      * @param maxCompletions 最大补全数量
      * @return 补全结果列表
      */
-    private fun parseCompletionResults(response: ai.kastrax.code.mock.LlmResponse, maxCompletions: Int): List<CompletionResult> {
+    private fun parseCompletionResults(response: LlmResponse, maxCompletions: Int): List<CompletionResult> {
         try {
             // 提取JSON部分
             val jsonPattern = "\\{[\\s\\S]*?\"completions\"[\\s\\S]*?\\}".toRegex()
@@ -459,18 +462,7 @@ class CodeCompletionAgent(
     }
 }
 
-/**
- * 代码补全智能体配置
- *
- * @property model 模型
- * @property temperature 温度
- * @property maxTokens 最大令牌数
- */
-data class CodeCompletionAgentConfig(
-    val model: String = "deepseek-coder",
-    val temperature: Double = 0.2,
-    val maxTokens: Int = 1000
-)
+
 
 /**
  * 补全结果JSON

@@ -9,13 +9,19 @@ import ai.kastrax.code.context.CodeContextEngine
 import ai.kastrax.code.memory.ShortTermMemory
 import ai.kastrax.code.model.DetailLevel
 import ai.kastrax.code.model.TaskType
-import ai.kastrax.code.mock.Agent
-import ai.kastrax.code.mock.AgentConfig
-import ai.kastrax.code.mock.AgentContext
-import ai.kastrax.code.mock.AgentGenerateOptions
-import ai.kastrax.code.mock.DeepSeekProvider
-import ai.kastrax.code.mock.DeepSeekModel
-import ai.kastrax.code.mock.deepSeek
+import ai.kastrax.core.agent.Agent
+import ai.kastrax.core.agent.AgentGenerateOptions
+import ai.kastrax.core.agent.AgentNetwork
+import ai.kastrax.core.agent.AgentNetworkConfig
+import ai.kastrax.core.agent.agent
+import ai.kastrax.core.agent.agentNetwork
+import ai.kastrax.core.agent.routing.RoutingStrategy
+import ai.kastrax.core.agent.routing.ContextAwareRoutingStrategy
+import ai.kastrax.core.llm.LlmMessage
+import ai.kastrax.core.llm.LlmMessageRole
+import ai.kastrax.core.llm.LlmProvider
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import ai.kastrax.integrations.deepseek.deepSeek
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
@@ -36,27 +42,67 @@ class AgentCoordinator(
 
     // 使用父类的logger
 
-    // 底层智能体
-    private val routerAgent: Agent by lazy {
-        Agent(
-            id = "agent-router",
-            config = AgentConfig(
-                name = "智能体路由器",
-                description = "根据用户请求路由到合适的智能体",
-                model = config.model,
-                temperature = config.temperature,
-                maxTokens = config.maxTokens
-            )
-        )
-    }
-
     // DeepSeek提供者
-    private val llmProvider by lazy {
+    private val llmProvider: LlmProvider by lazy {
         deepSeek {
             model(DeepSeekModel.DEEPSEEK_CODER)
-            apiKey(System.getenv("DEEPSEEK_API_KEY") ?: "mock-api-key")
+            apiKey(System.getenv("DEEPSEEK_API_KEY") ?: "")
             temperature(0.3)
             maxTokens(2000)
+        }
+    }
+
+    // 代码补全智能体
+    private val codeCompletionAgent: Agent by lazy {
+        agent {
+            name = "代码补全智能体"
+            instructions = "你是一个专业的代码补全助手，擅长根据上下文提供高质量的代码补全建议。"
+            model = llmProvider
+        }
+    }
+
+    // 代码解释智能体
+    private val codeExplanationAgent: Agent by lazy {
+        agent {
+            name = "代码解释智能体"
+            instructions = "你是一个专业的代码解释助手，擅长解释复杂的代码并提供清晰的解释。"
+            model = llmProvider
+        }
+    }
+
+    // 代码重构智能体
+    private val codeRefactoringAgent: Agent by lazy {
+        agent {
+            name = "代码重构智能体"
+            instructions = "你是一个专业的代码重构助手，擅长优化和重构代码以提高其质量。"
+            model = llmProvider
+        }
+    }
+
+    // 测试生成智能体
+    private val testGenerationAgent: Agent by lazy {
+        agent {
+            name = "测试生成智能体"
+            instructions = "你是一个专业的测试生成助手，擅长为代码生成高质量的测试用例。"
+            model = llmProvider
+        }
+    }
+
+    // 智能体网络
+    private val agentNetwork: AgentNetwork by lazy {
+        agentNetwork {
+            name = "代码智能体网络"
+            instructions = "你是一个代码智能体网络，负责协调多个专业智能体解决复杂的编程问题。"
+            model = llmProvider
+
+            // 添加专业化智能体
+            agent(codeCompletionAgent)
+            agent(codeExplanationAgent)
+            agent(codeRefactoringAgent)
+            agent(testGenerationAgent)
+
+            // 使用上下文感知路由策略
+            useContextAwareRouting()
         }
     }
 
@@ -70,22 +116,7 @@ class AgentCoordinator(
         ShortTermMemory.getInstance(project)
     }
 
-    // 专业化智能体
-    private val codeCompletionAgent: CodeCompletionAgent by lazy {
-        CodeCompletionAgent.getInstance(project)
-    }
-
-    private val codeExplanationAgent: CodeExplanationAgent by lazy {
-        CodeExplanationAgent.getInstance(project)
-    }
-
-    private val codeRefactoringAgent: CodeRefactoringAgent by lazy {
-        CodeRefactoringAgent.getInstance(project)
-    }
-
-    private val testGenerationAgent: TestGenerationAgent by lazy {
-        TestGenerationAgent.getInstance(project)
-    }
+    // 专业化智能体已在前面定义
 
     /**
      * 处理用户请求
@@ -102,38 +133,27 @@ class AgentCoordinator(
 
             // 获取上下文
             val context = contextEngine.getQueryContext(request, 10, 0.0, true)
+            val contextContent = context.toString()
 
-            // 分析任务类型
-            val taskType = analyzeTaskType(request)
+            // 创建消息
+            val messages = listOf(
+                LlmMessage(
+                    role = LlmMessageRole.SYSTEM,
+                    content = "你是一个代码智能体网络，负责协调多个专业智能体解决复杂的编程问题。"
+                ),
+                LlmMessage(
+                    role = LlmMessageRole.USER,
+                    content = "$request\n\n上下文信息：\n$contextContent"
+                )
+            )
 
-            // 根据任务类型路由到合适的智能体
-            val response = when (taskType) {
-                TaskType.CODE_GENERATION -> {
-                    // 检测语言
-                    val language = detectLanguage(request)
-                    codeCompletionAgent.generateCode(request, language)
-                }
-                TaskType.CODE_EXPLANATION -> {
-                    // 提取代码
-                    val code = extractCode(request)
-                    val detailLevel = detectDetailLevel(request)
-                    codeExplanationAgent.explainCode(code, detailLevel)
-                }
-                TaskType.CODE_REFACTORING -> {
-                    // 提取代码和指令
-                    val (code, instructions) = extractCodeAndInstructions(request)
-                    codeRefactoringAgent.refactorCode(code, instructions)
-                }
-                TaskType.TEST_GENERATION -> {
-                    // 提取代码和框架
-                    val (code, framework) = extractCodeAndFramework(request)
-                    testGenerationAgent.generateTest(code, framework)
-                }
-                TaskType.UNKNOWN -> {
-                    // 使用路由智能体处理未知任务
-                    routeRequest(request, context.getContent())
-                }
-            }
+            // 生成响应
+            val options = AgentGenerateOptions(
+                temperature = config.temperature,
+                maxTokens = config.maxTokens
+            )
+
+            val response = agentNetwork.generate(messages, options).text
 
             // 存储到短期记忆
             shortTermMemory.storeMessage("assistant", response)
@@ -151,28 +171,42 @@ class AgentCoordinator(
      * @param request 用户请求
      * @return 任务类型
      */
-    private fun analyzeTaskType(request: String): TaskType {
-        // 简单的关键词匹配
+    private suspend fun analyzeTaskType(request: String): TaskType {
+        // 创建消息
+        val messages = listOf(
+            LlmMessage(
+                role = LlmMessageRole.SYSTEM,
+                content = """
+                    你是一个任务分类器，需要将用户请求分类为以下任务类型之一：
+                    1. CODE_GENERATION - 生成代码
+                    2. CODE_EXPLANATION - 解释代码
+                    3. CODE_REFACTORING - 重构代码
+                    4. TEST_GENERATION - 生成测试
+                    5. UNKNOWN - 未知任务
+
+                    请只返回任务类型，不要有其他内容。
+                """.trimIndent()
+            ),
+            LlmMessage(
+                role = LlmMessageRole.USER,
+                content = request
+            )
+        )
+
+        // 生成响应
+        val options = AgentGenerateOptions(
+            temperature = 0.0,
+            maxTokens = 10
+        )
+
+        val response = llmProvider.generate(messages, options).text.trim()
+
+        // 解析任务类型
         return when {
-            request.contains("生成代码") ||
-            request.contains("generate code", ignoreCase = true) ||
-            request.contains("write code", ignoreCase = true) ||
-            request.contains("implement", ignoreCase = true) -> TaskType.CODE_GENERATION
-
-            request.contains("解释代码") ||
-            request.contains("解释一下") ||
-            request.contains("explain", ignoreCase = true) ||
-            request.contains("what does", ignoreCase = true) -> TaskType.CODE_EXPLANATION
-
-            request.contains("重构代码") ||
-            request.contains("优化代码") ||
-            request.contains("refactor", ignoreCase = true) ||
-            request.contains("improve", ignoreCase = true) -> TaskType.CODE_REFACTORING
-
-            request.contains("生成测试") ||
-            request.contains("写测试") ||
-            request.contains("test", ignoreCase = true) -> TaskType.TEST_GENERATION
-
+            response.contains("CODE_GENERATION", ignoreCase = true) -> TaskType.CODE_GENERATION
+            response.contains("CODE_EXPLANATION", ignoreCase = true) -> TaskType.CODE_EXPLANATION
+            response.contains("CODE_REFACTORING", ignoreCase = true) -> TaskType.CODE_REFACTORING
+            response.contains("TEST_GENERATION", ignoreCase = true) -> TaskType.TEST_GENERATION
             else -> TaskType.UNKNOWN
         }
     }
@@ -185,16 +219,25 @@ class AgentCoordinator(
      * @return 响应
      */
     private suspend fun routeRequest(request: String, context: String): String {
-        // 模拟生成响应
-        val response = routerAgent.generate(
-            prompt = "$request\n\n上下文：$context",
-            options = AgentGenerateOptions(
-                temperature = 0.7,
-                maxTokens = 1000
+        // 创建消息
+        val messages = listOf(
+            LlmMessage(
+                role = LlmMessageRole.SYSTEM,
+                content = "你是一个代码智能助手，可以回答各种编程相关的问题。"
+            ),
+            LlmMessage(
+                role = LlmMessageRole.USER,
+                content = "$request\n\n上下文信息：\n$context"
             )
         )
 
-        return response.text
+        // 生成响应
+        val options = AgentGenerateOptions(
+            temperature = 0.7,
+            maxTokens = 1000
+        )
+
+        return llmProvider.generate(messages, options).text
     }
 
     /**
@@ -203,18 +246,41 @@ class AgentCoordinator(
      * @param request 用户请求
      * @return 语言
      */
-    private fun detectLanguage(request: String): String {
-        // 检测请求中提到的语言
-        return when {
-            request.contains("kotlin", ignoreCase = true) -> "kotlin"
-            request.contains("java", ignoreCase = true) -> "java"
-            request.contains("python", ignoreCase = true) -> "python"
-            request.contains("javascript", ignoreCase = true) || request.contains("js", ignoreCase = true) -> "javascript"
-            request.contains("typescript", ignoreCase = true) || request.contains("ts", ignoreCase = true) -> "typescript"
-            request.contains("html", ignoreCase = true) -> "html"
-            request.contains("css", ignoreCase = true) -> "css"
-            else -> "kotlin" // 默认为Kotlin
-        }
+    private suspend fun detectLanguage(request: String): String {
+        // 创建消息
+        val messages = listOf(
+            LlmMessage(
+                role = LlmMessageRole.SYSTEM,
+                content = """
+                    你是一个编程语言检测器，需要从用户请求中检测出用户想要使用的编程语言。
+                    请从以下语言中选择一个：
+                    kotlin, java, python, javascript, typescript, html, css, cpp, csharp, go, rust, php, ruby, swift
+
+                    如果无法确定，请返回 kotlin。
+                    请只返回语言名称，不要有其他内容。
+                """.trimIndent()
+            ),
+            LlmMessage(
+                role = LlmMessageRole.USER,
+                content = request
+            )
+        )
+
+        // 生成响应
+        val options = AgentGenerateOptions(
+            temperature = 0.0,
+            maxTokens = 10
+        )
+
+        val response = llmProvider.generate(messages, options).text.trim().lowercase()
+
+        // 验证语言
+        val validLanguages = setOf(
+            "kotlin", "java", "python", "javascript", "typescript",
+            "html", "css", "cpp", "csharp", "go", "rust", "php", "ruby", "swift"
+        )
+
+        return if (response in validLanguages) response else "kotlin"
     }
 
     /**
@@ -242,18 +308,42 @@ class AgentCoordinator(
      * @param request 用户请求
      * @return 详细程度
      */
-    private fun detectDetailLevel(request: String): DetailLevel {
+    private suspend fun detectDetailLevel(request: String): DetailLevel {
+        // 创建消息
+        val messages = listOf(
+            LlmMessage(
+                role = LlmMessageRole.SYSTEM,
+                content = """
+                    你是一个详细程度检测器，需要从用户请求中检测出用户想要的详细程度。
+                    请从以下选项中选择一个：
+                    BRIEF - 简要的解释
+                    NORMAL - 正常详细程度的解释
+                    DETAILED - 非常详细的解释
+
+                    如果用户请求中包含“详细”、“详尽”、“detailed”等词，请选择 DETAILED。
+                    如果用户请求中包含“简要”、“简单”、“brief”等词，请选择 BRIEF。
+                    如果无法确定，请选择 NORMAL。
+
+                    请只返回选项名称，不要有其他内容。
+                """.trimIndent()
+            ),
+            LlmMessage(
+                role = LlmMessageRole.USER,
+                content = request
+            )
+        )
+
+        // 生成响应
+        val options = AgentGenerateOptions(
+            temperature = 0.0,
+            maxTokens = 10
+        )
+
+        val response = llmProvider.generate(messages, options).text.trim().uppercase()
+
         return when {
-            request.contains("详细", ignoreCase = true) ||
-            request.contains("详尽", ignoreCase = true) ||
-            request.contains("详细解释", ignoreCase = true) ||
-            request.contains("detailed", ignoreCase = true) -> DetailLevel.DETAILED
-
-            request.contains("简要", ignoreCase = true) ||
-            request.contains("简单", ignoreCase = true) ||
-            request.contains("简短", ignoreCase = true) ||
-            request.contains("brief", ignoreCase = true) -> DetailLevel.BRIEF
-
+            response.contains("DETAILED") -> DetailLevel.DETAILED
+            response.contains("BRIEF") -> DetailLevel.BRIEF
             else -> DetailLevel.NORMAL
         }
     }
@@ -310,15 +400,4 @@ class AgentCoordinator(
     }
 }
 
-/**
- * 智能体协调器配置
- *
- * @property model 模型
- * @property temperature 温度
- * @property maxTokens 最大令牌数
- */
-data class AgentCoordinatorConfig(
-    val model: String = "deepseek-coder",
-    val temperature: Double = 0.2,
-    val maxTokens: Int = 1000
-)
+

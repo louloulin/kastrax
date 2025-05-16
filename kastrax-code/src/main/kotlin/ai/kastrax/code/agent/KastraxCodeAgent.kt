@@ -3,10 +3,14 @@ package ai.kastrax.code.agent
 import ai.kastrax.code.context.CodeContextEngine
 import ai.kastrax.code.model.DetailLevel
 import ai.kastrax.code.tools.CodeToolRegistry
-import ai.kastrax.code.mock.Agent
-import ai.kastrax.code.mock.AgentGenerateOptions
+import ai.kastrax.core.agent.Agent
+import ai.kastrax.core.agent.AgentGenerateOptions
+import ai.kastrax.core.agent.AgentResponse
 import ai.kastrax.code.common.KastraXCodeBase
-import com.intellij.openapi.diagnostic.Logger
+import ai.kastrax.core.llm.LlmMessage
+import ai.kastrax.core.llm.LlmMessageRole
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 /**
  * 基于 kastrax-core 的代码智能体实现
@@ -43,7 +47,18 @@ class KastraxCodeAgent(
             maxTokens = config.codeGenerationMaxTokens
         )
 
-        val response = agent.generate(enhancedPrompt, options)
+        val messages = listOf(
+            LlmMessage(
+                role = LlmMessageRole.SYSTEM,
+                content = "你是一个专业的代码生成助手，擅长编写高质量的代码。请根据用户的描述生成代码。"
+            ),
+            LlmMessage(
+                role = LlmMessageRole.USER,
+                content = enhancedPrompt
+            )
+        )
+
+        val response = agent.generate(messages, options)
         return extractCodeFromResponse(response.text, language)
     }
 
@@ -78,7 +93,18 @@ class KastraxCodeAgent(
             maxTokens = config.codeExplanationMaxTokens
         )
 
-        val response = agent.generate(enhancedPrompt, options)
+        val messages = listOf(
+            LlmMessage(
+                role = LlmMessageRole.SYSTEM,
+                content = "你是一个专业的代码解释助手，擅长解释代码的功能和实现。"
+            ),
+            LlmMessage(
+                role = LlmMessageRole.USER,
+                content = enhancedPrompt
+            )
+        )
+
+        val response = agent.generate(messages, options)
         return response.text
     }
 
@@ -111,7 +137,18 @@ class KastraxCodeAgent(
             maxTokens = config.codeRefactoringMaxTokens
         )
 
-        val response = agent.generate(enhancedPrompt, options)
+        val messages = listOf(
+            LlmMessage(
+                role = LlmMessageRole.SYSTEM,
+                content = "你是一个专业的代码重构助手，擅长优化和重构代码以提高其质量。"
+            ),
+            LlmMessage(
+                role = LlmMessageRole.USER,
+                content = enhancedPrompt
+            )
+        )
+
+        val response = agent.generate(messages, options)
         return extractCodeFromResponse(response.text)
     }
 
@@ -140,7 +177,18 @@ class KastraxCodeAgent(
             maxTokens = config.testGenerationMaxTokens
         )
 
-        val response = agent.generate(enhancedPrompt, options)
+        val messages = listOf(
+            LlmMessage(
+                role = LlmMessageRole.SYSTEM,
+                content = "你是一个专业的测试生成助手，擅长为代码生成高质量的测试用例。"
+            ),
+            LlmMessage(
+                role = LlmMessageRole.USER,
+                content = enhancedPrompt
+            )
+        )
+
+        val response = agent.generate(messages, options)
         return extractCodeFromResponse(response.text)
     }
 
@@ -170,7 +218,18 @@ class KastraxCodeAgent(
             maxTokens = maxTokens
         )
 
-        val response = agent.generate(enhancedPrompt, options)
+        val messages = listOf(
+            LlmMessage(
+                role = LlmMessageRole.SYSTEM,
+                content = "你是一个专业的代码补全助手，擅长根据上下文补全代码。请只返回补全的部分，不要重复已有代码。"
+            ),
+            LlmMessage(
+                role = LlmMessageRole.USER,
+                content = enhancedPrompt
+            )
+        )
+
+        val response = agent.generate(messages, options)
         return extractCodeFromResponse(response.text)
     }
 
@@ -199,27 +258,4 @@ class KastraxCodeAgent(
     }
 }
 
-/**
- * 代码智能体配置
- */
-data class CodeAgentConfig(
-    // 代码生成配置
-    val codeGenerationTemperature: Double = 0.3,
-    val codeGenerationMaxTokens: Int = 2000,
 
-    // 代码解释配置
-    val codeExplanationTemperature: Double = 0.7,
-    val codeExplanationMaxTokens: Int = 2000,
-
-    // 代码重构配置
-    val codeRefactoringTemperature: Double = 0.3,
-    val codeRefactoringMaxTokens: Int = 2000,
-
-    // 测试生成配置
-    val testGenerationTemperature: Double = 0.3,
-    val testGenerationMaxTokens: Int = 2000,
-
-    // 代码补全配置
-    val codeCompletionTemperature: Double = 0.2,
-    val codeCompletionMaxTokens: Int = 500
-)
