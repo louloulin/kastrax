@@ -180,109 +180,115 @@ KastraX-Code 提供了多种专业化智能体，用于解决特定的编程任�
 
 ## 6. 详细实现计划
 
+> 注意：✅ 表示已经实现的功能
+
 ### 6.1 阶段一：基础架构（1-2 周）
 
-#### 6.1.1 项目结构与构建系统
+#### 6.1.1 项目结构与构建系统 ✅
 
-- **项目初始化**
-  - 创建 kastrax-code 模块目录结构
-  - 配置 Gradle 构建脚本，集成 IntelliJ Platform Plugin SDK
-  - 设置依赖管理，引入 kastrax-core、kastrax-codebase 等模块
-  - 配置插件元数据（plugin.xml）
+- **项目初始化** ✅
+  - 创建 kastrax-code 模块目录结构 ✅
+  - 配置 Gradle 构建脚本，集成 IntelliJ Platform Plugin SDK ✅
+  - 设置依赖管理，引入 kastrax-core、kastrax-codebase 等模块 ✅
+  - 配置插件元数据（plugin.xml） ✅
 
-- **模块划分**
-  - `ai.kastrax.code.agent`：代码智能体实现
-  - `ai.kastrax.code.context`：代码上下文引擎
-  - `ai.kastrax.code.tools`：代码工具集
+- **模块划分** ✅
+  - `ai.kastrax.code.agent`：代码智能体实现 ✅
+  - `ai.kastrax.code.context`：代码上下文引擎 ✅
+  - `ai.kastrax.code.tools`：代码工具集 ✅
   - `ai.kastrax.code.memory`：代码记忆系统
-  - `ai.kastrax.code.ui`：IDE 用户界面
+  - `ai.kastrax.code.ui`：IDE 用户界面 ✅
   - `ai.kastrax.code.indexing`：代码索引系统
   - `ai.kastrax.code.workflow`：代码工作流系统
 
 #### 6.1.2 代码智能体基础架构
 
-- **核心智能体接口**
+- **核心智能体接口** ✅
   ```kotlin
   interface CodeAgent {
       suspend fun generateCode(prompt: String, language: String): String
       suspend fun explainCode(code: String, detailLevel: DetailLevel): String
       suspend fun refactorCode(code: String, instructions: String): String
       suspend fun generateTest(code: String, framework: String): String
+      suspend fun complete(code: String, language: String, maxTokens: Int = 100): String
   }
   ```
 
-- **基于 kastrax-core 的实现**
+- **基于 kastrax-core 的实现** ✅
   ```kotlin
   class KastraxCodeAgent(
       private val agent: Agent,
-      private val contextEngine: ContextEngine,
+      private val contextEngine: CodeContextEngine,
+      private val toolRegistry: CodeToolRegistry,
       private val config: CodeAgentConfig
   ) : CodeAgent {
       // 实现方法...
   }
   ```
 
-- **智能体工厂**
+- **智能体服务** ✅
   ```kotlin
-  object CodeAgentFactory {
-      fun createAdaptiveAgent(config: CodeAgentConfig): CodeAgent
-      fun createGoalOrientedAgent(config: CodeAgentConfig): CodeAgent
-      fun createHierarchicalAgent(config: CodeAgentConfig): CodeAgent
-      fun createReflectiveAgent(config: CodeAgentConfig): CodeAgent
-      fun createCreativeAgent(config: CodeAgentConfig): CodeAgent
+  @Service(Service.Level.PROJECT)
+  class CodeAgentService(private val project: Project) {
+      fun getCodeAgent(): CodeAgent
+      fun getContextEngine(): CodeContextEngine
+      fun getToolRegistry(): CodeToolRegistry
+      fun initialize()
+      fun dispose()
   }
   ```
 
-#### 6.1.3 代码工具集基础架构
+#### 6.1.3 代码工具集基础架构 ✅
 
-- **代码分析工具**
+- **代码分析工具** ✅
   ```kotlin
-  interface CodeAnalysisTool : Tool {
+  interface CodeAnalysisTool : CodeTool {
       suspend fun analyzeCode(code: String, language: String): CodeAnalysisResult
   }
   ```
 
-- **代码生成工具**
+- **代码生成工具** ✅
   ```kotlin
-  interface CodeGenerationTool : Tool {
+  interface CodeGenerationTool : CodeTool {
       suspend fun generateCode(spec: CodeGenerationSpec): String
   }
   ```
 
-- **代码搜索工具**
+- **代码搜索工具** ✅
   ```kotlin
-  interface CodeSearchTool : Tool {
+  interface CodeSearchTool : CodeTool {
       suspend fun searchCode(query: String, scope: SearchScope): List<CodeSearchResult>
   }
   ```
 
-- **工具注册系统**
+- **工具注册系统** ✅
   ```kotlin
   class CodeToolRegistry {
       fun registerTool(tool: Tool)
       fun getTools(): List<Tool>
       fun getToolById(id: String): Tool?
+      inline fun <reified T : Tool> getToolsByType(): List<T>
   }
   ```
 
-#### 6.1.4 代码上下文引擎基础架构
+#### 6.1.4 代码上下文引擎基础架构 ✅
 
-- **上下文引擎接口**
+- **上下文引擎接口** ✅
   ```kotlin
   interface CodeContextEngine {
       suspend fun indexCodebase(path: Path): Boolean
-      suspend fun getQueryContext(query: String, maxResults: Int = 10): Context
-      suspend fun getFileContext(filePath: Path): Context
-      suspend fun getEditContext(filePath: Path, position: Location): Context
-      suspend fun getSymbolContext(symbolName: String): Context
+      suspend fun getQueryContext(query: String, maxResults: Int = 10, minScore: Double = 0.0, includeRelated: Boolean = true): Context
+      suspend fun getFileContext(filePath: Path, maxResults: Int = 10): Context
+      suspend fun getEditContext(filePath: Path, position: Location, maxResults: Int = 10, minScore: Double = 0.0): Context
+      suspend fun getSymbolContext(symbolName: String, maxResults: Int = 10, minScore: Double = 0.0): Context
+      suspend fun close()
   }
   ```
 
-- **基于 kastrax-codebase 的实现**
+- **基于 kastrax-codebase 的实现** ✅
   ```kotlin
   class KastraxCodeContextEngine(
-      private val contextEngine: ContextEngine,
-      private val config: CodeContextEngineConfig
+      private val config: CodeContextEngineConfig = CodeContextEngineConfig()
   ) : CodeContextEngine {
       // 实现方法...
   }
@@ -841,7 +847,49 @@ KastraX-Code 可以与 kastrax-codex（JetBrains IDE 插件）集成，提供更
   - 用户调查：收集用户体验和满意度数据
   - 错误报告：实现自动错误报告和分析
 
-## 10. 总结
+## 10. 实现进展总结
+
+### 10.1 已实现功能
+
+- **项目基础架构** ✅
+  - 项目初始化与构建配置
+  - 模块划分与包结构
+  - 插件元数据配置
+
+- **核心接口定义** ✅
+  - 代码智能体接口（CodeAgent）
+  - 代码上下文引擎接口（CodeContextEngine）
+  - 代码工具集接口（CodeTool、CodeAnalysisTool、CodeGenerationTool、CodeSearchTool）
+  - 工具注册系统（CodeToolRegistry）
+
+- **基础实现类** ✅
+  - 代码智能体实现（KastraxCodeAgent）
+  - 代码智能体服务（CodeAgentService）
+  - 代码工具窗口工厂（CodeToolWindowFactory）
+
+- **测试用例** ✅
+  - 代码智能体测试（KastraxCodeAgentTest）
+
+### 10.2 下一步实现计划
+
+- **代码索引系统**
+  - 实现实时代码库索引
+  - 支持分支切换和增量更新
+  - 实现混合检索策略
+
+- **代码补全功能**
+  - 实现上下文感知补全
+  - 实现多行补全和函数补全
+
+- **代码解释和重构功能**
+  - 实现多级详细度解释
+  - 实现代码重构建议和实现
+
+- **用户界面完善**
+  - 实现交互式聊天界面
+  - 实现代码展示和操作区
+
+## 11. 总结
 
 KastraX-Code 是一个强大的智能编程助手 IDEA 插件，它充分利用 KastraX 的 Agent 架构、RAG 系统和代码库理解能力，为开发者提供全方位的编程辅助功能。借鉴 Augment 等先进编程助手的设计理念，KastraX-Code 实现了实时代码库索引、高性能上下文检索、智能代码生成和工具集成等核心功能，同时结合 KastraX 独特的 Agent 架构和 Actor 模型，提供更加灵活和强大的编程辅助体验。
 

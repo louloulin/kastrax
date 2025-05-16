@@ -19,9 +19,18 @@ pluginManagement {
 
 // 为kastrax-codex模块配置版本目录
 dependencyResolutionManagement {
+    repositories {
+        mavenCentral()
+        google()
+        maven { url = uri("https://maven.pkg.jetbrains.space/public/p/ktor/eap") }
+    }
+
+    // 只为kastrax-codex模块配置版本目录
     versionCatalogs {
-        create("libs") {
-            from(files("kastrax-codex/gradle/libs.versions.toml"))
+        if (System.getProperty("kastrax.codex.enabled") == "true") {
+            create("libs") {
+                from(files("kastrax-codex/gradle/libs.versions.toml"))
+            }
         }
     }
 }
@@ -52,6 +61,8 @@ include(":kastrax-integrations:kastrax-gemini")
 
 // 代码库理解模块
 include(":kastrax-codebase")
+// 智能编程助手 IDEA 插件
+include(":kastrax-code")
 // include(":kastrax-integrations:kastrax-mistral") // 暂时禁用，因为模块不存在
 // 暂时禁用 MCP 模块，因为它仍在开发中
  include(":kastrax-mcp")
