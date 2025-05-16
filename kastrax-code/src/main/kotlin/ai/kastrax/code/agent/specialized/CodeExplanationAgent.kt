@@ -1,5 +1,6 @@
 package ai.kastrax.code.agent.specialized
 
+import ai.kastrax.code.agent.AgentContext
 import ai.kastrax.code.agent.CodeAgent
 import ai.kastrax.code.common.KastraXCodeBase
 import ai.kastrax.code.context.CodeContextEngine
@@ -7,15 +8,16 @@ import ai.kastrax.code.memory.ShortTermMemory
 import ai.kastrax.code.model.DetailLevel
 import ai.kastrax.code.model.ExplanationRequest
 import ai.kastrax.code.model.ExplanationResult
-import ai.kastrax.code.mock.Agent
-import ai.kastrax.code.mock.AgentConfig
-import ai.kastrax.code.mock.AgentContext
-import ai.kastrax.code.mock.DeepSeekProvider
-import ai.kastrax.code.mock.DeepSeekModel
-import ai.kastrax.code.mock.deepSeek
-import ai.kastrax.code.mock.LlmMessage
-import ai.kastrax.code.mock.LlmMessageRole
-import ai.kastrax.code.mock.LlmOptions
+import ai.kastrax.core.agent.Agent
+import ai.kastrax.core.agent.AgentGenerateOptions
+import ai.kastrax.core.agent.agent
+import ai.kastrax.core.llm.LlmMessage
+import ai.kastrax.core.llm.LlmMessageRole
+import ai.kastrax.core.llm.LlmOptions
+import ai.kastrax.core.llm.LlmProvider
+import ai.kastrax.core.llm.LlmResponse
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import ai.kastrax.integrations.deepseek.deepSeek
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
@@ -38,23 +40,18 @@ class CodeExplanationAgent(
 
     // 底层智能体
     private val agent: Agent by lazy {
-        Agent(
-            id = "code-explanation-agent",
-            config = AgentConfig(
-                name = "代码解释智能体",
-                description = "提供代码解释功能",
-                model = config.model,
-                temperature = config.temperature,
-                maxTokens = config.maxTokens
-            )
-        )
+        agent {
+            name = "代码解释智能体"
+            instructions = "你是一个专业的代码解释助手，擅长解释复杂的代码并提供清晰的解释。"
+            model = llmProvider
+        }
     }
 
     // DeepSeek提供者
-    private val deepSeekProvider by lazy {
+    private val llmProvider: LlmProvider by lazy {
         deepSeek {
             model(DeepSeekModel.DEEPSEEK_CODER)
-            apiKey(System.getenv("DEEPSEEK_API_KEY") ?: "mock-api-key")
+            apiKey(System.getenv("DEEPSEEK_API_KEY") ?: "")
             temperature(0.3)
             maxTokens(2000)
         }
@@ -97,14 +94,23 @@ class CodeExplanationAgent(
             val prompt = createExplanationPrompt(request)
 
             // 调用LLM
-            val llmRequest = LLMRequest(
-                model = config.model,
-                prompt = prompt,
+            val messages = listOf(
+                LlmMessage(
+                    role = LlmMessageRole.SYSTEM,
+                    content = "你是一个专业的代码解释助手，擅长解释复杂的代码并提供清晰的解释。"
+                ),
+                LlmMessage(
+                    role = LlmMessageRole.USER,
+                    content = prompt
+                )
+            )
+
+            val options = LlmOptions(
                 temperature = config.temperature,
                 maxTokens = config.maxTokens
             )
 
-            val llmResponse = llmProvider.complete(llmRequest)
+            val llmResponse = llmProvider.generate(messages, options)
 
             // 存储到短期记忆
             shortTermMemory.storeMessage("user", "请解释以下${language}代码：\n$code")
@@ -192,13 +198,29 @@ class CodeExplanationAgent(
             )
 
             // 调用代理
-            val response = agent.process(agentContext)
+            val messages = listOf(
+                LlmMessage(
+                    role = LlmMessageRole.SYSTEM,
+                    content = "你是一个专业的代码生成助手，擅长编写高质量的代码。"
+                ),
+                LlmMessage(
+                    role = LlmMessageRole.USER,
+                    content = agentContext.toString()
+                )
+            )
+
+            val options = AgentGenerateOptions(
+                temperature = config.temperature,
+                maxTokens = config.maxTokens
+            )
+
+            val response = agent.generate(messages, options)
 
             // 存储到短期记忆
             shortTermMemory.storeMessage("user", prompt)
-            shortTermMemory.storeMessage("assistant", response.output)
+            shortTermMemory.storeMessage("assistant", response.text)
 
-            return@withContext response.output
+            return@withContext response.text
         } catch (e: Exception) {
             logger.error("生成代码时出错: $prompt, 语言: $language", e)
             return@withContext "生成代码时出错: ${e.message}"
@@ -253,13 +275,29 @@ class CodeExplanationAgent(
             )
 
             // 调用代理
-            val response = agent.process(agentContext)
+            val messages = listOf(
+                LlmMessage(
+                    role = LlmMessageRole.SYSTEM,
+                    content = "你是一个专业的代码重构助手，擅长优化和重构代码以提高其质量。"
+                ),
+                LlmMessage(
+                    role = LlmMessageRole.USER,
+                    content = agentContext.toString()
+                )
+            )
+
+            val options = AgentGenerateOptions(
+                temperature = config.temperature,
+                maxTokens = config.maxTokens
+            )
+
+            val response = agent.generate(messages, options)
 
             // 存储到短期记忆
             shortTermMemory.storeMessage("user", "请根据以下指令重构代码：\n$instructions\n\n代码：\n$code")
-            shortTermMemory.storeMessage("assistant", response.output)
+            shortTermMemory.storeMessage("assistant", response.text)
 
-            return@withContext response.output
+            return@withContext response.text
         } catch (e: Exception) {
             logger.error("重构代码时出错: $instructions", e)
             return@withContext "重构代码时出错: ${e.message}"
@@ -287,13 +325,29 @@ class CodeExplanationAgent(
             )
 
             // 调用代理
-            val response = agent.process(agentContext)
+            val messages = listOf(
+                LlmMessage(
+                    role = LlmMessageRole.SYSTEM,
+                    content = "你是一个专业的测试生成助手，擅长为代码生成高质量的测试用例。"
+                ),
+                LlmMessage(
+                    role = LlmMessageRole.USER,
+                    content = agentContext.toString()
+                )
+            )
+
+            val options = AgentGenerateOptions(
+                temperature = config.temperature,
+                maxTokens = config.maxTokens
+            )
+
+            val response = agent.generate(messages, options)
 
             // 存储到短期记忆
             shortTermMemory.storeMessage("user", "请为以下代码生成$framework测试：\n$code")
-            shortTermMemory.storeMessage("assistant", response.output)
+            shortTermMemory.storeMessage("assistant", response.text)
 
-            return@withContext response.output
+            return@withContext response.text
         } catch (e: Exception) {
             logger.error("生成测试时出错: $framework", e)
             return@withContext "生成测试时出错: ${e.message}"
@@ -330,7 +384,7 @@ class CodeExplanationAgent(
      */
     override suspend fun complete(code: String, language: String, maxTokens: Int): String = withContext(Dispatchers.IO) {
         try {
-            logger.info{"补全代码, 语言: $language")
+            logger.info("补全代码, 语言: $language")
 
             // 生成代码
             return@withContext generateCode("补全以下代码: $code", language)

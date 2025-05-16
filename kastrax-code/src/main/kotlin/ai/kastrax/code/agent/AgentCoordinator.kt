@@ -3,6 +3,10 @@ package ai.kastrax.code.agent
 import ai.kastrax.code.agent.specialized.CodeCompletionAgent
 import ai.kastrax.code.agent.specialized.CodeExplanationAgent
 import ai.kastrax.code.agent.specialized.CodeRefactoringAgent
+import ai.kastrax.code.agent.specialized.DetailLevelDetectorAgent
+import ai.kastrax.code.agent.specialized.LanguageDetectorAgent
+import ai.kastrax.code.agent.specialized.QueryResponseAgent
+import ai.kastrax.code.agent.specialized.TaskClassifierAgent
 import ai.kastrax.code.agent.specialized.TestGenerationAgent
 import ai.kastrax.code.common.KastraXCodeBase
 import ai.kastrax.code.context.CodeContextEngine
@@ -42,7 +46,7 @@ class AgentCoordinator(
 
     // 使用父类的logger
 
-    // DeepSeek提供者
+    // DeepSeek提供者 - 仅用于智能体网络
     private val llmProvider: LlmProvider by lazy {
         deepSeek {
             model(DeepSeekModel.DEEPSEEK_CODER)
@@ -50,6 +54,26 @@ class AgentCoordinator(
             temperature(0.3)
             maxTokens(2000)
         }
+    }
+
+    // 任务分类智能体
+    private val taskClassifierAgent: TaskClassifierAgent by lazy {
+        TaskClassifierAgent.getInstance(project)
+    }
+
+    // 语言检测智能体
+    private val languageDetectorAgent: LanguageDetectorAgent by lazy {
+        LanguageDetectorAgent.getInstance(project)
+    }
+
+    // 详细程度检测智能体
+    private val detailLevelDetectorAgent: DetailLevelDetectorAgent by lazy {
+        DetailLevelDetectorAgent.getInstance(project)
+    }
+
+    // 查询响应智能体
+    private val queryResponseAgent: QueryResponseAgent by lazy {
+        QueryResponseAgent.getInstance(project)
     }
 
     // 代码补全智能体
@@ -172,43 +196,7 @@ class AgentCoordinator(
      * @return 任务类型
      */
     private suspend fun analyzeTaskType(request: String): TaskType {
-        // 创建消息
-        val messages = listOf(
-            LlmMessage(
-                role = LlmMessageRole.SYSTEM,
-                content = """
-                    你是一个任务分类器，需要将用户请求分类为以下任务类型之一：
-                    1. CODE_GENERATION - 生成代码
-                    2. CODE_EXPLANATION - 解释代码
-                    3. CODE_REFACTORING - 重构代码
-                    4. TEST_GENERATION - 生成测试
-                    5. UNKNOWN - 未知任务
-
-                    请只返回任务类型，不要有其他内容。
-                """.trimIndent()
-            ),
-            LlmMessage(
-                role = LlmMessageRole.USER,
-                content = request
-            )
-        )
-
-        // 生成响应
-        val options = AgentGenerateOptions(
-            temperature = 0.0,
-            maxTokens = 10
-        )
-
-        val response = llmProvider.generate(messages, options).text.trim()
-
-        // 解析任务类型
-        return when {
-            response.contains("CODE_GENERATION", ignoreCase = true) -> TaskType.CODE_GENERATION
-            response.contains("CODE_EXPLANATION", ignoreCase = true) -> TaskType.CODE_EXPLANATION
-            response.contains("CODE_REFACTORING", ignoreCase = true) -> TaskType.CODE_REFACTORING
-            response.contains("TEST_GENERATION", ignoreCase = true) -> TaskType.TEST_GENERATION
-            else -> TaskType.UNKNOWN
-        }
+        return taskClassifierAgent.analyzeTaskType(request)
     }
 
     /**
@@ -219,25 +207,7 @@ class AgentCoordinator(
      * @return 响应
      */
     private suspend fun routeRequest(request: String, context: String): String {
-        // 创建消息
-        val messages = listOf(
-            LlmMessage(
-                role = LlmMessageRole.SYSTEM,
-                content = "你是一个代码智能助手，可以回答各种编程相关的问题。"
-            ),
-            LlmMessage(
-                role = LlmMessageRole.USER,
-                content = "$request\n\n上下文信息：\n$context"
-            )
-        )
-
-        // 生成响应
-        val options = AgentGenerateOptions(
-            temperature = 0.7,
-            maxTokens = 1000
-        )
-
-        return llmProvider.generate(messages, options).text
+        return queryResponseAgent.answerQuery(request, context)
     }
 
     /**
@@ -247,40 +217,7 @@ class AgentCoordinator(
      * @return 语言
      */
     private suspend fun detectLanguage(request: String): String {
-        // 创建消息
-        val messages = listOf(
-            LlmMessage(
-                role = LlmMessageRole.SYSTEM,
-                content = """
-                    你是一个编程语言检测器，需要从用户请求中检测出用户想要使用的编程语言。
-                    请从以下语言中选择一个：
-                    kotlin, java, python, javascript, typescript, html, css, cpp, csharp, go, rust, php, ruby, swift
-
-                    如果无法确定，请返回 kotlin。
-                    请只返回语言名称，不要有其他内容。
-                """.trimIndent()
-            ),
-            LlmMessage(
-                role = LlmMessageRole.USER,
-                content = request
-            )
-        )
-
-        // 生成响应
-        val options = AgentGenerateOptions(
-            temperature = 0.0,
-            maxTokens = 10
-        )
-
-        val response = llmProvider.generate(messages, options).text.trim().lowercase()
-
-        // 验证语言
-        val validLanguages = setOf(
-            "kotlin", "java", "python", "javascript", "typescript",
-            "html", "css", "cpp", "csharp", "go", "rust", "php", "ruby", "swift"
-        )
-
-        return if (response in validLanguages) response else "kotlin"
+        return languageDetectorAgent.detectLanguage(request)
     }
 
     /**
@@ -309,43 +246,7 @@ class AgentCoordinator(
      * @return 详细程度
      */
     private suspend fun detectDetailLevel(request: String): DetailLevel {
-        // 创建消息
-        val messages = listOf(
-            LlmMessage(
-                role = LlmMessageRole.SYSTEM,
-                content = """
-                    你是一个详细程度检测器，需要从用户请求中检测出用户想要的详细程度。
-                    请从以下选项中选择一个：
-                    BRIEF - 简要的解释
-                    NORMAL - 正常详细程度的解释
-                    DETAILED - 非常详细的解释
-
-                    如果用户请求中包含“详细”、“详尽”、“detailed”等词，请选择 DETAILED。
-                    如果用户请求中包含“简要”、“简单”、“brief”等词，请选择 BRIEF。
-                    如果无法确定，请选择 NORMAL。
-
-                    请只返回选项名称，不要有其他内容。
-                """.trimIndent()
-            ),
-            LlmMessage(
-                role = LlmMessageRole.USER,
-                content = request
-            )
-        )
-
-        // 生成响应
-        val options = AgentGenerateOptions(
-            temperature = 0.0,
-            maxTokens = 10
-        )
-
-        val response = llmProvider.generate(messages, options).text.trim().uppercase()
-
-        return when {
-            response.contains("DETAILED") -> DetailLevel.DETAILED
-            response.contains("BRIEF") -> DetailLevel.BRIEF
-            else -> DetailLevel.NORMAL
-        }
+        return detailLevelDetectorAgent.detectDetailLevel(request)
     }
 
     /**
@@ -399,5 +300,3 @@ class AgentCoordinator(
         }
     }
 }
-
-

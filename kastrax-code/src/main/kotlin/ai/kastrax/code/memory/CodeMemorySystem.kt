@@ -2,7 +2,6 @@ package ai.kastrax.code.memory
 
 import ai.kastrax.code.model.Context
 import ai.kastrax.code.model.ContextElement
-import ai.kastrax.memory.api.MemoryType
 
 /**
  * 代码记忆系统接口

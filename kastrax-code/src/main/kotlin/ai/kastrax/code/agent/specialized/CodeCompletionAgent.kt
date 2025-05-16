@@ -1,5 +1,6 @@
 package ai.kastrax.code.agent.specialized
 
+import ai.kastrax.code.agent.AgentContext
 import ai.kastrax.code.agent.CodeAgent
 import ai.kastrax.code.common.KastraXCodeBase
 import ai.kastrax.code.context.CodeContextEngine
@@ -10,8 +11,10 @@ import ai.kastrax.code.model.Context
 import ai.kastrax.code.model.DetailLevel
 import ai.kastrax.core.agent.Agent
 import ai.kastrax.core.agent.AgentGenerateOptions
+import ai.kastrax.core.agent.agent
 import ai.kastrax.core.llm.LlmMessage
 import ai.kastrax.core.llm.LlmMessageRole
+import ai.kastrax.core.llm.LlmOptions
 import ai.kastrax.core.llm.LlmProvider
 import ai.kastrax.core.llm.LlmResponse
 import ai.kastrax.integrations.deepseek.DeepSeekModel
@@ -49,11 +52,11 @@ class CodeCompletionAgent(
 
     // 底层智能体
     private val agent: Agent by lazy {
-        Agent(
-            name = "代码补全智能体",
-            instructions = "你是一个专业的代码补全助手，擅长根据上下文提供高质量的代码补全建议。",
+        agent {
+            name = "代码补全智能体"
+            instructions = "你是一个专业的代码补全助手，擅长根据上下文提供高质量的代码补全建议。"
             model = llmProvider
-        )
+        }
     }
 
     // 代码上下文引擎
@@ -110,7 +113,7 @@ class CodeCompletionAgent(
                 )
             )
 
-            val options = AgentGenerateOptions(
+            val options = LlmOptions(
                 temperature = config.temperature,
                 maxTokens = config.maxTokens
             )
@@ -242,7 +245,7 @@ class CodeCompletionAgent(
         try {
             // 提取JSON部分
             val jsonPattern = "\\{[\\s\\S]*?\"completions\"[\\s\\S]*?\\}".toRegex()
-            val jsonMatch = jsonPattern.find(response.text)
+            val jsonMatch = jsonPattern.find(response.content)
 
             if (jsonMatch != null) {
                 val jsonString = jsonMatch.value
@@ -263,7 +266,7 @@ class CodeCompletionAgent(
 
             // 如果无法解析JSON，尝试直接提取补全
             val completionPattern = "```[\\s\\S]*?([\\s\\S]*?)```".toRegex()
-            val completionMatches = completionPattern.findAll(response.text)
+            val completionMatches = completionPattern.findAll(response.content)
 
             if (completionMatches.count() > 0) {
                 return completionMatches.take(maxCompletions).mapIndexed { index, match ->
@@ -304,7 +307,7 @@ class CodeCompletionAgent(
                 input = prompt,
                 metadata = mapOf(
                     "language" to language,
-                    "context" to context.getContent()
+                    "context" to context.toString()
                 )
             )
 
