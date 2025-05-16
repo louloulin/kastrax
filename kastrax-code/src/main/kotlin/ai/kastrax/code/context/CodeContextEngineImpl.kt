@@ -1,0 +1,390 @@
+package ai.kastrax.code.context
+
+import ai.kastrax.code.common.KastraXCodeBase
+import ai.kastrax.code.indexing.CodeIndexManager
+import ai.kastrax.code.model.Context
+import ai.kastrax.code.model.ContextElement
+import ai.kastrax.code.model.Location
+import ai.kastrax.codebase.retrieval.model.RetrievalRequest
+import ai.kastrax.codebase.retrieval.model.RetrievalResult
+import ai.kastrax.codebase.search.CodeSearchService
+import ai.kastrax.codebase.search.SearchFacade
+import ai.kastrax.codebase.search.SearchMode
+import ai.kastrax.codebase.semantic.model.CodeElementType
+import com.intellij.openapi.components.Service
+import com.intellij.openapi.components.service
+import com.intellij.openapi.project.Project
+import io.github.oshai.kotlinlogging.KotlinLogging
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import java.nio.file.Path
+import java.nio.file.Paths
+
+/**
+ * 代码上下文引擎实现
+ *
+ * 基于 kastrax-codebase 实现代码上下文引擎
+ */
+@Service(Service.Level.PROJECT)
+class CodeContextEngineImpl(
+    private val project: Project,
+    private val config: CodeContextEngineConfig = CodeContextEngineConfig()
+) : CodeContextEngine, KastraXCodeBase(component = "CODE_CONTEXT_ENGINE") {
+    
+    override val logger = KotlinLogging.logger {}
+    
+    // 代码索引管理器
+    private val indexManager by lazy { CodeIndexManager.getInstance(project) }
+    
+    // 代码搜索服务
+    private val searchService: CodeSearchService by lazy {
+        // 从项目服务中获取，如果没有则创建一个新的
+        project.getService(CodeSearchService::class.java) ?: CodeSearchService()
+    }
+    
+    // 搜索门面
+    private val searchFacade: SearchFacade by lazy {
+        // 从项目服务中获取，如果没有则创建一个新的
+        project.getService(SearchFacade::class.java) ?: SearchFacade(searchService)
+    }
+    
+    /**
+     * 索引代码库
+     *
+     * @param path 代码库路径
+     * @return 是否成功索引
+     */
+    override suspend fun indexCodebase(path: Path): Boolean = withContext(Dispatchers.IO) {
+        try {
+            logger.info { "开始索引代码库: $path" }
+            
+            // 启动索引管理器
+            indexManager.start(path)
+            
+            return@withContext true
+        } catch (e: Exception) {
+            logger.error(e) { "索引代码库时出错: $path" }
+            return@withContext false
+        }
+    }
+    
+    /**
+     * 获取查询上下文
+     *
+     * @param query 查询文本
+     * @param maxResults 最大结果数量
+     * @param minScore 最小相似度分数
+     * @param includeRelated 是否包含相关元素
+     * @return 上下文
+     */
+    override suspend fun getQueryContext(
+        query: String,
+        maxResults: Int,
+        minScore: Double,
+        includeRelated: Boolean
+    ): Context = withContext(Dispatchers.IO) {
+        try {
+            logger.info { "获取查询上下文: $query" }
+            
+            // 创建检索请求
+            val request = RetrievalRequest(
+                query = query,
+                options = mapOf(
+                    "limit" to maxResults,
+                    "minScore" to minScore
+                )
+            )
+            
+            // 执行混合搜索
+            val results = searchFacade.search(request, SearchMode.HYBRID)
+            
+            // 转换为上下文元素
+            val elements = results.map { convertToContextElement(it) }
+            
+            // 如果需要包含相关元素，则获取相关元素
+            val relatedElements = if (includeRelated) {
+                getRelatedElements(elements, maxResults)
+            } else {
+                emptyList()
+            }
+            
+            // 创建上下文
+            return@withContext Context(
+                elements = elements + relatedElements,
+                query = query
+            )
+        } catch (e: Exception) {
+            logger.error(e) { "获取查询上下文时出错: $query" }
+            return@withContext Context(
+                elements = emptyList(),
+                query = query
+            )
+        }
+    }
+    
+    /**
+     * 获取文件上下文
+     *
+     * @param filePath 文件路径
+     * @param maxResults 最大结果数量
+     * @return 上下文
+     */
+    override suspend fun getFileContext(filePath: Path, maxResults: Int): Context = withContext(Dispatchers.IO) {
+        try {
+            logger.info { "获取文件上下文: $filePath" }
+            
+            // 创建检索请求
+            val request = RetrievalRequest(
+                query = "file:${filePath.fileName}",
+                options = mapOf(
+                    "limit" to maxResults,
+                    "exactMatch" to true
+                )
+            )
+            
+            // 执行关键词搜索
+            val results = searchFacade.search(request, SearchMode.KEYWORD)
+            
+            // 转换为上下文元素
+            val elements = results.map { convertToContextElement(it) }
+            
+            // 创建上下文
+            return@withContext Context(
+                elements = elements,
+                query = "file:${filePath.fileName}"
+            )
+        } catch (e: Exception) {
+            logger.error(e) { "获取文件上下文时出错: $filePath" }
+            return@withContext Context(
+                elements = emptyList(),
+                query = "file:${filePath.fileName}"
+            )
+        }
+    }
+    
+    /**
+     * 获取编辑上下文
+     *
+     * @param filePath 文件路径
+     * @param position 位置
+     * @param maxResults 最大结果数量
+     * @param minScore 最小相似度分数
+     * @return 上下文
+     */
+    override suspend fun getEditContext(
+        filePath: Path,
+        position: Location,
+        maxResults: Int,
+        minScore: Double
+    ): Context = withContext(Dispatchers.IO) {
+        try {
+            logger.info { "获取编辑上下文: $filePath, 位置: $position" }
+            
+            // 获取文件上下文
+            val fileContext = getFileContext(filePath, maxResults)
+            
+            // 创建检索请求
+            val request = RetrievalRequest(
+                query = "location:${filePath.fileName}:${position.line}",
+                options = mapOf(
+                    "limit" to maxResults,
+                    "minScore" to minScore
+                )
+            )
+            
+            // 执行结构感知搜索
+            val results = searchFacade.search(request, SearchMode.STRUCTURE_AWARE)
+            
+            // 转换为上下文元素
+            val elements = results.map { convertToContextElement(it) }
+            
+            // 创建上下文
+            return@withContext Context(
+                elements = elements + fileContext.elements,
+                query = "location:${filePath.fileName}:${position.line}"
+            )
+        } catch (e: Exception) {
+            logger.error(e) { "获取编辑上下文时出错: $filePath, 位置: $position" }
+            return@withContext Context(
+                elements = emptyList(),
+                query = "location:${filePath.fileName}:${position.line}"
+            )
+        }
+    }
+    
+    /**
+     * 获取符号上下文
+     *
+     * @param symbolName 符号名称
+     * @param maxResults 最大结果数量
+     * @param minScore 最小相似度分数
+     * @return 上下文
+     */
+    override suspend fun getSymbolContext(
+        symbolName: String,
+        maxResults: Int,
+        minScore: Double
+    ): Context = withContext(Dispatchers.IO) {
+        try {
+            logger.info { "获取符号上下文: $symbolName" }
+            
+            // 创建检索请求
+            val request = RetrievalRequest(
+                query = "symbol:$symbolName",
+                options = mapOf(
+                    "limit" to maxResults,
+                    "minScore" to minScore,
+                    "exactMatch" to true
+                )
+            )
+            
+            // 执行关键词搜索
+            val results = searchFacade.search(request, SearchMode.KEYWORD)
+            
+            // 转换为上下文元素
+            val elements = results.map { convertToContextElement(it) }
+            
+            // 创建上下文
+            return@withContext Context(
+                elements = elements,
+                query = "symbol:$symbolName"
+            )
+        } catch (e: Exception) {
+            logger.error(e) { "获取符号上下文时出错: $symbolName" }
+            return@withContext Context(
+                elements = emptyList(),
+                query = "symbol:$symbolName"
+            )
+        }
+    }
+    
+    /**
+     * 关闭上下文引擎
+     */
+    override suspend fun close() {
+        try {
+            logger.info { "关闭上下文引擎" }
+            
+            // 停止索引管理器
+            indexManager.stop()
+        } catch (e: Exception) {
+            logger.error(e) { "关闭上下文引擎时出错" }
+        }
+    }
+    
+    /**
+     * 转换检索结果为上下文元素
+     *
+     * @param result 检索结果
+     * @return 上下文元素
+     */
+    private fun convertToContextElement(result: RetrievalResult): ContextElement {
+        val element = result.element
+        
+        return ContextElement(
+            id = element.id,
+            name = element.name,
+            type = element.type.name,
+            content = element.content,
+            filePath = element.location?.filePath?.let { Paths.get(it) },
+            location = element.location?.let {
+                Location(
+                    line = it.startLine,
+                    column = it.startColumn,
+                    endLine = it.endLine,
+                    endColumn = it.endColumn
+                )
+            },
+            score = result.score
+        )
+    }
+    
+    /**
+     * 获取相关元素
+     *
+     * @param elements 上下文元素列表
+     * @param maxResults 最大结果数量
+     * @return 相关元素列表
+     */
+    private suspend fun getRelatedElements(elements: List<ContextElement>, maxResults: Int): List<ContextElement> {
+        val relatedElements = mutableListOf<ContextElement>()
+        
+        // 对每个元素获取相关元素
+        for (element in elements) {
+            if (relatedElements.size >= maxResults) {
+                break
+            }
+            
+            // 获取相关元素
+            val related = getRelatedElementsForElement(element, maxResults - relatedElements.size)
+            
+            // 添加到结果列表
+            relatedElements.addAll(related)
+        }
+        
+        return relatedElements
+    }
+    
+    /**
+     * 获取单个元素的相关元素
+     *
+     * @param element 上下文元素
+     * @param maxResults 最大结果数量
+     * @return 相关元素列表
+     */
+    private suspend fun getRelatedElementsForElement(element: ContextElement, maxResults: Int): List<ContextElement> {
+        // 如果元素没有名称，则返回空列表
+        if (element.name.isBlank()) {
+            return emptyList()
+        }
+        
+        // 创建检索请求
+        val request = RetrievalRequest(
+            query = "related:${element.name}",
+            options = mapOf(
+                "limit" to maxResults,
+                "types" to setOf(
+                    CodeElementType.CLASS,
+                    CodeElementType.METHOD,
+                    CodeElementType.FIELD,
+                    CodeElementType.INTERFACE
+                )
+            )
+        )
+        
+        // 执行结构感知搜索
+        val results = searchFacade.search(request, SearchMode.STRUCTURE_AWARE)
+        
+        // 转换为上下文元素
+        return results.map { convertToContextElement(it) }
+    }
+    
+    companion object {
+        /**
+         * 获取项目的代码上下文引擎实例
+         *
+         * @param project 项目
+         * @return 代码上下文引擎实例
+         */
+        fun getInstance(project: Project): CodeContextEngine {
+            return project.service<CodeContextEngineImpl>()
+        }
+    }
+}
+
+/**
+ * 代码上下文引擎配置
+ *
+ * @property enableIncrementalIndexing 是否启用增量索引
+ * @property enableGitIntegration 是否启用Git集成
+ * @property enableFileSystemMonitoring 是否启用文件系统监控
+ * @property maxContextElements 最大上下文元素数量
+ * @property minRelevanceScore 最小相关性分数
+ */
+data class CodeContextEngineConfig(
+    val enableIncrementalIndexing: Boolean = true,
+    val enableGitIntegration: Boolean = true,
+    val enableFileSystemMonitoring: Boolean = true,
+    val maxContextElements: Int = 20,
+    val minRelevanceScore: Double = 0.5
+)

@@ -3,6 +3,7 @@ package ai.kastrax.code.ui
 import ai.kastrax.code.service.CodeAgentService
 import ai.kastrax.code.service.ConversationService
 import ai.kastrax.code.ui.components.ChatPanel
+import ai.kastrax.code.ui.components.EnhancedChatPanel
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.wm.ToolWindow
 import com.intellij.openapi.wm.ToolWindowFactory
@@ -49,17 +50,11 @@ class CodeToolWindowFactory : ToolWindowFactory {
      * @return 聊天面板
      */
     private fun createChatPanel(project: Project): JPanel {
-        val panel = JPanel(BorderLayout())
-        panel.border = JBUI.Borders.empty(8)
-
         // 获取或创建会话
         val conversationService = ConversationService.getInstance(project)
         val conversation = conversationService.getCurrentConversation()
 
-        // 创建聊天面板
-        val chatPanel = ChatPanel(project, conversation)
-        panel.add(chatPanel, BorderLayout.CENTER)
-
-        return panel
+        // 创建增强聊天面板
+        return EnhancedChatPanel(project, conversation)
     }
 }

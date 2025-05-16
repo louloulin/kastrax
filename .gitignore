@@ -17,6 +17,7 @@ build/
 *.iws
 out/
 .intellijPlatform
+temp_extract
 # Local configuration files
 local.properties
 
