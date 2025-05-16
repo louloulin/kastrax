@@ -12,6 +12,7 @@ import ai.kastrax.code.model.TaskType
 import ai.kastrax.code.mock.Agent
 import ai.kastrax.code.mock.AgentConfig
 import ai.kastrax.code.mock.AgentContext
+import ai.kastrax.code.mock.AgentGenerateOptions
 import ai.kastrax.code.mock.DeepSeekProvider
 import ai.kastrax.code.mock.DeepSeekModel
 import ai.kastrax.code.mock.deepSeek
@@ -150,37 +151,28 @@ class AgentCoordinator(
      * @param request 用户请求
      * @return 任务类型
      */
-    private suspend fun analyzeTaskType(request: String): TaskType {
-        // 创建提示
-        val prompt = """
-            你是一个任务分类器，需要将用户请求分类为以下任务类型之一：
-            1. CODE_GENERATION - 生成代码
-            2. CODE_EXPLANATION - 解释代码
-            3. CODE_REFACTORING - 重构代码
-            4. TEST_GENERATION - 生成测试
-            5. UNKNOWN - 未知任务
-
-            请分析以下用户请求，并返回对应的任务类型（仅返回任务类型，不要有其他内容）：
-
-            $request
-        """.trimIndent()
-
-        // 调用LLM
-        val llmRequest = LLMRequest(
-            model = config.model,
-            prompt = prompt,
-            temperature = 0.0,
-            maxTokens = 10
-        )
-
-        val llmResponse = llmProvider.complete(llmRequest)
-
-        // 解析任务类型
+    private fun analyzeTaskType(request: String): TaskType {
+        // 简单的关键词匹配
         return when {
-            llmResponse.content.contains("CODE_GENERATION") -> TaskType.CODE_GENERATION
-            llmResponse.content.contains("CODE_EXPLANATION") -> TaskType.CODE_EXPLANATION
-            llmResponse.content.contains("CODE_REFACTORING") -> TaskType.CODE_REFACTORING
-            llmResponse.content.contains("TEST_GENERATION") -> TaskType.TEST_GENERATION
+            request.contains("生成代码") ||
+            request.contains("generate code", ignoreCase = true) ||
+            request.contains("write code", ignoreCase = true) ||
+            request.contains("implement", ignoreCase = true) -> TaskType.CODE_GENERATION
+
+            request.contains("解释代码") ||
+            request.contains("解释一下") ||
+            request.contains("explain", ignoreCase = true) ||
+            request.contains("what does", ignoreCase = true) -> TaskType.CODE_EXPLANATION
+
+            request.contains("重构代码") ||
+            request.contains("优化代码") ||
+            request.contains("refactor", ignoreCase = true) ||
+            request.contains("improve", ignoreCase = true) -> TaskType.CODE_REFACTORING
+
+            request.contains("生成测试") ||
+            request.contains("写测试") ||
+            request.contains("test", ignoreCase = true) -> TaskType.TEST_GENERATION
+
             else -> TaskType.UNKNOWN
         }
     }
@@ -193,18 +185,16 @@ class AgentCoordinator(
      * @return 响应
      */
     private suspend fun routeRequest(request: String, context: String): String {
-        // 创建代理上下文
-        val agentContext = AgentContext(
-            input = request,
-            metadata = mapOf(
-                "context" to context
+        // 模拟生成响应
+        val response = routerAgent.generate(
+            prompt = "$request\n\n上下文：$context",
+            options = AgentGenerateOptions(
+                temperature = 0.7,
+                maxTokens = 1000
             )
         )
 
-        // 调用代理
-        val response = routerAgent.process(agentContext)
-
-        return response.output
+        return response.text
     }
 
     /**

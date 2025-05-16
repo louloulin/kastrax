@@ -3,6 +3,7 @@ package ai.kastrax.code.indexing
 import ai.kastrax.code.common.KastraXCodeBase
 import ai.kastrax.codebase.filesystem.FileChangeEvent
 import ai.kastrax.codebase.filesystem.FileChangeType
+import ai.kastrax.codebase.filesystem.FileSystemMonitorConfig
 import ai.kastrax.codebase.filesystem.FileSystemMonitor as CodebaseFileSystemMonitor
 import ai.kastrax.codebase.filesystem.config.FileSystemMonitorConfig
 import com.intellij.openapi.project.Project

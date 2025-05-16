@@ -1,15 +1,19 @@
 package ai.kastrax.code.tools
 
-import ai.kastrax.code.mock.Tool
-import com.intellij.openapi.diagnostic.Logger
+import ai.kastrax.code.common.KastraXCodeBase
+import ai.kastrax.core.tool.Tool
+import com.intellij.openapi.components.Service
+import com.intellij.openapi.project.Project
 
 /**
  * 代码工具注册表
  *
  * 管理和提供代码工具
  */
-class CodeToolRegistry {
-    private val logger = Logger.getInstance(CodeToolRegistry::class.java)
+@Service(Service.Level.PROJECT)
+class CodeToolRegistry(
+    private val project: Project
+) : KastraXCodeBase("TOOL_REGISTRY") {
     private val tools = mutableMapOf<String, Tool>()
 
     /**
@@ -18,13 +22,8 @@ class CodeToolRegistry {
      * @param tool 工具实例
      */
     fun registerTool(tool: Tool) {
-        val id = when (tool) {
-            is CodeTool -> tool.id
-            else -> tool.javaClass.simpleName
-        }
-
-        logger.debug("注册工具: $id")
-        tools[id] = tool
+        tools[tool.name] = tool
+        debug("注册工具: ${tool.name}")
     }
 
     /**
@@ -37,13 +36,13 @@ class CodeToolRegistry {
     }
 
     /**
-     * 获取指定ID的工具
+     * 获取指定名称的工具
      *
-     * @param id 工具ID
+     * @param name 工具名称
      * @return 工具实例，如果不存在则返回null
      */
-    fun getToolById(id: String): Tool? {
-        return tools[id]
+    fun getToolByName(name: String): Tool? {
+        return tools[name]
     }
 
     /**
@@ -57,22 +56,31 @@ class CodeToolRegistry {
     }
 
     /**
+     * 获取所有工具的名称
+     *
+     * @return 工具名称列表
+     */
+    fun getToolNames(): List<String> {
+        return tools.keys.toList()
+    }
+
+    /**
      * 清除所有工具
      */
     fun clear() {
         tools.clear()
+        debug("清除所有工具")
     }
 
     companion object {
         /**
-         * 创建默认工具注册表
+         * 获取实例
          *
-         * @return 包含默认工具的注册表
+         * @param project 项目
+         * @return 代码工具注册表实例
          */
-        fun createDefault(): CodeToolRegistry {
-            val registry = CodeToolRegistry()
-            // 在这里注册默认工具
-            return registry
+        fun getInstance(project: Project): CodeToolRegistry {
+            return project.getService(CodeToolRegistry::class.java)
         }
     }
 }

@@ -54,7 +54,7 @@ class CodeCompletionAgent(
     }
 
     // DeepSeek提供者
-    private val deepSeekProvider by lazy {
+    private val llmProvider by lazy {
         deepSeek {
             model(DeepSeekModel.DEEPSEEK_CODER)
             apiKey(System.getenv("DEEPSEEK_API_KEY") ?: "mock-api-key")
@@ -106,17 +106,16 @@ class CodeCompletionAgent(
             val prompt = createCompletionPrompt(request, context)
 
             // 调用LLM
-            val llmRequest = LLMRequest(
-                model = config.model,
+            val response = llmProvider.generate(
                 prompt = prompt,
-                temperature = config.temperature,
-                maxTokens = config.maxTokens
+                options = LlmOptions(
+                    temperature = config.temperature,
+                    maxTokens = config.maxTokens
+                )
             )
 
-            val llmResponse = llmProvider.complete(llmRequest)
-
             // 解析补全结果
-            return@withContext parseCompletionResults(llmResponse, maxCompletions)
+            return@withContext parseCompletionResults(response, maxCompletions)
         } catch (e: Exception) {
             logger.error("获取代码补全时出错: $prefix, 语言: $language", e)
             return@withContext emptyList()
@@ -232,15 +231,15 @@ class CodeCompletionAgent(
     /**
      * 解析补全结果
      *
-     * @param llmResponse LLM响应
+     * @param response LLM响应
      * @param maxCompletions 最大补全数量
      * @return 补全结果列表
      */
-    private fun parseCompletionResults(llmResponse: LLMResponse, maxCompletions: Int): List<CompletionResult> {
+    private fun parseCompletionResults(response: ai.kastrax.code.mock.LlmResponse, maxCompletions: Int): List<CompletionResult> {
         try {
             // 提取JSON部分
             val jsonPattern = "\\{[\\s\\S]*?\"completions\"[\\s\\S]*?\\}".toRegex()
-            val jsonMatch = jsonPattern.find(llmResponse.content)
+            val jsonMatch = jsonPattern.find(response.text)
 
             if (jsonMatch != null) {
                 val jsonString = jsonMatch.value
@@ -261,7 +260,7 @@ class CodeCompletionAgent(
 
             // 如果无法解析JSON，尝试直接提取补全
             val completionPattern = "```[\\s\\S]*?([\\s\\S]*?)```".toRegex()
-            val completionMatches = completionPattern.findAll(llmResponse.content)
+            val completionMatches = completionPattern.findAll(response.text)
 
             if (completionMatches.count() > 0) {
                 return completionMatches.take(maxCompletions).mapIndexed { index, match ->
