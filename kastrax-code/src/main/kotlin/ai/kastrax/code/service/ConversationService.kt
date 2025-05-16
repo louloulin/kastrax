@@ -6,7 +6,6 @@ import ai.kastrax.core.common.KastraXBase
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
-import io.github.oshai.kotlinlogging.KotlinLogging
 import java.time.Instant
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
