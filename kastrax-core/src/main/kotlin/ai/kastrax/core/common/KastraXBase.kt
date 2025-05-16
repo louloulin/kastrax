@@ -73,6 +73,41 @@ abstract class KastraXBase(
     }
 
     /**
+     * Extension functions for KastraXLogger to support lambda-style logging.
+     */
+    fun KastraXLogger.debug(messageSupplier: () -> String) {
+        this.debug(messageSupplier())
+    }
+
+    fun KastraXLogger.debug(throwable: Throwable, messageSupplier: () -> String) {
+        this.debug(messageSupplier(), throwable)
+    }
+
+    fun KastraXLogger.info(messageSupplier: () -> String) {
+        this.info(messageSupplier())
+    }
+
+    fun KastraXLogger.info(throwable: Throwable, messageSupplier: () -> String) {
+        this.info(messageSupplier(), throwable)
+    }
+
+    fun KastraXLogger.warn(messageSupplier: () -> String) {
+        this.warn(messageSupplier())
+    }
+
+    fun KastraXLogger.warn(throwable: Throwable, messageSupplier: () -> String) {
+        this.warn(messageSupplier(), throwable)
+    }
+
+    fun KastraXLogger.error(messageSupplier: () -> String) {
+        this.error(messageSupplier())
+    }
+
+    fun KastraXLogger.error(throwable: Throwable, messageSupplier: () -> String) {
+        this.error(messageSupplier(), throwable)
+    }
+
+    /**
      * Default logger implementation.
      * Subclasses can override this with their own implementation.
      */

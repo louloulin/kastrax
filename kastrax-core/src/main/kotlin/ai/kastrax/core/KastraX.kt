@@ -12,16 +12,16 @@ import ai.kastrax.core.common.KastraXBase
 class KastraX(
     private val agents: Map<String, Agent> = emptyMap()
 ) : KastraXBase(component = "KASTRAX", name = "kastrax") {
-    
+
     init {
-        logger.info { "Initializing KastraX v${getVersion()}" }
-        
+        logger.info("Initializing KastraX v${getVersion()}")
+
         // Register agents
         for ((name, agent) in agents) {
-            logger.debug { "Registered agent: $name" }
+            logger.debug("Registered agent: $name")
         }
     }
-    
+
     /**
      * Get an agent by ID.
      *
@@ -32,7 +32,7 @@ class KastraX(
     fun getAgent(agentId: String): Agent {
         return agents[agentId] ?: throw IllegalArgumentException("Agent not found: $agentId")
     }
-    
+
     /**
      * Get all registered agents.
      *
@@ -41,7 +41,7 @@ class KastraX(
     fun getAgents(): Map<String, Agent> {
         return agents
     }
-    
+
     companion object {
         /**
          * Get the KastraX version.
@@ -59,7 +59,7 @@ class KastraX(
  */
 class KastraXBuilder {
     private val agents = mutableMapOf<String, Agent>()
-    
+
     /**
      * Add an agent.
      *
@@ -69,7 +69,7 @@ class KastraXBuilder {
     fun agent(name: String, agent: Agent) {
         agents[name] = agent
     }
-    
+
     /**
      * Build the KastraX instance.
      *

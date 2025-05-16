@@ -2,13 +2,16 @@ package ai.kastrax.code.ui.components
 
 import ai.kastrax.code.model.Context
 import ai.kastrax.code.model.ContextElement
-import ai.kastrax.code.mock.JBPanel
-import ai.kastrax.code.mock.JBScrollPane
-import ai.kastrax.code.mock.JBUI
-import ai.kastrax.code.mock.EditorFactory
-import ai.kastrax.code.mock.EditorEx
-import ai.kastrax.code.mock.FileTypeManager
-import ai.kastrax.code.mock.Project
+import com.intellij.ui.components.JBPanel
+import com.intellij.ui.components.JBScrollPane
+import com.intellij.ui.components.JBLabel
+import com.intellij.util.ui.JBUI
+import com.intellij.openapi.editor.EditorFactory
+import com.intellij.openapi.editor.ex.EditorEx
+import com.intellij.openapi.fileTypes.FileTypeManager
+import com.intellij.openapi.project.Project
+import com.intellij.icons.AllIcons
+import com.intellij.ui.JBColor
 import java.awt.BorderLayout
 import java.awt.Color
 import java.awt.Cursor
@@ -33,7 +36,7 @@ import javax.swing.text.html.HTMLEditorKit
  */
 class ContextPanel(
     private val project: Project
-) : JBPanel<ContextPanel>(BorderLayout()) {
+) : JBPanel<JBPanel<*>>(BorderLayout()) {
 
     private val editorFactory = EditorFactory.getInstance()
     private val editors = mutableListOf<EditorEx>()

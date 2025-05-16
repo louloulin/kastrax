@@ -53,9 +53,7 @@ dependencies {
 
     // 日志
     // 使用IntelliJ平台的日志系统而不是Kotlin日志
-    // implementation("io.github.oshai:kotlin-logging-jvm:5.1.0")
-    implementation("ch.qos.logback:logback-classic:1.4.11")
-    implementation("org.slf4j:slf4j-api:2.0.9")
+    // 已经通过 intellijPlatform 依赖提供
 
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.opentest4j:opentest4j:1.3.0")
