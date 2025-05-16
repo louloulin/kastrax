@@ -1,0 +1,47 @@
+<!-- Plugin Configuration File. Read more: https://plugins.jetbrains.com/docs/intellij/plugin-configuration-file.html -->
+<idea-plugin>
+    <id>ai.kastrax.code</id>
+    <name>KastraX Code</name>
+    <vendor>KastraX</vendor>
+    <description>AI-powered coding assistant based on KastraX framework</description>
+
+    <depends>com.intellij.modules.platform</depends>
+    <depends>com.intellij.modules.lang</depends>
+    <depends optional="true">com.intellij.modules.java</depends>
+    <depends optional="true">org.jetbrains.kotlin</depends>
+    <depends optional="true">com.intellij.modules.python</depends>
+    <depends optional="true">Git4Idea</depends>
+
+    <extensions defaultExtensionNs="com.intellij">
+        <!-- 服务 -->
+        <projectService serviceImplementation="ai.kastrax.code.service.CodeAgentService"/>
+        <projectService serviceImplementation="ai.kastrax.code.tools.CodeToolRegistry"/>
+        <projectService serviceImplementation="ai.kastrax.code.service.ConversationService"/>
+        
+        <!-- 工具窗口 -->
+        <toolWindow id="KastraX Code" icon="/icons/kastrax.svg" anchor="right"
+                    factoryClass="ai.kastrax.code.ui.CodeToolWindowFactory"/>
+    </extensions>
+    
+    <actions>
+        <group id="KastraxCode.EditorPopupMenu" text="KastraX Code" popup="true">
+            <action id="KastraxCode.GenerateCode"
+                    class="ai.kastrax.code.actions.GenerateCodeAction"
+                    text="使用 KastraX 生成代码"
+                    description="使用 KastraX AI 生成代码"/>
+            <action id="KastraxCode.ExplainCode"
+                    class="ai.kastrax.code.actions.ExplainCodeAction"
+                    text="使用 KastraX 解释代码"
+                    description="使用 KastraX AI 解释选中的代码"/>
+            <action id="KastraxCode.RefactorCode"
+                    class="ai.kastrax.code.actions.RefactorCodeAction"
+                    text="使用 KastraX 重构代码"
+                    description="使用 KastraX AI 重构选中的代码"/>
+            <action id="KastraxCode.GenerateTest"
+                    class="ai.kastrax.code.actions.GenerateTestAction"
+                    text="使用 KastraX 生成测试"
+                    description="使用 KastraX AI 为选中的代码生成测试"/>
+            <add-to-group group-id="EditorPopupMenu" anchor="first"/>
+        </group>
+    </actions>
+</idea-plugin>

@@ -18,7 +18,7 @@ class KastraxCodeAgent(
     private val config: CodeAgentConfig = CodeAgentConfig()
 ) : KastraXBase(component = "CODE_AGENT", name = agent.name), CodeAgent {
     
-    private val logger = KotlinLogging.logger {}
+    override val logger = KotlinLogging.logger {}
     
     /**
      * 生成代码
