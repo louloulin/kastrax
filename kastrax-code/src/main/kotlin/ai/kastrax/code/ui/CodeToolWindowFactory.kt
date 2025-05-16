@@ -1,6 +1,9 @@
 package ai.kastrax.code.ui
 
 import ai.kastrax.code.service.CodeAgentService
+import ai.kastrax.code.service.ConversationService
+import ai.kastrax.code.ui.components.ContextPanel
+import ai.kastrax.code.ui.components.EnhancedChatPanel
 import com.intellij.openapi.project.DumbAware
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.wm.ToolWindow
@@ -32,13 +35,22 @@ class CodeToolWindowFactory : ToolWindowFactory, DumbAware {
         // 初始化服务
         CodeAgentService.getInstance(project).initialize()
 
-        // 创建简单的聊天面板
-        val chatPanel = createSimpleChatPanel(project)
+        // 创建会话服务
+        val conversationService = ConversationService.getInstance(project)
+        val conversation = conversationService.createConversation()
+
+        // 创建增强聊天面板
+        val chatPanel = EnhancedChatPanel(project, conversation)
 
         // 创建内容
         val contentFactory = ContentFactory.getInstance()
-        val content = contentFactory.createContent(chatPanel, null, false)
+        val content = contentFactory.createContent(chatPanel, "聊天", false)
         toolWindow.contentManager.addContent(content)
+
+        // 创建上下文面板
+        val contextPanel = ContextPanel(project)
+        val contextContent = contentFactory.createContent(contextPanel, "上下文", false)
+        toolWindow.contentManager.addContent(contextContent)
     }
 
     /**

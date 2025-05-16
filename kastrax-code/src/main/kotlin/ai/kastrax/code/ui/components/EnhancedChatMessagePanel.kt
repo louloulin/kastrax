@@ -2,16 +2,16 @@ package ai.kastrax.code.ui.components
 
 import ai.kastrax.code.model.ChatMessage
 import ai.kastrax.code.model.MessageRole
-import ai.kastrax.code.mock.JBPanel
-import ai.kastrax.code.mock.JBScrollPane
-import ai.kastrax.code.mock.JBLabel
-import ai.kastrax.code.mock.JBUI
-import ai.kastrax.code.mock.JBColor
-import ai.kastrax.code.mock.EditorFactory
-import ai.kastrax.code.mock.EditorEx
-import ai.kastrax.code.mock.FileTypeManager
-import ai.kastrax.code.mock.Project
-import ai.kastrax.code.mock.AllIcons
+import com.intellij.openapi.project.Project
+import com.intellij.ui.components.JBPanel
+import com.intellij.ui.components.JBScrollPane
+import com.intellij.ui.components.JBLabel
+import com.intellij.util.ui.JBUI
+import com.intellij.ui.JBColor
+import com.intellij.openapi.editor.EditorFactory
+import com.intellij.openapi.editor.ex.EditorEx
+import com.intellij.openapi.fileTypes.FileTypeManager
+import com.intellij.icons.AllIcons
 import java.awt.BorderLayout
 import java.awt.Color
 import java.awt.Cursor
@@ -36,7 +36,7 @@ class EnhancedChatMessagePanel(
     private val message: ChatMessage,
     private val project: Project,
     private val onCodeSelected: (code: String, language: String) -> Unit
-) : JBPanel<EnhancedChatMessagePanel>(BorderLayout()) {
+) : JBPanel<JBPanel<*>>(BorderLayout()) {
 
     private val editorFactory = EditorFactory.getInstance()
     private val editors = mutableListOf<EditorEx>()

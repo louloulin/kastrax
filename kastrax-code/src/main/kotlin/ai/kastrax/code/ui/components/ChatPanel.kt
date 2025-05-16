@@ -4,11 +4,11 @@ import ai.kastrax.code.model.ChatConversation
 import ai.kastrax.code.model.ChatMessage
 import ai.kastrax.code.model.MessageRole
 import ai.kastrax.code.service.CodeAgentService
-import ai.kastrax.code.mock.JBPanel
-import ai.kastrax.code.mock.JBScrollPane
-import ai.kastrax.code.mock.JBLabel
-import ai.kastrax.code.mock.JBUI
-import ai.kastrax.code.mock.Project
+import com.intellij.openapi.project.Project
+import com.intellij.ui.components.JBPanel
+import com.intellij.ui.components.JBScrollPane
+import com.intellij.ui.components.JBLabel
+import com.intellij.util.ui.JBUI
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -22,6 +22,7 @@ import javax.swing.JButton
 import javax.swing.JPanel
 import javax.swing.JTextArea
 import javax.swing.ScrollPaneConstants
+import javax.swing.SwingUtilities
 
 /**
  * 聊天面板
@@ -31,7 +32,7 @@ import javax.swing.ScrollPaneConstants
 class ChatPanel(
     private val project: Project,
     private val conversation: ChatConversation
-) : JBPanel<ChatPanel>(BorderLayout()) {
+) : JBPanel<JBPanel<*>>(BorderLayout()) {
 
     private val messagesPanel = JBPanel<JBPanel<*>>()
     private val inputArea = JTextArea(3, 20)

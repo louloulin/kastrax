@@ -15,27 +15,27 @@ import javax.swing.JToolBar
 
 /**
  * 代码展示面板
- * 
+ *
  * 显示代码并提供操作按钮
  */
 class CodeDisplayPanel(
     private val project: Project
-) : JBPanel<CodeDisplayPanel>(BorderLayout()) {
-    
+) : JBPanel<JBPanel<*>>(BorderLayout()) {
+
     private val editorFactory = EditorFactory.getInstance()
     private var editor: EditorEx? = null
     private val languageComboBox = JComboBox(arrayOf("kotlin", "java", "python", "javascript", "typescript", "html", "css", "json", "xml"))
-    
+
     init {
         border = JBUI.Borders.empty(8)
-        
+
         // 创建工具栏
         val toolbar = createToolbar()
         add(toolbar, BorderLayout.NORTH)
-        
+
         // 创建编辑器
         createEditor("kotlin", "// 代码将显示在这里")
-        
+
         // 语言选择事件
         languageComboBox.addActionListener {
             val language = languageComboBox.selectedItem as String
@@ -43,7 +43,7 @@ class CodeDisplayPanel(
             createEditor(language, currentText)
         }
     }
-    
+
     /**
      * 创建工具栏
      */
@@ -51,10 +51,10 @@ class CodeDisplayPanel(
         val toolbar = JToolBar()
         toolbar.isFloatable = false
         toolbar.border = JBUI.Borders.empty(0, 0, 8, 0)
-        
+
         // 语言选择
         toolbar.add(languageComboBox)
-        
+
         // 复制按钮
         val copyButton = JButton("复制")
         copyButton.addActionListener {
@@ -66,7 +66,7 @@ class CodeDisplayPanel(
             }
         }
         toolbar.add(copyButton)
-        
+
         // 插入到编辑器按钮
         val insertButton = JButton("插入到编辑器")
         insertButton.addActionListener {
@@ -74,26 +74,26 @@ class CodeDisplayPanel(
             // 暂时留空，后续实现
         }
         toolbar.add(insertButton)
-        
+
         // 清空按钮
         val clearButton = JButton("清空")
         clearButton.addActionListener {
             setCode("")
         }
         toolbar.add(clearButton)
-        
+
         val panel = JPanel(BorderLayout())
         panel.add(toolbar, BorderLayout.CENTER)
         return panel
     }
-    
+
     /**
      * 创建编辑器
      */
     private fun createEditor(language: String, initialText: String) {
         // 释放旧编辑器
         disposeEditor()
-        
+
         // 获取文件类型
         val fileType = when (language.lowercase()) {
             "kotlin" -> FileTypeManager.getInstance().findFileTypeByName("Kotlin")
@@ -107,10 +107,10 @@ class CodeDisplayPanel(
             "xml" -> FileTypeManager.getInstance().findFileTypeByName("XML")
             else -> FileTypeManager.getInstance().findFileTypeByName("PLAIN_TEXT")
         } ?: FileTypeManager.getInstance().findFileTypeByName("PLAIN_TEXT")
-        
+
         // 创建文档
         val document = editorFactory.createDocument(initialText)
-        
+
         // 创建编辑器
         editor = editorFactory.createEditor(document, project, fileType, false) as EditorEx
         editor?.let {
@@ -120,7 +120,7 @@ class CodeDisplayPanel(
             it.settings.isFoldingOutlineShown = true
             it.settings.isRightMarginShown = true
             it.settings.isWhitespacesShown = true
-            
+
             // 添加编辑器到面板
             removeAll()
             add(createToolbar(), BorderLayout.NORTH)
@@ -129,14 +129,14 @@ class CodeDisplayPanel(
             repaint()
         }
     }
-    
+
     /**
      * 设置代码
      */
     fun setCode(code: String) {
         editor?.document?.setText(code)
     }
-    
+
     /**
      * 设置代码和语言
      */
@@ -144,21 +144,21 @@ class CodeDisplayPanel(
         languageComboBox.selectedItem = language
         createEditor(language, code)
     }
-    
+
     /**
      * 获取代码
      */
     fun getCode(): String {
         return editor?.document?.text ?: ""
     }
-    
+
     /**
      * 获取语言
      */
     fun getLanguage(): String {
         return languageComboBox.selectedItem as String
     }
-    
+
     /**
      * 释放编辑器
      */
@@ -168,7 +168,7 @@ class CodeDisplayPanel(
         }
         editor = null
     }
-    
+
     /**
      * 释放资源
      */
