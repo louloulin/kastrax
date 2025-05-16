@@ -16,7 +16,7 @@ build/
 *.ipr
 *.iws
 out/
-
+.intellijPlatform
 # Local configuration files
 local.properties
 
