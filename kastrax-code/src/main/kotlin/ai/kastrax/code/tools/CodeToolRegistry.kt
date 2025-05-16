@@ -1,7 +1,7 @@
 package ai.kastrax.code.tools
 
 import ai.kastrax.code.mock.Tool
-import io.github.oshai.kotlinlogging.KotlinLogging
+import com.intellij.openapi.diagnostic.Logger
 
 /**
  * 代码工具注册表
@@ -9,7 +9,7 @@ import io.github.oshai.kotlinlogging.KotlinLogging
  * 管理和提供代码工具
  */
 class CodeToolRegistry {
-    private val logger = KotlinLogging.logger {}
+    private val logger = Logger.getInstance(CodeToolRegistry::class.java)
     private val tools = mutableMapOf<String, Tool>()
 
     /**
@@ -23,7 +23,7 @@ class CodeToolRegistry {
             else -> tool.javaClass.simpleName
         }
 
-        logger.debug { "注册工具: $id" }
+        logger.debug("注册工具: $id")
         tools[id] = tool
     }
 

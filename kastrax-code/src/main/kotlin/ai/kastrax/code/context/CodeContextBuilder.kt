@@ -9,7 +9,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
-import io.github.oshai.kotlinlogging.KotlinLogging
+import com.intellij.openapi.diagnostic.Logger
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.nio.file.Path
@@ -41,12 +41,12 @@ class CodeContextBuilder(
         includeRelated: Boolean = true
     ): Context = withContext(Dispatchers.IO) {
         try {
-            logger.info { "从编辑器构建上下文" }
+            logger.info("从编辑器构建上下文")
 
             // 获取当前文件
             val psiFile = PsiDocumentManager.getInstance(project).getPsiFile(editor.document)
             if (psiFile == null) {
-                logger.warn { "无法获取当前文件" }
+                logger.warn("无法获取当前文件")
                 return@withContext Context(elements = emptyList(), query = "")
             }
 
@@ -65,7 +65,7 @@ class CodeContextBuilder(
                 minScore = 0.0
             )
         } catch (e: Exception) {
-            logger.error(e) { "从编辑器构建上下文时出错" }
+            logger.error("从编辑器构建上下文时出错", e)
             return@withContext Context(elements = emptyList(), query = "")
         }
     }
@@ -82,7 +82,7 @@ class CodeContextBuilder(
         maxResults: Int = 10
     ): Context = withContext(Dispatchers.IO) {
         try {
-            logger.info { "从文件构建上下文: ${file.name}" }
+            logger.info("从文件构建上下文: ${file.name}")
 
             // 获取文件路径
             val filePath = getFilePath(file)
@@ -90,7 +90,7 @@ class CodeContextBuilder(
             // 获取文件上下文
             return@withContext contextEngine.getFileContext(filePath, maxResults)
         } catch (e: Exception) {
-            logger.error(e) { "从文件构建上下文时出错: ${file.name}" }
+            logger.error("从文件构建上下文时出错: ${file.name}", e)
             return@withContext Context(elements = emptyList(), query = "")
         }
     }
@@ -109,19 +109,19 @@ class CodeContextBuilder(
         minScore: Double = 0.0
     ): Context = withContext(Dispatchers.IO) {
         try {
-            logger.info { "从元素构建上下文: ${element.text}" }
+            logger.info("从元素构建上下文: ${element.text}")
 
             // 获取元素名称
             val symbolName = getSymbolName(element)
             if (symbolName.isBlank()) {
-                logger.warn { "无法获取元素名称" }
+                logger.warn("无法获取元素名称")
                 return@withContext Context(elements = emptyList(), query = "")
             }
 
             // 获取符号上下文
             return@withContext contextEngine.getSymbolContext(symbolName, maxResults, minScore)
         } catch (e: Exception) {
-            logger.error(e) { "从元素构建上下文时出错: ${element.text}" }
+            logger.error("从元素构建上下文时出错: ${element.text}", e)
             return@withContext Context(elements = emptyList(), query = "")
         }
     }
@@ -142,12 +142,12 @@ class CodeContextBuilder(
         includeRelated: Boolean = true
     ): Context = withContext(Dispatchers.IO) {
         try {
-            logger.info { "从查询构建上下文: $query" }
+            logger.info("从查询构建上下文: $query")
 
             // 获取查询上下文
             return@withContext contextEngine.getQueryContext(query, maxResults, minScore, includeRelated)
         } catch (e: Exception) {
-            logger.error(e) { "从查询构建上下文时出错: $query" }
+            logger.error("从查询构建上下文时出错: $query", e)
             return@withContext Context(elements = emptyList(), query = query)
         }
     }

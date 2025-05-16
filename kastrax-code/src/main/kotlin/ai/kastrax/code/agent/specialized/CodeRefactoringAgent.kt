@@ -20,7 +20,6 @@ import ai.kastrax.code.mock.LlmOptions
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
-import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.util.UUID
@@ -93,7 +92,7 @@ class CodeRefactoringAgent(
         createCheckpoint: Boolean = true
     ): RefactoringResult = withContext(Dispatchers.IO) {
         try {
-            logger.info { "重构代码: $instructions, 语言: $language" }
+            logger.info("重构代码: $instructions, 语言: $language")
 
             // 创建检查点
             if (createCheckpoint) {
@@ -101,7 +100,7 @@ class CodeRefactoringAgent(
                     name = "重构前检查点",
                     description = "重构前自动创建的检查点"
                 )
-                logger.info { "创建重构前检查点: ${checkpoint.id}" }
+                logger.info("创建重构前检查点: ${checkpoint.id}")
             }
 
             // 创建重构请求
@@ -142,7 +141,7 @@ class CodeRefactoringAgent(
                 explanation = llmResponse.content.replace(refactoredCode, "").trim()
             )
         } catch (e: Exception) {
-            logger.error(e) { "重构代码时出错: $instructions, 语言: $language" }
+            logger.error("重构代码时出错: $instructions, 语言: $language", e)
             return@withContext RefactoringResult(
                 id = UUID.randomUUID().toString(),
                 originalCode = code,
@@ -227,7 +226,7 @@ class CodeRefactoringAgent(
      */
     override suspend fun generateCode(prompt: String, language: String): String = withContext(Dispatchers.IO) {
         try {
-            logger.info { "生成代码: $prompt, 语言: $language" }
+            logger.info("生成代码: $prompt, 语言: $language")
 
             // 获取上下文
             val context = contextEngine.getQueryContext(prompt, 10, 0.0, true)
@@ -250,7 +249,7 @@ class CodeRefactoringAgent(
 
             return@withContext response.output
         } catch (e: Exception) {
-            logger.error(e) { "生成代码时出错: $prompt, 语言: $language" }
+            logger.error("生成代码时出错: $prompt, 语言: $language", e)
             return@withContext "生成代码时出错: ${e.message}"
         }
     }
@@ -264,7 +263,7 @@ class CodeRefactoringAgent(
      */
     override suspend fun explainCode(code: String, detailLevel: DetailLevel): String = withContext(Dispatchers.IO) {
         try {
-            logger.info { "解释代码, 详细程度: $detailLevel" }
+            logger.info("解释代码, 详细程度: $detailLevel")
 
             // 创建代理上下文
             val agentContext = AgentContext(
@@ -284,7 +283,7 @@ class CodeRefactoringAgent(
 
             return@withContext response.output
         } catch (e: Exception) {
-            logger.error(e) { "解释代码时出错, 详细程度: $detailLevel" }
+            logger.error("解释代码时出错, 详细程度: $detailLevel", e)
             return@withContext "解释代码时出错: ${e.message}"
         }
     }

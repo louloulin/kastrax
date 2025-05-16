@@ -19,7 +19,6 @@ import ai.kastrax.code.mock.LlmOptions
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
-import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.util.UUID
@@ -85,7 +84,7 @@ class CodeExplanationAgent(
         detailLevel: DetailLevel = DetailLevel.NORMAL
     ): ExplanationResult = withContext(Dispatchers.IO) {
         try {
-            logger.info { "解释代码, 语言: $language, 详细程度: $detailLevel" }
+            logger.info {"解释代码, 语言: $language, 详细程度: $detailLevel"}
 
             // 创建解释请求
             val request = ExplanationRequest(
@@ -118,7 +117,7 @@ class CodeExplanationAgent(
                 detailLevel = detailLevel
             )
         } catch (e: Exception) {
-            logger.error(e) { "解释代码时出错, 语言: $language, 详细程度: $detailLevel" }
+            logger.error("解释代码时出错, 语言: $language, 详细程度: $detailLevel", e)
             return@withContext ExplanationResult(
                 id = UUID.randomUUID().toString(),
                 explanation = "解释代码时出错: ${e.message}",
@@ -178,7 +177,7 @@ class CodeExplanationAgent(
      */
     override suspend fun generateCode(prompt: String, language: String): String = withContext(Dispatchers.IO) {
         try {
-            logger.info { "生成代码: $prompt, 语言: $language" }
+            logger.info("生成代码: $prompt, 语言: $language")
 
             // 获取上下文
             val context = contextEngine.getQueryContext(prompt, 10, 0.0, true)
@@ -201,7 +200,7 @@ class CodeExplanationAgent(
 
             return@withContext response.output
         } catch (e: Exception) {
-            logger.error(e) { "生成代码时出错: $prompt, 语言: $language" }
+            logger.error("生成代码时出错: $prompt, 语言: $language", e)
             return@withContext "生成代码时出错: ${e.message}"
         }
     }
@@ -215,7 +214,7 @@ class CodeExplanationAgent(
      */
     override suspend fun explainCode(code: String, detailLevel: DetailLevel): String = withContext(Dispatchers.IO) {
         try {
-            logger.info { "解释代码, 详细程度: $detailLevel" }
+            logger.info("解释代码, 详细程度: $detailLevel")
 
             // 检测语言
             val language = detectLanguage(code)
@@ -225,7 +224,7 @@ class CodeExplanationAgent(
 
             return@withContext result.explanation
         } catch (e: Exception) {
-            logger.error(e) { "解释代码时出错, 详细程度: $detailLevel" }
+            logger.error("解释代码时出错, 详细程度: $detailLevel", e)
             return@withContext "解释代码时出错: ${e.message}"
         }
     }
@@ -239,7 +238,7 @@ class CodeExplanationAgent(
      */
     override suspend fun refactorCode(code: String, instructions: String): String = withContext(Dispatchers.IO) {
         try {
-            logger.info { "重构代码: $instructions" }
+            logger.info("重构代码: $instructions")
 
             // 获取上下文
             val context = contextEngine.getQueryContext(instructions, 10, 0.0, true)
@@ -262,7 +261,7 @@ class CodeExplanationAgent(
 
             return@withContext response.output
         } catch (e: Exception) {
-            logger.error(e) { "重构代码时出错: $instructions" }
+            logger.error("重构代码时出错: $instructions", e)
             return@withContext "重构代码时出错: ${e.message}"
         }
     }
@@ -276,7 +275,7 @@ class CodeExplanationAgent(
      */
     override suspend fun generateTest(code: String, framework: String): String = withContext(Dispatchers.IO) {
         try {
-            logger.info { "生成测试: $framework" }
+            logger.info("生成测试: $framework")
 
             // 创建代理上下文
             val agentContext = AgentContext(
@@ -296,7 +295,7 @@ class CodeExplanationAgent(
 
             return@withContext response.output
         } catch (e: Exception) {
-            logger.error(e) { "生成测试时出错: $framework" }
+            logger.error("生成测试时出错: $framework", e)
             return@withContext "生成测试时出错: ${e.message}"
         }
     }
@@ -331,12 +330,12 @@ class CodeExplanationAgent(
      */
     override suspend fun complete(code: String, language: String, maxTokens: Int): String = withContext(Dispatchers.IO) {
         try {
-            logger.info { "补全代码, 语言: $language" }
+            logger.info{"补全代码, 语言: $language")
 
             // 生成代码
             return@withContext generateCode("补全以下代码: $code", language)
         } catch (e: Exception) {
-            logger.error(e) { "补全代码时出错, 语言: $language" }
+            logger.error("补全代码时出错, 语言: $language", e)
             return@withContext ""
         }
     }
