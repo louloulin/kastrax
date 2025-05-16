@@ -88,3 +88,11 @@
 分析kastrax-code 代码 ，基于kastrax生态，充分使用kastrax的AI能力和codebase能力 按照  @kastrax-code.md  实现 augment智能编程助手，实现后增加测试验证，验证通过后更新   @kastrax-code.md   标记实现的功能，写入代码
 
 在kastrax-code，参考kastrax-codex的ui设计  ，基于kastrax生态，充分使用kastrax的AI能力和codebase能力 按照  @kastrax-code.md  实现 augment智能编程助手，实现后增加测试验证，验证通过后更新   @kastrax-code.md   标记实现的功能，写入代码
+
+在 @kastrax-code 执行gradle build -x test 分析问题，分析kastrax等模块的代码实现，修复问题，修复后更新 @xf11.md 标记实现的功能
+
+在 @kastrax-code 执行gradle build -x test 分析问题，分析kastrax等模块的代码实现，修复问题，修复后更新 @xf11.md 标记实现的功能，ui部分修复参考kastrax-codex ui部分代码实现
+
+按  @kastrax-code/src/main/x21.md 计划， 在 @kastrax-code 执行gradle build -x test 分析问题，分析kastrax等模块的代码实现，修复问题，修复后更新 @kastrax-code/src/main/x21.md   标记实现的功能，ui部分修复参考kastrax-codex ui部分代码实现
+
+按  @kastrax-code/src/main/x21.md 计划， 在 @kastrax-code 执行gradle build -x test 分析问题，分析kastrax等模块的代码实现，修复问题，修复后更新 @kastrax-code/src/main/x21.md   标记实现的功能，ui部分修复参考kastrax-codex ui部分代码实现

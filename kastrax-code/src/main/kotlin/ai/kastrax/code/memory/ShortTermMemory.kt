@@ -23,7 +23,7 @@ class ShortTermMemory(
     private val config: ShortTermMemoryConfig = ShortTermMemoryConfig()
 ) : KastraXCodeBase(component = "SHORT_TERM_MEMORY") {
 
-    override val logger = KotlinLogging.logger {}
+    // 使用父类的logger
 
     // 代码记忆系统
     private val memorySystem by lazy { CodeMemorySystemImpl.getInstance(project) }

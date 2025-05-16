@@ -8,11 +8,15 @@ import ai.kastrax.code.model.DetailLevel
 import ai.kastrax.code.model.RefactoringRequest
 import ai.kastrax.code.model.RefactoringResult
 import ai.kastrax.code.workflow.CheckpointManager
-import ai.kastrax.core.agent.Agent
-import ai.kastrax.core.agent.AgentConfig
-import ai.kastrax.core.agent.AgentContext
-import ai.kastrax.core.llm.LLMProvider
-import ai.kastrax.core.llm.LLMRequest
+import ai.kastrax.code.mock.Agent
+import ai.kastrax.code.mock.AgentConfig
+import ai.kastrax.code.mock.AgentContext
+import ai.kastrax.code.mock.DeepSeekProvider
+import ai.kastrax.code.mock.DeepSeekModel
+import ai.kastrax.code.mock.deepSeek
+import ai.kastrax.code.mock.LlmMessage
+import ai.kastrax.code.mock.LlmMessageRole
+import ai.kastrax.code.mock.LlmOptions
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
@@ -31,9 +35,9 @@ class CodeRefactoringAgent(
     private val project: Project,
     private val config: CodeRefactoringAgentConfig = CodeRefactoringAgentConfig()
 ) : KastraXCodeBase(component = "CODE_REFACTORING_AGENT"), CodeAgent {
-    
-    override val logger = KotlinLogging.logger {}
-    
+
+    // 使用父类的logger
+
     // 底层智能体
     private val agent: Agent by lazy {
         Agent(
@@ -47,27 +51,32 @@ class CodeRefactoringAgent(
             )
         )
     }
-    
-    // LLM提供者
-    private val llmProvider: LLMProvider by lazy {
-        LLMProvider.getInstance()
+
+    // DeepSeek提供者
+    private val deepSeekProvider by lazy {
+        deepSeek {
+            model(DeepSeekModel.DEEPSEEK_CODER)
+            apiKey(System.getenv("DEEPSEEK_API_KEY") ?: "mock-api-key")
+            temperature(0.3)
+            maxTokens(2000)
+        }
     }
-    
+
     // 代码上下文引擎
     private val contextEngine: CodeContextEngine by lazy {
         CodeContextEngine.getInstance(project)
     }
-    
+
     // 短期记忆
     private val shortTermMemory: ShortTermMemory by lazy {
         ShortTermMemory.getInstance(project)
     }
-    
+
     // 检查点管理器
     private val checkpointManager: CheckpointManager by lazy {
         CheckpointManager.getInstance(project)
     }
-    
+
     /**
      * 重构代码
      *
@@ -85,7 +94,7 @@ class CodeRefactoringAgent(
     ): RefactoringResult = withContext(Dispatchers.IO) {
         try {
             logger.info { "重构代码: $instructions, 语言: $language" }
-            
+
             // 创建检查点
             if (createCheckpoint) {
                 val checkpoint = checkpointManager.createCheckpoint(
@@ -94,20 +103,20 @@ class CodeRefactoringAgent(
                 )
                 logger.info { "创建重构前检查点: ${checkpoint.id}" }
             }
-            
+
             // 创建重构请求
             val request = RefactoringRequest(
                 code = code,
                 instructions = instructions,
                 language = language
             )
-            
+
             // 获取上下文
             val context = contextEngine.getQueryContext(instructions, 10, 0.0, true)
-            
+
             // 创建提示
             val prompt = createRefactoringPrompt(request, context)
-            
+
             // 调用LLM
             val llmRequest = LLMRequest(
                 model = config.model,
@@ -115,16 +124,16 @@ class CodeRefactoringAgent(
                 temperature = config.temperature,
                 maxTokens = config.maxTokens
             )
-            
+
             val llmResponse = llmProvider.complete(llmRequest)
-            
+
             // 存储到短期记忆
             shortTermMemory.storeMessage("user", "请根据以下指令重构代码：\n$instructions\n\n代码：\n$code")
             shortTermMemory.storeMessage("assistant", llmResponse.content)
-            
+
             // 提取重构后的代码
             val refactoredCode = extractCode(llmResponse.content, language)
-            
+
             // 创建重构结果
             return@withContext RefactoringResult(
                 id = UUID.randomUUID().toString(),
@@ -142,7 +151,7 @@ class CodeRefactoringAgent(
             )
         }
     }
-    
+
     /**
      * 创建重构提示
      *
@@ -152,7 +161,7 @@ class CodeRefactoringAgent(
      */
     private fun createRefactoringPrompt(request: RefactoringRequest, context: ai.kastrax.code.model.Context): String {
         val sb = StringBuilder()
-        
+
         // 系统提示
         sb.appendLine("你是一个专业的代码重构助手，擅长根据指令重构代码，提高代码质量、可读性和性能。")
         sb.appendLine("请根据提供的指令重构代码，并解释你所做的更改。")
@@ -160,7 +169,7 @@ class CodeRefactoringAgent(
         sb.appendLine("请在回复中包含完整的重构后代码，使用 ```${request.language} 和 ``` 包围代码。")
         sb.appendLine("同时提供详细的重构说明，解释你所做的更改和改进。")
         sb.appendLine()
-        
+
         // 上下文
         if (context.elements.isNotEmpty()) {
             sb.appendLine("## 相关上下文")
@@ -172,21 +181,21 @@ class CodeRefactoringAgent(
                 sb.appendLine()
             }
         }
-        
+
         // 重构指令
         sb.appendLine("## 重构指令")
         sb.appendLine(request.instructions)
         sb.appendLine()
-        
+
         // 原始代码
         sb.appendLine("## 原始代码")
         sb.appendLine("```${request.language}")
         sb.appendLine(request.code)
         sb.appendLine("```")
-        
+
         return sb.toString()
     }
-    
+
     /**
      * 提取代码
      *
@@ -198,7 +207,7 @@ class CodeRefactoringAgent(
         // 提取代码块
         val codePattern = "```(?:$language)?\\s*([\\s\\S]*?)```".toRegex()
         val match = codePattern.find(content)
-        
+
         return if (match != null) {
             match.groupValues[1].trim()
         } else {
@@ -208,7 +217,7 @@ class CodeRefactoringAgent(
             nonMarkdownLines.joinToString("\n")
         }
     }
-    
+
     /**
      * 生成代码
      *
@@ -219,10 +228,10 @@ class CodeRefactoringAgent(
     override suspend fun generateCode(prompt: String, language: String): String = withContext(Dispatchers.IO) {
         try {
             logger.info { "生成代码: $prompt, 语言: $language" }
-            
+
             // 获取上下文
             val context = contextEngine.getQueryContext(prompt, 10, 0.0, true)
-            
+
             // 创建代理上下文
             val agentContext = AgentContext(
                 input = prompt,
@@ -231,21 +240,21 @@ class CodeRefactoringAgent(
                     "context" to context.getContent()
                 )
             )
-            
+
             // 调用代理
             val response = agent.process(agentContext)
-            
+
             // 存储到短期记忆
             shortTermMemory.storeMessage("user", prompt)
             shortTermMemory.storeMessage("assistant", response.output)
-            
+
             return@withContext response.output
         } catch (e: Exception) {
             logger.error(e) { "生成代码时出错: $prompt, 语言: $language" }
             return@withContext "生成代码时出错: ${e.message}"
         }
     }
-    
+
     /**
      * 解释代码
      *
@@ -256,7 +265,7 @@ class CodeRefactoringAgent(
     override suspend fun explainCode(code: String, detailLevel: DetailLevel): String = withContext(Dispatchers.IO) {
         try {
             logger.info { "解释代码, 详细程度: $detailLevel" }
-            
+
             // 创建代理上下文
             val agentContext = AgentContext(
                 input = code,
@@ -265,21 +274,21 @@ class CodeRefactoringAgent(
                     "detailLevel" to detailLevel.name
                 )
             )
-            
+
             // 调用代理
             val response = agent.process(agentContext)
-            
+
             // 存储到短期记忆
             shortTermMemory.storeMessage("user", "请解释以下代码：\n$code")
             shortTermMemory.storeMessage("assistant", response.output)
-            
+
             return@withContext response.output
         } catch (e: Exception) {
             logger.error(e) { "解释代码时出错, 详细程度: $detailLevel" }
             return@withContext "解释代码时出错: ${e.message}"
         }
     }
-    
+
     /**
      * 重构代码
      *
@@ -290,25 +299,25 @@ class CodeRefactoringAgent(
     override suspend fun refactorCode(code: String, instructions: String): String = withContext(Dispatchers.IO) {
         try {
             logger.info { "重构代码: $instructions" }
-            
+
             // 检测语言
             val language = detectLanguage(code)
-            
+
             // 获取详细重构结果
             val result = refactorCodeDetailed(code, instructions, language)
-            
+
             // 返回重构后的代码和解释
             return@withContext """
                 # 重构结果
-                
+
                 ## 重构后的代码
-                
+
                 ```$language
                 ${result.refactoredCode}
                 ```
-                
+
                 ## 重构说明
-                
+
                 ${result.explanation}
             """.trimIndent()
         } catch (e: Exception) {
@@ -316,7 +325,7 @@ class CodeRefactoringAgent(
             return@withContext "重构代码时出错: ${e.message}"
         }
     }
-    
+
     /**
      * 生成测试
      *
@@ -327,7 +336,7 @@ class CodeRefactoringAgent(
     override suspend fun generateTest(code: String, framework: String): String = withContext(Dispatchers.IO) {
         try {
             logger.info { "生成测试: $framework" }
-            
+
             // 创建代理上下文
             val agentContext = AgentContext(
                 input = code,
@@ -336,21 +345,21 @@ class CodeRefactoringAgent(
                     "framework" to framework
                 )
             )
-            
+
             // 调用代理
             val response = agent.process(agentContext)
-            
+
             // 存储到短期记忆
             shortTermMemory.storeMessage("user", "请为以下代码生成$framework测试：\n$code")
             shortTermMemory.storeMessage("assistant", response.output)
-            
+
             return@withContext response.output
         } catch (e: Exception) {
             logger.error(e) { "生成测试时出错: $framework" }
             return@withContext "生成测试时出错: ${e.message}"
         }
     }
-    
+
     /**
      * 检测语言
      *
@@ -370,7 +379,27 @@ class CodeRefactoringAgent(
             else -> "text"
         }
     }
-    
+
+    /**
+     * 补全代码
+     *
+     * @param code 当前代码
+     * @param language 编程语言
+     * @param maxTokens 最大生成令牌数
+     * @return 补全的代码
+     */
+    override suspend fun complete(code: String, language: String, maxTokens: Int): String = withContext(Dispatchers.IO) {
+        try {
+            logger.info { "补全代码, 语言: $language" }
+
+            // 生成代码
+            return@withContext generateCode("补全以下代码: $code", language)
+        } catch (e: Exception) {
+            logger.error(e) { "补全代码时出错, 语言: $language" }
+            return@withContext ""
+        }
+    }
+
     companion object {
         /**
          * 获取项目的代码重构智能体实例

@@ -24,9 +24,9 @@ class CodeContextBuilder(
     private val project: Project,
     private val contextEngine: CodeContextEngine
 ) : KastraXCodeBase(component = "CODE_CONTEXT_BUILDER") {
-    
-    override val logger = KotlinLogging.logger {}
-    
+
+    // 使用父类的logger
+
     /**
      * 从编辑器构建上下文
      *
@@ -42,21 +42,21 @@ class CodeContextBuilder(
     ): Context = withContext(Dispatchers.IO) {
         try {
             logger.info { "从编辑器构建上下文" }
-            
+
             // 获取当前文件
             val psiFile = PsiDocumentManager.getInstance(project).getPsiFile(editor.document)
             if (psiFile == null) {
                 logger.warn { "无法获取当前文件" }
                 return@withContext Context(elements = emptyList(), query = "")
             }
-            
+
             // 获取当前位置
             val offset = editor.caretModel.offset
             val position = getLocationFromOffset(editor, offset)
-            
+
             // 获取文件路径
             val filePath = getFilePath(psiFile)
-            
+
             // 获取编辑上下文
             return@withContext contextEngine.getEditContext(
                 filePath = filePath,
@@ -69,7 +69,7 @@ class CodeContextBuilder(
             return@withContext Context(elements = emptyList(), query = "")
         }
     }
-    
+
     /**
      * 从文件构建上下文
      *
@@ -83,10 +83,10 @@ class CodeContextBuilder(
     ): Context = withContext(Dispatchers.IO) {
         try {
             logger.info { "从文件构建上下文: ${file.name}" }
-            
+
             // 获取文件路径
             val filePath = getFilePath(file)
-            
+
             // 获取文件上下文
             return@withContext contextEngine.getFileContext(filePath, maxResults)
         } catch (e: Exception) {
@@ -94,7 +94,7 @@ class CodeContextBuilder(
             return@withContext Context(elements = emptyList(), query = "")
         }
     }
-    
+
     /**
      * 从元素构建上下文
      *
@@ -110,14 +110,14 @@ class CodeContextBuilder(
     ): Context = withContext(Dispatchers.IO) {
         try {
             logger.info { "从元素构建上下文: ${element.text}" }
-            
+
             // 获取元素名称
             val symbolName = getSymbolName(element)
             if (symbolName.isBlank()) {
                 logger.warn { "无法获取元素名称" }
                 return@withContext Context(elements = emptyList(), query = "")
             }
-            
+
             // 获取符号上下文
             return@withContext contextEngine.getSymbolContext(symbolName, maxResults, minScore)
         } catch (e: Exception) {
@@ -125,7 +125,7 @@ class CodeContextBuilder(
             return@withContext Context(elements = emptyList(), query = "")
         }
     }
-    
+
     /**
      * 从查询构建上下文
      *
@@ -143,7 +143,7 @@ class CodeContextBuilder(
     ): Context = withContext(Dispatchers.IO) {
         try {
             logger.info { "从查询构建上下文: $query" }
-            
+
             // 获取查询上下文
             return@withContext contextEngine.getQueryContext(query, maxResults, minScore, includeRelated)
         } catch (e: Exception) {
@@ -151,7 +151,7 @@ class CodeContextBuilder(
             return@withContext Context(elements = emptyList(), query = query)
         }
     }
-    
+
     /**
      * 合并上下文
      *
@@ -164,31 +164,31 @@ class CodeContextBuilder(
         if (contexts.isEmpty()) {
             return Context(elements = emptyList(), query = "")
         }
-        
+
         // 如果只有一个上下文，则直接返回
         if (contexts.size == 1) {
             return contexts.first()
         }
-        
+
         // 合并所有元素
         val allElements = contexts.flatMap { it.elements }
-        
+
         // 去重并按分数排序
         val uniqueElements = allElements
-            .distinctBy { it.id }
-            .sortedByDescending { it.score }
+            .distinctBy { it.element.id }
+            .sortedByDescending { it.relevance }
             .take(maxElements)
-        
+
         // 合并查询
         val query = contexts.joinToString(" ") { it.query }
-        
+
         // 创建合并后的上下文
         return Context(
             elements = uniqueElements,
             query = query
         )
     }
-    
+
     /**
      * 从偏移量获取位置
      *
@@ -201,7 +201,7 @@ class CodeContextBuilder(
         val lineNumber = document.getLineNumber(offset)
         val lineStartOffset = document.getLineStartOffset(lineNumber)
         val column = offset - lineStartOffset
-        
+
         return Location(
             line = lineNumber + 1, // 转换为1-based
             column = column + 1, // 转换为1-based
@@ -209,7 +209,7 @@ class CodeContextBuilder(
             endColumn = column + 1
         )
     }
-    
+
     /**
      * 获取文件路径
      *
@@ -220,7 +220,7 @@ class CodeContextBuilder(
         val virtualFile = file.virtualFile
         return Paths.get(virtualFile.path)
     }
-    
+
     /**
      * 获取符号名称
      *

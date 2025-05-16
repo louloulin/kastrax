@@ -4,11 +4,12 @@ import ai.kastrax.code.common.KastraXCodeBase
 import ai.kastrax.code.model.Context
 import ai.kastrax.code.model.ContextElement
 
-import ai.kastrax.memory.api.MemoryId
+// 使用本地的内存类
+// import ai.kastrax.memory.api.MemoryId
 import ai.kastrax.memory.api.MemoryStore
-import ai.kastrax.memory.api.MemoryType
-import ai.kastrax.memory.api.query.MemoryQuery
-import ai.kastrax.memory.api.query.MemoryQueryType
+// import ai.kastrax.memory.api.MemoryType
+// import ai.kastrax.memory.api.query.MemoryQuery
+// import ai.kastrax.memory.api.query.MemoryQueryType
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project

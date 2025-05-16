@@ -1,6 +1,6 @@
 package ai.kastrax.code.common
 
-import io.github.oshai.kotlinlogging.KLogger
+import ai.kastrax.core.common.KastraXBase
 
 /**
  * KastraX Code 基础类
@@ -11,18 +11,14 @@ abstract class KastraXCodeBase(
     /**
      * 组件名称
      */
-    val component: String,
-    
+    component: String,
+
     /**
      * 组件实例名称
      */
-    val name: String = component
-) {
-    /**
-     * 日志记录器
-     */
-    abstract val logger: KLogger
-    
+    name: String = component
+) : KastraXBase(component, name) {
+
     /**
      * 获取组件标识
      *

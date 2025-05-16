@@ -12,14 +12,13 @@ import ai.kastrax.code.context.CodeContextEngine
 import ai.kastrax.code.context.CodeContextEngineImpl
 import ai.kastrax.code.indexing.CodeIndexManager
 import ai.kastrax.code.tools.CodeToolRegistry
-import ai.kastrax.core.agent.Agent
-import ai.kastrax.core.agent.AgentConfig
-import ai.kastrax.core.agent.AgentFactory
+import ai.kastrax.code.mock.Agent
+import ai.kastrax.code.mock.AgentConfig
 import ai.kastrax.code.common.KastraXCodeBase
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
-import io.github.oshai.kotlinlogging.KotlinLogging
+import com.intellij.openapi.diagnostic.Logger
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -36,7 +35,7 @@ import java.nio.file.Paths
 @Service(Service.Level.PROJECT)
 class CodeAgentService(private val project: Project) : KastraXCodeBase(component = "CODE_AGENT_SERVICE") {
 
-    override val logger = KotlinLogging.logger {}
+    // 使用父类的logger
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     private lateinit var agent: Agent
@@ -59,7 +58,7 @@ class CodeAgentService(private val project: Project) : KastraXCodeBase(component
             return
         }
 
-        logger.info { "初始化代码智能体服务" }
+        logger.info("初始化代码智能体服务")
 
         // 初始化工具注册表
         toolRegistry = project.service<CodeToolRegistry>()
@@ -70,11 +69,12 @@ class CodeAgentService(private val project: Project) : KastraXCodeBase(component
         // 初始化智能体
         val agentConfig = AgentConfig(
             name = "kastrax-code-agent",
+            description = "基于DeepSeek的代码智能体",
             model = "deepseek-coder",
             temperature = 0.3,
             maxTokens = 2000
         )
-        agent = AgentFactory.createAgent(agentConfig)
+        agent = Agent("code-agent-1", agentConfig)
 
         // 初始化专业化智能体
         codeCompletionAgent = CodeCompletionAgent.getInstance(project)
@@ -146,7 +146,7 @@ class CodeAgentService(private val project: Project) : KastraXCodeBase(component
      */
     fun dispose() {
         if (initialized) {
-            logger.info { "关闭代码智能体服务" }
+            logger.info("关闭代码智能体服务")
             // 停止代码索引管理器
             val indexManager = CodeIndexManager.getInstance(project)
             indexManager.stop()

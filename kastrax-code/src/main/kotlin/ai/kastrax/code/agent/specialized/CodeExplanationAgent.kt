@@ -7,11 +7,15 @@ import ai.kastrax.code.memory.ShortTermMemory
 import ai.kastrax.code.model.DetailLevel
 import ai.kastrax.code.model.ExplanationRequest
 import ai.kastrax.code.model.ExplanationResult
-import ai.kastrax.core.agent.Agent
-import ai.kastrax.core.agent.AgentConfig
-import ai.kastrax.core.agent.AgentContext
-import ai.kastrax.core.llm.LLMProvider
-import ai.kastrax.core.llm.LLMRequest
+import ai.kastrax.code.mock.Agent
+import ai.kastrax.code.mock.AgentConfig
+import ai.kastrax.code.mock.AgentContext
+import ai.kastrax.code.mock.DeepSeekProvider
+import ai.kastrax.code.mock.DeepSeekModel
+import ai.kastrax.code.mock.deepSeek
+import ai.kastrax.code.mock.LlmMessage
+import ai.kastrax.code.mock.LlmMessageRole
+import ai.kastrax.code.mock.LlmOptions
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
@@ -30,9 +34,9 @@ class CodeExplanationAgent(
     private val project: Project,
     private val config: CodeExplanationAgentConfig = CodeExplanationAgentConfig()
 ) : KastraXCodeBase(component = "CODE_EXPLANATION_AGENT"), CodeAgent {
-    
-    override val logger = KotlinLogging.logger {}
-    
+
+    // 使用父类的logger
+
     // 底层智能体
     private val agent: Agent by lazy {
         Agent(
@@ -46,22 +50,27 @@ class CodeExplanationAgent(
             )
         )
     }
-    
-    // LLM提供者
-    private val llmProvider: LLMProvider by lazy {
-        LLMProvider.getInstance()
+
+    // DeepSeek提供者
+    private val deepSeekProvider by lazy {
+        deepSeek {
+            model(DeepSeekModel.DEEPSEEK_CODER)
+            apiKey(System.getenv("DEEPSEEK_API_KEY") ?: "mock-api-key")
+            temperature(0.3)
+            maxTokens(2000)
+        }
     }
-    
+
     // 代码上下文引擎
     private val contextEngine: CodeContextEngine by lazy {
         CodeContextEngine.getInstance(project)
     }
-    
+
     // 短期记忆
     private val shortTermMemory: ShortTermMemory by lazy {
         ShortTermMemory.getInstance(project)
     }
-    
+
     /**
      * 解释代码
      *
@@ -77,17 +86,17 @@ class CodeExplanationAgent(
     ): ExplanationResult = withContext(Dispatchers.IO) {
         try {
             logger.info { "解释代码, 语言: $language, 详细程度: $detailLevel" }
-            
+
             // 创建解释请求
             val request = ExplanationRequest(
                 code = code,
                 language = language,
                 detailLevel = detailLevel
             )
-            
+
             // 创建提示
             val prompt = createExplanationPrompt(request)
-            
+
             // 调用LLM
             val llmRequest = LLMRequest(
                 model = config.model,
@@ -95,13 +104,13 @@ class CodeExplanationAgent(
                 temperature = config.temperature,
                 maxTokens = config.maxTokens
             )
-            
+
             val llmResponse = llmProvider.complete(llmRequest)
-            
+
             // 存储到短期记忆
             shortTermMemory.storeMessage("user", "请解释以下${language}代码：\n$code")
             shortTermMemory.storeMessage("assistant", llmResponse.content)
-            
+
             // 创建解释结果
             return@withContext ExplanationResult(
                 id = UUID.randomUUID().toString(),
@@ -117,7 +126,7 @@ class CodeExplanationAgent(
             )
         }
     }
-    
+
     /**
      * 创建解释提示
      *
@@ -126,10 +135,10 @@ class CodeExplanationAgent(
      */
     private fun createExplanationPrompt(request: ExplanationRequest): String {
         val sb = StringBuilder()
-        
+
         // 系统提示
         sb.appendLine("你是一个专业的代码解释助手，擅长解释各种编程语言的代码。")
-        
+
         // 详细程度
         when (request.detailLevel) {
             DetailLevel.BRIEF -> {
@@ -150,16 +159,16 @@ class CodeExplanationAgent(
                 sb.appendLine("6. 可能的边界情况和错误处理")
             }
         }
-        
+
         // 代码
         sb.appendLine("\n代码（${request.language}）：")
         sb.appendLine("```${request.language}")
         sb.appendLine(request.code)
         sb.appendLine("```")
-        
+
         return sb.toString()
     }
-    
+
     /**
      * 生成代码
      *
@@ -170,10 +179,10 @@ class CodeExplanationAgent(
     override suspend fun generateCode(prompt: String, language: String): String = withContext(Dispatchers.IO) {
         try {
             logger.info { "生成代码: $prompt, 语言: $language" }
-            
+
             // 获取上下文
             val context = contextEngine.getQueryContext(prompt, 10, 0.0, true)
-            
+
             // 创建代理上下文
             val agentContext = AgentContext(
                 input = prompt,
@@ -182,21 +191,21 @@ class CodeExplanationAgent(
                     "context" to context.getContent()
                 )
             )
-            
+
             // 调用代理
             val response = agent.process(agentContext)
-            
+
             // 存储到短期记忆
             shortTermMemory.storeMessage("user", prompt)
             shortTermMemory.storeMessage("assistant", response.output)
-            
+
             return@withContext response.output
         } catch (e: Exception) {
             logger.error(e) { "生成代码时出错: $prompt, 语言: $language" }
             return@withContext "生成代码时出错: ${e.message}"
         }
     }
-    
+
     /**
      * 解释代码
      *
@@ -207,20 +216,20 @@ class CodeExplanationAgent(
     override suspend fun explainCode(code: String, detailLevel: DetailLevel): String = withContext(Dispatchers.IO) {
         try {
             logger.info { "解释代码, 详细程度: $detailLevel" }
-            
+
             // 检测语言
             val language = detectLanguage(code)
-            
+
             // 获取详细解释
             val result = explainCodeDetailed(code, language, detailLevel)
-            
+
             return@withContext result.explanation
         } catch (e: Exception) {
             logger.error(e) { "解释代码时出错, 详细程度: $detailLevel" }
             return@withContext "解释代码时出错: ${e.message}"
         }
     }
-    
+
     /**
      * 重构代码
      *
@@ -231,10 +240,10 @@ class CodeExplanationAgent(
     override suspend fun refactorCode(code: String, instructions: String): String = withContext(Dispatchers.IO) {
         try {
             logger.info { "重构代码: $instructions" }
-            
+
             // 获取上下文
             val context = contextEngine.getQueryContext(instructions, 10, 0.0, true)
-            
+
             // 创建代理上下文
             val agentContext = AgentContext(
                 input = "$instructions\n\n$code",
@@ -243,21 +252,21 @@ class CodeExplanationAgent(
                     "context" to context.getContent()
                 )
             )
-            
+
             // 调用代理
             val response = agent.process(agentContext)
-            
+
             // 存储到短期记忆
             shortTermMemory.storeMessage("user", "请根据以下指令重构代码：\n$instructions\n\n代码：\n$code")
             shortTermMemory.storeMessage("assistant", response.output)
-            
+
             return@withContext response.output
         } catch (e: Exception) {
             logger.error(e) { "重构代码时出错: $instructions" }
             return@withContext "重构代码时出错: ${e.message}"
         }
     }
-    
+
     /**
      * 生成测试
      *
@@ -268,7 +277,7 @@ class CodeExplanationAgent(
     override suspend fun generateTest(code: String, framework: String): String = withContext(Dispatchers.IO) {
         try {
             logger.info { "生成测试: $framework" }
-            
+
             // 创建代理上下文
             val agentContext = AgentContext(
                 input = code,
@@ -277,21 +286,21 @@ class CodeExplanationAgent(
                     "framework" to framework
                 )
             )
-            
+
             // 调用代理
             val response = agent.process(agentContext)
-            
+
             // 存储到短期记忆
             shortTermMemory.storeMessage("user", "请为以下代码生成$framework测试：\n$code")
             shortTermMemory.storeMessage("assistant", response.output)
-            
+
             return@withContext response.output
         } catch (e: Exception) {
             logger.error(e) { "生成测试时出错: $framework" }
             return@withContext "生成测试时出错: ${e.message}"
         }
     }
-    
+
     /**
      * 检测语言
      *
@@ -311,7 +320,27 @@ class CodeExplanationAgent(
             else -> "text"
         }
     }
-    
+
+    /**
+     * 补全代码
+     *
+     * @param code 当前代码
+     * @param language 编程语言
+     * @param maxTokens 最大生成令牌数
+     * @return 补全的代码
+     */
+    override suspend fun complete(code: String, language: String, maxTokens: Int): String = withContext(Dispatchers.IO) {
+        try {
+            logger.info { "补全代码, 语言: $language" }
+
+            // 生成代码
+            return@withContext generateCode("补全以下代码: $code", language)
+        } catch (e: Exception) {
+            logger.error(e) { "补全代码时出错, 语言: $language" }
+            return@withContext ""
+        }
+    }
+
     companion object {
         /**
          * 获取项目的代码解释智能体实例

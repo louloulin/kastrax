@@ -25,9 +25,9 @@ class EditorContextProvider(
     private val project: Project,
     private val contextProvider: CodeContextProvider
 ) : KastraXCodeBase(component = "EDITOR_CONTEXT_PROVIDER") {
-    
-    override val logger = KotlinLogging.logger {}
-    
+
+    // 使用父类的logger
+
     /**
      * 获取当前编辑器上下文
      *
@@ -43,13 +43,13 @@ class EditorContextProvider(
     ): Context = withContext(Dispatchers.IO) {
         try {
             logger.info { "获取当前编辑器上下文，类型: $contextTypes" }
-            
+
             // 获取编辑器上下文
             val editorContext = contextProvider.getEditorContext(editor, contextTypes, maxTokens)
-            
+
             // 获取当前光标位置的元素
             val currentElement = getCurrentElement(editor)
-            
+
             // 如果有当前元素，则获取元素上下文
             val elementContext = if (currentElement != null) {
                 contextProvider.getElementContext(
@@ -60,7 +60,7 @@ class EditorContextProvider(
             } else {
                 null
             }
-            
+
             // 如果有元素上下文，则合并
             return@withContext if (elementContext != null) {
                 mergeContexts(editorContext, elementContext)
@@ -72,7 +72,7 @@ class EditorContextProvider(
             return@withContext Context(elements = emptyList(), query = "")
         }
     }
-    
+
     /**
      * 获取选中代码上下文
      *
@@ -86,27 +86,27 @@ class EditorContextProvider(
     ): Context = withContext(Dispatchers.IO) {
         try {
             logger.info { "获取选中代码上下文" }
-            
+
             // 获取选中的文本
             val selectedText = editor.selectionModel.selectedText
             if (selectedText.isNullOrBlank()) {
                 logger.warn { "没有选中文本" }
                 return@withContext Context(elements = emptyList(), query = "")
             }
-            
+
             // 获取当前文件
             val psiFile = PsiDocumentManager.getInstance(project).getPsiFile(editor.document)
             if (psiFile == null) {
                 logger.warn { "无法获取当前文件" }
                 return@withContext Context(elements = emptyList(), query = "")
             }
-            
+
             // 获取选中文本的位置
             val selectionStart = editor.selectionModel.selectionStart
             val selectionEnd = editor.selectionModel.selectionEnd
             val startLocation = getLocationFromOffset(editor, selectionStart)
             val endLocation = getLocationFromOffset(editor, selectionEnd)
-            
+
             // 创建上下文元素
             val element = ContextElement(
                 id = "selected_code",
@@ -122,7 +122,7 @@ class EditorContextProvider(
                 ),
                 score = 1.0
             )
-            
+
             // 创建上下文
             return@withContext Context(
                 elements = listOf(element),
@@ -133,7 +133,7 @@ class EditorContextProvider(
             return@withContext Context(elements = emptyList(), query = "")
         }
     }
-    
+
     /**
      * 获取当前光标位置的元素
      *
@@ -144,10 +144,10 @@ class EditorContextProvider(
         try {
             // 获取当前文件
             val psiFile = PsiDocumentManager.getInstance(project).getPsiFile(editor.document) ?: return null
-            
+
             // 获取当前光标位置
             val offset = editor.caretModel.offset
-            
+
             // 获取当前位置的元素
             return psiFile.findElementAt(offset)
         } catch (e: Exception) {
@@ -155,7 +155,7 @@ class EditorContextProvider(
             return null
         }
     }
-    
+
     /**
      * 获取当前光标位置的最近的有意义的元素
      *
@@ -166,7 +166,7 @@ class EditorContextProvider(
         try {
             // 获取当前元素
             val currentElement = getCurrentElement(editor) ?: return null
-            
+
             // 获取父元素
             return PsiTreeUtil.getParentOfType(
                 currentElement,
@@ -178,7 +178,7 @@ class EditorContextProvider(
             return null
         }
     }
-    
+
     /**
      * 从偏移量获取位置
      *
@@ -191,7 +191,7 @@ class EditorContextProvider(
         val lineNumber = document.getLineNumber(offset)
         val lineStartOffset = document.getLineStartOffset(lineNumber)
         val column = offset - lineStartOffset
-        
+
         return Location(
             line = lineNumber + 1, // 转换为1-based
             column = column + 1, // 转换为1-based
@@ -199,7 +199,7 @@ class EditorContextProvider(
             endColumn = column + 1
         )
     }
-    
+
     /**
      * 获取文件路径
      *
@@ -210,7 +210,7 @@ class EditorContextProvider(
         val virtualFile = file.virtualFile
         return Paths.get(virtualFile.path)
     }
-    
+
     /**
      * 合并上下文
      *
@@ -221,15 +221,15 @@ class EditorContextProvider(
     private fun mergeContexts(context1: Context, context2: Context): Context {
         // 合并所有元素
         val allElements = context1.elements + context2.elements
-        
+
         // 去重并按分数排序
         val uniqueElements = allElements
             .distinctBy { it.id }
             .sortedByDescending { it.score }
-        
+
         // 合并查询
         val query = "${context1.query} ${context2.query}".trim()
-        
+
         // 创建合并后的上下文
         return Context(
             elements = uniqueElements,

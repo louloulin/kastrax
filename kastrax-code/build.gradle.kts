@@ -35,11 +35,16 @@ repositories {
 dependencies {
     // Kastrax 依赖
     implementation(project(":kastrax-core"))
+    // implementation(project(":kastrax-agent")) // 暂时移除不存在的依赖
     implementation(project(":kastrax-codebase"))
     implementation(project(":kastrax-rag"))
     implementation(project(":kastrax-memory-api"))
     implementation(project(":kastrax-memory-impl"))
     implementation(project(":kastrax-integrations:kastrax-deepseek"))
+    // implementation(project(":kastrax-tools")) // 暂时移除不存在的依赖
+
+    // IntelliJ平台UI依赖
+    // 使用IntelliJ Platform Gradle Plugin提供的依赖
 
     // Kotlin 协程
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
@@ -47,7 +52,10 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-swing:1.7.3")
 
     // 日志
-    implementation("io.github.oshai:kotlin-logging-jvm:5.1.0")
+    // 使用IntelliJ平台的日志系统而不是Kotlin日志
+    // implementation("io.github.oshai:kotlin-logging-jvm:5.1.0")
+    implementation("ch.qos.logback:logback-classic:1.4.11")
+    implementation("org.slf4j:slf4j-api:2.0.9")
 
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.opentest4j:opentest4j:1.3.0")

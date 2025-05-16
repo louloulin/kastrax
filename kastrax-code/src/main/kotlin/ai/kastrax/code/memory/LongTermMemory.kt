@@ -2,7 +2,8 @@ package ai.kastrax.code.memory
 
 import ai.kastrax.code.common.KastraXCodeBase
 
-import ai.kastrax.memory.api.MemoryType
+// 使用本地的MemoryType
+// import ai.kastrax.memory.api.MemoryType
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
@@ -20,7 +21,7 @@ import java.util.UUID
 @Service(Service.Level.APPLICATION)
 class LongTermMemory : KastraXCodeBase(component = "LONG_TERM_MEMORY") {
 
-    override val logger = KotlinLogging.logger {}
+    // 使用父类的logger
 
     // 代码记忆系统
     private var memorySystem: CodeMemorySystem? = null

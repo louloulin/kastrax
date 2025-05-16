@@ -1,10 +1,10 @@
 package ai.kastrax.code.tools
 
-import ai.kastrax.core.tool.Tool
+import ai.kastrax.code.mock.Tool
 
 /**
  * 代码工具接口
- * 
+ *
  * 所有代码相关工具的基础接口
  */
 interface CodeTool : Tool {
@@ -12,12 +12,12 @@ interface CodeTool : Tool {
      * 获取工具ID
      */
     val id: String
-    
+
     /**
      * 获取工具名称
      */
     val name: String
-    
+
     /**
      * 获取工具描述
      */
@@ -73,17 +73,17 @@ data class CodeAnalysisResult(
      * 分析概述
      */
     val summary: String,
-    
+
     /**
      * 详细分析
      */
     val details: Map<String, Any>,
-    
+
     /**
      * 问题列表
      */
     val issues: List<CodeIssue> = emptyList(),
-    
+
     /**
      * 建议列表
      */
@@ -98,22 +98,22 @@ data class CodeGenerationSpec(
      * 描述
      */
     val description: String,
-    
+
     /**
      * 编程语言
      */
     val language: String,
-    
+
     /**
      * 上下文代码
      */
     val contextCode: String? = null,
-    
+
     /**
      * 约束条件
      */
     val constraints: List<String> = emptyList(),
-    
+
     /**
      * 参数
      */
@@ -128,22 +128,22 @@ data class SearchScope(
      * 包含的文件路径模式
      */
     val includePatterns: List<String> = emptyList(),
-    
+
     /**
      * 排除的文件路径模式
      */
     val excludePatterns: List<String> = emptyList(),
-    
+
     /**
      * 限制搜索的文件类型
      */
     val fileTypes: List<String> = emptyList(),
-    
+
     /**
      * 是否搜索注释
      */
     val searchComments: Boolean = true,
-    
+
     /**
      * 是否区分大小写
      */
@@ -158,22 +158,22 @@ data class CodeSearchResult(
      * 文件路径
      */
     val filePath: String,
-    
+
     /**
      * 匹配的代码片段
      */
     val snippet: String,
-    
+
     /**
      * 行号
      */
     val lineNumber: Int,
-    
+
     /**
      * 相关性分数
      */
     val score: Double,
-    
+
     /**
      * 匹配的上下文
      */
@@ -188,17 +188,17 @@ data class CodeIssue(
      * 问题类型
      */
     val type: String,
-    
+
     /**
      * 问题描述
      */
     val description: String,
-    
+
     /**
      * 问题位置
      */
     val location: String,
-    
+
     /**
      * 严重程度
      */
@@ -213,17 +213,17 @@ data class CodeSuggestion(
      * 建议类型
      */
     val type: String,
-    
+
     /**
      * 建议描述
      */
     val description: String,
-    
+
     /**
      * 建议位置
      */
     val location: String,
-    
+
     /**
      * 建议代码
      */

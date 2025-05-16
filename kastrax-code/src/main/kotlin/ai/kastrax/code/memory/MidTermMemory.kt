@@ -4,7 +4,8 @@ import ai.kastrax.code.common.KastraXCodeBase
 import ai.kastrax.code.model.Context
 import ai.kastrax.code.model.ContextElement
 
-import ai.kastrax.memory.api.MemoryType
+// 使用本地的MemoryType
+// import ai.kastrax.memory.api.MemoryType
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
@@ -25,7 +26,7 @@ class MidTermMemory(
     private val config: MidTermMemoryConfig = MidTermMemoryConfig()
 ) : KastraXCodeBase(component = "MID_TERM_MEMORY") {
 
-    override val logger = KotlinLogging.logger {}
+    // 使用父类的logger
 
     // 代码记忆系统
     private val memorySystem by lazy { CodeMemorySystemImpl.getInstance(project) }

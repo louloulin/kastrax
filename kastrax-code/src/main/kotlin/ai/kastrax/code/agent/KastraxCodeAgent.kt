@@ -3,10 +3,10 @@ package ai.kastrax.code.agent
 import ai.kastrax.code.context.CodeContextEngine
 import ai.kastrax.code.model.DetailLevel
 import ai.kastrax.code.tools.CodeToolRegistry
-import ai.kastrax.core.agent.Agent
-import ai.kastrax.core.agent.AgentGenerateOptions
-import ai.kastrax.core.common.KastraXBase
-import io.github.oshai.kotlinlogging.KotlinLogging
+import ai.kastrax.code.mock.Agent
+import ai.kastrax.code.mock.AgentGenerateOptions
+import ai.kastrax.code.common.KastraXCodeBase
+import com.intellij.openapi.diagnostic.Logger
 
 /**
  * 基于 kastrax-core 的代码智能体实现
@@ -16,9 +16,9 @@ class KastraxCodeAgent(
     private val contextEngine: CodeContextEngine,
     private val toolRegistry: CodeToolRegistry,
     private val config: CodeAgentConfig = CodeAgentConfig()
-) : KastraXBase(component = "CODE_AGENT", name = agent.name), CodeAgent {
+) : KastraXCodeBase("CODE_AGENT"), CodeAgent {
 
-    override val logger = KotlinLogging.logger {}
+    // 使用父类的logger
 
     /**
      * 生成代码
@@ -28,7 +28,7 @@ class KastraxCodeAgent(
      * @return 生成的代码
      */
     override suspend fun generateCode(prompt: String, language: String): String {
-        logger.debug { "生成代码: $prompt, 语言: $language" }
+        logger.debug("生成代码: $prompt, 语言: $language")
 
         val enhancedPrompt = """
             请根据以下描述生成 $language 代码：
@@ -55,7 +55,7 @@ class KastraxCodeAgent(
      * @return 代码解释
      */
     override suspend fun explainCode(code: String, detailLevel: DetailLevel): String {
-        logger.debug { "解释代码, 详细程度: $detailLevel" }
+        logger.debug("解释代码, 详细程度: $detailLevel")
 
         val detailLevelText = when (detailLevel) {
             DetailLevel.BRIEF -> "提供基本概述，简要解释代码的功能和目的"
@@ -90,7 +90,7 @@ class KastraxCodeAgent(
      * @return 重构后的代码
      */
     override suspend fun refactorCode(code: String, instructions: String): String {
-        logger.debug { "重构代码, 指令: $instructions" }
+        logger.debug("重构代码, 指令: $instructions")
 
         val enhancedPrompt = """
             请根据以下指令重构代码：
@@ -123,7 +123,7 @@ class KastraxCodeAgent(
      * @return 生成的测试代码
      */
     override suspend fun generateTest(code: String, framework: String): String {
-        logger.debug { "生成测试, 框架: $framework" }
+        logger.debug("生成测试, 框架: $framework")
 
         val enhancedPrompt = """
             请为以下代码生成 $framework 测试：
@@ -153,7 +153,7 @@ class KastraxCodeAgent(
      * @return 补全的代码
      */
     override suspend fun complete(code: String, language: String, maxTokens: Int): String {
-        logger.debug { "补全代码, 语言: $language, 最大令牌数: $maxTokens" }
+        logger.debug("补全代码, 语言: $language, 最大令牌数: $maxTokens")
 
         val enhancedPrompt = """
             请补全以下 $language 代码：

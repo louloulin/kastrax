@@ -17,16 +17,12 @@
         <projectService serviceImplementation="ai.kastrax.code.service.CodeAgentService"/>
         <projectService serviceImplementation="ai.kastrax.code.tools.CodeToolRegistry"/>
         <projectService serviceImplementation="ai.kastrax.code.service.ConversationService"/>
-
+        
         <!-- 工具窗口 -->
         <toolWindow id="KastraX Code" icon="/icons/kastrax.svg" anchor="right"
                     factoryClass="ai.kastrax.code.ui.CodeToolWindowFactory"/>
-
-        <!-- Kastrax Codex 工具窗口 -->
-        <toolWindow id="KastraX Codex" icon="/icons/kastrax.svg" anchor="right"
-                    factoryClass="ai.kastrax.code.ui.CodexAgentToolWindowFactory"/>
     </extensions>
-
+    
     <actions>
         <group id="KastraxCode.EditorPopupMenu" text="KastraX Code" popup="true">
             <action id="KastraxCode.GenerateCode"

@@ -1,17 +1,17 @@
 package ai.kastrax.code.tools
 
-import ai.kastrax.core.tool.Tool
+import ai.kastrax.code.mock.Tool
 import io.github.oshai.kotlinlogging.KotlinLogging
 
 /**
  * 代码工具注册表
- * 
+ *
  * 管理和提供代码工具
  */
 class CodeToolRegistry {
     private val logger = KotlinLogging.logger {}
     private val tools = mutableMapOf<String, Tool>()
-    
+
     /**
      * 注册工具
      *
@@ -22,11 +22,11 @@ class CodeToolRegistry {
             is CodeTool -> tool.id
             else -> tool.javaClass.simpleName
         }
-        
+
         logger.debug { "注册工具: $id" }
         tools[id] = tool
     }
-    
+
     /**
      * 获取所有工具
      *
@@ -35,7 +35,7 @@ class CodeToolRegistry {
     fun getTools(): List<Tool> {
         return tools.values.toList()
     }
-    
+
     /**
      * 获取指定ID的工具
      *
@@ -45,7 +45,7 @@ class CodeToolRegistry {
     fun getToolById(id: String): Tool? {
         return tools[id]
     }
-    
+
     /**
      * 获取特定类型的工具
      *
@@ -55,14 +55,14 @@ class CodeToolRegistry {
     inline fun <reified T : Tool> getToolsByType(): List<T> {
         return tools.values.filterIsInstance<T>()
     }
-    
+
     /**
      * 清除所有工具
      */
     fun clear() {
         tools.clear()
     }
-    
+
     companion object {
         /**
          * 创建默认工具注册表

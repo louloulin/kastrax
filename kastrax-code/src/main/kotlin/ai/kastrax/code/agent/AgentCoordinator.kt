@@ -9,15 +9,16 @@ import ai.kastrax.code.context.CodeContextEngine
 import ai.kastrax.code.memory.ShortTermMemory
 import ai.kastrax.code.model.DetailLevel
 import ai.kastrax.code.model.TaskType
-import ai.kastrax.core.agent.Agent
-import ai.kastrax.core.agent.AgentConfig
-import ai.kastrax.core.agent.AgentContext
-import ai.kastrax.core.llm.LLMProvider
-import ai.kastrax.core.llm.LLMRequest
+import ai.kastrax.code.mock.Agent
+import ai.kastrax.code.mock.AgentConfig
+import ai.kastrax.code.mock.AgentContext
+import ai.kastrax.code.mock.DeepSeekProvider
+import ai.kastrax.code.mock.DeepSeekModel
+import ai.kastrax.code.mock.deepSeek
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
-import io.github.oshai.kotlinlogging.KotlinLogging
+import com.intellij.openapi.diagnostic.Logger
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -31,9 +32,9 @@ class AgentCoordinator(
     private val project: Project,
     private val config: AgentCoordinatorConfig = AgentCoordinatorConfig()
 ) : KastraXCodeBase(component = "AGENT_COORDINATOR") {
-    
-    override val logger = KotlinLogging.logger {}
-    
+
+    // 使用父类的logger
+
     // 底层智能体
     private val routerAgent: Agent by lazy {
         Agent(
@@ -47,39 +48,44 @@ class AgentCoordinator(
             )
         )
     }
-    
-    // LLM提供者
-    private val llmProvider: LLMProvider by lazy {
-        LLMProvider.getInstance()
+
+    // DeepSeek提供者
+    private val llmProvider by lazy {
+        deepSeek {
+            model(DeepSeekModel.DEEPSEEK_CODER)
+            apiKey(System.getenv("DEEPSEEK_API_KEY") ?: "mock-api-key")
+            temperature(0.3)
+            maxTokens(2000)
+        }
     }
-    
+
     // 代码上下文引擎
     private val contextEngine: CodeContextEngine by lazy {
         CodeContextEngine.getInstance(project)
     }
-    
+
     // 短期记忆
     private val shortTermMemory: ShortTermMemory by lazy {
         ShortTermMemory.getInstance(project)
     }
-    
+
     // 专业化智能体
     private val codeCompletionAgent: CodeCompletionAgent by lazy {
         CodeCompletionAgent.getInstance(project)
     }
-    
+
     private val codeExplanationAgent: CodeExplanationAgent by lazy {
         CodeExplanationAgent.getInstance(project)
     }
-    
+
     private val codeRefactoringAgent: CodeRefactoringAgent by lazy {
         CodeRefactoringAgent.getInstance(project)
     }
-    
+
     private val testGenerationAgent: TestGenerationAgent by lazy {
         TestGenerationAgent.getInstance(project)
     }
-    
+
     /**
      * 处理用户请求
      *
@@ -88,17 +94,17 @@ class AgentCoordinator(
      */
     suspend fun processRequest(request: String): String = withContext(Dispatchers.IO) {
         try {
-            logger.info { "处理用户请求: $request" }
-            
+            logger.info("处理用户请求: $request")
+
             // 存储到短期记忆
             shortTermMemory.storeMessage("user", request)
-            
+
             // 获取上下文
             val context = contextEngine.getQueryContext(request, 10, 0.0, true)
-            
+
             // 分析任务类型
             val taskType = analyzeTaskType(request)
-            
+
             // 根据任务类型路由到合适的智能体
             val response = when (taskType) {
                 TaskType.CODE_GENERATION -> {
@@ -127,17 +133,17 @@ class AgentCoordinator(
                     routeRequest(request, context.getContent())
                 }
             }
-            
+
             // 存储到短期记忆
             shortTermMemory.storeMessage("assistant", response)
-            
+
             return@withContext response
         } catch (e: Exception) {
-            logger.error(e) { "处理用户请求时出错: $request" }
+            logger.error("处理用户请求时出错: $request", e)
             return@withContext "处理请求时出错: ${e.message}"
         }
     }
-    
+
     /**
      * 分析任务类型
      *
@@ -153,12 +159,12 @@ class AgentCoordinator(
             3. CODE_REFACTORING - 重构代码
             4. TEST_GENERATION - 生成测试
             5. UNKNOWN - 未知任务
-            
+
             请分析以下用户请求，并返回对应的任务类型（仅返回任务类型，不要有其他内容）：
-            
+
             $request
         """.trimIndent()
-        
+
         // 调用LLM
         val llmRequest = LLMRequest(
             model = config.model,
@@ -166,9 +172,9 @@ class AgentCoordinator(
             temperature = 0.0,
             maxTokens = 10
         )
-        
+
         val llmResponse = llmProvider.complete(llmRequest)
-        
+
         // 解析任务类型
         return when {
             llmResponse.content.contains("CODE_GENERATION") -> TaskType.CODE_GENERATION
@@ -178,7 +184,7 @@ class AgentCoordinator(
             else -> TaskType.UNKNOWN
         }
     }
-    
+
     /**
      * 路由请求
      *
@@ -194,13 +200,13 @@ class AgentCoordinator(
                 "context" to context
             )
         )
-        
+
         // 调用代理
         val response = routerAgent.process(agentContext)
-        
+
         return response.output
     }
-    
+
     /**
      * 检测语言
      *
@@ -220,7 +226,7 @@ class AgentCoordinator(
             else -> "kotlin" // 默认为Kotlin
         }
     }
-    
+
     /**
      * 提取代码
      *
@@ -231,7 +237,7 @@ class AgentCoordinator(
         // 提取代码块
         val codePattern = "```(?:\\w*)?\\s*([\\s\\S]*?)```".toRegex()
         val match = codePattern.find(request)
-        
+
         return if (match != null) {
             match.groupValues[1].trim()
         } else {
@@ -239,7 +245,7 @@ class AgentCoordinator(
             ""
         }
     }
-    
+
     /**
      * 检测详细程度
      *
@@ -248,20 +254,20 @@ class AgentCoordinator(
      */
     private fun detectDetailLevel(request: String): DetailLevel {
         return when {
-            request.contains("详细", ignoreCase = true) || 
-            request.contains("详尽", ignoreCase = true) || 
-            request.contains("详细解释", ignoreCase = true) || 
+            request.contains("详细", ignoreCase = true) ||
+            request.contains("详尽", ignoreCase = true) ||
+            request.contains("详细解释", ignoreCase = true) ||
             request.contains("detailed", ignoreCase = true) -> DetailLevel.DETAILED
-            
-            request.contains("简要", ignoreCase = true) || 
-            request.contains("简单", ignoreCase = true) || 
-            request.contains("简短", ignoreCase = true) || 
+
+            request.contains("简要", ignoreCase = true) ||
+            request.contains("简单", ignoreCase = true) ||
+            request.contains("简短", ignoreCase = true) ||
             request.contains("brief", ignoreCase = true) -> DetailLevel.BRIEF
-            
+
             else -> DetailLevel.NORMAL
         }
     }
-    
+
     /**
      * 提取代码和指令
      *
@@ -271,13 +277,13 @@ class AgentCoordinator(
     private fun extractCodeAndInstructions(request: String): Pair<String, String> {
         // 提取代码块
         val code = extractCode(request)
-        
+
         // 提取指令（去除代码块后的内容）
         val instructions = request.replace("```(?:\\w*)?\\s*[\\s\\S]*?```".toRegex(), "").trim()
-        
+
         return Pair(code, instructions)
     }
-    
+
     /**
      * 提取代码和框架
      *
@@ -287,7 +293,7 @@ class AgentCoordinator(
     private fun extractCodeAndFramework(request: String): Pair<String, String> {
         // 提取代码块
         val code = extractCode(request)
-        
+
         // 检测测试框架
         val framework = when {
             request.contains("junit", ignoreCase = true) -> "JUnit"
@@ -297,10 +303,10 @@ class AgentCoordinator(
             request.contains("mocha", ignoreCase = true) -> "Mocha"
             else -> "JUnit" // 默认为JUnit
         }
-        
+
         return Pair(code, framework)
     }
-    
+
     companion object {
         /**
          * 获取项目的智能体协调器实例

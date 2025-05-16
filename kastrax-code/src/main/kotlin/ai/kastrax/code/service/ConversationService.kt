@@ -13,16 +13,16 @@ import java.util.concurrent.ConcurrentHashMap
 
 /**
  * 会话服务
- * 
+ *
  * 管理聊天会话的创建、获取和删除
  */
 @Service(Service.Level.PROJECT)
 class ConversationService(private val project: Project) : KastraXBase(component = "CONVERSATION_SERVICE", name = "kastrax-code-conversation-service") {
-    
-    private val logger = KotlinLogging.logger {}
+
+    // 使用父类的logger
     private val conversations = ConcurrentHashMap<String, ChatConversation>()
     private var currentConversationId: String? = null
-    
+
     /**
      * 创建新会话
      *
@@ -36,14 +36,14 @@ class ConversationService(private val project: Project) : KastraXBase(component 
             createdAt = Instant.now(),
             updatedAt = Instant.now()
         )
-        
+
         conversations[conversation.id] = conversation
         currentConversationId = conversation.id
-        
+
         logger.debug { "创建新会话: ${conversation.id}" }
         return conversation
     }
-    
+
     /**
      * 获取会话
      *
@@ -53,7 +53,7 @@ class ConversationService(private val project: Project) : KastraXBase(component 
     fun getConversation(id: String): ChatConversation? {
         return conversations[id]
     }
-    
+
     /**
      * 获取当前会话
      *
@@ -67,7 +67,7 @@ class ConversationService(private val project: Project) : KastraXBase(component 
             createConversation()
         }
     }
-    
+
     /**
      * 设置当前会话
      *
@@ -79,7 +79,7 @@ class ConversationService(private val project: Project) : KastraXBase(component 
             logger.debug { "设置当前会话: $id" }
         }
     }
-    
+
     /**
      * 获取所有会话
      *
@@ -88,7 +88,7 @@ class ConversationService(private val project: Project) : KastraXBase(component 
     fun getAllConversations(): List<ChatConversation> {
         return conversations.values.toList()
     }
-    
+
     /**
      * 获取排序后的会话列表
      *
@@ -97,7 +97,7 @@ class ConversationService(private val project: Project) : KastraXBase(component 
     fun getSortedConversations(): List<ChatConversation> {
         return conversations.values.sortedByDescending { it.updatedAt }
     }
-    
+
     /**
      * 删除会话
      *
@@ -105,14 +105,14 @@ class ConversationService(private val project: Project) : KastraXBase(component 
      */
     fun deleteConversation(id: String) {
         conversations.remove(id)
-        
+
         if (currentConversationId == id) {
             currentConversationId = conversations.keys.firstOrNull()
         }
-        
+
         logger.debug { "删除会话: $id" }
     }
-    
+
     /**
      * 删除会话
      *
@@ -121,7 +121,7 @@ class ConversationService(private val project: Project) : KastraXBase(component 
     fun deleteConversation(conversation: ChatConversation) {
         deleteConversation(conversation.id)
     }
-    
+
     /**
      * 清空所有会话
      */
@@ -130,7 +130,7 @@ class ConversationService(private val project: Project) : KastraXBase(component 
         currentConversationId = null
         logger.debug { "清空所有会话" }
     }
-    
+
     /**
      * 添加消息到当前会话
      *
@@ -141,7 +141,7 @@ class ConversationService(private val project: Project) : KastraXBase(component 
         conversation.addMessage(message)
         logger.debug { "添加消息到当前会话: ${conversation.id}" }
     }
-    
+
     companion object {
         /**
          * 获取服务实例
