@@ -1,5 +1,6 @@
 package ai.kastrax.code.agent.specialized
 
+import ai.kastrax.code.agent.AgentContext
 import ai.kastrax.code.agent.CodeAgent
 import ai.kastrax.code.common.KastraXCodeBase
 import ai.kastrax.code.context.CodeContextEngine
@@ -7,19 +8,19 @@ import ai.kastrax.code.memory.ShortTermMemory
 import ai.kastrax.code.model.DetailLevel
 import ai.kastrax.code.model.TestGenerationRequest
 import ai.kastrax.code.model.TestGenerationResult
-import ai.kastrax.code.mock.Agent
-import ai.kastrax.code.mock.AgentConfig
-import ai.kastrax.code.mock.AgentContext
-import ai.kastrax.code.mock.DeepSeekProvider
-import ai.kastrax.code.mock.DeepSeekModel
-import ai.kastrax.code.mock.deepSeek
-import ai.kastrax.code.mock.LlmMessage
-import ai.kastrax.code.mock.LlmMessageRole
-import ai.kastrax.code.mock.LlmOptions
+import ai.kastrax.core.agent.Agent
+import ai.kastrax.core.agent.AgentGenerateOptions
+import ai.kastrax.core.agent.agent
+import ai.kastrax.core.llm.LlmMessage
+import ai.kastrax.core.llm.LlmMessageRole
+import ai.kastrax.core.llm.LlmOptions
+import ai.kastrax.core.llm.LlmProvider
+import ai.kastrax.core.llm.LlmResponse
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import ai.kastrax.integrations.deepseek.deepSeek
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
-import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.util.UUID
@@ -39,23 +40,18 @@ class TestGenerationAgent(
 
     // 底层智能体
     private val agent: Agent by lazy {
-        Agent(
-            id = "test-generation-agent",
-            config = AgentConfig(
-                name = "测试生成智能体",
-                description = "提供测试生成功能",
-                model = config.model,
-                temperature = config.temperature,
-                maxTokens = config.maxTokens
-            )
-        )
+        agent {
+            name = "测试生成智能体"
+            instructions = "你是一个专业的测试生成助手，擅长为代码生成高质量的测试用例。"
+            model = llmProvider
+        }
     }
 
     // DeepSeek提供者
-    private val deepSeekProvider by lazy {
+    private val llmProvider: LlmProvider by lazy {
         deepSeek {
             model(DeepSeekModel.DEEPSEEK_CODER)
-            apiKey(System.getenv("DEEPSEEK_API_KEY") ?: "mock-api-key")
+            apiKey(System.getenv("DEEPSEEK_API_KEY") ?: "")
             temperature(0.2)
             maxTokens(3000)
         }
@@ -104,14 +100,23 @@ class TestGenerationAgent(
             val prompt = createTestGenerationPrompt(request, context)
 
             // 调用LLM
-            val llmRequest = LLMRequest(
-                model = config.model,
-                prompt = prompt,
+            val messages = listOf(
+                LlmMessage(
+                    role = LlmMessageRole.SYSTEM,
+                    content = "你是一个专业的测试生成助手，擅长为各种编程语言的代码生成高质量的测试。"
+                ),
+                LlmMessage(
+                    role = LlmMessageRole.USER,
+                    content = prompt
+                )
+            )
+
+            val options = LlmOptions(
                 temperature = config.temperature,
                 maxTokens = config.maxTokens
             )
 
-            val llmResponse = llmProvider.complete(llmRequest)
+            val llmResponse = llmProvider.generate(messages, options)
 
             // 存储到短期记忆
             shortTermMemory.storeMessage("user", "请为以下${language}代码生成${framework}测试：\n$code")
@@ -230,15 +235,31 @@ class TestGenerationAgent(
             )
 
             // 调用代理
-            val response = agent.process(agentContext)
+            val messages = listOf(
+                LlmMessage(
+                    role = LlmMessageRole.SYSTEM,
+                    content = "你是一个专业的代码生成助手，擅长编写高质量的代码。"
+                ),
+                LlmMessage(
+                    role = LlmMessageRole.USER,
+                    content = agentContext.toString()
+                )
+            )
+
+            val options = AgentGenerateOptions(
+                temperature = config.temperature,
+                maxTokens = config.maxTokens
+            )
+
+            val response = agent.generate(messages, options)
 
             // 存储到短期记忆
             shortTermMemory.storeMessage("user", prompt)
-            shortTermMemory.storeMessage("assistant", response.output)
+            shortTermMemory.storeMessage("assistant", response.text)
 
-            return@withContext response.output
+            return@withContext response.text
         } catch (e: Exception) {
-            logger.error(e) { "生成代码时出错: $prompt, 语言: $language" }
+            logger.error("生成代码时出错: $prompt, 语言: $language", e)
             return@withContext "生成代码时出错: ${e.message}"
         }
     }
@@ -264,15 +285,31 @@ class TestGenerationAgent(
             )
 
             // 调用代理
-            val response = agent.process(agentContext)
+            val messages = listOf(
+                LlmMessage(
+                    role = LlmMessageRole.SYSTEM,
+                    content = "你是一个专业的代码解释助手，擅长解释复杂的代码并提供清晰的解释。"
+                ),
+                LlmMessage(
+                    role = LlmMessageRole.USER,
+                    content = agentContext.toString()
+                )
+            )
+
+            val options = AgentGenerateOptions(
+                temperature = config.temperature,
+                maxTokens = config.maxTokens
+            )
+
+            val response = agent.generate(messages, options)
 
             // 存储到短期记忆
             shortTermMemory.storeMessage("user", "请解释以下代码：\n$code")
-            shortTermMemory.storeMessage("assistant", response.output)
+            shortTermMemory.storeMessage("assistant", response.text)
 
-            return@withContext response.output
+            return@withContext response.text
         } catch (e: Exception) {
-            logger.error(e) { "解释代码时出错, 详细程度: $detailLevel" }
+            logger.error("解释代码时出错, 详细程度: $detailLevel", e)
             return@withContext "解释代码时出错: ${e.message}"
         }
     }
@@ -301,15 +338,31 @@ class TestGenerationAgent(
             )
 
             // 调用代理
-            val response = agent.process(agentContext)
+            val messages = listOf(
+                LlmMessage(
+                    role = LlmMessageRole.SYSTEM,
+                    content = "你是一个专业的代码重构助手，擅长优化和重构代码以提高其质量。"
+                ),
+                LlmMessage(
+                    role = LlmMessageRole.USER,
+                    content = agentContext.toString()
+                )
+            )
+
+            val options = AgentGenerateOptions(
+                temperature = config.temperature,
+                maxTokens = config.maxTokens
+            )
+
+            val response = agent.generate(messages, options)
 
             // 存储到短期记忆
             shortTermMemory.storeMessage("user", "请根据以下指令重构代码：\n$instructions\n\n代码：\n$code")
-            shortTermMemory.storeMessage("assistant", response.output)
+            shortTermMemory.storeMessage("assistant", response.text)
 
-            return@withContext response.output
+            return@withContext response.text
         } catch (e: Exception) {
-            logger.error(e) { "重构代码时出错: $instructions" }
+            logger.error("重构代码时出错: $instructions", e)
             return@withContext "重构代码时出错: ${e.message}"
         }
     }
@@ -346,7 +399,7 @@ class TestGenerationAgent(
                 ${result.explanation}
             """.trimIndent()
         } catch (e: Exception) {
-            logger.error(e) { "生成测试时出错: $framework" }
+            logger.error("生成测试时出错: $framework", e)
             return@withContext "生成测试时出错: ${e.message}"
         }
     }
