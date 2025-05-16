@@ -1,16 +1,21 @@
 package ai.kastrax.code.service
 
+import ai.kastrax.code.agent.AgentCoordinator
 import ai.kastrax.code.agent.CodeAgent
 import ai.kastrax.code.agent.CodeAgentConfig
 import ai.kastrax.code.agent.KastraxCodeAgent
+import ai.kastrax.code.agent.specialized.CodeCompletionAgent
+import ai.kastrax.code.agent.specialized.CodeExplanationAgent
+import ai.kastrax.code.agent.specialized.CodeRefactoringAgent
+import ai.kastrax.code.agent.specialized.TestGenerationAgent
 import ai.kastrax.code.context.CodeContextEngine
-import ai.kastrax.code.context.CodeContextEngineConfig
-import ai.kastrax.code.context.KastraxCodeContextEngine
+import ai.kastrax.code.context.CodeContextEngineImpl
+import ai.kastrax.code.indexing.CodeIndexManager
 import ai.kastrax.code.tools.CodeToolRegistry
 import ai.kastrax.core.agent.Agent
 import ai.kastrax.core.agent.AgentConfig
 import ai.kastrax.core.agent.AgentFactory
-import ai.kastrax.core.common.KastraXBase
+import ai.kastrax.code.common.KastraXCodeBase
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
@@ -25,22 +30,27 @@ import java.nio.file.Paths
 
 /**
  * 代码智能体服务
- * 
+ *
  * 管理代码智能体和上下文引擎的生命周期
  */
 @Service(Service.Level.PROJECT)
-class CodeAgentService(private val project: Project) : KastraXBase(component = "CODE_AGENT_SERVICE", name = "kastrax-code-agent-service") {
-    
-    private val logger = KotlinLogging.logger {}
+class CodeAgentService(private val project: Project) : KastraXCodeBase(component = "CODE_AGENT_SERVICE") {
+
+    override val logger = KotlinLogging.logger {}
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
-    
+
     private lateinit var agent: Agent
     private lateinit var contextEngine: CodeContextEngine
     private lateinit var toolRegistry: CodeToolRegistry
     private lateinit var codeAgent: CodeAgent
-    
+    private lateinit var agentCoordinator: AgentCoordinator
+    private lateinit var codeCompletionAgent: CodeCompletionAgent
+    private lateinit var codeExplanationAgent: CodeExplanationAgent
+    private lateinit var codeRefactoringAgent: CodeRefactoringAgent
+    private lateinit var testGenerationAgent: TestGenerationAgent
+
     private var initialized = false
-    
+
     /**
      * 初始化服务
      */
@@ -48,15 +58,15 @@ class CodeAgentService(private val project: Project) : KastraXBase(component = "
         if (initialized) {
             return
         }
-        
+
         logger.info { "初始化代码智能体服务" }
-        
+
         // 初始化工具注册表
         toolRegistry = project.service<CodeToolRegistry>()
-        
+
         // 初始化上下文引擎
-        contextEngine = KastraxCodeContextEngine(CodeContextEngineConfig())
-        
+        contextEngine = CodeContextEngineImpl.getInstance(project)
+
         // 初始化智能体
         val agentConfig = AgentConfig(
             name = "kastrax-code-agent",
@@ -65,23 +75,26 @@ class CodeAgentService(private val project: Project) : KastraXBase(component = "
             maxTokens = 2000
         )
         agent = AgentFactory.createAgent(agentConfig)
-        
-        // 初始化代码智能体
-        codeAgent = KastraxCodeAgent(
-            agent = agent,
-            contextEngine = contextEngine,
-            toolRegistry = toolRegistry,
-            config = CodeAgentConfig()
-        )
-        
-        // 索引项目代码
-        serviceScope.launch {
-            indexProject()
-        }
-        
+
+        // 初始化专业化智能体
+        codeCompletionAgent = CodeCompletionAgent.getInstance(project)
+        codeExplanationAgent = CodeExplanationAgent.getInstance(project)
+        codeRefactoringAgent = CodeRefactoringAgent.getInstance(project)
+        testGenerationAgent = TestGenerationAgent.getInstance(project)
+
+        // 初始化智能体协调器
+        agentCoordinator = AgentCoordinator.getInstance(project)
+
+        // 初始化代码智能体（使用协调器作为默认实现）
+        codeAgent = codeCompletionAgent
+
+        // 启动代码索引管理器
+        val indexManager = CodeIndexManager.getInstance(project)
+        indexManager.start()
+
         initialized = true
     }
-    
+
     /**
      * 获取代码智能体
      *
@@ -93,7 +106,7 @@ class CodeAgentService(private val project: Project) : KastraXBase(component = "
         }
         return codeAgent
     }
-    
+
     /**
      * 获取上下文引擎
      *
@@ -105,7 +118,7 @@ class CodeAgentService(private val project: Project) : KastraXBase(component = "
         }
         return contextEngine
     }
-    
+
     /**
      * 获取工具注册表
      *
@@ -117,37 +130,31 @@ class CodeAgentService(private val project: Project) : KastraXBase(component = "
         }
         return toolRegistry
     }
-    
+
     /**
-     * 索引项目代码
+     * 处理用户请求
+     *
+     * @param request 用户请求
+     * @return 响应
      */
-    private suspend fun indexProject() {
-        try {
-            val projectPath = project.basePath
-            if (projectPath != null) {
-                val path = Paths.get(projectPath)
-                logger.info { "索引项目代码: $path" }
-                contextEngine.indexCodebase(path)
-            }
-        } catch (e: Exception) {
-            logger.error(e) { "索引项目代码失败" }
-        }
+    suspend fun processRequest(request: String): String {
+        return agentCoordinator.processRequest(request)
     }
-    
+
     /**
      * 关闭服务
      */
     fun dispose() {
         if (initialized) {
             logger.info { "关闭代码智能体服务" }
-            serviceScope.launch {
-                contextEngine.close()
-            }
+            // 停止代码索引管理器
+            val indexManager = CodeIndexManager.getInstance(project)
+            indexManager.stop()
             serviceScope.cancel()
             initialized = false
         }
     }
-    
+
     companion object {
         /**
          * 获取服务实例
