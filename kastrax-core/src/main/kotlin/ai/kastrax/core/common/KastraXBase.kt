@@ -8,7 +8,7 @@ package ai.kastrax.core.common
  * @param name The name of the component instance
  */
 abstract class KastraXBase(
-    protected val component: String,
+    protected open val component: String,
     val name: String
 ) {
 

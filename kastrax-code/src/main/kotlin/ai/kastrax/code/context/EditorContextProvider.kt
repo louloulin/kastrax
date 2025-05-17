@@ -107,20 +107,28 @@ class EditorContextProvider(
             val startLocation = getLocationFromOffset(editor, selectionStart)
             val endLocation = getLocationFromOffset(editor, selectionEnd)
 
-            // 创建上下文元素
-            val element = ContextElement(
+            // 创建代码元素
+            val codeElement = ai.kastrax.code.model.CodeElement(
                 id = "selected_code",
                 name = "Selected Code",
-                type = "CODE_SNIPPET",
+                type = ai.kastrax.code.model.CodeElementType.BLOCK,
                 content = selectedText,
-                filePath = getFilePath(psiFile),
+                path = getFilePath(psiFile).toString(),
                 location = Location(
                     line = startLocation.line,
                     column = startLocation.column,
                     endLine = endLocation.line,
                     endColumn = endLocation.column
-                ),
-                score = 1.0
+                )
+            )
+
+            // 创建上下文元素
+            val element = ContextElement(
+                element = codeElement,
+                level = ai.kastrax.code.model.ContextLevel.BLOCK,
+                relevance = ai.kastrax.code.model.ContextRelevance.PRIMARY,
+                content = selectedText,
+                score = 1.0f
             )
 
             // 创建上下文
@@ -224,7 +232,7 @@ class EditorContextProvider(
 
         // 去重并按分数排序
         val uniqueElements = allElements
-            .distinctBy { it.id }
+            .distinctBy { it.element.id }
             .sortedByDescending { it.score }
 
         // 合并查询

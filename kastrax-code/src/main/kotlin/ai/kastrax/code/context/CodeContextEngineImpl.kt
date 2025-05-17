@@ -356,7 +356,7 @@ class CodeContextEngineImpl(
         // 创建上下文元素
         return ContextElement(
             element = codeElement,
-            level = ai.kastrax.code.model.ContextLevel.PRIMARY,
+            level = ai.kastrax.code.model.ContextLevel.FILE,
             relevance = ai.kastrax.code.model.ContextRelevance.HIGH,
             content = element.content,
             score = result.score

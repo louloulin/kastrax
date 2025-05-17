@@ -281,8 +281,8 @@ class KastraxCodeContextEngine(
             logger.debug("获取编辑上下文: $filePath, $position")
 
             val kastraxLocation = KastraxLocation(
-                startLine = position.startLine,
-                startColumn = position.startColumn,
+                startLine = position.line,
+                startColumn = position.column,
                 endLine = position.endLine,
                 endColumn = position.endColumn
             )
@@ -367,7 +367,13 @@ class KastraxCodeContextEngine(
             ContextElement(
                 element = convertCodeElement(kastraxElement.element),
                 level = convertContextLevel(kastraxElement.level),
-                relevance = kastraxElement.relevance,
+                relevance = when {
+                    kastraxElement.relevance > 0.8f -> ContextRelevance.HIGH
+                    kastraxElement.relevance > 0.5f -> ContextRelevance.MEDIUM
+                    kastraxElement.relevance > 0.3f -> ContextRelevance.LOW
+                    else -> ContextRelevance.PRIMARY
+                },
+                score = kastraxElement.relevance,
                 content = kastraxElement.content
             )
         }
@@ -390,7 +396,7 @@ class KastraxCodeContextEngine(
             id = kastraxElement.id,
             type = convertCodeElementType(kastraxElement.type),
             name = kastraxElement.name,
-            path = kastraxElement.path,
+            path = kastraxElement.location?.filePath ?: "",
             location = convertLocation(kastraxElement.location),
             content = kastraxElement.content,
             metadata = kastraxElement.metadata,
@@ -438,8 +444,8 @@ class KastraxCodeContextEngine(
             ai.kastrax.codebase.context.ContextLevel.FILE -> ContextLevel.FILE
             ai.kastrax.codebase.context.ContextLevel.CLASS -> ContextLevel.CLASS
             ai.kastrax.codebase.context.ContextLevel.METHOD -> ContextLevel.METHOD
-            ai.kastrax.codebase.context.ContextLevel.VARIABLE -> ContextLevel.VARIABLE
-            ai.kastrax.codebase.context.ContextLevel.BLOCK -> ContextLevel.BLOCK
+            ai.kastrax.codebase.context.ContextLevel.STATEMENT -> ContextLevel.VARIABLE
+            ai.kastrax.codebase.context.ContextLevel.EXPRESSION -> ContextLevel.BLOCK
             else -> ContextLevel.FILE
         }
     }
@@ -452,8 +458,8 @@ class KastraxCodeContextEngine(
      */
     private fun convertLocation(kastraxLocation: KastraxLocation): Location {
         return Location(
-            startLine = kastraxLocation.startLine,
-            startColumn = kastraxLocation.startColumn,
+            line = kastraxLocation.startLine,
+            column = kastraxLocation.startColumn,
             endLine = kastraxLocation.endLine,
             endColumn = kastraxLocation.endColumn
         )

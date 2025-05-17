@@ -9,6 +9,7 @@ import ai.kastrax.code.model.DetailLevel
 import ai.kastrax.code.model.RefactoringRequest
 import ai.kastrax.code.model.RefactoringResult
 import ai.kastrax.code.workflow.CheckpointManager
+import ai.kastrax.code.workflow.CheckpointManagerImpl
 import ai.kastrax.core.agent.Agent
 import ai.kastrax.core.agent.AgentGenerateOptions
 import ai.kastrax.core.agent.agent
@@ -70,7 +71,7 @@ class CodeRefactoringAgent(
 
     // 检查点管理器
     private val checkpointManager: CheckpointManager by lazy {
-        CheckpointManager.getInstance(project)
+        CheckpointManagerImpl.getInstance(project)
     }
 
     /**
@@ -179,7 +180,7 @@ class CodeRefactoringAgent(
         if (context.elements.isNotEmpty()) {
             sb.appendLine("## 相关上下文")
             context.elements.forEach { element ->
-                sb.appendLine("### ${element.type}: ${element.name}")
+                sb.appendLine("### ${element.element.type}: ${element.element.name}")
                 sb.appendLine("```${request.language}")
                 sb.appendLine(element.content)
                 sb.appendLine("```")

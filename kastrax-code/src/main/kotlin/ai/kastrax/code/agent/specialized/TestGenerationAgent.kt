@@ -172,7 +172,7 @@ class TestGenerationAgent(
         if (context.elements.isNotEmpty()) {
             sb.appendLine("## 相关上下文")
             context.elements.forEach { element ->
-                sb.appendLine("### ${element.type}: ${element.name}")
+                sb.appendLine("### ${element.element.type}: ${element.element.name}")
                 sb.appendLine("```${request.language}")
                 sb.appendLine(element.content)
                 sb.appendLine("```")

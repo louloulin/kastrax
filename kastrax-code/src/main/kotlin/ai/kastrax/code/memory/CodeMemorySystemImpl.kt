@@ -17,9 +17,7 @@ import ai.kastrax.code.memory.toJavaInstant
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.nio.file.Paths
-import java.time.Instant
 import java.util.UUID
-import kotlinx.datetime.toKotlinInstant
 
 /**
  * 代码记忆系统实现
@@ -130,7 +128,7 @@ class CodeMemorySystemImpl(
             return@withContext messages.map { memoryMessage ->
                 SimpleMemory(
                     content = memoryMessage.message.content,
-                    metadata = memoryMessage.metadata?.mapValues { it.value } ?: mapOf(
+                    metadata = memoryMessage.metadata?.mapValues { it.value.toString() } ?: mapOf(
                         "role" to memoryMessage.message.role.name.lowercase()
                     ),
                     timestamp = memoryMessage.createdAt.toJavaInstant()
@@ -170,7 +168,7 @@ class CodeMemorySystemImpl(
                     "element_id" to element.element.id,
                     "element_name" to element.element.name,
                     "element_type" to element.element.type.toString(),
-                    "file_path" to (element.element.filePath?.toString() ?: ""),
+                    "file_path" to element.element.path,
                     "location" to (element.element.location?.toString() ?: ""),
                     "score" to element.score.toString(),
                     "type" to "CODE_CONTEXT"
@@ -223,7 +221,7 @@ class CodeMemorySystemImpl(
                         name = metadata["element_name"]?.toString() ?: "",
                         type = ai.kastrax.code.model.CodeElementType.valueOf(metadata["element_type"]?.toString() ?: "UNKNOWN"),
                         content = memoryMessage.message.content,
-                        filePath = metadata["file_path"]?.toString()?.let { Paths.get(it) },
+                        path = metadata["file_path"]?.toString() ?: "",
                         location = metadata["location"]?.toString()?.let { parseLocation(it) }
                     )
 
@@ -342,7 +340,7 @@ class CodeMemorySystemImpl(
             return@withContext filteredMessages.map { memoryMessage ->
                 SimpleMemory(
                     content = memoryMessage.message.content,
-                    metadata = memoryMessage.metadata?.mapValues { it.value } ?: mapOf(
+                    metadata = memoryMessage.metadata?.mapValues { it.value.toString() } ?: mapOf(
                         "role" to memoryMessage.message.role.name.lowercase()
                     ),
                     timestamp = memoryMessage.createdAt.toJavaInstant()

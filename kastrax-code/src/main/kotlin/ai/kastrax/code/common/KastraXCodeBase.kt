@@ -11,7 +11,7 @@ abstract class KastraXCodeBase(
     /**
      * 组件名称
      */
-    protected val component: String,
+    override val component: String,
 
     /**
      * 组件实例名称
