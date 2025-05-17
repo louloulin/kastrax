@@ -44,7 +44,7 @@ class KastraxCodeAgentImpl(
 
         // 获取上下文
         val context = contextEngine.getQueryContext(prompt, 5, 0.0, true)
-        
+
         // 创建消息
         val messages = listOf(
             LlmMessage(
@@ -53,7 +53,7 @@ class KastraxCodeAgentImpl(
             ),
             LlmMessage(
                 role = LlmMessageRole.USER,
-                content = "$enhancedPrompt\n\n上下文信息：\n${context.getContent()}"
+                content = "$enhancedPrompt\n\n上下文信息：\n${context.toString()}"
             )
         )
 
@@ -117,7 +117,7 @@ class KastraxCodeAgentImpl(
 
         // 获取上下文
         val context = contextEngine.getQueryContext(instructions, 5, 0.0, true)
-        
+
         // 创建消息
         val messages = listOf(
             LlmMessage(
@@ -126,7 +126,7 @@ class KastraxCodeAgentImpl(
             ),
             LlmMessage(
                 role = LlmMessageRole.USER,
-                content = "请根据以下指令重构代码：\n\n$instructions\n\n代码：\n```\n$code\n```\n\n上下文信息：\n${context.getContent()}"
+                content = "请根据以下指令重构代码：\n\n$instructions\n\n代码：\n```\n$code\n```\n\n上下文信息：\n${context.toString()}"
             )
         )
 

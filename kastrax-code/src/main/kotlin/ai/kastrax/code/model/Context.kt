@@ -39,15 +39,45 @@ data class ContextElement(
     val level: ContextLevel,
 
     /**
+     * 相关性
+     */
+    val relevance: ContextRelevance = ContextRelevance.MEDIUM,
+
+    /**
      * 相关性分数
      */
-    val relevance: Float,
+    val score: Float = 0.0f,
 
     /**
      * 内容文本
      */
     val content: String
 )
+
+/**
+ * 上下文相关性枚举
+ */
+enum class ContextRelevance {
+    /**
+     * 高相关性
+     */
+    HIGH,
+
+    /**
+     * 中相关性
+     */
+    MEDIUM,
+
+    /**
+     * 低相关性
+     */
+    LOW,
+
+    /**
+     * 主要元素
+     */
+    PRIMARY
+}
 
 /**
  * 上下文级别枚举

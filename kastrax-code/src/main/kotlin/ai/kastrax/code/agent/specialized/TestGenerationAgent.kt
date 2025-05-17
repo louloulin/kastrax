@@ -230,7 +230,7 @@ class TestGenerationAgent(
                 input = prompt,
                 metadata = mapOf(
                     "language" to language,
-                    "context" to context.getContent()
+                    "context" to context.toString()
                 )
             )
 
@@ -333,7 +333,7 @@ class TestGenerationAgent(
                 input = "$instructions\n\n$code",
                 metadata = mapOf(
                     "task" to "refactor",
-                    "context" to context.getContent()
+                    "context" to context.toString()
                 )
             )
 

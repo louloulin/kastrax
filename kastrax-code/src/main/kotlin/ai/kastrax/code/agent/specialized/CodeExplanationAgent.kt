@@ -193,7 +193,7 @@ class CodeExplanationAgent(
                 input = prompt,
                 metadata = mapOf(
                     "language" to language,
-                    "context" to context.getContent()
+                    "context" to context.toString()
                 )
             )
 
@@ -270,7 +270,7 @@ class CodeExplanationAgent(
                 input = "$instructions\n\n$code",
                 metadata = mapOf(
                     "task" to "refactor",
-                    "context" to context.getContent()
+                    "context" to context.toString()
                 )
             )
 
@@ -344,7 +344,7 @@ class CodeExplanationAgent(
             val response = agent.generate(messages, options)
 
             // 存储到短期记忆
-            shortTermMemory.storeMessage("user", "请为以下代码生成$framework测试：\n$code")
+            shortTermMemory.storeMessage("user", "请为以下代码生成${framework}测试：\n$code")
             shortTermMemory.storeMessage("assistant", response.text)
 
             return@withContext response.text

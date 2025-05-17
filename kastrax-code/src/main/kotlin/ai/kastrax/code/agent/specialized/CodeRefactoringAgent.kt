@@ -242,7 +242,7 @@ class CodeRefactoringAgent(
                 input = prompt,
                 metadata = mapOf(
                     "language" to language,
-                    "context" to context.getContent()
+                    "context" to context.toString()
                 )
             )
 

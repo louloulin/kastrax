@@ -31,6 +31,12 @@ class CodeContextEngineImpl(
     private val project: Project,
     private val config: CodeContextEngineConfig = CodeContextEngineConfig()
 ) : CodeContextEngine, KastraXCodeBase(component = "CODE_CONTEXT_ENGINE") {
+    // 兼容性属性
+    private val enableIncrementalIndexing: Boolean = config.enableIncrementalIndexing
+    private val enableGitIntegration: Boolean = config.enableCodeRelationAnalysis
+    private val enableFileSystemMonitoring: Boolean = true
+    private val maxContextElements: Int = 20
+    private val minRelevanceScore: Double = 0.5
 
     // 使用父类的logger
 
@@ -322,10 +328,21 @@ class CodeContextEngineImpl(
      */
     private fun convertToContextElement(result: RetrievalResult): ContextElement {
         val element = result.element
+
+        // 判断元素类型
+        val elementType = try {
+            ai.kastrax.code.model.CodeElementType.valueOf(element.type.name)
+        } catch (e: Exception) {
+            // 如果类型不存在，使用默认类型
+            logger.warn("Unknown code element type: ${element.type.name}, using FILE instead")
+            ai.kastrax.code.model.CodeElementType.FILE
+        }
+
+        // 创建代码元素
         val codeElement = ai.kastrax.code.model.CodeElement(
             id = element.id,
             name = element.name,
-            type = ai.kastrax.code.model.CodeElementType.valueOf(element.type.name),
+            type = elementType,
             content = element.content,
             filePath = element.location?.filePath?.let { Paths.get(it) },
             location = element.location?.let {
@@ -338,6 +355,7 @@ class CodeContextEngineImpl(
             }
         )
 
+        // 创建上下文元素
         return ContextElement(
             element = codeElement,
             level = ai.kastrax.code.model.ContextLevel.PRIMARY,
@@ -435,19 +453,4 @@ class CodeContextEngineImpl(
     }
 }
 
-/**
- * 代码上下文引擎配置
- *
- * @property enableIncrementalIndexing 是否启用增量索引
- * @property enableGitIntegration 是否启用Git集成
- * @property enableFileSystemMonitoring 是否启用文件系统监控
- * @property maxContextElements 最大上下文元素数量
- * @property minRelevanceScore 最小相关性分数
- */
-data class CodeContextEngineConfig(
-    val enableIncrementalIndexing: Boolean = true,
-    val enableGitIntegration: Boolean = true,
-    val enableFileSystemMonitoring: Boolean = true,
-    val maxContextElements: Int = 20,
-    val minRelevanceScore: Double = 0.5
-)
+// 使用 KastraxCodeContextEngine.kt 中的 CodeContextEngineConfig 类

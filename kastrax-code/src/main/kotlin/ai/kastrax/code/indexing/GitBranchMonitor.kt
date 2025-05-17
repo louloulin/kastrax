@@ -2,8 +2,8 @@ package ai.kastrax.code.indexing
 
 import ai.kastrax.code.common.KastraXCodeBase
 import ai.kastrax.codebase.git.GitBranchChangeEvent
+import ai.kastrax.codebase.git.GitBranchMonitorConfig
 import ai.kastrax.codebase.git.GitBranchMonitor as CodebaseGitBranchMonitor
-import ai.kastrax.codebase.git.config.GitBranchMonitorConfig
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vcs.BranchChangeListener
 import git4idea.branch.GitBranchUtil
