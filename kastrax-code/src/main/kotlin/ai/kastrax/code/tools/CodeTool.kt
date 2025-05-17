@@ -1,6 +1,7 @@
 package ai.kastrax.code.tools
 
-import ai.kastrax.code.mock.Tool
+import ai.kastrax.core.tools.Tool
+import kotlinx.serialization.json.JsonElement
 
 /**
  * 代码工具接口
@@ -11,17 +12,35 @@ interface CodeTool : Tool {
     /**
      * 获取工具ID
      */
-    val id: String
+    override val id: String
 
     /**
      * 获取工具名称
      */
-    val name: String
+    override val name: String
 
     /**
      * 获取工具描述
      */
-    val description: String
+    override val description: String
+
+    /**
+     * 获取输入模式
+     */
+    override val inputSchema: JsonElement
+
+    /**
+     * 获取输出模式
+     */
+    override val outputSchema: JsonElement?
+
+    /**
+     * 执行工具
+     *
+     * @param input 工具输入参数
+     * @return 工具执行结果
+     */
+    override suspend fun execute(input: JsonElement): JsonElement
 }
 
 /**

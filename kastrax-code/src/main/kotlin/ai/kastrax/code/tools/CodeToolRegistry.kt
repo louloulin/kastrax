@@ -1,8 +1,10 @@
 package ai.kastrax.code.tools
 
 import ai.kastrax.code.common.KastraXCodeBase
-import ai.kastrax.core.tool.Tool
+import ai.kastrax.core.tools.Tool
+import ai.kastrax.core.tools.tool
 import com.intellij.openapi.components.Service
+import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
 
 /**
@@ -23,7 +25,7 @@ class CodeToolRegistry(
      */
     fun registerTool(tool: Tool) {
         tools[tool.name] = tool
-        debug("注册工具: ${tool.name}")
+        logger.debug("注册工具: ${tool.name}")
     }
 
     /**
@@ -69,7 +71,7 @@ class CodeToolRegistry(
      */
     fun clear() {
         tools.clear()
-        debug("清除所有工具")
+        logger.debug("清除所有工具")
     }
 
     companion object {
@@ -80,7 +82,7 @@ class CodeToolRegistry(
          * @return 代码工具注册表实例
          */
         fun getInstance(project: Project): CodeToolRegistry {
-            return project.getService(CodeToolRegistry::class.java)
+            return project.service<CodeToolRegistry>()
         }
     }
 }

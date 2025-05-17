@@ -210,7 +210,7 @@ class CodeCompletionAgent(
         if (context.elements.isNotEmpty()) {
             sb.appendLine("## 相关上下文")
             context.elements.forEach { element ->
-                sb.appendLine("### ${element.type}: ${element.name}")
+                sb.appendLine("### ${element.element.type}: ${element.element.name}")
                 sb.appendLine("```${request.language}")
                 sb.appendLine(element.content)
                 sb.appendLine("```")
@@ -312,13 +312,29 @@ class CodeCompletionAgent(
             )
 
             // 调用代理
-            val response = agent.process(agentContext)
+            val messages = listOf(
+                LlmMessage(
+                    role = LlmMessageRole.SYSTEM,
+                    content = "你是一个专业的代码生成助手，擅长编写高质量的代码。"
+                ),
+                LlmMessage(
+                    role = LlmMessageRole.USER,
+                    content = agentContext.toString()
+                )
+            )
+
+            val options = AgentGenerateOptions(
+                temperature = config.temperature,
+                maxTokens = config.maxTokens
+            )
+
+            val response = agent.generate(messages, options)
 
             // 存储到短期记忆
             shortTermMemory.storeMessage("user", prompt)
-            shortTermMemory.storeMessage("assistant", response.output)
+            shortTermMemory.storeMessage("assistant", response.text)
 
-            return@withContext response.output
+            return@withContext response.text
         } catch (e: Exception) {
             logger.error("生成代码时出错: $prompt, 语言: $language", e)
             return@withContext "生成代码时出错: ${e.message}"
@@ -346,13 +362,29 @@ class CodeCompletionAgent(
             )
 
             // 调用代理
-            val response = agent.process(agentContext)
+            val messages = listOf(
+                LlmMessage(
+                    role = LlmMessageRole.SYSTEM,
+                    content = "你是一个专业的代码解释助手，擅长解释复杂的代码并提供清晰的解释。"
+                ),
+                LlmMessage(
+                    role = LlmMessageRole.USER,
+                    content = agentContext.toString()
+                )
+            )
+
+            val options = AgentGenerateOptions(
+                temperature = config.temperature,
+                maxTokens = config.maxTokens
+            )
+
+            val response = agent.generate(messages, options)
 
             // 存储到短期记忆
             shortTermMemory.storeMessage("user", "请解释以下代码：\n$code")
-            shortTermMemory.storeMessage("assistant", response.output)
+            shortTermMemory.storeMessage("assistant", response.text)
 
-            return@withContext response.output
+            return@withContext response.text
         } catch (e: Exception) {
             logger.error("解释代码时出错, 详细程度: $detailLevel", e)
             return@withContext "解释代码时出错: ${e.message}"
@@ -378,18 +410,34 @@ class CodeCompletionAgent(
                 input = "$instructions\n\n$code",
                 metadata = mapOf(
                     "task" to "refactor",
-                    "context" to context.getContent()
+                    "context" to context.toString()
                 )
             )
 
             // 调用代理
-            val response = agent.process(agentContext)
+            val messages = listOf(
+                LlmMessage(
+                    role = LlmMessageRole.SYSTEM,
+                    content = "你是一个专业的代码重构助手，擅长优化和重构代码以提高其质量。"
+                ),
+                LlmMessage(
+                    role = LlmMessageRole.USER,
+                    content = agentContext.toString()
+                )
+            )
+
+            val options = AgentGenerateOptions(
+                temperature = config.temperature,
+                maxTokens = config.maxTokens
+            )
+
+            val response = agent.generate(messages, options)
 
             // 存储到短期记忆
             shortTermMemory.storeMessage("user", "请根据以下指令重构代码：\n$instructions\n\n代码：\n$code")
-            shortTermMemory.storeMessage("assistant", response.output)
+            shortTermMemory.storeMessage("assistant", response.text)
 
-            return@withContext response.output
+            return@withContext response.text
         } catch (e: Exception) {
             logger.error("重构代码时出错: $instructions", e)
             return@withContext "重构代码时出错: ${e.message}"
@@ -417,13 +465,29 @@ class CodeCompletionAgent(
             )
 
             // 调用代理
-            val response = agent.process(agentContext)
+            val messages = listOf(
+                LlmMessage(
+                    role = LlmMessageRole.SYSTEM,
+                    content = "你是一个专业的测试生成助手，擅长为代码生成高质量的测试用例。"
+                ),
+                LlmMessage(
+                    role = LlmMessageRole.USER,
+                    content = agentContext.toString()
+                )
+            )
+
+            val options = AgentGenerateOptions(
+                temperature = config.temperature,
+                maxTokens = config.maxTokens
+            )
+
+            val response = agent.generate(messages, options)
 
             // 存储到短期记忆
-            shortTermMemory.storeMessage("user", "请为以下代码生成$framework测试：\n$code")
-            shortTermMemory.storeMessage("assistant", response.output)
+            shortTermMemory.storeMessage("user", "请为以下代码生成${framework}测试：\n$code")
+            shortTermMemory.storeMessage("assistant", response.text)
 
-            return@withContext response.output
+            return@withContext response.text
         } catch (e: Exception) {
             logger.error("生成测试时出错: $framework", e)
             return@withContext "生成测试时出错: ${e.message}"
