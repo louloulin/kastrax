@@ -6,14 +6,20 @@ import ai.kastrax.code.tools.CodeToolRegistry
 import ai.kastrax.core.agent.Agent
 import ai.kastrax.core.agent.AgentGenerateOptions
 import ai.kastrax.core.agent.AgentResponse
+import ai.kastrax.core.agent.AgentStreamOptions
 import ai.kastrax.code.common.KastraXCodeBase
 import ai.kastrax.core.llm.LlmMessage
 import ai.kastrax.core.llm.LlmMessageRole
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 
 /**
  * 基于 kastrax-core 的代码智能体实现
+ *
+ * 支持流式生成和标准生成模式
  */
 class KastraxCodeAgent(
     private val agent: Agent,
@@ -70,6 +76,66 @@ class KastraxCodeAgent(
     }
 
     /**
+     * 流式生成代码
+     *
+     * @param prompt 提示文本
+     * @param language 编程语言
+     * @param options 流式选项
+     * @return 生成的代码流
+     */
+    override suspend fun streamGenerateCode(prompt: String, language: String, options: AgentStreamOptions): Flow<String> {
+        logger.info("开始流式生成代码，提示：$prompt，语言：$language")
+
+        val enhancedPrompt = """
+            请根据以下描述生成 $language 代码：
+
+            $prompt
+
+            请只返回代码，不要包含解释或其他文本。
+        """.trimIndent()
+
+        val streamOptions = AgentStreamOptions(
+            temperature = config.codeGenerationTemperature,
+            maxTokens = config.codeGenerationMaxTokens
+        )
+
+        val messages = listOf(
+            LlmMessage(
+                role = LlmMessageRole.SYSTEM,
+                content = "你是一个专业的代码生成助手，擅长编写高质量的代码。请根据用户的描述生成代码。"
+            ),
+            LlmMessage(
+                role = LlmMessageRole.USER,
+                content = enhancedPrompt
+            )
+        )
+
+        logger.info("调用 DeepSeek LLM 流式生成代码，消息数：${messages.size}")
+        val startTime = System.currentTimeMillis()
+
+        try {
+            // 使用 agent 的 stream 方法获取流式响应
+            val response = agent.stream(messages, streamOptions)
+
+            // 收集完整的代码，用于提取
+            val codeBuilder = StringBuilder()
+
+            // 返回流
+            return response.textStream?.map { chunk ->
+                codeBuilder.append(chunk)
+                chunk
+            } ?: flow {
+                // 如果没有流，返回空流
+                logger.warn("没有收到流式响应")
+            }
+        } catch (e: Exception) {
+            logger.error("流式生成代码失败", e)
+            // 如果流式生成失败，返回空流
+            return flow { }
+        }
+    }
+
+    /**
      * 解释代码
      *
      * @param code 代码文本
@@ -113,6 +179,65 @@ class KastraxCodeAgent(
 
         val response = agent.generate(messages, options)
         return response.text
+    }
+
+    /**
+     * 流式解释代码
+     *
+     * @param code 代码文本
+     * @param detailLevel 详细程度
+     * @param options 流式选项
+     * @return 代码解释流
+     */
+    override suspend fun streamExplainCode(code: String, detailLevel: DetailLevel, options: AgentStreamOptions): Flow<String> {
+        logger.debug("流式解释代码, 详细程度: $detailLevel")
+
+        val detailLevelText = when (detailLevel) {
+            DetailLevel.BRIEF -> "提供基本概述，简要解释代码的功能和目的"
+            DetailLevel.NORMAL -> "提供标准解释，包括代码的功能和主要部分的说明"
+            DetailLevel.DETAILED -> "提供详细解释，包括代码的功能、实现细节、算法原理、性能考虑和可能的边界情况"
+        }
+
+        val enhancedPrompt = """
+            请解释以下代码：
+
+            ```
+            $code
+            ```
+
+            详细程度: $detailLevelText
+        """.trimIndent()
+
+        val streamOptions = AgentStreamOptions(
+            temperature = config.codeExplanationTemperature,
+            maxTokens = config.codeExplanationMaxTokens
+        )
+
+        val messages = listOf(
+            LlmMessage(
+                role = LlmMessageRole.SYSTEM,
+                content = "你是一个专业的代码解释助手，擅长解释代码的功能和实现。"
+            ),
+            LlmMessage(
+                role = LlmMessageRole.USER,
+                content = enhancedPrompt
+            )
+        )
+
+        try {
+            // 使用 agent 的 stream 方法获取流式响应
+            val response = agent.stream(messages, streamOptions)
+
+            // 返回流
+            return response.textStream ?: flow {
+                // 如果没有流，返回空流
+                logger.warn("没有收到流式响应")
+            }
+        } catch (e: Exception) {
+            logger.error("流式解释代码失败", e)
+            // 如果流式生成失败，返回空流
+            return flow { }
+        }
     }
 
     /**

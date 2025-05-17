@@ -30,7 +30,7 @@ class KastraxCodeAgentTest {
     private lateinit var contextEngine: KastraxCodeContextEngine
     private lateinit var toolRegistry: CodeToolRegistry
     private lateinit var mockProject: Project
-    private lateinit var codeAgent: MockCodeAgent
+    private lateinit var codeAgent: KastraxCodeAgent
 
     @Before
     fun setup() {
@@ -91,8 +91,8 @@ class KastraxCodeAgentTest {
             }
         }
 
-        // 使用 Agent 创建代码智能体
-        codeAgent = MockCodeAgent(
+        // 使用真实的 Agent 创建代码智能体
+        codeAgent = KastraxCodeAgent(
             agent = realAgent,
             contextEngine = contextEngine,
             toolRegistry = toolRegistry,
