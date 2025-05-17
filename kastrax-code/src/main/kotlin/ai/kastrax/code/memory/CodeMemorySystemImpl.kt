@@ -3,26 +3,27 @@ package ai.kastrax.code.memory
 import ai.kastrax.code.common.KastraXCodeBase
 import ai.kastrax.code.model.Context
 import ai.kastrax.code.model.ContextElement
-
-// 使用本地的内存类
-// import ai.kastrax.memory.api.MemoryId
-import ai.kastrax.memory.api.MemoryStore
-// import ai.kastrax.memory.api.MemoryType
-// import ai.kastrax.memory.api.query.MemoryQuery
-// import ai.kastrax.memory.api.query.MemoryQueryType
+import ai.kastrax.code.model.Location
+import ai.kastrax.memory.api.Memory
+import ai.kastrax.memory.api.MemoryMessage
+import ai.kastrax.memory.api.MessageRole
+import ai.kastrax.memory.impl.memory
+import ai.kastrax.memory.impl.inMemoryStorage
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import java.nio.file.Paths
 import java.time.Instant
 import java.util.UUID
+import kotlinx.datetime.toKotlinInstant
 
 /**
  * 代码记忆系统实现
  *
- * 基于 kastrax-memory-api 实现代码记忆系统
+ * 使用 kastrax-memory-api 实现代码记忆系统
  */
 @Service(Service.Level.PROJECT)
 class CodeMemorySystemImpl(
@@ -32,10 +33,39 @@ class CodeMemorySystemImpl(
 
     override val logger = KotlinLogging.logger {}
 
-    // 记忆存储
-    private val memoryStore: MemoryStore by lazy {
-        // 从项目服务中获取，如果没有则创建一个新的
-        project.getService(MemoryStore::class.java) ?: throw IllegalStateException("MemoryStore not found")
+    // 创建内存系统
+    private val memorySystem: Memory = memory {
+        storage(inMemoryStorage())
+        lastMessages(config.maxMemoryItems)
+        semanticRecall(true)
+    }
+
+    // 线程映射
+    private val threadMap = mutableMapOf<String, String>()
+
+    /**
+     * 内存类型枚举
+     */
+    enum class MemoryType {
+        /**
+         * 对话内存
+         */
+        CONVERSATION,
+
+        /**
+         * 代码上下文内存
+         */
+        CODE_CONTEXT,
+
+        /**
+         * 项目内存
+         */
+        PROJECT,
+
+        /**
+         * 用户偏好内存
+         */
+        PREFERENCE
     }
 
     /**
@@ -49,20 +79,32 @@ class CodeMemorySystemImpl(
         try {
             logger.info { "存储对话记忆: $conversationId" }
 
-            // 创建记忆ID
-            val memoryId = MemoryId(
-                id = UUID.randomUUID().toString(),
-                type = MemoryType.CONVERSATION,
-                namespace = "conversation:$conversationId"
-            )
+            // 获取或创建线程
+            val threadId = getOrCreateThread(conversationId)
 
-            // 存储记忆
-            memoryStore.storeMemory(memoryId, memory)
+            // 创建消息
+            val message = memory.toMessage(memory.metadata["role"]?.toString() ?: "user")
+
+            // 存储消息
+            memorySystem.saveMessage(message, threadId, metadata = memory.metadata.mapValues { it.value.toString() })
 
             return@withContext true
         } catch (e: Exception) {
-            logger.error(e) { "存储对话记忆时出错: $conversationId" }
+            logger.error { "存储对话记忆时出错: $conversationId" }
+            logger.error(e.toString())
             return@withContext false
+        }
+    }
+
+    /**
+     * 获取或创建线程
+     *
+     * @param id 标识符
+     * @return 线程ID
+     */
+    private suspend fun getOrCreateThread(id: String): String {
+        return threadMap.getOrPut(id) {
+            memorySystem.createThread(id)
         }
     }
 
@@ -77,19 +119,25 @@ class CodeMemorySystemImpl(
         try {
             logger.info { "检索对话记忆: $conversationId" }
 
-            // 创建查询
-            val query = MemoryQuery(
-                type = MemoryQueryType.NAMESPACE,
-                value = "conversation:$conversationId",
-                limit = limit
-            )
+            // 获取线程ID
+            val threadId = threadMap[conversationId] ?: return@withContext emptyList()
 
-            // 查询记忆
-            val memories = memoryStore.queryMemories(query)
+            // 获取消息
+            val messages = memorySystem.getMessages(threadId, limit)
 
-            return@withContext memories
+            // 转换为 SimpleMemory
+            return@withContext messages.map { memoryMessage ->
+                SimpleMemory(
+                    content = memoryMessage.message.content,
+                    metadata = memoryMessage.metadata?.mapValues { it.value } ?: mapOf(
+                        "role" to memoryMessage.message.role.name.lowercase()
+                    ),
+                    timestamp = memoryMessage.createdAt.toJavaInstant()
+                )
+            }
         } catch (e: Exception) {
-            logger.error(e) { "检索对话记忆时出错: $conversationId" }
+            logger.error { "检索对话记忆时出错: $conversationId" }
+            logger.error(e.toString())
             return@withContext emptyList()
         }
     }
@@ -104,37 +152,37 @@ class CodeMemorySystemImpl(
         try {
             logger.info { "存储代码上下文记忆: ${context.query}" }
 
+            // 获取或创建线程
+            val threadId = getOrCreateThread("code_context:${context.query}")
+
             // 为每个上下文元素创建记忆
             for (element in context.elements) {
-                // 创建记忆ID
-                val memoryId = MemoryId(
-                    id = UUID.randomUUID().toString(),
-                    type = MemoryType.CODE_CONTEXT,
-                    namespace = "code_context"
+                // 创建消息
+                val message = SimpleMessage(
+                    role = MessageRole.SYSTEM,
+                    content = element.content
                 )
 
-                // 创建记忆
-                val memory = SimpleMemory(
-                    content = element.content,
-                    metadata = mapOf(
-                        "query" to context.query,
-                        "element_id" to element.id,
-                        "element_name" to element.name,
-                        "element_type" to element.type,
-                        "file_path" to (element.filePath?.toString() ?: ""),
-                        "location" to (element.location?.toString() ?: ""),
-                        "score" to element.score.toString()
-                    ),
-                    timestamp = Instant.now()
+                // 创建元数据
+                val metadata = mapOf(
+                    "query" to context.query,
+                    "element_id" to element.element.id,
+                    "element_name" to element.element.name,
+                    "element_type" to element.element.type.toString(),
+                    "file_path" to (element.element.filePath?.toString() ?: ""),
+                    "location" to (element.element.location?.toString() ?: ""),
+                    "score" to element.score.toString(),
+                    "type" to "CODE_CONTEXT"
                 )
 
-                // 存储记忆
-                memoryStore.storeMemory(memoryId, memory)
+                // 存储消息
+                memorySystem.saveMessage(message, threadId, metadata = metadata)
             }
 
             return@withContext true
         } catch (e: Exception) {
-            logger.error(e) { "存储代码上下文记忆时出错: ${context.query}" }
+            logger.error { "存储代码上下文记忆时出错: ${context.query}" }
+            logger.error(e.toString())
             return@withContext false
         }
     }
@@ -151,20 +199,16 @@ class CodeMemorySystemImpl(
         try {
             logger.info { "检索代码上下文记忆: $query" }
 
-            // 创建查询
-            val memoryQuery = MemoryQuery(
-                type = MemoryQueryType.SEMANTIC,
-                value = query,
-                limit = limit
-            )
+            // 获取线程ID
+            val threadId = threadMap["code_context:$query"] ?: return@withContext emptyList()
 
-            // 查询记忆
-            val memories = memoryStore.queryMemories(memoryQuery)
+            // 语义搜索消息
+            val messages = memorySystem.searchMessages(query, threadId, limit)
 
             // 转换为上下文元素
-            val elements = memories.mapNotNull { memory ->
+            val elements = messages.mapNotNull { memoryMessage ->
                 try {
-                    val metadata = memory.metadata
+                    val metadata = memoryMessage.metadata ?: return@mapNotNull null
                     val score = metadata["score"]?.toString()?.toDoubleOrNull() ?: 0.0
 
                     // 检查分数是否达到最小分数
@@ -172,292 +216,36 @@ class CodeMemorySystemImpl(
                         return@mapNotNull null
                     }
 
-                    // 创建上下文元素
-                    ContextElement(
+                    // 创建代码元素
+                    val codeElement = ai.kastrax.code.model.CodeElement(
                         id = metadata["element_id"]?.toString() ?: UUID.randomUUID().toString(),
                         name = metadata["element_name"]?.toString() ?: "",
-                        type = metadata["element_type"]?.toString() ?: "",
-                        content = memory.content,
-                        filePath = metadata["file_path"]?.toString()?.let { java.nio.file.Paths.get(it) },
-                        location = metadata["location"]?.toString()?.let { parseLocation(it) },
+                        type = ai.kastrax.code.model.CodeElementType.valueOf(metadata["element_type"]?.toString() ?: "UNKNOWN"),
+                        content = memoryMessage.message.content,
+                        filePath = metadata["file_path"]?.toString()?.let { Paths.get(it) },
+                        location = metadata["location"]?.toString()?.let { parseLocation(it) }
+                    )
+
+                    // 创建上下文元素
+                    ContextElement(
+                        element = codeElement,
+                        level = ai.kastrax.code.model.ContextLevel.PRIMARY,
+                        relevance = ai.kastrax.code.model.ContextRelevance.HIGH,
+                        content = memoryMessage.message.content,
                         score = score
                     )
                 } catch (e: Exception) {
-                    logger.error(e) { "转换记忆为上下文元素时出错" }
+                    logger.error { "转换记忆为上下文元素时出错" }
+                    logger.error(e.toString())
                     null
                 }
             }
 
             return@withContext elements
         } catch (e: Exception) {
-            logger.error(e) { "检索代码上下文记忆时出错: $query" }
+            logger.error { "检索代码上下文记忆时出错: $query" }
+            logger.error(e.toString())
             return@withContext emptyList()
-        }
-    }
-
-    /**
-     * 存储项目记忆
-     *
-     * @param projectId 项目ID
-     * @param memory 记忆
-     * @return 是否成功存储
-     */
-    override suspend fun storeProjectMemory(projectId: String, memory: SimpleMemory): Boolean = withContext(Dispatchers.IO) {
-        try {
-            logger.info { "存储项目记忆: $projectId" }
-
-            // 创建记忆ID
-            val memoryId = MemoryId(
-                id = UUID.randomUUID().toString(),
-                type = MemoryType.PROJECT,
-                namespace = "project:$projectId"
-            )
-
-            // 存储记忆
-            memoryStore.storeMemory(memoryId, memory)
-
-            return@withContext true
-        } catch (e: Exception) {
-            logger.error(e) { "存储项目记忆时出错: $projectId" }
-            return@withContext false
-        }
-    }
-
-    /**
-     * 检索项目记忆
-     *
-     * @param projectId 项目ID
-     * @param memoryType 记忆类型
-     * @param limit 限制数量
-     * @return 记忆列表
-     */
-    override suspend fun retrieveProjectMemory(projectId: String, memoryType: MemoryType?, limit: Int): List<SimpleMemory> = withContext(Dispatchers.IO) {
-        try {
-            logger.info { "检索项目记忆: $projectId" }
-
-            // 创建查询
-            val query = MemoryQuery(
-                type = MemoryQueryType.NAMESPACE,
-                value = "project:$projectId",
-                limit = limit
-            )
-
-            // 查询记忆
-            val memories = memoryStore.queryMemories(query)
-
-            // 如果指定了记忆类型，则过滤
-            return@withContext if (memoryType != null) {
-                memories.filter { it.metadata["type"] == memoryType.name }
-            } else {
-                memories
-            }
-        } catch (e: Exception) {
-            logger.error(e) { "检索项目记忆时出错: $projectId" }
-            return@withContext emptyList()
-        }
-    }
-
-    /**
-     * 存储用户偏好记忆
-     *
-     * @param userId 用户ID
-     * @param key 键
-     * @param value 值
-     * @return 是否成功存储
-     */
-    override suspend fun storeUserPreferenceMemory(userId: String, key: String, value: String): Boolean = withContext(Dispatchers.IO) {
-        try {
-            logger.info { "存储用户偏好记忆: $userId, $key" }
-
-            // 创建记忆ID
-            val memoryId = MemoryId(
-                id = "preference:$userId:$key",
-                type = MemoryType.PREFERENCE,
-                namespace = "user:$userId"
-            )
-
-            // 创建记忆
-            val memory = SimpleMemory(
-                content = value,
-                metadata = mapOf(
-                    "user_id" to userId,
-                    "key" to key
-                ),
-                timestamp = Instant.now()
-            )
-
-            // 存储记忆
-            memoryStore.storeMemory(memoryId, memory)
-
-            return@withContext true
-        } catch (e: Exception) {
-            logger.error(e) { "存储用户偏好记忆时出错: $userId, $key" }
-            return@withContext false
-        }
-    }
-
-    /**
-     * 检索用户偏好记忆
-     *
-     * @param userId 用户ID
-     * @param key 键
-     * @return 值
-     */
-    override suspend fun retrieveUserPreferenceMemory(userId: String, key: String): String? = withContext(Dispatchers.IO) {
-        try {
-            logger.info { "检索用户偏好记忆: $userId, $key" }
-
-            // 创建记忆ID
-            val memoryId = MemoryId(
-                id = "preference:$userId:$key",
-                type = MemoryType.PREFERENCE,
-                namespace = "user:$userId"
-            )
-
-            // 获取记忆
-            val memory = memoryStore.getMemory(memoryId)
-
-            return@withContext memory?.content
-        } catch (e: Exception) {
-            logger.error(e) { "检索用户偏好记忆时出错: $userId, $key" }
-            return@withContext null
-        }
-    }
-
-    /**
-     * 清除对话记忆
-     *
-     * @param conversationId 对话ID
-     * @return 是否成功清除
-     */
-    override suspend fun clearConversationMemory(conversationId: String): Boolean = withContext(Dispatchers.IO) {
-        try {
-            logger.info { "清除对话记忆: $conversationId" }
-
-            // 创建查询
-            val query = MemoryQuery(
-                type = MemoryQueryType.NAMESPACE,
-                value = "conversation:$conversationId"
-            )
-
-            // 查询记忆
-            val memories = memoryStore.queryMemories(query)
-
-            // 删除记忆
-            for (memory in memories) {
-                memoryStore.deleteMemory(memory.id)
-            }
-
-            return@withContext true
-        } catch (e: Exception) {
-            logger.error(e) { "清除对话记忆时出错: $conversationId" }
-            return@withContext false
-        }
-    }
-
-    /**
-     * 清除代码上下文记忆
-     *
-     * @return 是否成功清除
-     */
-    override suspend fun clearCodeContextMemory(): Boolean = withContext(Dispatchers.IO) {
-        try {
-            logger.info { "清除代码上下文记忆" }
-
-            // 创建查询
-            val query = MemoryQuery(
-                type = MemoryQueryType.NAMESPACE,
-                value = "code_context"
-            )
-
-            // 查询记忆
-            val memories = memoryStore.queryMemories(query)
-
-            // 删除记忆
-            for (memory in memories) {
-                memoryStore.deleteMemory(memory.id)
-            }
-
-            return@withContext true
-        } catch (e: Exception) {
-            logger.error(e) { "清除代码上下文记忆时出错" }
-            return@withContext false
-        }
-    }
-
-    /**
-     * 清除项目记忆
-     *
-     * @param projectId 项目ID
-     * @return 是否成功清除
-     */
-    override suspend fun clearProjectMemory(projectId: String): Boolean = withContext(Dispatchers.IO) {
-        try {
-            logger.info { "清除项目记忆: $projectId" }
-
-            // 创建查询
-            val query = MemoryQuery(
-                type = MemoryQueryType.NAMESPACE,
-                value = "project:$projectId"
-            )
-
-            // 查询记忆
-            val memories = memoryStore.queryMemories(query)
-
-            // 删除记忆
-            for (memory in memories) {
-                memoryStore.deleteMemory(memory.id)
-            }
-
-            return@withContext true
-        } catch (e: Exception) {
-            logger.error(e) { "清除项目记忆时出错: $projectId" }
-            return@withContext false
-        }
-    }
-
-    /**
-     * 清除用户偏好记忆
-     *
-     * @param userId 用户ID
-     * @return 是否成功清除
-     */
-    override suspend fun clearUserPreferenceMemory(userId: String): Boolean = withContext(Dispatchers.IO) {
-        try {
-            logger.info { "清除用户偏好记忆: $userId" }
-
-            // 创建查询
-            val query = MemoryQuery(
-                type = MemoryQueryType.NAMESPACE,
-                value = "user:$userId"
-            )
-
-            // 查询记忆
-            val memories = memoryStore.queryMemories(query)
-
-            // 删除记忆
-            for (memory in memories) {
-                memoryStore.deleteMemory(memory.id)
-            }
-
-            return@withContext true
-        } catch (e: Exception) {
-            logger.error(e) { "清除用户偏好记忆时出错: $userId" }
-            return@withContext false
-        }
-    }
-
-    /**
-     * 关闭记忆系统
-     */
-    override suspend fun close() {
-        try {
-            logger.info { "关闭记忆系统" }
-
-            // 关闭记忆存储
-            memoryStore.close()
-        } catch (e: Exception) {
-            logger.error(e) { "关闭记忆系统时出错" }
         }
     }
 
@@ -486,7 +274,328 @@ class CodeMemorySystemImpl(
 
             return null
         } catch (e: Exception) {
-            logger.error(e) { "解析位置字符串时出错: $locationString" }
+            logger.error { "解析位置字符串时出错: $locationString" }
+            logger.error(e.toString())
+            return null
+        }
+    }
+
+    /**
+     * 存储项目记忆
+     *
+     * @param projectId 项目ID
+     * @param memory 记忆
+     * @return 是否成功存储
+     */
+    override suspend fun storeProjectMemory(projectId: String, memory: SimpleMemory): Boolean = withContext(Dispatchers.IO) {
+        try {
+            logger.info { "存储项目记忆: $projectId" }
+
+            // 获取或创建线程
+            val threadId = getOrCreateThread("project:$projectId")
+
+            // 创建消息
+            val message = memory.toMessage(memory.metadata["role"]?.toString() ?: "system")
+
+            // 添加项目类型元数据
+            val metadata = memory.metadata.toMutableMap()
+            metadata["type"] = "PROJECT"
+
+            // 存储消息
+            memorySystem.saveMessage(message, threadId, metadata = metadata.mapValues { it.value.toString() })
+
+            return@withContext true
+        } catch (e: Exception) {
+            logger.error { "存储项目记忆时出错: $projectId" }
+            logger.error(e.toString())
+            return@withContext false
+        }
+    }
+
+    /**
+     * 检索项目记忆
+     *
+     * @param projectId 项目ID
+     * @param memoryType 记忆类型
+     * @param limit 限制数量
+     * @return 记忆列表
+     */
+    override suspend fun retrieveProjectMemory(projectId: String, memoryType: MemoryType?, limit: Int): List<SimpleMemory> = withContext(Dispatchers.IO) {
+        try {
+            logger.info { "检索项目记忆: $projectId" }
+
+            // 获取线程ID
+            val threadId = threadMap["project:$projectId"] ?: return@withContext emptyList()
+
+            // 获取消息
+            val messages = memorySystem.getMessages(threadId, limit)
+
+            // 如果指定了记忆类型，则过滤
+            val filteredMessages = if (memoryType != null) {
+                messages.filter { it.metadata?.get("type") == memoryType.name }
+            } else {
+                messages
+            }
+
+            // 转换为 SimpleMemory
+            return@withContext filteredMessages.map { memoryMessage ->
+                SimpleMemory(
+                    content = memoryMessage.message.content,
+                    metadata = memoryMessage.metadata?.mapValues { it.value } ?: mapOf(
+                        "role" to memoryMessage.message.role.name.lowercase()
+                    ),
+                    timestamp = memoryMessage.createdAt.toJavaInstant()
+                )
+            }
+        } catch (e: Exception) {
+            logger.error { "检索项目记忆时出错: $projectId" }
+            logger.error(e.toString())
+            return@withContext emptyList()
+        }
+    }
+
+    /**
+     * 存储用户偏好记忆
+     *
+     * @param userId 用户ID
+     * @param key 键
+     * @param value 值
+     * @return 是否成功存储
+     */
+    override suspend fun storeUserPreferenceMemory(userId: String, key: String, value: String): Boolean = withContext(Dispatchers.IO) {
+        try {
+            logger.info { "存储用户偏好记忆: $userId, $key" }
+
+            // 获取或创建线程
+            val threadId = getOrCreateThread("preference:$userId")
+
+            // 创建消息
+            val message = SimpleMessage(
+                role = MessageRole.SYSTEM,
+                content = value
+            )
+
+            // 创建元数据
+            val metadata = mapOf(
+                "user_id" to userId,
+                "key" to key,
+                "type" to "PREFERENCE"
+            )
+
+            // 存储消息
+            memorySystem.saveMessage(message, threadId, metadata = metadata)
+
+            return@withContext true
+        } catch (e: Exception) {
+            logger.error { "存储用户偏好记忆时出错: $userId, $key" }
+            logger.error(e.toString())
+            return@withContext false
+        }
+    }
+
+    /**
+     * 检索用户偏好记忆
+     *
+     * @param userId 用户ID
+     * @param key 键
+     * @return 值
+     */
+    override suspend fun retrieveUserPreferenceMemory(userId: String, key: String): String? = withContext(Dispatchers.IO) {
+        try {
+            logger.info { "检索用户偏好记忆: $userId, $key" }
+
+            // 获取线程ID
+            val threadId = threadMap["preference:$userId"] ?: return@withContext null
+
+            // 获取消息
+            val messages = memorySystem.getMessages(threadId, 100)
+
+            // 查找匹配的消息
+            val message = messages.find { it.metadata?.get("key") == key }
+
+            return@withContext message?.message?.content
+        } catch (e: Exception) {
+            logger.error { "检索用户偏好记忆时出错: $userId, $key" }
+            logger.error(e.toString())
+            return@withContext null
+        }
+    }
+
+    /**
+     * 清除对话记忆
+     *
+     * @param conversationId 对话ID
+     * @return 是否成功清除
+     */
+    override suspend fun clearConversationMemory(conversationId: String): Boolean = withContext(Dispatchers.IO) {
+        try {
+            logger.info { "清除对话记忆: $conversationId" }
+
+            // 获取线程ID
+            val threadId = threadMap[conversationId] ?: return@withContext true
+
+            // 删除线程
+            memorySystem.deleteThread(threadId)
+
+            // 移除线程映射
+            threadMap.remove(conversationId)
+
+            return@withContext true
+        } catch (e: Exception) {
+            logger.error { "清除对话记忆时出错: $conversationId" }
+            logger.error(e.toString())
+            return@withContext false
+        }
+    }
+
+    /**
+     * 清除代码上下文记忆
+     *
+     * @return 是否成功清除
+     */
+    override suspend fun clearCodeContextMemory(): Boolean = withContext(Dispatchers.IO) {
+        try {
+            logger.info { "清除代码上下文记忆" }
+
+            // 找到所有代码上下文线程
+            val codeContextThreads = threadMap.entries.filter { it.key.startsWith("code_context:") }
+
+            // 删除所有代码上下文线程
+            for ((key, threadId) in codeContextThreads) {
+                memorySystem.deleteThread(threadId)
+                threadMap.remove(key)
+            }
+
+            return@withContext true
+        } catch (e: Exception) {
+            logger.error { "清除代码上下文记忆时出错" }
+            logger.error(e.toString())
+            return@withContext false
+        }
+    }
+
+    /**
+     * 清除项目记忆
+     *
+     * @param projectId 项目ID
+     * @return 是否成功清除
+     */
+    override suspend fun clearProjectMemory(projectId: String): Boolean = withContext(Dispatchers.IO) {
+        try {
+            logger.info { "清除项目记忆: $projectId" }
+
+            // 获取线程ID
+            val threadId = threadMap["project:$projectId"] ?: return@withContext true
+
+            // 删除线程
+            memorySystem.deleteThread(threadId)
+
+            // 移除线程映射
+            threadMap.remove("project:$projectId")
+
+            return@withContext true
+        } catch (e: Exception) {
+            logger.error { "清除项目记忆时出错: $projectId" }
+            logger.error(e.toString())
+            return@withContext false
+        }
+    }
+
+    /**
+     * 清除用户偏好记忆
+     *
+     * @param userId 用户ID
+     * @return 是否成功清除
+     */
+    override suspend fun clearUserPreferenceMemory(userId: String): Boolean = withContext(Dispatchers.IO) {
+        try {
+            logger.info { "清除用户偏好记忆: $userId" }
+
+            // 获取线程ID
+            val threadId = threadMap["preference:$userId"] ?: return@withContext true
+
+            // 删除线程
+            memorySystem.deleteThread(threadId)
+
+            // 移除线程映射
+            threadMap.remove("preference:$userId")
+
+            return@withContext true
+        } catch (e: Exception) {
+            logger.error { "清除用户偏好记忆时出错: $userId" }
+            logger.error(e.toString())
+            return@withContext false
+        }
+    }
+
+    /**
+     * 关闭记忆系统
+     */
+    override suspend fun close() {
+        try {
+            logger.info { "关闭记忆系统" }
+
+            // 清空线程映射
+            threadMap.clear()
+
+            // 关闭记忆系统
+            memorySystem.close()
+        } catch (e: Exception) {
+            logger.error { "关闭记忆系统时出错" }
+            logger.error(e.toString())
+        }
+    }
+
+    /**
+     * 简单消息类
+     */
+    private data class SimpleMessage(
+        val role: MessageRole,
+        val content: String
+    )
+
+    /**
+     * 将 SimpleMemory 转换为消息
+     *
+     * @param role 角色
+     * @return 消息
+     */
+    private fun SimpleMemory.toMessage(role: String): SimpleMessage {
+        val messageRole = when (role.lowercase()) {
+            "user" -> MessageRole.USER
+            "assistant" -> MessageRole.ASSISTANT
+            else -> MessageRole.SYSTEM
+        }
+        return SimpleMessage(messageRole, this.content)
+    }
+
+    /**
+     * 解析位置字符串
+     *
+     * @param locationString 位置字符串
+     * @return 位置
+     */
+    private fun parseLocation(locationString: String): ai.kastrax.code.model.Location? {
+        try {
+            // 解析位置字符串，格式为 "line:column-endLine:endColumn" 或 "line:column"
+            val parts = locationString.split("-")
+
+            if (parts.size == 1) {
+                // 格式为 "line:column"
+                val (line, column) = parts[0].split(":").map { it.toInt() }
+                return ai.kastrax.code.model.Location(line, column)
+            } else if (parts.size == 2) {
+                // 格式为 "line:column-endLine:endColumn"
+                val (startPart, endPart) = parts
+                val (line, column) = startPart.split(":").map { it.toInt() }
+                val (endLine, endColumn) = endPart.split(":").map { it.toInt() }
+                return ai.kastrax.code.model.Location(line, column, endLine, endColumn)
+            }
+
+            return null
+        } catch (e: Exception) {
+            logger.error { "解析位置字符串时出错: $locationString" }
+            logger.error(e.toString())
             return null
         }
     }

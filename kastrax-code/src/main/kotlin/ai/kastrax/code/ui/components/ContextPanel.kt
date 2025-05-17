@@ -134,6 +134,18 @@ class ContextPanel(
     }
 
     /**
+     * 获取位置字符串
+     *
+     * @param element 上下文元素
+     * @return 位置字符串
+     */
+    private fun getLocationString(element: ContextElement): String {
+        val location = element.element.location ?: return ""
+        val filePath = element.element.filePath?.fileName?.toString() ?: return ""
+        return "$filePath:${location.line}:${location.column}"
+    }
+
+    /**
      * 创建上下文元素面板
      */
     private fun createContextElementPanel(element: ContextElement): JComponent {
@@ -146,13 +158,13 @@ class ContextPanel(
         headerPanel.background = JBColor(Color(240, 240, 240), Color(60, 63, 65))
 
         // 元素类型和名称
-        val titleLabel = JBLabel("${element.type}: ${element.name}")
+        val titleLabel = JBLabel("${element.element.type}: ${element.element.name}")
         titleLabel.font = titleLabel.font.deriveFont(Font.BOLD)
         titleLabel.border = JBUI.Borders.empty(4)
         headerPanel.add(titleLabel, BorderLayout.WEST)
 
         // 位置信息
-        val locationString = element.getLocationString()
+        val locationString = getLocationString(element)
         if (locationString.isNotEmpty()) {
             val locationLabel = JBLabel(locationString)
             locationLabel.font = locationLabel.font.deriveFont(Font.PLAIN, 10f)
@@ -176,7 +188,7 @@ class ContextPanel(
     private fun createContentPanel(element: ContextElement): JComponent {
         // 检测内容类型
         return if (isCodeContent(element)) {
-            createCodeEditor(element.content, getLanguageFromType(element.type))
+            createCodeEditor(element.content, getLanguageFromType(element.element.type.toString()))
         } else {
             createTextPane(element.content)
         }
@@ -190,7 +202,7 @@ class ContextPanel(
             "CLASS", "METHOD", "FUNCTION", "FIELD", "PROPERTY",
             "INTERFACE", "ENUM", "STRUCT", "CODE_SNIPPET"
         )
-        return codeTypes.any { element.type.contains(it, ignoreCase = true) }
+        return codeTypes.any { element.element.type.toString().contains(it, ignoreCase = true) }
     }
 
     /**

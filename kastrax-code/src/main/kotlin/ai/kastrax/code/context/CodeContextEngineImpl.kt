@@ -40,13 +40,13 @@ class CodeContextEngineImpl(
     // 代码搜索服务
     private val searchService: CodeSearchService by lazy {
         // 从项目服务中获取，如果没有则创建一个新的
-        project.getService(CodeSearchService::class.java) ?: CodeSearchService()
+        project.getService(CodeSearchService::class.java) ?: project.service<CodeSearchService>()
     }
 
     // 搜索门面
     private val searchFacade: SearchFacade by lazy {
         // 从项目服务中获取，如果没有则创建一个新的
-        project.getService(SearchFacade::class.java) ?: SearchFacade(searchService)
+        project.getService(SearchFacade::class.java) ?: project.service<SearchFacade>()
     }
 
     /**
@@ -97,7 +97,17 @@ class CodeContextEngineImpl(
             )
 
             // 执行混合搜索
-            val results = searchFacade.search(request, SearchMode.HYBRID)
+            val searchRequest = ai.kastrax.codebase.search.SearchRequest(
+                query = query,
+                paths = emptyList(),
+                type = ai.kastrax.codebase.search.SearchType.HYBRID,
+                options = mapOf(
+                    "limit" to maxResults,
+                    "minScore" to minScore
+                )
+            )
+            val searchResponse = searchFacade.search(searchRequest)
+            val results = searchResponse.results.map { RetrievalResult(it.element, it.score) }
 
             // 转换为上下文元素
             val elements = results.map { convertToContextElement(it) }
@@ -144,7 +154,17 @@ class CodeContextEngineImpl(
             )
 
             // 执行关键词搜索
-            val results = searchFacade.search(request, SearchMode.KEYWORD)
+            val searchRequest = ai.kastrax.codebase.search.SearchRequest(
+                query = "file:${filePath.fileName}",
+                paths = emptyList(),
+                type = ai.kastrax.codebase.search.SearchType.SYMBOL,
+                options = mapOf(
+                    "limit" to maxResults,
+                    "exactMatch" to true
+                )
+            )
+            val searchResponse = searchFacade.search(searchRequest)
+            val results = searchResponse.results.map { RetrievalResult(it.element, it.score) }
 
             // 转换为上下文元素
             val elements = results.map { convertToContextElement(it) }
@@ -194,7 +214,17 @@ class CodeContextEngineImpl(
             )
 
             // 执行结构感知搜索
-            val results = searchFacade.search(request, SearchMode.STRUCTURE_AWARE)
+            val searchRequest = ai.kastrax.codebase.search.SearchRequest(
+                query = "location:${filePath.fileName}:${position.line}",
+                paths = emptyList(),
+                type = ai.kastrax.codebase.search.SearchType.HYBRID,
+                options = mapOf(
+                    "limit" to maxResults,
+                    "minScore" to minScore
+                )
+            )
+            val searchResponse = searchFacade.search(searchRequest)
+            val results = searchResponse.results.map { RetrievalResult(it.element, it.score) }
 
             // 转换为上下文元素
             val elements = results.map { convertToContextElement(it) }
@@ -240,7 +270,18 @@ class CodeContextEngineImpl(
             )
 
             // 执行关键词搜索
-            val results = searchFacade.search(request, SearchMode.KEYWORD)
+            val searchRequest = ai.kastrax.codebase.search.SearchRequest(
+                query = "symbol:$symbolName",
+                paths = emptyList(),
+                type = ai.kastrax.codebase.search.SearchType.SYMBOL,
+                options = mapOf(
+                    "limit" to maxResults,
+                    "minScore" to minScore,
+                    "exactMatch" to true
+                )
+            )
+            val searchResponse = searchFacade.search(searchRequest)
+            val results = searchResponse.results.map { RetrievalResult(it.element, it.score) }
 
             // 转换为上下文元素
             val elements = results.map { convertToContextElement(it) }
@@ -281,11 +322,10 @@ class CodeContextEngineImpl(
      */
     private fun convertToContextElement(result: RetrievalResult): ContextElement {
         val element = result.element
-
-        return ContextElement(
+        val codeElement = ai.kastrax.code.model.CodeElement(
             id = element.id,
             name = element.name,
-            type = element.type.name,
+            type = ai.kastrax.code.model.CodeElementType.valueOf(element.type.name),
             content = element.content,
             filePath = element.location?.filePath?.let { Paths.get(it) },
             location = element.location?.let {
@@ -295,7 +335,14 @@ class CodeContextEngineImpl(
                     endLine = it.endLine,
                     endColumn = it.endColumn
                 )
-            },
+            }
+        )
+
+        return ContextElement(
+            element = codeElement,
+            level = ai.kastrax.code.model.ContextLevel.PRIMARY,
+            relevance = ai.kastrax.code.model.ContextRelevance.HIGH,
+            content = element.content,
             score = result.score
         )
     }
@@ -335,13 +382,13 @@ class CodeContextEngineImpl(
      */
     private suspend fun getRelatedElementsForElement(element: ContextElement, maxResults: Int): List<ContextElement> {
         // 如果元素没有名称，则返回空列表
-        if (element.name.isBlank()) {
+        if (element.element.name.isBlank()) {
             return emptyList()
         }
 
         // 创建检索请求
         val request = RetrievalRequest(
-            query = "related:${element.name}",
+            query = "related:${element.element.name}",
             options = mapOf(
                 "limit" to maxResults,
                 "types" to setOf(
@@ -354,7 +401,22 @@ class CodeContextEngineImpl(
         )
 
         // 执行结构感知搜索
-        val results = searchFacade.search(request, SearchMode.STRUCTURE_AWARE)
+        val searchRequest = ai.kastrax.codebase.search.SearchRequest(
+            query = "related:${element.element.name}",
+            paths = emptyList(),
+            type = ai.kastrax.codebase.search.SearchType.HYBRID,
+            options = mapOf(
+                "limit" to maxResults,
+                "types" to setOf(
+                    ai.kastrax.codebase.semantic.model.CodeElementType.CLASS,
+                    ai.kastrax.codebase.semantic.model.CodeElementType.METHOD,
+                    ai.kastrax.codebase.semantic.model.CodeElementType.FIELD,
+                    ai.kastrax.codebase.semantic.model.CodeElementType.INTERFACE
+                )
+            )
+        )
+        val searchResponse = searchFacade.search(searchRequest)
+        val results = searchResponse.results.map { RetrievalResult(it.element, it.score) }
 
         // 转换为上下文元素
         return results.map { convertToContextElement(it) }

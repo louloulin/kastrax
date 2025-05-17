@@ -16,7 +16,7 @@ import com.intellij.ui.JBColor
 import com.intellij.openapi.actionSystem.DataManager
 import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.actionSystem.DefaultActionGroup
-import com.intellij.ui.SimpleToolWindowPanel
+import com.intellij.openapi.ui.SimpleToolWindowPanel
 import com.intellij.openapi.project.Project
 import com.intellij.icons.AllIcons
 import com.intellij.openapi.actionSystem.AnAction
@@ -56,7 +56,7 @@ class EnhancedChatPanel(
     private val conversation: ChatConversation
 ) : SimpleToolWindowPanel(true) {
 
-    private val messagesPanel = JBPanel<JPanel>()
+    private val messagesPanel = JBPanel<JPanel>(BorderLayout())
     private val inputArea = JTextArea(3, 20)
     private val sendButton = JButton("发送")
     private val statusLabel = JBLabel("就绪")
