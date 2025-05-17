@@ -332,6 +332,19 @@ class EnhancedChatPanel(
             return
         }
 
+        // 清空输入区域
+        inputArea.text = ""
+
+        // 发送用户消息
+        sendUserMessage(text)
+    }
+
+    /**
+     * 发送用户消息
+     *
+     * @param text 消息内容
+     */
+    fun sendUserMessage(text: String) {
         // 更新状态
         statusLabel.text = "正在处理..."
 
@@ -351,9 +364,6 @@ class EnhancedChatPanel(
 
         // 显示用户消息
         addMessagePanel(userMessage)
-
-        // 清空输入区域
-        inputArea.text = ""
 
         // 显示正在处理的消息
         val processingMessage = ChatMessage(
