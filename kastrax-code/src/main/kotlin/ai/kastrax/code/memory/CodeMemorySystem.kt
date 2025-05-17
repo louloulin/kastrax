@@ -62,7 +62,7 @@ interface CodeMemorySystem {
      * @param limit 限制数量
      * @return 记忆列表
      */
-    suspend fun retrieveProjectMemory(projectId: String, memoryType: MemoryType? = null, limit: Int = 10): List<SimpleMemory>
+    suspend fun retrieveProjectMemory(projectId: String, memoryType: MemoryType?, limit: Int): List<SimpleMemory>
 
     /**
      * 存储用户偏好记忆
