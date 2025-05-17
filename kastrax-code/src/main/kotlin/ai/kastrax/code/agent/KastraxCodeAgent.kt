@@ -114,8 +114,10 @@ class KastraxCodeAgent(
         val startTime = System.currentTimeMillis()
 
         try {
-            // 使用 agent 的 stream 方法获取流式响应
-            val response = agent.stream(messages, streamOptions)
+            // 使用 agent 的 generate 方法获取响应，因为 stream 方法不支持消息列表
+            // 将消息列表转换为单个提示字符串
+            val prompt = buildPromptFromMessages(messages)
+            val response = agent.stream(prompt, streamOptions)
 
             // 收集完整的代码，用于提取
             val codeBuilder = StringBuilder()
@@ -225,8 +227,10 @@ class KastraxCodeAgent(
         )
 
         try {
-            // 使用 agent 的 stream 方法获取流式响应
-            val response = agent.stream(messages, streamOptions)
+            // 使用 agent 的 generate 方法获取响应，因为 stream 方法不支持消息列表
+            // 将消息列表转换为单个提示字符串
+            val prompt = buildPromptFromMessages(messages)
+            val response = agent.stream(prompt, streamOptions)
 
             // 返回流
             return response.textStream ?: flow {
@@ -387,6 +391,30 @@ class KastraxCodeAgent(
 
         // 如果没有代码块，返回整个响应
         return response.trim()
+    }
+
+    /**
+     * 将消息列表构建为单个提示字符串
+     *
+     * @param messages 消息列表
+     * @return 构建的提示字符串
+     */
+    private fun buildPromptFromMessages(messages: List<LlmMessage>): String {
+        val promptBuilder = StringBuilder()
+
+        // 添加系统消息作为指令
+        val systemMessage = messages.find { it.role == LlmMessageRole.SYSTEM }
+        if (systemMessage != null) {
+            promptBuilder.append("指令：\n${systemMessage.content}\n\n")
+        }
+
+        // 添加用户消息作为主要提示
+        val userMessage = messages.find { it.role == LlmMessageRole.USER }
+        if (userMessage != null) {
+            promptBuilder.append(userMessage.content)
+        }
+
+        return promptBuilder.toString()
     }
 }
 
