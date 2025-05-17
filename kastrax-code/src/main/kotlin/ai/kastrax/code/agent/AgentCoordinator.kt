@@ -40,9 +40,10 @@ import kotlinx.coroutines.withContext
  */
 @Service(Service.Level.PROJECT)
 class AgentCoordinator(
-    private val project: Project,
-    private val config: AgentCoordinatorConfig = AgentCoordinatorConfig()
+    private val project: Project
 ) : KastraXCodeBase(component = "AGENT_COORDINATOR") {
+    // 使用默认配置
+    private val config: AgentCoordinatorConfig = AgentCoordinatorConfig()
 
     // 使用父类的logger
 

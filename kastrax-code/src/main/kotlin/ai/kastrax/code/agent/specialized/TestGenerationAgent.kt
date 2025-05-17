@@ -32,9 +32,10 @@ import java.util.UUID
  */
 @Service(Service.Level.PROJECT)
 class TestGenerationAgent(
-    private val project: Project,
-    private val config: TestGenerationAgentConfig = TestGenerationAgentConfig()
+    private val project: Project
 ) : KastraXCodeBase(component = "TEST_GENERATION_AGENT"), CodeAgent {
+    // 使用默认配置
+    private val config: TestGenerationAgentConfig = TestGenerationAgentConfig()
 
     // 使用父类的logger
 

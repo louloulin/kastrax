@@ -390,6 +390,7 @@ class CodeCheckpointImpl(
     override val fileSnapshots: List<FileSnapshot>,
     override val metadata: Map<String, Any>
 ) : CodeCheckpoint, KastraXCodeBase(component = "CODE_CHECKPOINT", name = "CodeCheckpoint") {
+    // 注意：这不是一个服务类，不需要使用 @Service 注解
 
     /**
      * 恢复检查点
