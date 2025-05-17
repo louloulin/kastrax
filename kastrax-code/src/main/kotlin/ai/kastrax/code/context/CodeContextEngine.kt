@@ -2,14 +2,28 @@ package ai.kastrax.code.context
 
 import ai.kastrax.code.model.Context
 import ai.kastrax.code.model.Location
+import com.intellij.openapi.components.service
+import com.intellij.openapi.project.Project
 import java.nio.file.Path
 
 /**
  * 代码上下文引擎接口
- * 
+ *
  * 负责构建和管理代码上下文，为代码智能体提供必要的上下文信息
  */
 interface CodeContextEngine {
+
+    companion object {
+        /**
+         * 获取代码上下文引擎实例
+         *
+         * @param project 项目
+         * @return 代码上下文引擎实例
+         */
+        fun getInstance(project: Project): CodeContextEngine {
+            return project.service<CodeContextEngineImpl>()
+        }
+    }
     /**
      * 索引代码库
      *
@@ -17,7 +31,7 @@ interface CodeContextEngine {
      * @return 是否成功索引
      */
     suspend fun indexCodebase(path: Path): Boolean
-    
+
     /**
      * 获取查询上下文
      *
@@ -33,7 +47,7 @@ interface CodeContextEngine {
         minScore: Double = 0.0,
         includeRelated: Boolean = true
     ): Context
-    
+
     /**
      * 获取文件上下文
      *
@@ -42,7 +56,7 @@ interface CodeContextEngine {
      * @return 上下文
      */
     suspend fun getFileContext(filePath: Path, maxResults: Int = 10): Context
-    
+
     /**
      * 获取编辑上下文
      *
@@ -53,12 +67,12 @@ interface CodeContextEngine {
      * @return 上下文
      */
     suspend fun getEditContext(
-        filePath: Path, 
-        position: Location, 
-        maxResults: Int = 10, 
+        filePath: Path,
+        position: Location,
+        maxResults: Int = 10,
         minScore: Double = 0.0
     ): Context
-    
+
     /**
      * 获取符号上下文
      *
@@ -68,11 +82,11 @@ interface CodeContextEngine {
      * @return 上下文
      */
     suspend fun getSymbolContext(
-        symbolName: String, 
-        maxResults: Int = 10, 
+        symbolName: String,
+        maxResults: Int = 10,
         minScore: Double = 0.0
     ): Context
-    
+
     /**
      * 关闭上下文引擎
      */

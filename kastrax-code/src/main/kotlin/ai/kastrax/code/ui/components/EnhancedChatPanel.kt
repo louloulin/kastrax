@@ -8,22 +8,22 @@ import ai.kastrax.code.model.MessageRole
 import ai.kastrax.code.service.CodeAgentService
 import ai.kastrax.code.service.ConversationService
 import ai.kastrax.code.workflow.CheckpointManager
-import ai.kastrax.code.mock.JBPanel
-import ai.kastrax.code.mock.JBScrollPane
-import ai.kastrax.code.mock.JBLabel
-import ai.kastrax.code.mock.JBUI
-import ai.kastrax.code.mock.JBColor
-import ai.kastrax.code.mock.DataManager
-import ai.kastrax.code.mock.ActionManager
-import ai.kastrax.code.mock.DefaultActionGroup
-import ai.kastrax.code.mock.SimpleToolWindowPanel
-import ai.kastrax.code.mock.Project
-import ai.kastrax.code.mock.AllIcons
-import ai.kastrax.code.mock.AnAction
-import ai.kastrax.code.mock.AnActionEvent
-import ai.kastrax.code.mock.ApplicationManager
-import ai.kastrax.code.mock.WindowManager
-import ai.kastrax.code.mock.JBSplitter
+import com.intellij.ui.components.JBPanel
+import com.intellij.ui.components.JBScrollPane
+import com.intellij.ui.components.JBLabel
+import com.intellij.util.ui.JBUI
+import com.intellij.ui.JBColor
+import com.intellij.openapi.actionSystem.DataManager
+import com.intellij.openapi.actionSystem.ActionManager
+import com.intellij.openapi.actionSystem.DefaultActionGroup
+import com.intellij.ui.SimpleToolWindowPanel
+import com.intellij.openapi.project.Project
+import com.intellij.icons.AllIcons
+import com.intellij.openapi.actionSystem.AnAction
+import com.intellij.openapi.actionSystem.AnActionEvent
+import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.wm.WindowManager
+import com.intellij.ui.JBSplitter
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -56,7 +56,7 @@ class EnhancedChatPanel(
     private val conversation: ChatConversation
 ) : SimpleToolWindowPanel(true) {
 
-    private val messagesPanel = JBPanel<JBPanel<*>>()
+    private val messagesPanel = JBPanel<JPanel>()
     private val inputArea = JTextArea(3, 20)
     private val sendButton = JButton("发送")
     private val statusLabel = JBLabel("就绪")
@@ -221,7 +221,7 @@ class EnhancedChatPanel(
      * 创建输入控制面板
      */
     private fun createInputControlPanel(): JPanel {
-        val panel = JBPanel<JBPanel<*>>(BorderLayout())
+        val panel = JBPanel<JPanel>(BorderLayout())
 
         // 发送按钮
         panel.add(sendButton, BorderLayout.NORTH)
@@ -233,7 +233,7 @@ class EnhancedChatPanel(
      * 创建状态面板
      */
     private fun createStatusPanel(): JPanel {
-        val panel = JBPanel<JBPanel<*>>(FlowLayout(FlowLayout.LEFT))
+        val panel = JBPanel<JPanel>(FlowLayout(FlowLayout.LEFT))
         panel.border = BorderFactory.createCompoundBorder(
             BorderFactory.createMatteBorder(0, 0, 1, 0, JBColor.border()),
             JBUI.Borders.empty(4)
@@ -258,7 +258,7 @@ class EnhancedChatPanel(
      * 创建右侧面板
      */
     private fun createRightPanel(): JPanel {
-        val panel = JBPanel<JBPanel<*>>(BorderLayout())
+        val panel = JBPanel<JPanel>(BorderLayout())
 
         // 创建标签页面板
         val tabbedPane = com.intellij.ui.components.JBTabbedPane()
