@@ -248,7 +248,7 @@ class LongTermMemory : KastraXCodeBase(component = "LONG_TERM_MEMORY") {
          * @return 长期记忆实例
          */
         fun getInstance(): LongTermMemory {
-            return Service.getService(LongTermMemory::class.java)
+            return com.intellij.openapi.application.ApplicationManager.getApplication().getService(LongTermMemory::class.java)
         }
     }
 }

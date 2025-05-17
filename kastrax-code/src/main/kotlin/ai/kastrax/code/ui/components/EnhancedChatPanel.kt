@@ -155,7 +155,7 @@ class EnhancedChatPanel(
         val newConversationAction = object : AnAction("新建会话", "创建新的会话", AllIcons.General.Add) {
             override fun actionPerformed(e: AnActionEvent) {
                 val newConversation = conversationService.createConversation("新会话")
-                conversationService.setCurrentConversation(newConversation)
+                conversationService.setCurrentConversation(newConversation.id)
                 // 刷新界面
                 ApplicationManager.getApplication().invokeLater {
                     // 重新加载消息
@@ -199,7 +199,7 @@ class EnhancedChatPanel(
             override fun actionPerformed(e: AnActionEvent) {
                 coroutineScope.launch {
                     try {
-                        val checkpointManager = CheckpointManager.getInstance(project)
+                        val checkpointManager = project.getService(CheckpointManager::class.java)
                         val checkpoint = checkpointManager.createCheckpoint(
                             name = "手动检查点",
                             description = "由用户手动创建的检查点"

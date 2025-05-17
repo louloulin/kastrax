@@ -141,7 +141,7 @@ class ContextPanel(
      */
     private fun getLocationString(element: ContextElement): String {
         val location = element.element.location ?: return ""
-        val filePath = element.element.filePath?.fileName?.toString() ?: return ""
+        val filePath = element.element.path.split("/").lastOrNull() ?: return ""
         return "$filePath:${location.line}:${location.column}"
     }
 

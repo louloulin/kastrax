@@ -6,7 +6,8 @@ import ai.kastrax.codebase.git.GitBranchMonitorConfig
 import ai.kastrax.codebase.git.GitBranchMonitor as CodebaseGitBranchMonitor
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vcs.BranchChangeListener
-import git4idea.branch.GitBranchUtil
+// import git4idea.branch.GitBranchUtil
+// 注意：需要在 build.gradle.kts 中添加 Git4Idea 插件依赖
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
