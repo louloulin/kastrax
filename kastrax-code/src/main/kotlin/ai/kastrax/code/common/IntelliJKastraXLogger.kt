@@ -16,14 +16,14 @@ class IntelliJKastraXLogger(
     // 使用 SLF4J 的 Logger 作为后备，以避免在测试环境中依赖 IntelliJ IDEA 平台
     private val logger = try {
         // 尝试使用 IntelliJ IDEA 的 Logger
-        com.intellij.openapi.diagnostic.Logger.getInstance("$component:$name")
+        com.intellij.openapi.diagnostic.Logger.getInstance("${component ?: "KASTRAX_CODE"}:${name ?: "DEFAULT"}")
     } catch (e: Throwable) {
         // 如果失败，使用 SLF4J 的 Logger 作为后备
         null
     }
 
     // SLF4J 的 Logger 作为后备
-    private val slf4jLogger = LoggerFactory.getLogger("$component:$name")
+    private val slf4jLogger = LoggerFactory.getLogger("${component ?: "KASTRAX_CODE"}:${name ?: "DEFAULT"}")
 
     override fun debug(message: String) {
         if (logger != null) {

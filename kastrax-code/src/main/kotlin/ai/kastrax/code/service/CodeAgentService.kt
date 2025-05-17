@@ -8,6 +8,7 @@ import ai.kastrax.code.agent.specialized.CodeCompletionAgent
 import ai.kastrax.code.agent.specialized.CodeExplanationAgent
 import ai.kastrax.code.agent.specialized.CodeRefactoringAgent
 import ai.kastrax.code.agent.specialized.TestGenerationAgent
+import ai.kastrax.code.common.CodeServiceBase
 import ai.kastrax.code.context.CodeContextEngine
 import ai.kastrax.code.context.CodeContextEngineImpl
 import ai.kastrax.code.indexing.CodeIndexManager
@@ -16,7 +17,6 @@ import ai.kastrax.core.agent.Agent
 import ai.kastrax.core.agent.agent
 import ai.kastrax.integrations.deepseek.deepSeek
 import ai.kastrax.integrations.deepseek.DeepSeekModel
-import ai.kastrax.code.common.KastraXCodeBase
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
@@ -35,7 +35,9 @@ import java.nio.file.Paths
  * 管理代码智能体和上下文引擎的生命周期
  */
 @Service(Service.Level.PROJECT)
-class CodeAgentService(private val project: Project) : KastraXCodeBase("CODE_AGENT_SERVICE", "CodeAgentService") {
+class CodeAgentService(private val project: Project) {
+    // 使用 IntelliJ IDEA 的日志系统
+    private val logger = Logger.getInstance("CODE_AGENT_SERVICE")
 
     // 使用父类的logger
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -62,6 +64,21 @@ class CodeAgentService(private val project: Project) : KastraXCodeBase("CODE_AGE
 
         logger.info("初始化代码智能体服务")
 
+        // 确保在非EDT线程上执行耗时操作
+        if (com.intellij.openapi.application.ApplicationManager.getApplication().isDispatchThread) {
+            com.intellij.openapi.application.ApplicationManager.getApplication().executeOnPooledThread {
+                doInitialize()
+            }
+        } else {
+            doInitialize()
+        }
+    }
+
+    /**
+     * 实际执行初始化操作
+     * 必须在非EDT线程上调用
+     */
+    private fun doInitialize() {
         // 初始化工具注册表
         toolRegistry = project.service<CodeToolRegistry>()
         toolRegistry.initializeDefaultTools()

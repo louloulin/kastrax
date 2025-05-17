@@ -11,7 +11,7 @@ class KotlinKastraXLogger(
     private val component: String,
     private val name: String
 ) : KastraXBase.KastraXLogger {
-    private val logger: KLogger = KotlinLogging.logger("$component:$name")
+    private val logger: KLogger = KotlinLogging.logger("${component.takeIf { it.isNotBlank() } ?: "KASTRAX"}:${name.takeIf { it.isNotBlank() } ?: "DEFAULT"}")
 
     override fun debug(message: String) {
         logger.debug { message }

@@ -21,9 +21,6 @@ class CodexAgentToolWindowFactory : ToolWindowFactory, DumbAware {
      * @param toolWindow 工具窗口
      */
     override fun createToolWindowContent(project: Project, toolWindow: ToolWindow) {
-        // 初始化服务
-        CodeAgentService.getInstance(project).initialize()
-
         // 创建 Codex 工具窗口面板
         val codexToolWindowPanel = CodexToolWindowPanel(project, toolWindow.disposable)
 
@@ -31,5 +28,10 @@ class CodexAgentToolWindowFactory : ToolWindowFactory, DumbAware {
         val contentFactory = ContentFactory.getInstance()
         val content = contentFactory.createContent(codexToolWindowPanel, "Codex", false)
         toolWindow.contentManager.addContent(content)
+
+        // 在后台线程中初始化服务
+        com.intellij.openapi.application.ApplicationManager.getApplication().executeOnPooledThread {
+            CodeAgentService.getInstance(project).initialize()
+        }
     }
 }

@@ -23,9 +23,6 @@ class CodeToolWindowFactory : ToolWindowFactory, DumbAware {
      * @param toolWindow 工具窗口
      */
     override fun createToolWindowContent(project: Project, toolWindow: ToolWindow) {
-        // 初始化服务
-        CodeAgentService.getInstance(project).initialize()
-
         // 创建聊天工具窗口面板
         val chatToolWindowPanel = ChatToolWindowPanel(project, toolWindow.disposable)
 
@@ -38,6 +35,11 @@ class CodeToolWindowFactory : ToolWindowFactory, DumbAware {
         val contextPanel = ContextPanel(project)
         val contextContent = contentFactory.createContent(contextPanel, "上下文", false)
         toolWindow.contentManager.addContent(contextContent)
+
+        // 在后台线程中初始化服务
+        com.intellij.openapi.application.ApplicationManager.getApplication().executeOnPooledThread {
+            CodeAgentService.getInstance(project).initialize()
+        }
     }
 
 

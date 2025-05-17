@@ -28,9 +28,10 @@ import java.nio.file.Paths
  */
 @Service(Service.Level.PROJECT)
 class CodeContextEngineImpl(
-    private val project: Project,
-    private val config: CodeContextEngineConfig = CodeContextEngineConfig()
+    private val project: Project
 ) : CodeContextEngine, KastraXCodeBase(component = "CODE_CONTEXT_ENGINE") {
+    // 使用默认配置
+    private val config: CodeContextEngineConfig = CodeContextEngineConfig()
     // 兼容性属性
     private val enableIncrementalIndexing: Boolean = config.enableIncrementalIndexing
     private val enableGitIntegration: Boolean = config.enableCodeRelationAnalysis

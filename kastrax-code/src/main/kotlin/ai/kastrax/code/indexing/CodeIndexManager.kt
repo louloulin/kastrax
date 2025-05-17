@@ -74,6 +74,21 @@ class CodeIndexManager(private val project: Project) : KastraXCodeBase(component
 
         logger.info { "启动代码索引管理器: $rootPath" }
 
+        // 确保在非EDT线程上执行耗时操作
+        if (com.intellij.openapi.application.ApplicationManager.getApplication().isDispatchThread) {
+            com.intellij.openapi.application.ApplicationManager.getApplication().executeOnPooledThread {
+                doStart(rootPath)
+            }
+        } else {
+            doStart(rootPath)
+        }
+    }
+
+    /**
+     * 实际执行启动操作
+     * 必须在非EDT线程上调用
+     */
+    private fun doStart(rootPath: Path) {
         try {
             // 创建配置
             val config = CodebaseIndexManagerConfig(

@@ -22,7 +22,10 @@ abstract class KastraXBase(
          * @return A KastraXLogger instance
          */
         fun createLogger(component: String, name: String): KastraXLogger {
-            return KotlinKastraXLogger(component, name)
+            // 确保组件名称和实例名称不为空
+            val safeComponent = component.takeIf { it.isNotBlank() } ?: "KASTRAX"
+            val safeName = name.takeIf { it.isNotBlank() } ?: "DEFAULT"
+            return KotlinKastraXLogger(safeComponent, safeName)
         }
     }
     /**
@@ -111,7 +114,7 @@ abstract class KastraXBase(
      * Default logger implementation.
      * Subclasses can override this with their own implementation.
      */
-    protected open val logger: KastraXLogger = createLogger(component, name)
+    protected open val logger: KastraXLogger = createLogger(component="kastrax", name="kastrax")
 
     /**
      * Returns a string representation of this component.
