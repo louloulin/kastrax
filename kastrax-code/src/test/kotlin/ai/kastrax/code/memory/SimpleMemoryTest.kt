@@ -1,7 +1,7 @@
 package ai.kastrax.code.memory
 
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Test
+import org.junit.Assert.assertEquals
+import org.junit.Test
 import java.time.Instant
 
 /**

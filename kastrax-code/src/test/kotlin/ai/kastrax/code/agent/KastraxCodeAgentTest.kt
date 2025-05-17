@@ -14,18 +14,18 @@ import org.junit.Before
 import org.junit.Test
 
 class KastraxCodeAgentTest {
-    
+
     private lateinit var mockAgent: Agent
     private lateinit var mockContextEngine: CodeContextEngine
     private lateinit var mockToolRegistry: CodeToolRegistry
     private lateinit var codeAgent: KastraxCodeAgent
-    
+
     @Before
     fun setup() {
         mockAgent = mockk()
         mockContextEngine = mockk()
         mockToolRegistry = mockk()
-        
+
         codeAgent = KastraxCodeAgent(
             agent = mockAgent,
             contextEngine = mockContextEngine,
@@ -33,7 +33,7 @@ class KastraxCodeAgentTest {
             config = CodeAgentConfig()
         )
     }
-    
+
     @Test
     fun `test generateCode returns expected code`() = runBlocking {
         // Arrange
@@ -41,41 +41,37 @@ class KastraxCodeAgentTest {
         val language = "kotlin"
         val expectedCode = "fun factorial(n: Int): Int {\n    return if (n <= 1) 1 else n * factorial(n - 1)\n}"
         val mockResponse = AgentResponse(
-            text = "```kotlin\n$expectedCode\n```",
-            usage = null,
-            finishReason = "stop"
+            text = "```kotlin\n$expectedCode\n```"
         )
-        
-        coEvery { mockAgent.generate(any(), any()) } returns mockResponse
-        
+
+        coEvery { mockAgent.generate(any<String>(), any<Map<String, String>>()) } returns mockResponse
+
         // Act
         val result = codeAgent.generateCode(prompt, language)
-        
+
         // Assert
         assertEquals(expectedCode, result)
     }
-    
+
     @Test
     fun `test explainCode returns explanation`() = runBlocking {
         // Arrange
         val code = "fun factorial(n: Int): Int {\n    return if (n <= 1) 1 else n * factorial(n - 1)\n}"
-        val detailLevel = DetailLevel.BASIC
+        val detailLevel = DetailLevel.NORMAL
         val expectedExplanation = "This is a recursive function to calculate factorial."
         val mockResponse = AgentResponse(
-            text = expectedExplanation,
-            usage = null,
-            finishReason = "stop"
+            text = expectedExplanation
         )
-        
-        coEvery { mockAgent.generate(any(), any()) } returns mockResponse
-        
+
+        coEvery { mockAgent.generate(any<String>(), any<Map<String, String>>()) } returns mockResponse
+
         // Act
         val result = codeAgent.explainCode(code, detailLevel)
-        
+
         // Assert
         assertEquals(expectedExplanation, result)
     }
-    
+
     @Test
     fun `test refactorCode returns refactored code`() = runBlocking {
         // Arrange
@@ -83,20 +79,18 @@ class KastraxCodeAgentTest {
         val instructions = "Convert to iterative approach"
         val expectedCode = "fun factorial(n: Int): Int {\n    var result = 1\n    for (i in 2..n) {\n        result *= i\n    }\n    return result\n}"
         val mockResponse = AgentResponse(
-            text = "```kotlin\n$expectedCode\n```",
-            usage = null,
-            finishReason = "stop"
+            text = "```kotlin\n$expectedCode\n```"
         )
-        
-        coEvery { mockAgent.generate(any(), any()) } returns mockResponse
-        
+
+        coEvery { mockAgent.generate(any<String>(), any<Map<String, String>>()) } returns mockResponse
+
         // Act
         val result = codeAgent.refactorCode(code, instructions)
-        
+
         // Assert
         assertEquals(expectedCode, result)
     }
-    
+
     @Test
     fun `test generateTest returns test code`() = runBlocking {
         // Arrange
@@ -114,20 +108,18 @@ class KastraxCodeAgentTest {
             }
         """.trimIndent()
         val mockResponse = AgentResponse(
-            text = "```kotlin\n$expectedTestCode\n```",
-            usage = null,
-            finishReason = "stop"
+            text = "```kotlin\n$expectedTestCode\n```"
         )
-        
-        coEvery { mockAgent.generate(any(), any()) } returns mockResponse
-        
+
+        coEvery { mockAgent.generate(any<String>(), any<Map<String, String>>()) } returns mockResponse
+
         // Act
         val result = codeAgent.generateTest(code, framework)
-        
+
         // Assert
         assertEquals(expectedTestCode, result)
     }
-    
+
     @Test
     fun `test complete returns completion`() = runBlocking {
         // Arrange
@@ -135,16 +127,14 @@ class KastraxCodeAgentTest {
         val language = "kotlin"
         val expectedCompletion = "n * factorial(n - 1)"
         val mockResponse = AgentResponse(
-            text = expectedCompletion,
-            usage = null,
-            finishReason = "stop"
+            text = expectedCompletion
         )
-        
-        coEvery { mockAgent.generate(any(), any()) } returns mockResponse
-        
+
+        coEvery { mockAgent.generate(any<String>(), any<Map<String, String>>()) } returns mockResponse
+
         // Act
         val result = codeAgent.complete(code, language)
-        
+
         // Assert
         assertEquals(expectedCompletion, result)
     }

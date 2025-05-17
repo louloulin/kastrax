@@ -9,14 +9,14 @@ import ai.kastrax.code.model.ContextRelevance
 import ai.kastrax.code.model.Location
 import com.intellij.openapi.project.Project
 import kotlinx.coroutines.runBlocking
-import org.junit.jupiter.api.AfterEach
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertNotNull
-import org.junit.jupiter.api.Assertions.assertNull
-import org.junit.jupiter.api.Assertions.assertTrue
-import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.Test
-import org.mockito.Mockito.mock
+import org.junit.After
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
+import org.junit.Before
+import org.junit.Test
+import io.mockk.mockk
 import java.nio.file.Paths
 import java.time.Instant
 
@@ -28,13 +28,13 @@ class CodeMemorySystemImplTest {
     private lateinit var memorySystem: CodeMemorySystemImpl
     private lateinit var project: Project
 
-    @BeforeEach
+    @Before
     fun setUp() {
-        project = mock(Project::class.java)
+        project = mockk<Project>()
         memorySystem = CodeMemorySystemImpl(project)
     }
 
-    @AfterEach
+    @After
     fun tearDown() = runBlocking {
         memorySystem.close()
     }
@@ -88,17 +88,17 @@ class CodeMemorySystemImplTest {
             name = "TestClass",
             type = CodeElementType.CLASS,
             content = "public class TestClass {}",
-            filePath = Paths.get("test/TestClass.java"),
+            path = "test/TestClass.java",
             location = Location(1, 1, 10, 1)
         )
 
         // 创建上下文元素
         val contextElement = ContextElement(
             element = codeElement,
-            level = ContextLevel.PRIMARY,
+            level = ContextLevel.CLASS,
             relevance = ContextRelevance.HIGH,
             content = "public class TestClass {}",
-            score = 0.9
+            score = 0.9f
         )
 
         // 创建上下文
@@ -127,17 +127,17 @@ class CodeMemorySystemImplTest {
             name = "TestClass",
             type = CodeElementType.CLASS,
             content = "public class TestClass {}",
-            filePath = Paths.get("test/TestClass.java"),
+            path = "test/TestClass.java",
             location = Location(1, 1, 10, 1)
         )
 
         // 创建上下文元素
         val contextElement = ContextElement(
             element = codeElement,
-            level = ContextLevel.PRIMARY,
+            level = ContextLevel.CLASS,
             relevance = ContextRelevance.HIGH,
             content = "public class TestClass {}",
-            score = 0.9
+            score = 0.9f
         )
 
         // 创建上下文

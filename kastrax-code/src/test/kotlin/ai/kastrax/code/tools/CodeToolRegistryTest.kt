@@ -9,7 +9,7 @@ import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import org.junit.Test
-import org.mockito.Mockito.mock
+import io.mockk.mockk
 
 /**
  * 代码工具注册表测试
@@ -21,7 +21,7 @@ class CodeToolRegistryTest : LightPlatformTestCase() {
 
     override fun setUp() {
         super.setUp()
-        project = mock(Project::class.java)
+        project = mockk<Project>()
         toolRegistry = CodeToolRegistry(project)
         toolRegistry.initializeDefaultTools()
     }
@@ -32,10 +32,10 @@ class CodeToolRegistryTest : LightPlatformTestCase() {
     @Test
     fun testGetTools() {
         val tools = toolRegistry.getTools()
-        
+
         // 验证工具数量
         assertEquals("应该有2个工具", 2, tools.size)
-        
+
         // 验证工具名称
         val toolNames = tools.map { it.name }
         assertTrue("应该包含代码格式化工具", toolNames.contains("代码格式化"))
@@ -50,20 +50,20 @@ class CodeToolRegistryTest : LightPlatformTestCase() {
         // 获取格式化工具
         val formatTool = toolRegistry.getToolByName("代码格式化")
         assertNotNull("格式化工具不应为空", formatTool)
-        
+
         // 创建输入参数
         val input = buildJsonObject {
-            put("code", "function test() { return 1; }")
-            put("language", "javascript")
+            put("code", JsonPrimitive("function test() { return 1; }"))
+            put("language", JsonPrimitive("javascript"))
         }
-        
+
         // 执行工具
         val result = formatTool?.execute(input)
-        
+
         // 验证结果
         assertNotNull("结果不应为空", result)
         assertTrue("结果应该是JsonObject", result is JsonObject)
-        
+
         val resultObj = result as JsonObject
         assertTrue("结果应该包含formattedCode字段", resultObj.containsKey("formattedCode"))
         assertTrue("结果应该包含success字段", resultObj.containsKey("success"))
@@ -78,20 +78,20 @@ class CodeToolRegistryTest : LightPlatformTestCase() {
         // 获取分析工具
         val analyzeTool = toolRegistry.getToolByName("代码分析")
         assertNotNull("分析工具不应为空", analyzeTool)
-        
+
         // 创建输入参数
         val input = buildJsonObject {
-            put("code", "function test() { return 1; }")
-            put("language", "javascript")
+            put("code", JsonPrimitive("function test() { return 1; }"))
+            put("language", JsonPrimitive("javascript"))
         }
-        
+
         // 执行工具
         val result = analyzeTool?.execute(input)
-        
+
         // 验证结果
         assertNotNull("结果不应为空", result)
         assertTrue("结果应该是JsonObject", result is JsonObject)
-        
+
         val resultObj = result as JsonObject
         assertTrue("结果应该包含suggestions字段", resultObj.containsKey("suggestions"))
         assertTrue("结果应该包含success字段", resultObj.containsKey("success"))
@@ -106,20 +106,20 @@ class CodeToolRegistryTest : LightPlatformTestCase() {
         // 获取格式化工具
         val formatTool = toolRegistry.getToolByName("代码格式化")
         assertNotNull("格式化工具不应为空", formatTool)
-        
+
         // 创建缺少必要参数的输入
         val input = buildJsonObject {
-            put("code", "function test() { return 1; }")
+            put("code", JsonPrimitive("function test() { return 1; }"))
             // 缺少language参数
         }
-        
+
         // 执行工具
         val result = formatTool?.execute(input)
-        
+
         // 验证结果
         assertNotNull("结果不应为空", result)
         assertTrue("结果应该是JsonObject", result is JsonObject)
-        
+
         val resultObj = result as JsonObject
         assertTrue("结果应该包含error字段", resultObj.containsKey("error"))
         assertTrue("结果应该包含success字段", resultObj.containsKey("success"))

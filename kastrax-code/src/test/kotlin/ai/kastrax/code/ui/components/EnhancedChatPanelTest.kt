@@ -20,19 +20,19 @@ import java.time.Instant
  * 增强聊天面板测试
  */
 class EnhancedChatPanelTest {
-    
+
     private lateinit var project: Project
     private lateinit var conversation: ChatConversation
     private lateinit var codeAgentService: CodeAgentService
     private lateinit var conversationService: ConversationService
-    
+
     @Before
     fun setUp() {
         // 创建模拟对象
         project = mockk(relaxed = true)
         codeAgentService = mockk(relaxed = true)
         conversationService = mockk(relaxed = true)
-        
+
         // 创建会话
         conversation = ChatConversation(
             id = "test-conversation",
@@ -46,13 +46,13 @@ class EnhancedChatPanelTest {
                 )
             )
         )
-        
+
         // 设置模拟行为
         every { CodeAgentService.getInstance(any()) } returns codeAgentService
         every { ConversationService.getInstance(any()) } returns conversationService
         every { conversationService.getCurrentConversation() } returns conversation
     }
-    
+
     /**
      * 测试创建增强聊天面板
      */
@@ -60,11 +60,11 @@ class EnhancedChatPanelTest {
     fun testCreateEnhancedChatPanel() {
         // 创建增强聊天面板
         val chatPanel = EnhancedChatPanel(project, conversation)
-        
+
         // 验证面板不为空
         assert(chatPanel != null)
     }
-    
+
     /**
      * 测试显示会话消息
      */
@@ -79,52 +79,52 @@ class EnhancedChatPanelTest {
                 timestamp = Instant.now()
             )
         )
-        
+
         conversation.addMessage(
             ChatMessage(
                 id = "3",
                 role = MessageRole.ASSISTANT,
                 content = """
                     好的，下面是一个计算斐波那契数列的 Kotlin 函数：
-                    
+
                     ```kotlin
                     /**
                      * 计算斐波那契数列的第 n 个数
-                     * 
+                     *
                      * @param n 位置（从0开始）
                      * @return 斐波那契数
                      */
                     fun fibonacci(n: Int): Int {
                         if (n <= 0) return 0
                         if (n == 1) return 1
-                        
+
                         var a = 0
                         var b = 1
                         var result = 0
-                        
+
                         for (i in 2..n) {
                             result = a + b
                             a = b
                             b = result
                         }
-                        
+
                         return result
                     }
                     ```
-                    
+
                     这个函数使用迭代方法计算斐波那契数列，比递归方法更高效。你可以这样使用它：
-                    
+
                     ```kotlin
                     fun main() {
                         // 打印斐波那契数列的前10个数
                         for (i in 0..9) {
-                            println("fibonacci($i) = ${fibonacci(i)}")
+                            println("fibonacci(${i}) = ${i}")
                         }
                     }
                     ```
-                    
+
                     输出结果将是：
-                    
+
                     ```
                     fibonacci(0) = 0
                     fibonacci(1) = 1
@@ -141,14 +141,14 @@ class EnhancedChatPanelTest {
                 timestamp = Instant.now()
             )
         )
-        
+
         // 创建增强聊天面板
         val chatPanel = EnhancedChatPanel(project, conversation)
-        
+
         // 验证面板不为空
         assert(chatPanel != null)
     }
-    
+
     /**
      * 手动测试UI（仅用于开发时手动运行）
      */
@@ -162,52 +162,52 @@ class EnhancedChatPanelTest {
                 timestamp = Instant.now()
             )
         )
-        
+
         conversation.addMessage(
             ChatMessage(
                 id = "3",
                 role = MessageRole.ASSISTANT,
                 content = """
                     好的，下面是一个计算斐波那契数列的 Kotlin 函数：
-                    
+
                     ```kotlin
                     /**
                      * 计算斐波那契数列的第 n 个数
-                     * 
+                     *
                      * @param n 位置（从0开始）
                      * @return 斐波那契数
                      */
                     fun fibonacci(n: Int): Int {
                         if (n <= 0) return 0
                         if (n == 1) return 1
-                        
+
                         var a = 0
                         var b = 1
                         var result = 0
-                        
+
                         for (i in 2..n) {
                             result = a + b
                             a = b
                             b = result
                         }
-                        
+
                         return result
                     }
                     ```
-                    
+
                     这个函数使用迭代方法计算斐波那契数列，比递归方法更高效。你可以这样使用它：
-                    
+
                     ```kotlin
                     fun main() {
                         // 打印斐波那契数列的前10个数
                         for (i in 0..9) {
-                            println("fibonacci($i) = ${fibonacci(i)}")
+                            println("fibonacci(${i}) = ${i}")
                         }
                     }
                     ```
-                    
+
                     输出结果将是：
-                    
+
                     ```
                     fibonacci(0) = 0
                     fibonacci(1) = 1
@@ -224,10 +224,10 @@ class EnhancedChatPanelTest {
                 timestamp = Instant.now()
             )
         )
-        
+
         // 创建增强聊天面板
         val chatPanel = EnhancedChatPanel(project, conversation)
-        
+
         // 创建窗口
         val frame = JFrame("增强聊天面板测试")
         frame.defaultCloseOperation = JFrame.EXIT_ON_CLOSE
