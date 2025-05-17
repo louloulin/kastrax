@@ -91,6 +91,42 @@ class DetailLevelDetectorAgent(
         }
     }
 
+    /**
+     * 生成代码
+     *
+     * @param prompt 提示文本
+     * @param language 编程语言
+     * @return 生成的代码
+     */
+    override suspend fun generateCode(prompt: String, language: String): String = withContext(Dispatchers.IO) {
+        try {
+            // 创建消息
+            val messages = listOf(
+                LlmMessage(
+                    role = LlmMessageRole.SYSTEM,
+                    content = "你是一个代码生成器，根据用户的请求生成${language}代码。"
+                ),
+                LlmMessage(
+                    role = LlmMessageRole.USER,
+                    content = prompt
+                )
+            )
+
+            // 生成响应
+            val options = AgentGenerateOptions(
+                temperature = 0.2,
+                maxTokens = 1000
+            )
+
+            return@withContext agent.generate(messages, options).text
+        } catch (e: Exception) {
+            logger.error("生成代码时出错: $prompt", e)
+            return@withContext "生成代码时出错: ${e.message}"
+        }
+    }
+
+
+
     companion object {
         /**
          * 获取实例

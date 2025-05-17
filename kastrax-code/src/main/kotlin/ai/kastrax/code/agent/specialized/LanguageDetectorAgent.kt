@@ -87,6 +87,8 @@ class LanguageDetectorAgent(
         }
     }
 
+
+
     companion object {
         /**
          * 获取实例
