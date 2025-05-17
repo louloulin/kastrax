@@ -116,6 +116,43 @@ class KastraxCodeContextEngine(
                 )
             }
 
+            override suspend fun searchCode(
+                query: String,
+                limit: Int,
+                minScore: Double,
+                types: Set<ai.kastrax.codebase.semantic.model.CodeElementType>?,
+                searchMode: ai.kastrax.codebase.search.SearchMode
+            ): List<ai.kastrax.codebase.retrieval.model.RetrievalResult> {
+                logger.info("模拟搜索代码: $query")
+                return emptyList()
+            }
+
+            override suspend fun searchByFilePath(filePath: Path): List<ai.kastrax.codebase.semantic.model.CodeElement> {
+                logger.info("模拟按文件路径搜索: $filePath")
+                return emptyList()
+            }
+
+            override suspend fun searchByType(
+                type: ai.kastrax.codebase.semantic.model.CodeElementType,
+                limit: Int
+            ): List<ai.kastrax.codebase.semantic.model.CodeElement> {
+                logger.info("模拟按类型搜索: $type")
+                return emptyList()
+            }
+
+            override suspend fun searchByName(
+                name: String,
+                exactMatch: Boolean,
+                limit: Int
+            ): List<ai.kastrax.codebase.semantic.model.CodeElement> {
+                logger.info("模拟按名称搜索: $name")
+                return emptyList()
+            }
+
+            override suspend fun getStatus(): Map<String, Any> {
+                return mapOf("status" to "mock")
+            }
+
             override suspend fun getCodeElement(id: String): ai.kastrax.codebase.semantic.model.CodeElement? {
                 return null
             }
@@ -175,7 +212,7 @@ class KastraxCodeContextEngine(
             val kastraxContext = contextEngine.getQueryContext(
                 query = query,
                 maxResults = maxResults,
-                minScore = minScore.toFloat(),
+                minScore = minScore,
                 includeRelated = includeRelated
             )
 
@@ -254,7 +291,7 @@ class KastraxCodeContextEngine(
                 filePath = filePath,
                 position = kastraxLocation,
                 maxResults = maxResults,
-                minScore = minScore.toFloat()
+                minScore = minScore
             )
 
             return@withContext convertContext(kastraxContext, "edit:$filePath")
@@ -291,7 +328,7 @@ class KastraxCodeContextEngine(
             val kastraxContext = contextEngine.getSymbolContext(
                 symbolName = symbolName,
                 maxResults = maxResults,
-                minScore = minScore.toFloat()
+                minScore = minScore
             )
 
             return@withContext convertContext(kastraxContext, "symbol:$symbolName")

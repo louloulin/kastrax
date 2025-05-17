@@ -96,10 +96,8 @@ class CodeContextEngineImpl(
             // 创建检索请求
             val request = RetrievalRequest(
                 query = query,
-                options = mapOf(
-                    "limit" to maxResults,
-                    "minScore" to minScore
-                )
+                maxResults = maxResults,
+                minScore = minScore
             )
 
             // 执行混合搜索
@@ -113,7 +111,7 @@ class CodeContextEngineImpl(
                 )
             )
             val searchResponse = searchFacade.search(searchRequest)
-            val results = searchResponse.results.map { RetrievalResult(it.element, it.score) }
+            val results = searchResponse.results.map { RetrievalResult(it.element.id, it.element.content, it.score, mapOf("element" to it.element)) }
 
             // 转换为上下文元素
             val elements = results.map { convertToContextElement(it) }
@@ -153,8 +151,8 @@ class CodeContextEngineImpl(
             // 创建检索请求
             val request = RetrievalRequest(
                 query = "file:${filePath.fileName}",
-                options = mapOf(
-                    "limit" to maxResults,
+                maxResults = maxResults,
+                filters = mapOf(
                     "exactMatch" to true
                 )
             )
@@ -170,7 +168,7 @@ class CodeContextEngineImpl(
                 )
             )
             val searchResponse = searchFacade.search(searchRequest)
-            val results = searchResponse.results.map { RetrievalResult(it.element, it.score) }
+            val results = searchResponse.results.map { RetrievalResult(it.element.id, it.element.content, it.score, mapOf("element" to it.element)) }
 
             // 转换为上下文元素
             val elements = results.map { convertToContextElement(it) }
@@ -213,10 +211,8 @@ class CodeContextEngineImpl(
             // 创建检索请求
             val request = RetrievalRequest(
                 query = "location:${filePath.fileName}:${position.line}",
-                options = mapOf(
-                    "limit" to maxResults,
-                    "minScore" to minScore
-                )
+                maxResults = maxResults,
+                minScore = minScore
             )
 
             // 执行结构感知搜索
@@ -230,7 +226,7 @@ class CodeContextEngineImpl(
                 )
             )
             val searchResponse = searchFacade.search(searchRequest)
-            val results = searchResponse.results.map { RetrievalResult(it.element, it.score) }
+            val results = searchResponse.results.map { RetrievalResult(it.element.id, it.element.content, it.score, mapOf("element" to it.element)) }
 
             // 转换为上下文元素
             val elements = results.map { convertToContextElement(it) }
@@ -268,9 +264,9 @@ class CodeContextEngineImpl(
             // 创建检索请求
             val request = RetrievalRequest(
                 query = "symbol:$symbolName",
-                options = mapOf(
-                    "limit" to maxResults,
-                    "minScore" to minScore,
+                maxResults = maxResults,
+                minScore = minScore,
+                filters = mapOf(
                     "exactMatch" to true
                 )
             )
@@ -287,7 +283,7 @@ class CodeContextEngineImpl(
                 )
             )
             val searchResponse = searchFacade.search(searchRequest)
-            val results = searchResponse.results.map { RetrievalResult(it.element, it.score) }
+            val results = searchResponse.results.map { RetrievalResult(it.element.id, it.element.content, it.score, mapOf("element" to it.element)) }
 
             // 转换为上下文元素
             val elements = results.map { convertToContextElement(it) }
@@ -327,7 +323,9 @@ class CodeContextEngineImpl(
      * @return 上下文元素
      */
     private fun convertToContextElement(result: RetrievalResult): ContextElement {
-        val element = result.element
+        // 从元数据中获取元素
+        val element = result.metadata["element"] as? ai.kastrax.codebase.semantic.model.CodeElement
+            ?: throw IllegalArgumentException("Result metadata does not contain element")
 
         // 判断元素类型
         val elementType = try {
@@ -344,7 +342,7 @@ class CodeContextEngineImpl(
             name = element.name,
             type = elementType,
             content = element.content,
-            filePath = element.location?.filePath?.let { Paths.get(it) },
+            path = element.location?.filePath ?: "",
             location = element.location?.let {
                 Location(
                     line = it.startLine,
@@ -407,8 +405,8 @@ class CodeContextEngineImpl(
         // 创建检索请求
         val request = RetrievalRequest(
             query = "related:${element.element.name}",
-            options = mapOf(
-                "limit" to maxResults,
+            maxResults = maxResults,
+            filters = mapOf(
                 "types" to setOf(
                     CodeElementType.CLASS,
                     CodeElementType.METHOD,
@@ -434,7 +432,7 @@ class CodeContextEngineImpl(
             )
         )
         val searchResponse = searchFacade.search(searchRequest)
-        val results = searchResponse.results.map { RetrievalResult(it.element, it.score) }
+        val results = searchResponse.results.map { RetrievalResult(it.element.id, it.element.content, it.score, mapOf("element" to it.element)) }
 
         // 转换为上下文元素
         return results.map { convertToContextElement(it) }

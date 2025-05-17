@@ -12,6 +12,8 @@ import ai.kastrax.memory.impl.inMemoryStorage
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
+import kotlinx.datetime.Instant
+import ai.kastrax.code.memory.toJavaInstant
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.nio.file.Paths
@@ -157,7 +159,7 @@ class CodeMemorySystemImpl(
             // 为每个上下文元素创建记忆
             for (element in context.elements) {
                 // 创建消息
-                val message = SimpleMessage(
+                val message = ai.kastrax.memory.impl.SimpleMessage(
                     role = MessageRole.SYSTEM,
                     content = element.content
                 )
@@ -369,7 +371,7 @@ class CodeMemorySystemImpl(
             val threadId = getOrCreateThread("preference:$userId")
 
             // 创建消息
-            val message = SimpleMessage(
+            val message = ai.kastrax.memory.impl.SimpleMessage(
                 role = MessageRole.SYSTEM,
                 content = value
             )
@@ -548,10 +550,13 @@ class CodeMemorySystemImpl(
     /**
      * 简单消息类
      */
-    private data class SimpleMessage(
+    private data class CodeMessage(
         val role: MessageRole,
         val content: String
     )
+
+    // 使用 ai.kastrax.memory.impl.SimpleMessage 类型别名
+    private typealias SimpleMessage = ai.kastrax.memory.impl.SimpleMessage
 
     /**
      * 将 SimpleMemory 转换为消息
@@ -559,13 +564,13 @@ class CodeMemorySystemImpl(
      * @param role 角色
      * @return 消息
      */
-    private fun SimpleMemory.toMessage(role: String): SimpleMessage {
+    private fun SimpleMemory.toMessage(role: String): CodeMessage {
         val messageRole = when (role.lowercase()) {
             "user" -> MessageRole.USER
             "assistant" -> MessageRole.ASSISTANT
             else -> MessageRole.SYSTEM
         }
-        return SimpleMessage(messageRole, this.content)
+        return CodeMessage(messageRole, this.content)
     }
 
     /**
