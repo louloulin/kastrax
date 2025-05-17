@@ -118,7 +118,7 @@ class EnhancedChatPanelTest {
                     fun main() {
                         // 打印斐波那契数列的前10个数
                         for (i in 0..9) {
-                            println("fibonacci(${i}) = ${i}")
+                            println("fibonacci(i) = i")
                         }
                     }
                     ```
@@ -201,7 +201,7 @@ class EnhancedChatPanelTest {
                     fun main() {
                         // 打印斐波那契数列的前10个数
                         for (i in 0..9) {
-                            println("fibonacci(${i}) = ${i}")
+                            println("fibonacci(i) = i")
                         }
                     }
                     ```

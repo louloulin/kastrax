@@ -4,6 +4,7 @@ import ai.kastrax.code.context.CodeContextEngine
 import ai.kastrax.code.model.DetailLevel
 import ai.kastrax.code.tools.CodeToolRegistry
 import ai.kastrax.core.agent.Agent
+import ai.kastrax.core.agent.AgentGenerateOptions
 import ai.kastrax.core.agent.AgentResponse
 import io.mockk.coEvery
 import io.mockk.mockk
@@ -44,7 +45,7 @@ class KastraxCodeAgentTest {
             text = "```kotlin\n$expectedCode\n```"
         )
 
-        coEvery { mockAgent.generate(any<String>(), any<Map<String, String>>()) } returns mockResponse
+        coEvery { mockAgent.generate(any<String>(), any<AgentGenerateOptions>()) } returns mockResponse
 
         // Act
         val result = codeAgent.generateCode(prompt, language)
@@ -63,7 +64,7 @@ class KastraxCodeAgentTest {
             text = expectedExplanation
         )
 
-        coEvery { mockAgent.generate(any<String>(), any<Map<String, String>>()) } returns mockResponse
+        coEvery { mockAgent.generate(any<String>(), any<AgentGenerateOptions>()) } returns mockResponse
 
         // Act
         val result = codeAgent.explainCode(code, detailLevel)
@@ -82,7 +83,7 @@ class KastraxCodeAgentTest {
             text = "```kotlin\n$expectedCode\n```"
         )
 
-        coEvery { mockAgent.generate(any<String>(), any<Map<String, String>>()) } returns mockResponse
+        coEvery { mockAgent.generate(any<String>(), any<AgentGenerateOptions>()) } returns mockResponse
 
         // Act
         val result = codeAgent.refactorCode(code, instructions)
@@ -111,7 +112,7 @@ class KastraxCodeAgentTest {
             text = "```kotlin\n$expectedTestCode\n```"
         )
 
-        coEvery { mockAgent.generate(any<String>(), any<Map<String, String>>()) } returns mockResponse
+        coEvery { mockAgent.generate(any<String>(), any<AgentGenerateOptions>()) } returns mockResponse
 
         // Act
         val result = codeAgent.generateTest(code, framework)
@@ -130,7 +131,7 @@ class KastraxCodeAgentTest {
             text = expectedCompletion
         )
 
-        coEvery { mockAgent.generate(any<String>(), any<Map<String, String>>()) } returns mockResponse
+        coEvery { mockAgent.generate(any<String>(), any<AgentGenerateOptions>()) } returns mockResponse
 
         // Act
         val result = codeAgent.complete(code, language)
