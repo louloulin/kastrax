@@ -32,4 +32,9 @@ abstract class KastraXCodeBase(
     fun getComponentId(): String {
         return "$component:$name"
     }
+
+    /**
+     * 无参数构造函数，使用默认组件名称
+     */
+    constructor() : this("KASTRAX_CODE", "DEFAULT")
 }

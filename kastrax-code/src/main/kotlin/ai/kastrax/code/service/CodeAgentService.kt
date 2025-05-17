@@ -35,7 +35,7 @@ import java.nio.file.Paths
  * 管理代码智能体和上下文引擎的生命周期
  */
 @Service(Service.Level.PROJECT)
-class CodeAgentService(private val project: Project) : KastraXCodeBase(component = "CODE_AGENT_SERVICE") {
+class CodeAgentService(private val project: Project) : KastraXCodeBase("CODE_AGENT_SERVICE", "CodeAgentService") {
 
     // 使用父类的logger
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
