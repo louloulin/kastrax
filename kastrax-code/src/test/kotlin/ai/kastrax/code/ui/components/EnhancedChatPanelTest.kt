@@ -5,9 +5,13 @@ import ai.kastrax.code.model.ChatMessage
 import ai.kastrax.code.model.MessageRole
 import ai.kastrax.code.service.CodeAgentService
 import ai.kastrax.code.service.ConversationService
+import ai.kastrax.core.agent.agent
+import ai.kastrax.integrations.deepseek.DeepSeekModel
+import ai.kastrax.integrations.deepseek.deepSeek
 import com.intellij.openapi.project.Project
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.mockkStatic
 import io.mockk.verify
 import org.junit.Before
 import org.junit.Test
@@ -28,8 +32,27 @@ class EnhancedChatPanelTest {
 
     @Before
     fun setUp() {
+        // 模拟静态方法
+        mockkStatic(CodeAgentService::class)
+        mockkStatic(ConversationService::class)
+
+        // 创建真实的 DeepSeek LLM
+        val realAgent = agent {
+            name = "DeepSeek测试代理"
+            instructions = "你是一个专业的编程助手，擅长代码生成、解释、重构和测试。"
+            model = deepSeek {
+                model(DeepSeekModel.DEEPSEEK_CODER)
+                apiKey(System.getenv("DEEPSEEK_API_KEY") ?: "sk-85e83081df28490b9ae63188f0cb4f79")
+                temperature(0.3)
+                maxTokens(2000)
+            }
+        }
+
         // 创建模拟对象
         project = mockk(relaxed = true)
+
+        // 创建真实的 CodeAgentService 和 ConversationService
+        // 注意：在实际测试中，我们仍然需要使用模拟对象，因为这些服务需要在 IntelliJ IDEA 环境中运行
         codeAgentService = mockk(relaxed = true)
         conversationService = mockk(relaxed = true)
 

@@ -32,7 +32,7 @@ class KastraxCodeAgent(
      * @return 生成的代码
      */
     override suspend fun generateCode(prompt: String, language: String): String {
-        logger.debug("生成代码: $prompt, 语言: $language")
+        logger.info("开始生成代码，提示：$prompt，语言：$language")
 
         val enhancedPrompt = """
             请根据以下描述生成 $language 代码：
@@ -58,8 +58,15 @@ class KastraxCodeAgent(
             )
         )
 
+        logger.info("调用 DeepSeek LLM 生成代码，消息数：${messages.size}")
+        val startTime = System.currentTimeMillis()
         val response = agent.generate(messages, options)
-        return extractCodeFromResponse(response.text, language)
+        val endTime = System.currentTimeMillis()
+        logger.info("收到 DeepSeek LLM 响应，耗时：${endTime - startTime}ms，原始响应：${response.text}")
+
+        val extractedCode = extractCodeFromResponse(response.text, language)
+        logger.info("提取的代码：$extractedCode")
+        return extractedCode
     }
 
     /**

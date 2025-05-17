@@ -30,8 +30,14 @@ class CodeMemorySystemImplTest {
 
     @Before
     fun setUp() {
-        project = mockk<Project>()
+        // 使用模拟对象
+        project = mockk<Project>(relaxed = true)
+
+        // 创建内存系统
         memorySystem = CodeMemorySystemImpl(project)
+
+        // 注意：在实际测试中，可以使用真实的 Project 对象
+        // 但这需要在 IntelliJ IDEA 环境中运行，而不是在普通的 JUnit 测试中
     }
 
     @After

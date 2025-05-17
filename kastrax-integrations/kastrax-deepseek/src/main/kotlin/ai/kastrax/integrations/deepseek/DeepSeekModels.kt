@@ -6,21 +6,10 @@ package ai.kastrax.integrations.deepseek
 enum class DeepSeekModel(val id: String) {
     // DeepSeek Chat 模型
     DEEPSEEK_CHAT("deepseek-chat"),
-    DEEPSEEK_CHAT_V1("deepseek-chat-v1"),
-    DEEPSEEK_CHAT_V1_5("deepseek-chat-v1.5"),
 
     // DeepSeek Coder 模型
-    DEEPSEEK_CODER("deepseek-coder"),
-    DEEPSEEK_CODER_V1("deepseek-coder-v1"),
-    DEEPSEEK_CODER_V1_5("deepseek-coder-v1.5"),
-
+    DEEPSEEK_CODER("deepseek-reasoner");
     // DeepSeek Math 模型
-    DEEPSEEK_MATH("deepseek-math"),
-
-    // DeepSeek Lite 模型
-    DEEPSEEK_LITE("deepseek-lite"),
-    DEEPSEEK_LITE_V1("deepseek-lite-v1"),
-    DEEPSEEK_LITE_V1_5("deepseek-lite-v1.5");
 
     companion object {
         /**
