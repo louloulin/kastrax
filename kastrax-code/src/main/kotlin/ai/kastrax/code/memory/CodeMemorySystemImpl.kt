@@ -26,9 +26,10 @@ import java.util.UUID
  */
 @Service(Service.Level.PROJECT)
 class CodeMemorySystemImpl(
-    private val project: Project,
-    private val config: CodeMemorySystemConfig = CodeMemorySystemConfig()
+    private val project: Project
 ) : CodeMemorySystem, KastraXCodeBase(component = "CODE_MEMORY_SYSTEM") {
+    // 使用默认配置
+    private val config: CodeMemorySystemConfig = CodeMemorySystemConfig()
 
     // 使用 KastraXCodeBase 的 logger
 

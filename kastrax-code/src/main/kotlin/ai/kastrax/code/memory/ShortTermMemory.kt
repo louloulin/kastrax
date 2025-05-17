@@ -18,9 +18,10 @@ import java.util.UUID
  */
 @Service(Service.Level.PROJECT)
 class ShortTermMemory(
-    private val project: Project,
-    private val config: ShortTermMemoryConfig = ShortTermMemoryConfig()
+    private val project: Project
 ) : KastraXCodeBase(component = "SHORT_TERM_MEMORY") {
+    // 使用默认配置
+    private val config: ShortTermMemoryConfig = ShortTermMemoryConfig()
 
     // 使用父类的logger
 

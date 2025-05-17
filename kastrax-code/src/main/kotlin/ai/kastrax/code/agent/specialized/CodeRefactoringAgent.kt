@@ -34,9 +34,10 @@ import java.util.UUID
  */
 @Service(Service.Level.PROJECT)
 class CodeRefactoringAgent(
-    private val project: Project,
-    private val config: CodeRefactoringAgentConfig = CodeRefactoringAgentConfig()
+    private val project: Project
 ) : KastraXCodeBase(component = "CODE_REFACTORING_AGENT"), CodeAgent {
+    // 使用默认配置
+    private val config: CodeRefactoringAgentConfig = CodeRefactoringAgentConfig()
 
     // 使用父类的logger
 

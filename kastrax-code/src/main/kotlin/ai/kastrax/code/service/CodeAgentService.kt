@@ -95,7 +95,7 @@ class CodeAgentService(private val project: Project) {
                 temperature(0.3)
                 maxTokens(2000)
                 // 从环境变量或配置中获取API密钥
-                apiKey(System.getenv("DEEPSEEK_API_KEY") ?: "")
+                apiKey("sk-85e83081df28490b9ae63188f0cb4f79")
             }
         }
 

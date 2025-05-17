@@ -32,9 +32,10 @@ import java.util.UUID
  */
 @Service(Service.Level.PROJECT)
 class CodeExplanationAgent(
-    private val project: Project,
-    private val config: CodeExplanationAgentConfig = CodeExplanationAgentConfig()
+    private val project: Project
 ) : KastraXCodeBase(component = "CODE_EXPLANATION_AGENT"), CodeAgent {
+    // 使用默认配置
+    private val config: CodeExplanationAgentConfig = CodeExplanationAgentConfig()
 
     // 使用父类的logger
 

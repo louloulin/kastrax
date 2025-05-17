@@ -34,9 +34,10 @@ import java.util.UUID
  */
 @Service(Service.Level.PROJECT)
 class CodeCompletionAgent(
-    private val project: Project,
-    private val config: CodeCompletionAgentConfig = CodeCompletionAgentConfig()
+    private val project: Project
 ) : KastraXCodeBase(component = "CODE_COMPLETION_AGENT"), CodeAgent {
+    // 使用默认配置
+    private val config: CodeCompletionAgentConfig = CodeCompletionAgentConfig()
 
     // 使用父类的logger
 
