@@ -57,7 +57,7 @@ class EnhancedChatPanel(
     private val conversation: ChatConversation
 ) : SimpleToolWindowPanel(true) {
 
-    private val messagesPanel = JBPanel<JPanel>(BorderLayout())
+    private val messagesPanel = JBPanel<JBPanel<*>>(BorderLayout())
     private val inputArea = JTextArea(3, 20)
     private val sendButton = JButton("发送")
     private val statusLabel = JBLabel("就绪")
@@ -137,6 +137,9 @@ class EnhancedChatPanel(
         // 设置面板
         setContent(splitter)
         setToolbar(toolbar)
+
+        // 加载消息
+        loadMessages()
 
         // 显示现有消息
         displayMessages()
@@ -224,7 +227,7 @@ class EnhancedChatPanel(
      * 创建输入控制面板
      */
     private fun createInputControlPanel(): JPanel {
-        val panel = JBPanel<JPanel>(BorderLayout())
+        val panel = JBPanel<JBPanel<*>>(BorderLayout())
 
         // 发送按钮
         panel.add(sendButton, BorderLayout.NORTH)
@@ -236,7 +239,7 @@ class EnhancedChatPanel(
      * 创建状态面板
      */
     private fun createStatusPanel(): JPanel {
-        val panel = JBPanel<JPanel>(FlowLayout(FlowLayout.LEFT))
+        val panel = JBPanel<JBPanel<*>>(FlowLayout(FlowLayout.LEFT))
         panel.border = BorderFactory.createCompoundBorder(
             BorderFactory.createMatteBorder(0, 0, 1, 0, JBColor.border()),
             JBUI.Borders.empty(4)
@@ -261,7 +264,7 @@ class EnhancedChatPanel(
      * 创建右侧面板
      */
     private fun createRightPanel(): JPanel {
-        val panel = JBPanel<JPanel>(BorderLayout())
+        val panel = JBPanel<JBPanel<*>>(BorderLayout())
 
         // 创建标签页面板
         val tabbedPane = JBTabbedPane()
@@ -302,21 +305,40 @@ class EnhancedChatPanel(
     }
 
     /**
+     * 加载消息
+     */
+    fun loadMessages() {
+        // 清空消息面板
+        messagesPanel.removeAll()
+
+        // 如果没有消息，添加欢迎消息
+        if (conversation.messages.isEmpty()) {
+            val welcomeMessage = ChatMessage(
+                role = MessageRole.ASSISTANT,
+                content = "欢迎使用 KastraX Code！我是你的 AI 编程助手，可以帮助你编写、解释和重构代码。请在下方输入框中输入你的问题或指令。"
+            )
+            addMessagePanel(welcomeMessage)
+        } else {
+            // 添加现有消息
+            for (message in conversation.messages) {
+                addMessagePanel(message)
+            }
+        }
+
+        // 重新验证和重绘面板
+        revalidate()
+        repaint()
+    }
+
+    /**
      * 清空消息
      */
     fun clearMessages() {
         // 清空会话消息
         conversation.clearMessages()
 
-        // 清空消息面板
-        messagesPanel.removeAll()
-
-        // 添加欢迎消息
-        val welcomeMessage = ChatMessage(
-            role = MessageRole.ASSISTANT,
-            content = "欢迎使用 KastraX Code！我是你的 AI 编程助手，可以帮助你编写、解释和重构代码。请在下方输入框中输入你的问题或指令。"
-        )
-        addMessagePanel(welcomeMessage)
+        // 加载消息（会添加欢迎消息）
+        loadMessages()
 
         // 更新状态
         statusLabel.text = "已清空会话"
@@ -459,8 +481,11 @@ class EnhancedChatPanel(
                 }
 
                 // 移除处理中的消息
-                messagesPanel.remove(messagesPanel.componentCount - 2) // 移除消息
-                messagesPanel.remove(messagesPanel.componentCount - 1) // 移除间隔
+                val componentsCount = messagesPanel.components.size
+                if (componentsCount >= 2) {
+                    messagesPanel.remove(componentsCount - 2) // 移除消息
+                    messagesPanel.remove(componentsCount - 2) // 移除间隔
+                }
 
                 // 创建助手回复消息
                 val assistantMessage = ChatMessage(
@@ -491,8 +516,11 @@ class EnhancedChatPanel(
 
             } catch (e: Exception) {
                 // 移除处理中的消息
-                messagesPanel.remove(messagesPanel.componentCount - 2) // 移除消息
-                messagesPanel.remove(messagesPanel.componentCount - 1) // 移除间隔
+                val componentsCount = messagesPanel.components.size
+                if (componentsCount >= 2) {
+                    messagesPanel.remove(componentsCount - 2) // 移除消息
+                    messagesPanel.remove(componentsCount - 2) // 移除间隔
+                }
 
                 // 创建错误消息
                 val errorMessage = ChatMessage(

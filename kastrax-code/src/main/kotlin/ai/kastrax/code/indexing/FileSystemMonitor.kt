@@ -10,7 +10,6 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFileEvent
 import com.intellij.openapi.vfs.VirtualFileListener
 import com.intellij.openapi.vfs.VirtualFileManager
-import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -31,34 +30,34 @@ class FileSystemMonitor(
     private val project: Project,
     private val config: FileSystemMonitorConfig = FileSystemMonitorConfig()
 ) : KastraXCodeBase(component = "FILE_SYSTEM_MONITOR") {
-    
-    override val logger = KotlinLogging.logger {}
-    
+
+    // 使用 KastraXCodeBase 的 logger
+
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val isRunning = AtomicBoolean(false)
-    
+
     // 文件变更事件流
     private val _fileChanges = MutableSharedFlow<FileChangeEvent>(extraBufferCapacity = 100)
     val fileChanges: SharedFlow<FileChangeEvent> = _fileChanges.asSharedFlow()
-    
+
     // 代码库文件系统监控器
     private var codebaseFileSystemMonitor: CodebaseFileSystemMonitor? = null
-    
+
     // IntelliJ 文件监听器
     private val intellijFileListener = object : VirtualFileListener {
         override fun fileCreated(event: VirtualFileEvent) {
             handleFileEvent(event, FileChangeType.CREATE)
         }
-        
+
         override fun fileDeleted(event: VirtualFileEvent) {
             handleFileEvent(event, FileChangeType.DELETE)
         }
-        
+
         override fun contentsChanged(event: VirtualFileEvent) {
             handleFileEvent(event, FileChangeType.MODIFY)
         }
     }
-    
+
     /**
      * 启动监控器
      *
@@ -69,23 +68,23 @@ class FileSystemMonitor(
             logger.warn { "文件系统监控器已经在运行" }
             return
         }
-        
+
         logger.info { "启动文件系统监控器: $rootPath" }
-        
+
         try {
             // 创建代码库文件系统监控器
             codebaseFileSystemMonitor = CodebaseFileSystemMonitor(rootPath, config)
-            
+
             // 监听代码库文件系统监控器的文件变更事件
             scope.launch {
                 codebaseFileSystemMonitor?.fileChanges?.collect { event ->
                     _fileChanges.emit(event)
                 }
             }
-            
+
             // 启动代码库文件系统监控器
             codebaseFileSystemMonitor?.start()
-            
+
             // 注册 IntelliJ 文件监听器
             VirtualFileManager.getInstance().addVirtualFileListener(intellijFileListener)
         } catch (e: Exception) {
@@ -93,7 +92,7 @@ class FileSystemMonitor(
             isRunning.set(false)
         }
     }
-    
+
     /**
      * 停止监控器
      */
@@ -102,20 +101,20 @@ class FileSystemMonitor(
             logger.warn { "文件系统监控器已经停止" }
             return
         }
-        
+
         logger.info { "停止文件系统监控器" }
-        
+
         try {
             // 停止代码库文件系统监控器
             codebaseFileSystemMonitor?.stop()
-            
+
             // 移除 IntelliJ 文件监听器
             VirtualFileManager.getInstance().removeVirtualFileListener(intellijFileListener)
         } catch (e: Exception) {
             logger.error(e) { "停止文件系统监控器时出错" }
         }
     }
-    
+
     /**
      * 处理 IntelliJ 文件事件
      *
@@ -126,13 +125,13 @@ class FileSystemMonitor(
         if (!isRunning.get()) {
             return
         }
-        
+
         val file = event.file
         val path = Paths.get(file.path)
-        
+
         // 创建文件变更事件
         val fileChangeEvent = FileChangeEvent(path, type)
-        
+
         // 发送文件变更事件
         scope.launch {
             _fileChanges.emit(fileChangeEvent)

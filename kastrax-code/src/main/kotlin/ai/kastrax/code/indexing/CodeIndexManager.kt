@@ -8,7 +8,6 @@ import ai.kastrax.codebase.event.CodebaseIndexStatus
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
-import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -27,16 +26,16 @@ import java.util.concurrent.atomic.AtomicBoolean
  */
 @Service(Service.Level.PROJECT)
 class CodeIndexManager(private val project: Project) : KastraXCodeBase(component = "CODE_INDEX_MANAGER") {
-    
-    override val logger = KotlinLogging.logger {}
-    
+
+    // 使用 KastraXCodeBase 的 logger
+
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val isRunning = AtomicBoolean(false)
-    
+
     // 索引事件流
     private val _indexEvents = MutableSharedFlow<IndexEvent>(extraBufferCapacity = 100)
     val indexEvents: SharedFlow<IndexEvent> = _indexEvents.asSharedFlow()
-    
+
     // 索引状态
     private var status: IndexStatus = IndexStatus.IDLE
         set(value) {
@@ -45,7 +44,7 @@ class CodeIndexManager(private val project: Project) : KastraXCodeBase(component
                 _indexEvents.emit(IndexEvent.StatusChanged(value))
             }
         }
-    
+
     // 索引进度
     private var progress: Float = 0f
         set(value) {
@@ -54,10 +53,10 @@ class CodeIndexManager(private val project: Project) : KastraXCodeBase(component
                 _indexEvents.emit(IndexEvent.ProgressUpdated(value))
             }
         }
-    
+
     // 代码库索引管理器
     private var codebaseIndexManager: CodebaseIndexManager? = null
-    
+
     /**
      * 启动索引管理器
      *
@@ -68,9 +67,9 @@ class CodeIndexManager(private val project: Project) : KastraXCodeBase(component
             logger.warn { "索引管理器已经在运行" }
             return
         }
-        
+
         logger.info { "启动代码索引管理器: $rootPath" }
-        
+
         try {
             // 创建配置
             val config = CodebaseIndexManagerConfig(
@@ -78,20 +77,20 @@ class CodeIndexManager(private val project: Project) : KastraXCodeBase(component
                 enableFileSystemMonitoring = true,
                 enableIncrementalIndexing = true
             )
-            
+
             // 创建代码库索引管理器
             codebaseIndexManager = CodebaseIndexManager(rootPath, config)
-            
+
             // 监听索引事件
             scope.launch {
                 codebaseIndexManager?.indexEvents?.collect { event ->
                     handleCodebaseIndexEvent(event)
                 }
             }
-            
+
             // 启动代码库索引管理器
             codebaseIndexManager?.start()
-            
+
             // 更新状态
             status = IndexStatus.INDEXING
         } catch (e: Exception) {
@@ -102,7 +101,7 @@ class CodeIndexManager(private val project: Project) : KastraXCodeBase(component
             }
         }
     }
-    
+
     /**
      * 停止索引管理器
      */
@@ -111,13 +110,13 @@ class CodeIndexManager(private val project: Project) : KastraXCodeBase(component
             logger.warn { "索引管理器已经停止" }
             return
         }
-        
+
         logger.info { "停止代码索引管理器" }
-        
+
         try {
             // 停止代码库索引管理器
             codebaseIndexManager?.stop()
-            
+
             // 更新状态
             status = IndexStatus.IDLE
         } catch (e: Exception) {
@@ -127,7 +126,7 @@ class CodeIndexManager(private val project: Project) : KastraXCodeBase(component
             }
         }
     }
-    
+
     /**
      * 请求重新索引
      */
@@ -136,13 +135,13 @@ class CodeIndexManager(private val project: Project) : KastraXCodeBase(component
             logger.warn { "索引管理器未运行，无法请求重新索引" }
             return
         }
-        
+
         logger.info { "请求重新索引代码库" }
-        
+
         try {
             // 请求重新索引
             codebaseIndexManager?.requestReindex()
-            
+
             // 更新状态
             status = IndexStatus.INDEXING
         } catch (e: Exception) {
@@ -152,7 +151,7 @@ class CodeIndexManager(private val project: Project) : KastraXCodeBase(component
             }
         }
     }
-    
+
     /**
      * 获取当前索引状态
      *
@@ -161,7 +160,7 @@ class CodeIndexManager(private val project: Project) : KastraXCodeBase(component
     fun getStatus(): IndexStatus {
         return status
     }
-    
+
     /**
      * 获取当前索引进度
      *
@@ -170,7 +169,7 @@ class CodeIndexManager(private val project: Project) : KastraXCodeBase(component
     fun getProgress(): Float {
         return progress
     }
-    
+
     /**
      * 处理代码库索引事件
      *
@@ -187,7 +186,7 @@ class CodeIndexManager(private val project: Project) : KastraXCodeBase(component
                     CodebaseIndexStatus.ERROR -> IndexStatus.ERROR
                     CodebaseIndexStatus.STOPPED -> IndexStatus.IDLE
                 }
-                
+
                 logger.info { "索引状态变更: ${event.status}${event.message?.let { ", $it" } ?: ""}" }
             }
             is CodebaseIndexEvent.ProgressUpdated -> {
@@ -205,7 +204,7 @@ class CodeIndexManager(private val project: Project) : KastraXCodeBase(component
             }
         }
     }
-    
+
     companion object {
         /**
          * 获取项目的代码索引管理器实例
@@ -227,17 +226,17 @@ enum class IndexStatus {
      * 空闲状态
      */
     IDLE,
-    
+
     /**
      * 正在索引
      */
     INDEXING,
-    
+
     /**
      * 索引就绪
      */
     READY,
-    
+
     /**
      * 索引错误
      */
@@ -254,14 +253,14 @@ sealed class IndexEvent {
      * @property status 新状态
      */
     data class StatusChanged(val status: IndexStatus) : IndexEvent()
-    
+
     /**
      * 进度更新事件
      *
      * @property progress 进度（0-1）
      */
     data class ProgressUpdated(val progress: Float) : IndexEvent()
-    
+
     /**
      * 错误事件
      *

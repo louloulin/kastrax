@@ -4,7 +4,6 @@ import ai.kastrax.code.common.KastraXCodeBase
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
-import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -20,18 +19,18 @@ import kotlinx.coroutines.launch
  */
 @Service(Service.Level.PROJECT)
 class IndexStatusService(private val project: Project) : KastraXCodeBase(component = "INDEX_STATUS_SERVICE") {
-    
-    override val logger = KotlinLogging.logger {}
-    
+
+    // 使用 KastraXCodeBase 的 logger
+
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
-    
+
     // 索引状态流
     private val _indexStatus = MutableStateFlow<IndexStatusInfo>(IndexStatusInfo.Idle)
     val indexStatus: StateFlow<IndexStatusInfo> = _indexStatus.asStateFlow()
-    
+
     // 索引管理器
     private val indexManager by lazy { CodeIndexManager.getInstance(project) }
-    
+
     init {
         // 监听索引事件
         scope.launch {
@@ -40,7 +39,7 @@ class IndexStatusService(private val project: Project) : KastraXCodeBase(compone
             }
         }
     }
-    
+
     /**
      * 处理索引事件
      *
@@ -67,28 +66,28 @@ class IndexStatusService(private val project: Project) : KastraXCodeBase(compone
             }
         }
     }
-    
+
     /**
      * 启动索引
      */
     fun startIndexing() {
         indexManager.start()
     }
-    
+
     /**
      * 停止索引
      */
     fun stopIndexing() {
         indexManager.stop()
     }
-    
+
     /**
      * 重新索引
      */
     fun reindex() {
         indexManager.requestReindex()
     }
-    
+
     companion object {
         /**
          * 获取项目的索引状态服务实例
@@ -110,19 +109,19 @@ sealed class IndexStatusInfo {
      * 空闲状态
      */
     object Idle : IndexStatusInfo()
-    
+
     /**
      * 正在索引
      *
      * @property progress 进度（0-1）
      */
     data class Indexing(val progress: Float) : IndexStatusInfo()
-    
+
     /**
      * 索引就绪
      */
     object Ready : IndexStatusInfo()
-    
+
     /**
      * 索引错误
      *

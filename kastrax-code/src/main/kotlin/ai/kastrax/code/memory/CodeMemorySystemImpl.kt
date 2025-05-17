@@ -12,7 +12,6 @@ import ai.kastrax.memory.impl.inMemoryStorage
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
-import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.nio.file.Paths
@@ -31,7 +30,7 @@ class CodeMemorySystemImpl(
     private val config: CodeMemorySystemConfig = CodeMemorySystemConfig()
 ) : CodeMemorySystem, KastraXCodeBase(component = "CODE_MEMORY_SYSTEM") {
 
-    override val logger = KotlinLogging.logger {}
+    // 使用 KastraXCodeBase 的 logger
 
     // 创建内存系统
     private val memorySystem: Memory = memory {

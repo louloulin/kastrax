@@ -27,7 +27,7 @@ class KastraxCodeContextEngine(
     private val config: CodeContextEngineConfig = CodeContextEngineConfig()
 ) : KastraXCodeBase(component = "CODE_CONTEXT_ENGINE"), CodeContextEngine {
 
-    private val logger = Logger.getInstance("ai.kastrax.code.context.KastraxCodeContextEngine")
+    // 使用 KastraXCodeBase 的 logger
     private val initialized = AtomicBoolean(false)
     private lateinit var contextEngine: ContextEngine
 

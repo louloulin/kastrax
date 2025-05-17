@@ -86,7 +86,7 @@ class CodeToolRegistry(
      */
     fun initializeDefaultTools() {
         // 添加代码格式化工具
-        val formatCodeTool = tool("formatCode") {
+        val formatCodeTool = tool {
             id = "format_code"
             name = "代码格式化"
             description = "格式化代码"
@@ -141,7 +141,7 @@ class CodeToolRegistry(
         registerTool(formatCodeTool)
 
         // 添加代码分析工具
-        val analyzeCodeTool = tool("analyzeCode") {
+        val analyzeCodeTool = tool {
             id = "analyze_code"
             name = "代码分析"
             description = "分析代码并提供改进建议"

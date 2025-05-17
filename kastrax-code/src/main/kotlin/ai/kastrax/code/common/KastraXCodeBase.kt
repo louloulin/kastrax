@@ -11,13 +11,18 @@ abstract class KastraXCodeBase(
     /**
      * 组件名称
      */
-    component: String,
+    protected val component: String,
 
     /**
      * 组件实例名称
      */
     name: String = component
 ) : KastraXBase(component, name) {
+
+    /**
+     * 创建 IntelliJ IDEA 平台的日志记录器
+     */
+    override val logger: KastraXLogger = IntelliJKastraXLogger(component, name)
 
     /**
      * 获取组件标识
