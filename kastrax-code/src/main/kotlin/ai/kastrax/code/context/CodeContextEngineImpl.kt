@@ -359,7 +359,7 @@ class CodeContextEngineImpl(
             level = ai.kastrax.code.model.ContextLevel.FILE,
             relevance = ai.kastrax.code.model.ContextRelevance.HIGH,
             content = element.content,
-            score = result.score
+            score = result.score.toFloat()
         )
     }
 

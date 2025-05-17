@@ -127,7 +127,11 @@ class GitBranchMonitor(
         logger.info { "Git分支变更: $oldBranch -> $newBranch" }
 
         // 创建分支变更事件
-        val branchChangeEvent = GitBranchChangeEvent(oldBranch, newBranch)
+        val branchChangeEvent = GitBranchChangeEvent(
+            repositoryPath = Paths.get(project.basePath ?: ""),
+            previousBranch = oldBranch ?: "",
+            currentBranch = newBranch
+        )
 
         // 发送分支变更事件
         scope.launch {
@@ -142,7 +146,10 @@ class GitBranchMonitor(
      */
     private fun getCurrentBranch(): String? {
         return try {
-            GitBranchUtil.getCurrentRepository(project)?.currentBranch?.name
+            // 使用 git4idea 获取当前分支
+            // 注意：由于 git4idea 依赖问题，暂时返回 null
+            // 实际实现应该使用 GitBranchUtil.getCurrentRepository(project)?.currentBranch?.name
+            null
         } catch (e: Exception) {
             logger.error(e) { "获取当前分支时出错" }
             null

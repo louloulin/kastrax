@@ -3,9 +3,7 @@ package ai.kastrax.code.indexing
 import ai.kastrax.code.common.KastraXCodeBase
 import ai.kastrax.codebase.filesystem.FileChangeEvent
 import ai.kastrax.codebase.filesystem.FileChangeType
-import ai.kastrax.codebase.filesystem.FileSystemMonitorConfig
 import ai.kastrax.codebase.filesystem.FileSystemMonitor as CodebaseFileSystemMonitor
-import ai.kastrax.codebase.filesystem.config.FileSystemMonitorConfig
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFileEvent
 import com.intellij.openapi.vfs.VirtualFileListener
@@ -28,7 +26,7 @@ import java.util.concurrent.atomic.AtomicBoolean
  */
 class FileSystemMonitor(
     private val project: Project,
-    private val config: FileSystemMonitorConfig = FileSystemMonitorConfig()
+    private val config: ai.kastrax.codebase.filesystem.FileSystemMonitorConfig = ai.kastrax.codebase.filesystem.FileSystemMonitorConfig()
 ) : KastraXCodeBase(component = "FILE_SYSTEM_MONITOR") {
 
     // 使用 KastraXCodeBase 的 logger

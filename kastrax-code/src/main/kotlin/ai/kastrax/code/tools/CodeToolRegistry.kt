@@ -60,7 +60,7 @@ class CodeToolRegistry(
      * @param T 工具类型
      * @return 指定类型的工具列表
      */
-    inline fun <reified T : Tool> getToolsByType(): List<T> {
+    private inline fun <reified T : Tool> getToolsByType(): List<T> {
         return tools.values.filterIsInstance<T>()
     }
 

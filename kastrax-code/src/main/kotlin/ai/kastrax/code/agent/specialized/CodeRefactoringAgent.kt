@@ -9,7 +9,7 @@ import ai.kastrax.code.model.DetailLevel
 import ai.kastrax.code.model.RefactoringRequest
 import ai.kastrax.code.model.RefactoringResult
 import ai.kastrax.code.workflow.CheckpointManager
-import ai.kastrax.code.workflow.CheckpointManagerImpl
+import com.intellij.openapi.components.service
 import ai.kastrax.core.agent.Agent
 import ai.kastrax.core.agent.AgentGenerateOptions
 import ai.kastrax.core.agent.agent
@@ -71,7 +71,7 @@ class CodeRefactoringAgent(
 
     // 检查点管理器
     private val checkpointManager: CheckpointManager by lazy {
-        CheckpointManagerImpl.getInstance(project)
+        project.service<CheckpointManager>()
     }
 
     /**

@@ -222,16 +222,16 @@ class CodeMemorySystemImpl(
                         type = ai.kastrax.code.model.CodeElementType.valueOf(metadata["element_type"]?.toString() ?: "UNKNOWN"),
                         content = memoryMessage.message.content,
                         path = metadata["file_path"]?.toString() ?: "",
-                        location = metadata["location"]?.toString()?.let { parseLocation(it) }
+                        location = metadata["location"]?.toString()?.let { parseCodeLocation(it) }
                     )
 
                     // 创建上下文元素
                     ContextElement(
                         element = codeElement,
-                        level = ai.kastrax.code.model.ContextLevel.PRIMARY,
+                        level = ai.kastrax.code.model.ContextLevel.FILE,
                         relevance = ai.kastrax.code.model.ContextRelevance.HIGH,
                         content = memoryMessage.message.content,
-                        score = score
+                        score = score.toFloat()
                     )
                 } catch (e: Exception) {
                     logger.error { "转换记忆为上下文元素时出错" }
@@ -249,12 +249,12 @@ class CodeMemorySystemImpl(
     }
 
     /**
-     * 解析位置字符串
+     * 解析位置字符串为代码位置
      *
      * @param locationString 位置字符串
-     * @return 位置
+     * @return 代码位置
      */
-    private fun parseLocation(locationString: String): ai.kastrax.code.model.Location? {
+    private fun parseCodeLocation(locationString: String): ai.kastrax.code.model.Location? {
         try {
             // 解析位置字符串，格式为 "line:column-endLine:endColumn" 或 "line:column"
             val parts = locationString.split("-")
@@ -537,8 +537,8 @@ class CodeMemorySystemImpl(
             // 清空线程映射
             threadMap.clear()
 
-            // 关闭记忆系统
-            memorySystem.close()
+            // 清空线程映射
+            // 注意：Memory 接口中没有 close 方法
         } catch (e: Exception) {
             logger.error { "关闭记忆系统时出错" }
             logger.error(e.toString())
@@ -553,8 +553,8 @@ class CodeMemorySystemImpl(
         val content: String
     )
 
-    // 使用 ai.kastrax.memory.impl.SimpleMessage 类型别名
-    private typealias SimpleMessage = ai.kastrax.memory.impl.SimpleMessage
+    // 使用 ai.kastrax.memory.impl.SimpleMessage 类型
+    // 注意：Kotlin 不支持嵌套类型别名
 
     /**
      * 将 SimpleMemory 转换为消息
@@ -572,12 +572,12 @@ class CodeMemorySystemImpl(
     }
 
     /**
-     * 解析位置字符串
+     * 解析位置字符串为模型位置
      *
      * @param locationString 位置字符串
-     * @return 位置
+     * @return 模型位置
      */
-    private fun parseLocation(locationString: String): ai.kastrax.code.model.Location? {
+    private fun parseModelLocation(locationString: String): ai.kastrax.code.model.Location? {
         try {
             // 解析位置字符串，格式为 "line:column-endLine:endColumn" 或 "line:column"
             val parts = locationString.split("-")

@@ -12,8 +12,10 @@ import ai.kastrax.code.context.CodeContextEngine
 import ai.kastrax.code.context.CodeContextEngineImpl
 import ai.kastrax.code.indexing.CodeIndexManager
 import ai.kastrax.code.tools.CodeToolRegistry
-import ai.kastrax.code.mock.Agent
-import ai.kastrax.code.mock.AgentConfig
+import ai.kastrax.core.agent.Agent
+import ai.kastrax.core.agent.agent
+import ai.kastrax.integrations.deepseek.deepSeek
+import ai.kastrax.integrations.deepseek.DeepSeekModel
 import ai.kastrax.code.common.KastraXCodeBase
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
@@ -68,14 +70,17 @@ class CodeAgentService(private val project: Project) : KastraXCodeBase(component
         contextEngine = CodeContextEngineImpl.getInstance(project)
 
         // 初始化智能体
-        val agentConfig = AgentConfig(
-            name = "kastrax-code-agent",
-            description = "基于DeepSeek的代码智能体",
-            model = "deepseek-coder",
-            temperature = 0.3,
-            maxTokens = 2000
-        )
-        agent = Agent("code-agent-1", agentConfig)
+        agent = agent {
+            name = "kastrax-code-agent"
+            instructions = "你是一个基于DeepSeek的代码智能体，专注于帮助用户编写、理解和优化代码。"
+            model = deepSeek {
+                model(DeepSeekModel.DEEPSEEK_CODER)
+                temperature(0.3)
+                maxTokens(2000)
+                // 从环境变量或配置中获取API密钥
+                apiKey(System.getenv("DEEPSEEK_API_KEY") ?: "")
+            }
+        }
 
         // 初始化专业化智能体
         codeCompletionAgent = CodeCompletionAgent.getInstance(project)
@@ -139,7 +144,9 @@ class CodeAgentService(private val project: Project) : KastraXCodeBase(component
      * @return 响应
      */
     suspend fun processRequest(request: String): String {
-        return agentCoordinator.processRequest(request)
+        // 使用 Agent 生成响应
+        val response = agent.generate(request)
+        return response.text
     }
 
     /**

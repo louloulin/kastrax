@@ -23,6 +23,7 @@ import javax.swing.BorderFactory
 import javax.swing.Box
 import javax.swing.BoxLayout
 import javax.swing.JButton
+import javax.swing.JComponent
 import javax.swing.JPanel
 import javax.swing.JTextPane
 import javax.swing.text.html.HTMLEditorKit

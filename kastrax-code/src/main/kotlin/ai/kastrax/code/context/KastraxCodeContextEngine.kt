@@ -281,6 +281,7 @@ class KastraxCodeContextEngine(
             logger.debug("获取编辑上下文: $filePath, $position")
 
             val kastraxLocation = KastraxLocation(
+                filePath = filePath.toString(),
                 startLine = position.line,
                 startColumn = position.column,
                 endLine = position.endLine,
@@ -368,10 +369,10 @@ class KastraxCodeContextEngine(
                 element = convertCodeElement(kastraxElement.element),
                 level = convertContextLevel(kastraxElement.level),
                 relevance = when {
-                    kastraxElement.relevance > 0.8f -> ContextRelevance.HIGH
-                    kastraxElement.relevance > 0.5f -> ContextRelevance.MEDIUM
-                    kastraxElement.relevance > 0.3f -> ContextRelevance.LOW
-                    else -> ContextRelevance.PRIMARY
+                    kastraxElement.relevance > 0.8f -> ai.kastrax.code.model.ContextRelevance.HIGH
+                    kastraxElement.relevance > 0.5f -> ai.kastrax.code.model.ContextRelevance.MEDIUM
+                    kastraxElement.relevance > 0.3f -> ai.kastrax.code.model.ContextRelevance.LOW
+                    else -> ai.kastrax.code.model.ContextRelevance.PRIMARY
                 },
                 score = kastraxElement.relevance,
                 content = kastraxElement.content

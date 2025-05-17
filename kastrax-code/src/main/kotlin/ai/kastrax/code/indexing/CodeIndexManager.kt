@@ -2,9 +2,10 @@ package ai.kastrax.code.indexing
 
 import ai.kastrax.code.common.KastraXCodeBase
 import ai.kastrax.codebase.CodebaseIndexManager
-import ai.kastrax.codebase.config.CodebaseIndexManagerConfig
-import ai.kastrax.codebase.event.CodebaseIndexEvent
-import ai.kastrax.codebase.event.CodebaseIndexStatus
+import ai.kastrax.codebase.CodebaseIndexManagerConfig
+import ai.kastrax.codebase.CodebaseIndexEvent
+import ai.kastrax.codebase.CodebaseIndexStatus
+import ai.kastrax.codebase.indexing.IndexTaskProcessor
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
@@ -54,6 +55,9 @@ class CodeIndexManager(private val project: Project) : KastraXCodeBase(component
             }
         }
 
+    // 索引任务处理器
+    private val indexTaskProcessor: IndexTaskProcessor = SimpleIndexTaskProcessor()
+
     // 代码库索引管理器
     private var codebaseIndexManager: CodebaseIndexManager? = null
 
@@ -73,13 +77,11 @@ class CodeIndexManager(private val project: Project) : KastraXCodeBase(component
         try {
             // 创建配置
             val config = CodebaseIndexManagerConfig(
-                enableGitIntegration = true,
-                enableFileSystemMonitoring = true,
-                enableIncrementalIndexing = true
+                enableGitMonitoring = true
             )
 
             // 创建代码库索引管理器
-            codebaseIndexManager = CodebaseIndexManager(rootPath, config)
+            codebaseIndexManager = CodebaseIndexManager(rootPath, config, indexTaskProcessor)
 
             // 监听索引事件
             scope.launch {
@@ -180,23 +182,24 @@ class CodeIndexManager(private val project: Project) : KastraXCodeBase(component
             is CodebaseIndexEvent.StatusChanged -> {
                 // 转换状态
                 status = when (event.status) {
-                    CodebaseIndexStatus.IDLE -> IndexStatus.IDLE
+                    CodebaseIndexStatus.INITIALIZING -> IndexStatus.IDLE
                     CodebaseIndexStatus.INDEXING -> IndexStatus.INDEXING
                     CodebaseIndexStatus.READY -> IndexStatus.READY
                     CodebaseIndexStatus.ERROR -> IndexStatus.ERROR
                     CodebaseIndexStatus.STOPPED -> IndexStatus.IDLE
                 }
 
-                logger.info { "索引状态变更: ${event.status}${event.message?.let { ", $it" } ?: ""}" }
+                logger.info { "索引状态变更: ${event.status}" }
             }
-            is CodebaseIndexEvent.ProgressUpdated -> {
-                progress = event.progress
-                logger.debug { "索引进度更新: ${event.progress * 100}%" }
+            is CodebaseIndexEvent.Progress -> {
+                val progressValue = event.current.toFloat() / event.total.toFloat()
+                progress = progressValue
+                logger.debug { "索引进度更新: ${progressValue * 100}%" }
             }
             is CodebaseIndexEvent.Error -> {
-                logger.error { "索引错误: ${event.message}" }
+                logger.error { "索引错误: ${event.error}" }
                 scope.launch {
-                    _indexEvents.emit(IndexEvent.Error(event.message))
+                    _indexEvents.emit(IndexEvent.Error(event.error))
                 }
             }
             else -> {

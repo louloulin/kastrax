@@ -4,9 +4,7 @@ import ai.kastrax.code.common.KastraXCodeBase
 import ai.kastrax.codebase.filesystem.FileChangeEvent
 import ai.kastrax.codebase.filesystem.FileChangeType
 import ai.kastrax.codebase.indexing.IncrementalIndexTask
-import ai.kastrax.codebase.indexing.IncrementalIndexerConfig
 import ai.kastrax.codebase.indexing.IndexTaskType
-import ai.kastrax.codebase.indexing.config.IncrementalIndexerConfig
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -24,7 +22,7 @@ import java.util.concurrent.atomic.AtomicLong
  * 处理文件变更事件，生成索引任务
  */
 class IncrementalIndexer(
-    private val config: IncrementalIndexerConfig = IncrementalIndexerConfig()
+    private val config: ai.kastrax.codebase.indexing.IncrementalIndexerConfig = ai.kastrax.codebase.indexing.IncrementalIndexerConfig()
 ) : KastraXCodeBase(component = "INCREMENTAL_INDEXER") {
 
     // 使用 KastraXCodeBase 的 logger
@@ -103,7 +101,7 @@ class IncrementalIndexer(
         val taskId = "reindex_${taskIdGenerator.incrementAndGet()}"
         val task = IncrementalIndexTask(
             id = taskId,
-            type = IndexTaskType.REINDEX,
+            type = IndexTaskType.FULL_REINDEX,
             path = rootPath,
             priority = 0, // 最高优先级
             timestamp = System.currentTimeMillis()
