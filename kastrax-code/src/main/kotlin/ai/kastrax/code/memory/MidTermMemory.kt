@@ -79,7 +79,7 @@ class MidTermMemory(
             logger.info { "检索项目知识: $key" }
 
             // 检索记忆
-            val memories = memorySystem.retrieveProjectMemory(projectId, MemoryType.PROJECT)
+            val memories = memorySystem.retrieveProjectMemory(projectId, MemoryType.PROJECT, 10)
 
             // 查找匹配的记忆
             val memory = memories.find { it.metadata["key"] == key }
@@ -138,7 +138,7 @@ class MidTermMemory(
             logger.info { "检索代码模式: $query" }
 
             // 检索记忆
-            val memories = memorySystem.retrieveProjectMemory(projectId)
+            val memories = memorySystem.retrieveProjectMemory(projectId, null, 100)
 
             // 过滤代码模式类型的记忆
             val patternMemories = memories.filter { it.metadata["type"] == "CODE_PATTERN" }
@@ -212,7 +212,7 @@ class MidTermMemory(
             logger.info { "检索项目结构" }
 
             // 检索记忆
-            val memories = memorySystem.retrieveProjectMemory(projectId)
+            val memories = memorySystem.retrieveProjectMemory(projectId, null, 100)
 
             // 查找项目结构类型的记忆
             val memory = memories.find { it.metadata["type"] == "PROJECT_STRUCTURE" }

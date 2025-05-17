@@ -17,7 +17,7 @@ import java.util.UUID
  *
  * 存储编码风格、常用模式和跨项目知识
  */
-@Service(Service.Level.APPLICATION)
+@Service
 class LongTermMemory : KastraXCodeBase(component = "LONG_TERM_MEMORY") {
 
     // 使用父类的logger
