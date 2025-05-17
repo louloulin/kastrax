@@ -62,6 +62,7 @@ class CodeAgentService(private val project: Project) : KastraXCodeBase(component
 
         // 初始化工具注册表
         toolRegistry = project.service<CodeToolRegistry>()
+        toolRegistry.initializeDefaultTools()
 
         // 初始化上下文引擎
         contextEngine = CodeContextEngineImpl.getInstance(project)

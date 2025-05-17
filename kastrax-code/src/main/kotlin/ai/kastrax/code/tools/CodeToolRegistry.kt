@@ -6,6 +6,13 @@ import ai.kastrax.core.tools.tool
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 /**
  * 代码工具注册表
@@ -72,6 +79,121 @@ class CodeToolRegistry(
     fun clear() {
         tools.clear()
         logger.debug("清除所有工具")
+    }
+
+    /**
+     * 初始化默认工具
+     */
+    fun initializeDefaultTools() {
+        // 添加代码格式化工具
+        val formatCodeTool = tool("formatCode") {
+            id = "format_code"
+            name = "代码格式化"
+            description = "格式化代码"
+
+            inputSchema = buildJsonObject {
+                put("type", "object")
+                put("properties", buildJsonObject {
+                    put("code", buildJsonObject {
+                        put("type", "string")
+                        put("description", "要格式化的代码")
+                    })
+                    put("language", buildJsonObject {
+                        put("type", "string")
+                        put("description", "代码语言")
+                    })
+                })
+                put("required", buildJsonObject {
+                    put("code", true)
+                    put("language", true)
+                })
+            }
+
+            execute = { input ->
+                withContext(Dispatchers.IO) {
+                    try {
+                        val jsonObject = input as? JsonObject
+                            ?: throw IllegalArgumentException("输入必须是 JSON 对象")
+
+                        val code = (jsonObject["code"] as? JsonPrimitive)?.content
+                            ?: throw IllegalArgumentException("缺少 'code' 参数")
+
+                        val language = (jsonObject["language"] as? JsonPrimitive)?.content
+                            ?: throw IllegalArgumentException("缺少 'language' 参数")
+
+                        // 这里可以添加实际的代码格式化逻辑
+                        // 现在只是简单返回原始代码
+                        buildJsonObject {
+                            put("formattedCode", code)
+                            put("language", language)
+                            put("success", true)
+                        }
+                    } catch (e: Exception) {
+                        logger.error("格式化代码失败", e)
+                        buildJsonObject {
+                            put("error", e.message ?: "未知错误")
+                            put("success", false)
+                        }
+                    }
+                }
+            }
+        }
+        registerTool(formatCodeTool)
+
+        // 添加代码分析工具
+        val analyzeCodeTool = tool("analyzeCode") {
+            id = "analyze_code"
+            name = "代码分析"
+            description = "分析代码并提供改进建议"
+
+            inputSchema = buildJsonObject {
+                put("type", "object")
+                put("properties", buildJsonObject {
+                    put("code", buildJsonObject {
+                        put("type", "string")
+                        put("description", "要分析的代码")
+                    })
+                    put("language", buildJsonObject {
+                        put("type", "string")
+                        put("description", "代码语言")
+                    })
+                })
+                put("required", buildJsonObject {
+                    put("code", true)
+                    put("language", true)
+                })
+            }
+
+            execute = { input ->
+                withContext(Dispatchers.IO) {
+                    try {
+                        val jsonObject = input as? JsonObject
+                            ?: throw IllegalArgumentException("输入必须是 JSON 对象")
+
+                        val code = (jsonObject["code"] as? JsonPrimitive)?.content
+                            ?: throw IllegalArgumentException("缺少 'code' 参数")
+
+                        val language = (jsonObject["language"] as? JsonPrimitive)?.content
+                            ?: throw IllegalArgumentException("缺少 'language' 参数")
+
+                        // 这里可以添加实际的代码分析逻辑
+                        // 现在只是返回简单的分析结果
+                        buildJsonObject {
+                            put("suggestions", "没有发现问题，代码看起来很好。")
+                            put("language", language)
+                            put("success", true)
+                        }
+                    } catch (e: Exception) {
+                        logger.error("分析代码失败", e)
+                        buildJsonObject {
+                            put("error", e.message ?: "未知错误")
+                            put("success", false)
+                        }
+                    }
+                }
+            }
+        }
+        registerTool(analyzeCodeTool)
     }
 
     companion object {

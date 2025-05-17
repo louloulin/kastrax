@@ -11,9 +11,10 @@ import ai.kastrax.code.workflow.CheckpointManager
 import com.intellij.ui.components.JBPanel
 import com.intellij.ui.components.JBScrollPane
 import com.intellij.ui.components.JBLabel
+import com.intellij.ui.components.JBTabbedPane
 import com.intellij.util.ui.JBUI
 import com.intellij.ui.JBColor
-import com.intellij.openapi.actionSystem.DataManager
+import com.intellij.ide.DataManager
 import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.actionSystem.DefaultActionGroup
 import com.intellij.openapi.ui.SimpleToolWindowPanel
@@ -152,10 +153,12 @@ class EnhancedChatPanel(
             override fun actionPerformed(e: AnActionEvent) {
                 val newConversation = conversationService.createConversation("新会话")
                 conversationService.setCurrentConversation(newConversation)
-                // 通知父容器刷新
+                // 刷新界面
                 ApplicationManager.getApplication().invokeLater {
-                    val event = DataManager.getInstance().getDataContextChangeEvent()
-                    WindowManager.getInstance().getFrame(project)?.dispatchEvent(event)
+                    // 重新加载消息
+                    loadMessages()
+                    // 更新状态
+                    statusLabel.text = "已创建新会话"
                 }
             }
         }
@@ -261,7 +264,7 @@ class EnhancedChatPanel(
         val panel = JBPanel<JPanel>(BorderLayout())
 
         // 创建标签页面板
-        val tabbedPane = com.intellij.ui.components.JBTabbedPane()
+        val tabbedPane = JBTabbedPane()
 
         // 添加代码展示面板
         tabbedPane.addTab("代码", codeDisplayPanel)
@@ -293,6 +296,30 @@ class EnhancedChatPanel(
                 addMessagePanel(message)
             }
         }
+
+        revalidate()
+        repaint()
+    }
+
+    /**
+     * 清空消息
+     */
+    fun clearMessages() {
+        // 清空会话消息
+        conversation.clearMessages()
+
+        // 清空消息面板
+        messagesPanel.removeAll()
+
+        // 添加欢迎消息
+        val welcomeMessage = ChatMessage(
+            role = MessageRole.ASSISTANT,
+            content = "欢迎使用 KastraX Code！我是你的 AI 编程助手，可以帮助你编写、解释和重构代码。请在下方输入框中输入你的问题或指令。"
+        )
+        addMessagePanel(welcomeMessage)
+
+        // 更新状态
+        statusLabel.text = "已清空会话"
 
         revalidate()
         repaint()
