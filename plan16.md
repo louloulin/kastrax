@@ -2,15 +2,17 @@
 
 ## 1. 项目概述
 
-本计划旨在构建一个类似 Augment 和 Cursor 的智能编程助手，作为独立的 IDE 插件实现，而非依赖 kastrax-codex。该项目将充分利用 KastraX AI Agent 框架的能力，优先实现 Agent 模式，为开发者提供强大的编程辅助功能。
+本计划旨在构建一个类似 Augment 和 Cursor 的智能编程助手，基于现有的 kastrax-code 项目继续开发，优先实现 IDE 功能。该项目将充分利用 KastraX AI Agent 框架的能力和 kastrax-codebase 的代码理解能力，为开发者提供强大的编程辅助功能。UI 实现将参考 kastrax-codex 的代码，确保良好的用户体验。
 
 ### 1.1 核心目标
 
-1. **独立 IDE 插件**：构建完全独立的 IDE 插件，不依赖 kastrax-codex
-2. **深度代码理解**：实现类似 Augment 和 Cursor 的代码库理解能力
-3. **Agent 模式优先**：优先实现基于 KastraX Agent 的智能编程助手
-4. **多 IDE 支持**：支持 JetBrains IDEs 和 VS Code
-5. **高性能与安全性**：确保高性能的同时保障代码安全
+1. **优先 IDE 功能**：优先完善 IDE 集成功能，提供良好的用户体验
+2. **基于 kastrax-code**：在现有 kastrax-code 项目基础上继续开发
+3. **深度代码理解**：利用 kastrax-codebase 实现类似 Augment 和 Cursor 的代码库理解能力
+4. **Agent 模式实现**：基于 KastraX Agent 实现智能编程助手
+5. **UI 参考 kastrax-codex**：UI 实现参考 kastrax-codex 的代码，确保一致性和专业性
+6. **多 IDE 支持**：支持 JetBrains IDEs 和 VS Code
+7. **高性能与安全性**：确保高性能的同时保障代码安全
 
 ## 2. Augment 和 Cursor 分析
 
@@ -36,207 +38,192 @@
 
 ## 3. 系统架构设计
 
-### 3.1 整体架构
+### 3.1 kastrax-code 现状分析
 
-KastraX 智能编程助手采用分层架构设计：
+通过对 kastrax-code 代码库的分析，我们发现该项目已经实现了以下核心组件：
+
+1. **Agent 架构**：
+   - 已实现 `CodeAgent` 接口及其实现类 `KastraxCodeAgent`/`KastraxCodeAgentImpl`
+   - 已实现 `AgentCoordinator` 用于协调多个专业化 Agent
+   - 已实现多个专业化 Agent，如 `CodeCompletionAgent`、`CodeExplanationAgent` 等
+
+2. **上下文引擎**：
+   - 已实现 `CodeContextEngine` 接口及其实现类
+   - 已定义 `Context`、`ContextElement` 等数据模型
+
+3. **服务层**：
+   - 已实现 `CodeAgentService` 作为核心服务
+   - 已实现 `ConversationService` 用于管理对话
+
+4. **UI 组件**：
+   - 已有部分 UI 组件如 `CodeDisplayPanel`
+
+### 3.2 整体架构
+
+KastraX 智能编程助手采用分层架构设计，基于现有 kastrax-code 项目继续完善：
 
 1. **IDE 集成层**：
-    - JetBrains 插件（基于 IntelliJ 平台）
-    - VS Code 扩展
+   - JetBrains 插件（基于 IntelliJ 平台）
+   - VS Code 扩展（后期实现）
+   - 参考 kastrax-codex 的 UI 实现
 
-2. **Agent 层**：
-    - 代码生成 Agent
-    - 代码解释 Agent
-    - 代码重构 Agent
-    - 测试生成 Agent
-    - 代码补全 Agent
-    - 下一步编辑 Agent
+2. **Agent 层**（已部分实现）：
+   - 代码生成 Agent
+   - 代码解释 Agent
+   - 代码重构 Agent
+   - 测试生成 Agent
+   - 代码补全 Agent
+   - 下一步编辑 Agent
 
-3. **代码理解层**：
-    - 实时索引系统
-    - 代码语义分析
-    - 上下文构建
+3. **代码理解层**（利用 kastrax-codebase）：
+   - 实时索引系统
+   - 代码语义分析
+   - 上下文构建
 
 4. **工具层**：
-    - 代码搜索工具
-    - 代码分析工具
-    - 代码运行工具
-    - 测试运行工具
+   - 代码搜索工具（利用 kastrax-codebase 的搜索功能）
+   - 代码分析工具
+   - 代码运行工具
+   - 测试运行工具
 
 5. **记忆层**：
-    - 短期记忆（对话历史）
-    - 长期记忆（代码知识）
+   - 短期记忆（对话历史）
+   - 长期记忆（代码知识）
 
-6. **LLM 层**：
-    - DeepSeek 集成（优先）
-    - 其他 LLM 提供商支持
+6. **LLM 层**（已实现）：
+   - DeepSeek 集成（优先）
+   - 其他 LLM 提供商支持
 
-### 3.2 核心组件
+### 3.3 核心组件
 
-#### 3.2.1 代码理解引擎
+#### 3.3.1 已实现的组件
 
-代码理解引擎负责索引和理解代码库，提供上下文感知的代码理解能力：
+1. **CodeAgent 接口**
+
+kastrax-code 已经实现了 `CodeAgent` 接口，定义了代码智能体的核心功能：
 
 ```kotlin
-/**
- * 代码理解引擎接口
- */
-interface CodeUnderstandingEngine {
-    /**
-     * 索引代码库
-     */
-    suspend fun indexCodebase(projectPath: String)
-    
-    /**
-     * 获取代码上下文
-     */
-    suspend fun getCodeContext(query: String, maxResults: Int = 10): List<CodeContextItem>
-    
-    /**
-     * 获取符号信息
-     */
-    suspend fun getSymbolInfo(symbolName: String): SymbolInfo?
-    
-    /**
-     * 获取文件上下文
-     */
-    suspend fun getFileContext(filePath: String): FileContext
+interface CodeAgent {
+    suspend fun generateCode(prompt: String, language: String): String
+    suspend fun streamGenerateCode(prompt: String, language: String, options: AgentStreamOptions): Flow<String>
+    suspend fun explainCode(code: String, detailLevel: DetailLevel): String
+    suspend fun complete(code: String, language: String, maxTokens: Int): String
+    suspend fun refactorCode(code: String, instructions: String): String
+    suspend fun generateTest(code: String, testFramework: String): String
+    // 其他方法...
 }
 ```
 
-#### 3.2.2 Agent 协调器
+2. **AgentCoordinator**
 
-Agent 协调器负责管理和协调不同的专业化 Agent：
-
-```kotlin
-/**
- * Agent 协调器
- */
-class AgentCoordinator(
-    private val codeUnderstandingEngine: CodeUnderstandingEngine,
-    private val llmProvider: LlmProvider
-) {
-    private val agents = mutableMapOf<AgentType, CodeAgent>()
-    
-    /**
-     * 注册 Agent
-     */
-    fun registerAgent(type: AgentType, agent: CodeAgent) {
-        agents[type] = agent
-    }
-    
-    /**
-     * 获取 Agent
-     */
-    fun getAgent(type: AgentType): CodeAgent {
-        return agents[type] ?: throw IllegalArgumentException("Agent not found: $type")
-    }
-    
-    /**
-     * 处理用户请求
-     */
-    suspend fun processRequest(request: UserRequest): AgentResponse {
-        // 分析请求类型
-        val agentType = analyzeRequestType(request)
-        
-        // 获取相应的 Agent
-        val agent = getAgent(agentType)
-        
-        // 处理请求
-        return agent.process(request)
-    }
-    
-    /**
-     * 分析请求类型
-     */
-    private fun analyzeRequestType(request: UserRequest): AgentType {
-        // 根据请求内容分析应该使用哪种 Agent
-        // ...
-        
-        return AgentType.CODE_GENERATION
-    }
-}
-```
-
-#### 3.2.3 实时索引系统
-
-实时索引系统负责监控文件变化并更新索引：
+已实现的 `AgentCoordinator` 负责协调多个专业化 Agent：
 
 ```kotlin
-/**
- * 实时索引系统
- */
-class RealTimeIndexSystem(
-    private val projectPath: String,
-    private val indexStorage: IndexStorage,
-    private val embeddingService: EmbeddingService
-) {
-    private val fileWatcher = FileWatcher(projectPath)
-    
-    /**
-     * 启动索引系统
-     */
-    fun start() {
-        // 初始化索引
-        initializeIndex()
-        
-        // 启动文件监控
-        startFileWatching()
-    }
-    
-    /**
-     * 初始化索引
-     */
-    private fun initializeIndex() {
-        // 扫描项目文件
-        val files = scanProjectFiles()
-        
-        // 批量处理文件
-        processFiles(files)
-    }
-    
-    /**
-     * 启动文件监控
-     */
-    private fun startFileWatching() {
-        fileWatcher.onFileChanged { file ->
-            // 处理文件变化
-            processFile(file)
+class AgentCoordinator(private val project: Project) {
+    // DeepSeek提供者 - 仅用于智能体网络
+    private val llmProvider: LlmProvider by lazy {
+        deepSeek {
+            model(DeepSeekModel.DEEPSEEK_CODER)
+            apiKey(System.getenv("DEEPSEEK_API_KEY") ?: "")
+            temperature(0.3)
+            maxTokens(2000)
         }
-        
-        fileWatcher.start()
     }
-    
-    /**
-     * 处理文件
-     */
-    private fun processFile(file: File) {
-        // 解析文件
-        val content = file.readText()
-        
-        // 生成嵌入
-        val embedding = embeddingService.generateEmbedding(content)
-        
-        // 更新索引
-        indexStorage.updateIndex(file.path, embedding)
+
+    // 任务分类智能体
+    private val taskClassifierAgent: TaskClassifierAgent by lazy {
+        TaskClassifierAgent.getInstance(project)
     }
-    
-    /**
-     * 批量处理文件
-     */
-    private fun processFiles(files: List<File>) {
-        // 批量处理文件以提高效率
-        // ...
+
+    // 语言检测智能体
+    private val languageDetectorAgent: LanguageDetectorAgent by lazy {
+        LanguageDetectorAgent.getInstance(project)
     }
-    
-    /**
-     * 扫描项目文件
-     */
-    private fun scanProjectFiles(): List<File> {
-        // 扫描项目文件
-        // ...
-        
-        return emptyList()
+
+    // 详细程度检测智能体
+    private val detailLevelDetectorAgent: DetailLevelDetectorAgent by lazy {
+        DetailLevelDetectorAgent.getInstance(project)
+    }
+
+    // 查询响应智能体
+    private val queryResponseAgent: QueryResponseAgent by lazy {
+        QueryResponseAgent.getInstance(project)
+    }
+
+    // 其他方法...
+}
+```
+
+3. **CodeContextEngine**
+
+已定义的上下文引擎接口和数据模型：
+
+```kotlin
+data class Context(
+    val elements: List<ContextElement>,
+    val query: String,
+    val metadata: Map<String, Any> = emptyMap()
+)
+
+data class ContextElement(
+    val element: CodeElement,
+    val level: ContextLevel,
+    val relevance: ContextRelevance = ContextRelevance.MEDIUM,
+    val score: Float = 0.0f,
+    val content: String
+)
+```
+
+#### 3.3.2 需要完善的组件
+
+1. **UI 组件**
+
+参考 kastrax-codex 的 UI 实现，需要完善以下 UI 组件：
+
+```kotlin
+// 聊天工具窗口面板
+class ChatToolWindowPanel(private val project: Project, private val disposable: Disposable) {
+    private val tabbedPane = JBTabbedPane()
+
+    init {
+        // 初始化工具窗口面板
+        initToolWindowPanel(project)
+    }
+
+    private fun initToolWindowPanel(project: Project) {
+        // 创建工具栏
+        // 添加标签页
+        // 设置内容
+    }
+}
+
+// 聊天消息响应体
+class ChatMessageResponseBody(private val project: Project) {
+    // 处理响应
+    // 更新消息
+    // 清除内容
+}
+```
+
+2. **代码索引集成**
+
+利用 kastrax-codebase 的索引功能，需要完善代码索引集成：
+
+```kotlin
+class CodeIndexIntegration(private val project: Project) {
+    private val searchFacade = SearchFacade()
+
+    // 初始化索引
+    fun initialize() {
+        // 获取项目路径
+        // 创建索引
+        // 启动索引监控
+    }
+
+    // 搜索代码
+    suspend fun searchCode(query: String, maxResults: Int = 10): List<SearchResult> {
+        // 使用 SearchFacade 搜索代码
+        return searchFacade.search(query, maxResults)
     }
 }
 ```
@@ -270,17 +257,17 @@ class CodeCompletionService(
     ): List<CompletionItem> {
         // 获取文件上下文
         val fileContext = codeUnderstandingEngine.getFileContext(filePath)
-        
+
         // 构建请求
         val request = CodeCompletionRequest(
             fileContext = fileContext,
             position = position,
             prefix = prefix
         )
-        
+
         // 获取补全建议
         val response = codeCompletionAgent.process(request) as CodeCompletionResponse
-        
+
         return response.completions
     }
 }
@@ -315,10 +302,10 @@ class CodeExplanationService(
             code = code,
             detailLevel = detailLevel
         )
-        
+
         // 获取解释
         val response = codeExplanationAgent.process(request) as CodeExplanationResponse
-        
+
         return response.explanation
     }
 }
@@ -349,16 +336,16 @@ class NextEditService(
     ): List<EditSuggestion> {
         // 获取文件上下文
         val fileContext = codeUnderstandingEngine.getFileContext(filePath)
-        
+
         // 构建请求
         val request = NextEditRequest(
             fileContext = fileContext,
             task = task
         )
-        
+
         // 获取编辑建议
         val response = nextEditAgent.process(request) as NextEditResponse
-        
+
         return response.suggestions
     }
 }
@@ -390,23 +377,23 @@ class ChatService(
     ): String {
         // 获取对话历史
         val history = memoryService.getConversationHistory(sessionId)
-        
+
         // 获取相关代码上下文
         val codeContext = codeUnderstandingEngine.getCodeContext(message)
-        
+
         // 构建请求
         val request = ChatRequest(
             message = message,
             history = history,
             codeContext = codeContext
         )
-        
+
         // 获取回答
         val response = chatAgent.process(request) as ChatResponse
-        
+
         // 更新对话历史
         memoryService.addToConversationHistory(sessionId, message, response.reply)
-        
+
         return response.reply
     }
 }
@@ -414,98 +401,96 @@ class ChatService(
 
 ## 5. 实现计划
 
-### 5.1 第一阶段：基础架构（1-2个月）
+### 5.1 第一阶段：IDE 功能优先实现（1个月）
 
-1. **核心架构设计**
-    - [ ] 设计整体架构和组件接口
-    - [ ] 实现基础的 Agent 框架
-    - [ ] 设计数据模型和存储接口
+1. **UI 组件实现**
+    - [ ] 参考 kastrax-codex 实现聊天工具窗口
+    - [ ] 实现聊天消息面板
+    - [ ] 实现代码显示面板
+    - [ ] 实现用户输入面板
+    - [ ] 实现设置面板
 
-2. **IDE 集成基础**
-    - [ ] 实现 JetBrains 插件基础框架
-    - [ ] 实现 VS Code 扩展基础框架
-    - [ ] 设计 UI 组件和交互模式
+2. **IDE 集成功能**
+    - [ ] 实现工具窗口注册和管理
+    - [ ] 实现编辑器集成
+    - [ ] 实现项目文件访问
+    - [ ] 实现快捷键和操作
 
-3. **LLM 集成**
-    - [ ] 实现 DeepSeek 集成
-    - [ ] 设计通用的 LLM 提供商接口
-    - [ ] 实现基础的提示模板系统
+3. **基础功能连接**
+    - [ ] 连接已有的 Agent 实现
+    - [ ] 连接已有的上下文引擎
+    - [ ] 实现基本的对话流程
 
-### 5.2 第二阶段：代码理解引擎（2-3个月）
+### 5.2 第二阶段：代码理解增强（1个月）
 
-1. **实时索引系统**
-    - [ ] 实现文件系统监控
-    - [ ] 实现增量索引更新
-    - [ ] 实现 Git 分支切换检测
+1. **kastrax-codebase 集成**
+    - [ ] 集成 SearchFacade 实现代码搜索
+    - [ ] 集成 CodeEmbeddingService 实现代码嵌入
+    - [ ] 集成 DistributedIndexSystem 实现分布式索引
 
-2. **代码语义分析**
-    - [ ] 实现基于 Chapi 的代码解析
-    - [ ] 实现符号提取和关系建立
-    - [ ] 实现代码流分析
+2. **上下文引擎增强**
+    - [ ] 增强 CodeContextEngine 实现
+    - [ ] 实现多级上下文构建
+    - [ ] 实现上下文相关性排序
 
-3. **向量存储**
-    - [ ] 实现高效的向量索引结构
-    - [ ] 实现多租户索引共享
-    - [ ] 实现索引压缩技术
+3. **代码分析工具**
+    - [ ] 实现代码结构分析
+    - [ ] 实现依赖关系分析
+    - [ ] 实现代码质量分析
 
-### 5.3 第三阶段：Agent 实现（2-3个月）
+### 5.3 第三阶段：Agent 功能增强（1个月）
 
-1. **专业化 Agent**
-    - [ ] 实现代码生成 Agent
-    - [ ] 实现代码解释 Agent
-    - [ ] 实现代码重构 Agent
-    - [ ] 实现测试生成 Agent
-    - [ ] 实现代码补全 Agent
+1. **专业化 Agent 完善**
+    - [ ] 完善代码生成 Agent
+    - [ ] 完善代码解释 Agent
+    - [ ] 完善代码重构 Agent
+    - [ ] 完善测试生成 Agent
+    - [ ] 完善代码补全 Agent
     - [ ] 实现下一步编辑 Agent
 
-2. **Agent 协作框架**
-    - [ ] 实现 Agent 协调器
+2. **Agent 协作增强**
+    - [ ] 增强 AgentCoordinator 实现
     - [ ] 实现任务分解和分配
     - [ ] 实现结果合成和冲突解决
 
-3. **记忆系统**
-    - [ ] 实现对话历史记忆
+3. **记忆系统集成**
+    - [ ] 集成 kastrax-memory 实现对话历史记忆
     - [ ] 实现代码上下文记忆
     - [ ] 实现用户偏好记忆
 
-### 5.4 第四阶段：功能实现（2-3个月）
+### 5.4 第四阶段：高级功能实现（1个月）
 
-1. **代码补全功能**
-    - [ ] 实现实时代码补全
-    - [ ] 实现多行代码补全
-    - [ ] 实现注释驱动代码生成
+1. **高级编辑功能**
+    - [ ] 实现代码生成和插入
+    - [ ] 实现代码重构和修改
+    - [ ] 实现代码补全增强
 
-2. **代码解释功能**
-    - [ ] 实现多级详细度解释
-    - [ ] 实现结构分析
-    - [ ] 实现算法解释
+2. **高级分析功能**
+    - [ ] 实现代码审查
+    - [ ] 实现性能分析
+    - [ ] 实现安全分析
 
-3. **下一步编辑功能**
-    - [ ] 实现上下文感知的编辑建议
-    - [ ] 实现多步骤建议
-    - [ ] 实现解释性建议
+3. **团队协作功能**
+    - [ ] 实现知识共享
+    - [ ] 实现团队记忆
+    - [ ] 实现代码风格统一
 
-4. **聊天功能**
-    - [ ] 实现上下文感知的聊天
-    - [ ] 实现代码引用
-    - [ ] 实现多轮对话
+### 5.5 第五阶段：VS Code 支持和优化（1个月）
 
-### 5.5 第五阶段：优化和扩展（1-2个月）
+1. **VS Code 扩展**
+    - [ ] 实现 VS Code 扩展基础框架
+    - [ ] 移植 JetBrains 插件功能
+    - [ ] 适配 VS Code 特性
 
-1. **性能优化**
+2. **性能优化**
     - [ ] 优化索引性能
     - [ ] 优化 Agent 响应时间
     - [ ] 优化内存使用
 
-2. **用户体验优化**
+3. **用户体验优化**
     - [ ] 优化 UI 交互
-    - [ ] 实现快捷键和命令
-    - [ ] 实现设置和配置
-
-3. **扩展功能**
-    - [ ] 实现多语言支持
-    - [ ] 实现团队协作功能
-    - [ ] 实现自定义提示和模板
+    - [ ] 完善快捷键和命令
+    - [ ] 增强设置和配置
 
 ## 6. 技术选型
 
@@ -598,8 +583,10 @@ class ChatService(
 
 ## 9. 结论
 
-KastraX 智能编程助手将作为独立的 IDE 插件实现，不依赖 kastrax-codex，优先实现 Agent 模式。通过实现类似 Augment 和 Cursor 的功能，为开发者提供强大的编程辅助工具。
+KastraX 智能编程助手将基于现有的 kastrax-code 项目继续开发，优先实现 IDE 功能，UI 参考 kastrax-codex 的实现。通过实现类似 Augment 和 Cursor 的功能，为开发者提供强大的编程辅助工具。
 
-该项目将充分利用 KastraX AI Agent 框架的能力，实现深度代码理解、智能代码生成、多模式交互和多 IDE 集成。通过分阶段实施和明确的优先级，我们可以逐步构建这个系统，并在每个阶段都提供有价值的功能。
+该项目将充分利用 KastraX AI Agent 框架的能力和 kastrax-codebase 的代码理解能力，实现深度代码理解、智能代码生成、多模式交互和多 IDE 集成。通过分阶段实施和明确的优先级，我们可以逐步完善这个系统，并在每个阶段都提供有价值的功能。
+
+通过分析 kastrax-code 的现有实现，我们发现该项目已经具备了良好的基础架构和核心功能，包括 Agent 架构、上下文引擎和服务层。我们将在此基础上，优先完善 IDE 功能，提供良好的用户体验，同时增强代码理解能力和 Agent 功能。
 
 最终，KastraX 智能编程助手将成为一个强大的编程助手，能够深入理解代码库的结构和语义，提供精准的代码建议和补全，并支持开发者的整个工作流程。
