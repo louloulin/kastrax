@@ -379,43 +379,83 @@ interface KastraxSharedFlow<T> : KastraxFlow<T> {
 
 我们将创建一个新的`kastrax-runtime`模块，作为协程抽象层的实现。
 
-### 5.1 模块结构
+### 5.1 模块结构 (已实现)
 
 ```
 kastrax-runtime/
 ├── kastrax-runtime-api/           # 核心抽象接口
 ├── kastrax-runtime-jvm/           # 标准JVM实现
 ├── kastrax-runtime-idea/          # IntelliJ IDEA插件实现
-├── kastrax-runtime-android/       # Android实现
+├── kastrax-runtime-android/       # Android实现 (待实现)
 └── kastrax-runtime-test/          # 测试工具
 ```
 
-### 5.2 依赖配置
+所有模块已经组织在一个统一的`kastrax-runtime`目录下，并已配置好相应的Gradle构建文件。
 
-#### 5.2.1 kastrax-runtime-api
+### 5.2 依赖配置 (已实现)
+
+#### 5.2.1 kastrax-runtime
+
+```kotlin
+plugins {
+    kotlin("jvm") apply false
+}
+
+subprojects {
+    apply(plugin = "org.jetbrains.kotlin.jvm")
+
+    repositories {
+        mavenCentral()
+    }
+
+    dependencies {
+        "implementation"(kotlin("stdlib"))
+        "testImplementation"(kotlin("test"))
+    }
+}
+```
+
+#### 5.2.2 kastrax-runtime-api
 
 ```kotlin
 dependencies {
     api("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
+
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3")
 }
 ```
 
-#### 5.2.2 kastrax-runtime-jvm
+#### 5.2.3 kastrax-runtime-jvm
 
 ```kotlin
 dependencies {
-    implementation(project(":kastrax-runtime-api"))
+    implementation(project(":kastrax-runtime:kastrax-runtime-api"))
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
+
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3")
 }
 ```
 
-#### 5.2.3 kastrax-runtime-idea
+#### 5.2.4 kastrax-runtime-idea
 
 ```kotlin
 dependencies {
-    implementation(project(":kastrax-runtime-api"))
+    implementation(project(":kastrax-runtime:kastrax-runtime-api"))
     compileOnly("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
-    compileOnly("com.jetbrains.intellij.platform:core-api:$intellijVersion")
+    compileOnly("com.jetbrains.intellij.platform:core-api:233.13135.103")
+    compileOnly("com.jetbrains.intellij.platform:util-coroutines:233.13135.103")
+
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3")
+}
+```
+
+#### 5.2.5 kastrax-runtime-test
+
+```kotlin
+dependencies {
+    implementation(project(":kastrax-runtime:kastrax-runtime-api"))
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3")
 }
 ```
 

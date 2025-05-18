@@ -6,20 +6,22 @@ import kotlinx.coroutines.test.*
 /**
  * 测试协程作用域实现
  */
-class TestCoroutineScope(private val scope: TestScope) : KastraxCoroutineScope {
+class TestCoroutineScope(private val scope: kotlinx.coroutines.test.TestScope) : KastraxCoroutineScope {
     override fun launch(block: suspend () -> Unit): KastraxJob {
-        return TestJob(scope.launch { block() })
+        val job = kotlinx.coroutines.launch(scope.coroutineContext) { block() }
+        return TestJob(job)
     }
-    
+
     override fun <T> async(block: suspend () -> T): KastraxDeferred<T> {
-        return TestDeferred(scope.async { block() })
+        val deferred = kotlinx.coroutines.async(scope.coroutineContext) { block() }
+        return TestDeferred(deferred)
     }
-    
+
     override fun cancel() {
         scope.cancel()
     }
-    
+
     override fun isActive(): Boolean {
-        return scope.isActive
+        return scope.coroutineContext.isActive
     }
 }
