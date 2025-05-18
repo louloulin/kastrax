@@ -62,7 +62,7 @@ include(":kastrax-integrations:kastrax-gemini")
 // 代码库理解模块
 include(":kastrax-codebase")
 // 智能编程助手 IDEA 插件
-//include(":kastrax-code")
+include(":kastrax-code")
 // include(":kastrax-integrations:kastrax-mistral") // 暂时禁用，因为模块不存在
 // 暂时禁用 MCP 模块，因为它仍在开发中
  include(":kastrax-mcp")
@@ -145,3 +145,10 @@ include(":kastrax-store:pinecone")
 include(":kastrax-store:qdrant")
 include(":kastrax-store:postgres")
 include(":kastrax-store:lancedb")
+
+// Runtime modules
+include(":kastrax-runtime")
+include(":kastrax-runtime:kastrax-runtime-api")
+include(":kastrax-runtime:kastrax-runtime-jvm")
+include(":kastrax-runtime:kastrax-runtime-idea")
+include(":kastrax-runtime:kastrax-runtime-test")
