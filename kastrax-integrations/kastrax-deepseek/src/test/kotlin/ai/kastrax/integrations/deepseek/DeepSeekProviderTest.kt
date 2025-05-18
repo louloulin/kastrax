@@ -324,7 +324,7 @@ class DeepSeekProviderTest {
             model(DeepSeekModel.DEEPSEEK_CODER)
             apiKey("test-api-key")
         }
-        assertEquals("deepseek-coder", provider2.model)
+        assertEquals("deepseek-reasoner", provider2.model)
 
         // 测试自定义模型 ID
         val provider3 = deepSeek {
