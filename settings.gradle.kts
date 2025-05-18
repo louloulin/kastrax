@@ -150,5 +150,6 @@ include(":kastrax-store:lancedb")
 include(":kastrax-runtime")
 include(":kastrax-runtime:kastrax-runtime-api")
 include(":kastrax-runtime:kastrax-runtime-jvm")
-include(":kastrax-runtime:kastrax-runtime-idea")
+// 暂时注释掉kastrax-runtime-idea模块，因为无法找到IntelliJ IDEA的依赖
+// include(":kastrax-runtime:kastrax-runtime-idea")
 include(":kastrax-runtime:kastrax-runtime-test")

@@ -1,7 +1,11 @@
 package ai.kastrax.runtime.coroutines.test
 
+import ai.kastrax.runtime.coroutines.KastraxFlow
 import ai.kastrax.runtime.coroutines.KastraxSharedFlow
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.map
 
 /**
  * 测试共享流实现

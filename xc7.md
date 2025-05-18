@@ -849,9 +849,17 @@ class IdeaCoroutineRuntimeTest : LightJavaCodeInsightFixtureTestCase() {
 }
 ```
 
-## 9. 结论
+## 9. 实现状态
 
-我们已经成功实现了kastrax协程运行时抽象层，包括核心抽象接口、JVM实现、IntelliJ IDEA插件实现、测试运行时实现以及兼容性包装器。这一实现使得kastrax将能够：
+我们已经成功实现了kastrax协程运行时抽象层，并完成了以下模块的开发和测试：
+
+- [x] kastrax-runtime-api：核心抽象接口
+- [x] kastrax-runtime-jvm：JVM平台实现
+- [x] kastrax-runtime-test：测试运行时实现
+- [ ] kastrax-runtime-idea：IntelliJ IDEA插件实现（需要解决依赖问题）
+- [ ] kastrax-runtime-android：Android平台实现（待实现）
+
+所有已实现的模块均通过了测试，并可以正常工作。这一实现使得kastrax将能够：
 
 1. **适应多种运行环境**：无论是标准JVM、IntelliJ IDEA插件还是其他平台，都能使用统一的API
 2. **遵循平台最佳实践**：在每个平台上使用推荐的协程实践，避免类加载器冲突和线程模型不兼容问题

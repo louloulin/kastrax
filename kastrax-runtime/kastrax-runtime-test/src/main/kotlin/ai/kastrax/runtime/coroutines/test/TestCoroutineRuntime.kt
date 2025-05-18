@@ -8,6 +8,7 @@ import kotlinx.coroutines.test.*
 /**
  * 用于测试的协程运行时实现
  */
+@kotlinx.coroutines.ExperimentalCoroutinesApi
 class TestCoroutineRuntime(
     private val testDispatcher: kotlinx.coroutines.test.TestDispatcher = kotlinx.coroutines.test.StandardTestDispatcher()
 ) : KastraxCoroutineRuntime {
@@ -37,6 +38,22 @@ class TestCoroutineRuntime(
         return result!!
     }
 
+    /**
+     * 运行当前所有待处理的协程
+     */
+    @kotlinx.coroutines.ExperimentalCoroutinesApi
+    fun runCurrent() {
+        testScope.testScheduler.runCurrent()
+    }
+
+    /**
+     * 推进虚拟时间
+     */
+    @kotlinx.coroutines.ExperimentalCoroutinesApi
+    fun advanceTimeBy(delayTimeMillis: Long) {
+        testScope.testScheduler.advanceTimeBy(delayTimeMillis)
+    }
+
     override fun createCancellableScope(owner: Any): KastraxCoroutineScope {
         return getScope(owner)
     }
@@ -57,17 +74,5 @@ class TestCoroutineRuntime(
         return TestSharedFlow(flow)
     }
 
-    /**
-     * 推进虚拟时间
-     */
-    fun advanceTimeBy(delayTimeMillis: Long) {
-        testScope.testScheduler.advanceTimeBy(delayTimeMillis)
-    }
 
-    /**
-     * 运行所有待处理的协程直到完成
-     */
-    fun runCurrent() {
-        testScope.testScheduler.runCurrent()
-    }
 }
