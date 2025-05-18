@@ -859,6 +859,15 @@ class IdeaCoroutineRuntimeTest : LightJavaCodeInsightFixtureTestCase() {
 - [ ] kastrax-runtime-idea：IntelliJ IDEA插件实现（需要解决依赖问题）
 - [ ] kastrax-runtime-android：Android平台实现（待实现）
 
+同时，我们已经完成了以下模块与kastrax-runtime的集成：
+
+- [x] kactor：Actor模型核心模块
+  - [x] DefaultDispatcher：支持使用kastrax-runtime
+  - [x] ActorSystem：添加useKastraxRuntime扩展方法
+  - [x] RootContext：添加使用kastrax-runtime的扩展方法
+  - [x] Future：添加使用kastrax-runtime的实现
+- [ ] kastrax-core：核心功能模块（部分实现）
+
 所有已实现的模块均通过了测试，并可以正常工作。这一实现使得kastrax将能够：
 
 1. **适应多种运行环境**：无论是标准JVM、IntelliJ IDEA插件还是其他平台，都能使用统一的API
