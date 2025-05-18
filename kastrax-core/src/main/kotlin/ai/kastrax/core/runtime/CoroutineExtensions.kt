@@ -1,11 +1,6 @@
 package ai.kastrax.core.runtime
 
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
+import ai.kastrax.runtime.coroutines.KastraxJob
 
 /**
  * 在IO调度器上执行代码块
@@ -18,13 +13,13 @@ suspend fun <T> withIO(block: suspend () -> T): T {
 }
 
 /**
- * 在默认调度器上执行代码块
+ * 在计算调度器上执行代码块
  *
  * @param block 要执行的代码块
  * @return 代码块的返回值
  */
-suspend fun <T> withDefault(block: suspend () -> T): T {
-    return KastraxCoroutineRuntimeProvider.defaultDispatcher().withContext(block)
+suspend fun <T> withCompute(block: suspend () -> T): T {
+    return KastraxCoroutineRuntimeProvider.computeDispatcher().withContext(block)
 }
 
 /**
@@ -44,7 +39,7 @@ suspend fun <T> withUI(block: suspend () -> T): T {
  * @param block 要执行的代码块
  * @return 协程作业
  */
-fun launchCoroutine(owner: Any, block: suspend () -> Unit): Job {
+fun launchCoroutine(owner: Any, block: suspend () -> Unit): KastraxJob {
     return KastraxCoroutineRuntimeProvider.getScope(owner).launch {
         block()
     }

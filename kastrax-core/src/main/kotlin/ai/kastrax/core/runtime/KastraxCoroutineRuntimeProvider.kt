@@ -62,12 +62,12 @@ object KastraxCoroutineRuntimeProvider {
     }
 
     /**
-     * 获取默认调度器
+     * 获取计算调度器
      *
-     * @return 默认调度器
+     * @return 计算调度器
      */
-    fun defaultDispatcher(): KastraxDispatcher {
-        return getRuntime().defaultDispatcher()
+    fun computeDispatcher(): KastraxDispatcher {
+        return getRuntime().computeDispatcher()
     }
 
     /**
