@@ -15,3 +15,4 @@
 按计划 @augment1.md 实现相关功能，充分分析kastrax的代码，重点是kastrax-core和kastrax-codebase，实现相关功能，实现后增加测试验证，验证通过后更新 @augment1.md 标记实现的功能
 
 
+按照 @xc7.md 技术实现协程改造功能，优先改造kactor和kastrax-core，实现后增加测试验证，验证通过后更新 @xc7.md 标记实现的功能

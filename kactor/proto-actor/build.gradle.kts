@@ -35,6 +35,7 @@ dependencies {
     add("implementation", "ch.qos.logback:logback-classic:1.4.7")
     add("implementation", "org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
     add("implementation", "org.jetbrains.kotlinx:kotlinx-coroutines-jdk8:1.7.3")
+    add("implementation", project(":kastrax-runtime:kastrax-runtime-api"))
 
     // Prometheus 依赖
     add("implementation", "io.prometheus:simpleclient:0.16.0")
@@ -45,6 +46,7 @@ dependencies {
     add("testImplementation", "org.awaitility:awaitility:4.2.0")
     add("testImplementation", "org.mockito:mockito-core:4.11.0")
     add("testImplementation", "org.mockito.kotlin:mockito-kotlin:4.1.0")
+    add("testImplementation", project(":kastrax-runtime:kastrax-runtime-jvm"))
 }
 
 tasks.withType<Test> {

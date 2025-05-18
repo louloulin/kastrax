@@ -15,6 +15,7 @@ dependencies {
 
     // Coroutines
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
+    implementation(project(":kastrax-runtime:kastrax-runtime-api"))
 
     // Serialization
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.0")
@@ -44,6 +45,7 @@ dependencies {
     testImplementation("io.mockk:mockk:1.13.5")
     testImplementation("org.mockito:mockito-core:5.4.0")
     testImplementation("org.mockito.kotlin:mockito-kotlin:5.1.0")
+    testImplementation(project(":kastrax-runtime:kastrax-runtime-jvm"))
 
     // Integration testing
     testImplementation(project(":kastrax-integrations:kastrax-deepseek"))
