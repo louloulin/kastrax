@@ -865,8 +865,9 @@ class IdeaCoroutineRuntimeTest : LightJavaCodeInsightFixtureTestCase() {
   - [x] DefaultDispatcher：支持使用kastrax-runtime
   - [x] ActorSystem：添加useKastraxRuntime扩展方法
   - [x] RootContext：添加使用kastrax-runtime的扩展方法
-  - [x] Future：添加使用kastrax-runtime的实现
-- [ ] kastrax-core：核心功能模块（部分实现）
+  - [x] Dispatchers：使默认调度器可配置
+  - [x] 测试：添加性能比较测试
+- [ ] kastrax-core：核心功能模块（待实现）
 
 所有已实现的模块均通过了测试，并可以正常工作。这一实现使得kastrax将能够：
 
