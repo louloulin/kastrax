@@ -35,7 +35,6 @@ repositories {
 dependencies {
     // Kastrax 依赖
     implementation(project(":kastrax-core"))
-    // implementation(project(":kastrax-agent")) // 暂时移除不存在的依赖
     implementation(project(":kastrax-codebase"))
     implementation(project(":kastrax-rag"))
     implementation(project(":kastrax-memory-api"))
