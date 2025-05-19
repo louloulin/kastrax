@@ -25,6 +25,10 @@ dependencies {
     add("implementation", project(":kastrax-integrations:kastrax-openai"))
     add("implementation", project(":fastembed-kotlin"))
 
+    // Kastrax runtime dependencies
+    add("implementation", project(":kastrax-runtime:kastrax-runtime-api"))
+    add("implementation", project(":kastrax-runtime:kastrax-runtime-jvm"))
+
     // Kactor dependencies
     add("implementation", project(":kactor:proto-actor"))
     add("implementation", project(":kactor:proto-router"))

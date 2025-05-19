@@ -246,6 +246,7 @@ Kastrax 项目已经实现了一个协程运行时抽象层，主要包括以下
 
 2. **修复模块依赖问题**
    - 在 `kactor/benchmark-native` 模块中添加了对 `kastrax-runtime-api` 和 `kastrax-runtime-jvm` 的依赖
+   - 在 `kactor/examples` 模块中添加了对 `kastrax-runtime-api` 和 `kastrax-runtime-jvm` 的依赖
    - 解决了无法访问 `KastraxCoroutineRuntime` 类的问题
 
 3. **修复测试中的类型不匹配问题**
