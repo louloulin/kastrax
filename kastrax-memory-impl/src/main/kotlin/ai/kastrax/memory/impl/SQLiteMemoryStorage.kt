@@ -451,7 +451,7 @@ class SQLiteMemoryStorage(
                     }
 
                     if (updateFields.isEmpty()) {
-                        return false
+                        false
                     }
 
                     val sql = "UPDATE threads SET ${updateFields.joinToString(", ")} WHERE id = ?"

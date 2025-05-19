@@ -4,6 +4,7 @@ import ai.kastrax.core.common.KastraXBase
 import ai.kastrax.memory.api.MemoryMessage
 import ai.kastrax.memory.api.MemoryPriority
 import ai.kastrax.memory.api.MemoryThread
+import ai.kastrax.memory.impl.SimpleMessage
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.datetime.Clock
@@ -44,30 +45,36 @@ class RedisMemoryStorage(
         return withContext(Dispatchers.IO) {
             try {
                 jedisPool.resource.use { jedis ->
+                    // 生成消息ID（如果没有）
+                    val messageId = message.id.takeIf { it.isNotBlank() } ?: UUID.randomUUID().toString()
+
                     // 序列化消息
                     val messageJson = json.encodeToString(
                         mapOf(
-                            "id" to message.id,
+                            "id" to messageId,
                             "threadId" to message.threadId,
-                            "role" to message.message.role.toString(),
+                            "role" to message.message.role.name,
                             "content" to message.message.content,
-                            "name" to message.message.name,
-                            "toolCalls" to message.message.toolCalls,
-                            "toolCallId" to message.message.toolCallId,
-                            "createdAt" to message.createdAt.toString()
+                            "name" to (message.message.name ?: ""),
+                            "toolCalls" to (message.message.toolCalls.map { it.toString() }),
+                            "toolCallId" to (message.message.toolCallId ?: ""),
+                            "createdAt" to message.createdAt.toString(),
+                            "priority" to (message.priority?.name ?: MemoryPriority.MEDIUM.name),
+                            "lastAccessedAt" to (message.lastAccessedAt?.toString() ?: message.createdAt.toString()),
+                            "accessCount" to (message.accessCount.toString())
                         )
                     )
 
                     // 保存消息
-                    val messageKey = messageKey(message.id)
-                    jedis.setex(messageKey, expireTime, messageJson)
+                    val pipeline = jedis.pipelined()
+                    pipeline.setex(messageKey(messageId), expireTime, messageJson)
+                    pipeline.zadd(threadMessagesKey(message.threadId), message.createdAt.toEpochMilliseconds().toDouble(), messageId)
+                    pipeline.sync()
 
-                    // 添加到线程消息列表
-                    val threadMessagesKey = threadMessagesKey(message.threadId)
-                    jedis.zadd(threadMessagesKey, message.createdAt.toEpochMilliseconds().toDouble(), message.id)
-                    jedis.expire(threadMessagesKey, expireTime)
+                    // 更新线程的最后更新时间
+                    updateThread(message.threadId, mapOf("updatedAt" to message.createdAt))
 
-                    message.id
+                    messageId
                 }
             } catch (e: Exception) {
                 logger.error("保存消息到Redis失败: ${e.message}")
@@ -86,26 +93,26 @@ class RedisMemoryStorage(
                     val messageIds = jedis.zrevrange(threadMessagesKey, 0, (limit - 1).toLong())
 
                     if (messageIds.isEmpty()) {
-                        emptyList<MemoryMessage>()
+                        emptyList()
                     } else {
-
-                    // 获取消息内容
-                    val pipeline = jedis.pipelined()
-                    val responses = messageIds.map { messageId ->
-                        pipeline.get(messageKey(messageId))
-                    }
-                    pipeline.sync()
-
-                    // 解析消息
-                    val result = mutableListOf<MemoryMessage>()
-                    for (response in responses) {
-                        val messageJson = response.get() ?: continue
-                        val message = parseMemoryMessage(messageJson)
-                        if (message != null) {
-                            result.add(message)
+                        // 获取消息内容
+                        val pipeline = jedis.pipelined()
+                        val responses = messageIds.map { messageId ->
+                            pipeline.get(messageKey(messageId))
                         }
+                        pipeline.sync()
+
+                        // 解析消息
+                        val result = mutableListOf<MemoryMessage>()
+                        for (response in responses) {
+                            val messageJson = response.get() ?: continue
+                            val message = parseMemoryMessage(messageJson)
+                            if (message != null) {
+                                result.add(message)
+                            }
+                        }
+                        result
                     }
-                    result
                 }
             } catch (e: Exception) {
                 logger.error("从Redis获取消息失败: ${e.message}")
@@ -139,20 +146,19 @@ class RedisMemoryStorage(
                     val threadJson = json.encodeToString(
                         mapOf(
                             "id" to thread.id,
-                            "title" to thread.title,
+                            "title" to (thread.title ?: ""),
                             "createdAt" to thread.createdAt.toString(),
                             "updatedAt" to thread.updatedAt.toString(),
-                            "messageCount" to thread.messageCount
+                            "metadata" to (thread.metadata ?: emptyMap<String, String>()),
+                            "messageCount" to (thread.messageCount.toString())
                         )
                     )
 
                     // 保存线程
-                    val threadKey = threadKey(thread.id)
-                    jedis.setex(threadKey, expireTime, threadJson)
-
-                    // 添加到线程列表
-                    jedis.zadd(threadListKey(), thread.updatedAt.toEpochMilliseconds().toDouble(), thread.id)
-                    jedis.expire(threadListKey(), expireTime)
+                    val pipeline = jedis.pipelined()
+                    pipeline.setex(threadKey(thread.id), expireTime, threadJson)
+                    pipeline.zadd(threadListKey(), thread.updatedAt.toEpochMilliseconds().toDouble(), thread.id)
+                    pipeline.sync()
 
                     thread.id
                 }
@@ -167,19 +173,16 @@ class RedisMemoryStorage(
         return withContext(Dispatchers.IO) {
             try {
                 jedisPool.resource.use { jedis ->
-                    // 获取线程消息
-                    val threadMessagesKey = threadMessagesKey(threadId)
-                    val messageIds = jedis.zrange(threadMessagesKey, 0L, -1L)
+                    // 获取线程的所有消息
+                    val messageIds = jedis.zrange(threadMessagesKey(threadId), 0, -1)
 
-                    // 删除所有消息
+                    // 删除所有消息和线程
                     val pipeline = jedis.pipelined()
-                    for (messageId in messageIds) {
+                    messageIds.forEach { messageId ->
                         pipeline.del(messageKey(messageId))
                     }
-
-                    // 删除线程和线程消息列表
+                    pipeline.del(threadMessagesKey(threadId))
                     pipeline.del(threadKey(threadId))
-                    pipeline.del(threadMessagesKey)
                     pipeline.zrem(threadListKey(), threadId)
                     pipeline.sync()
 
@@ -197,12 +200,13 @@ class RedisMemoryStorage(
             try {
                 jedisPool.resource.use { jedis ->
                     // 获取消息信息
-                    val messageJson = jedis.get(messageKey(messageId)) ?: return false
-                    val message = parseMemoryMessage(messageJson) ?: return false
+                    val messageKey = messageKey(messageId)
+                    val messageJson = jedis.get(messageKey) ?: return@withContext false
+                    val message = parseMemoryMessage(messageJson) ?: return@withContext false
 
                     // 删除消息
                     val pipeline = jedis.pipelined()
-                    pipeline.del(messageKey(messageId))
+                    pipeline.del(messageKey)
                     pipeline.zrem(threadMessagesKey(message.threadId), messageId)
                     pipeline.sync()
 
@@ -221,7 +225,7 @@ class RedisMemoryStorage(
                 jedisPool.resource.use { jedis ->
                     // 获取消息信息
                     val messageKey = messageKey(messageId)
-                    val messageJson = jedis.get(messageKey) ?: return false
+                    val messageJson = jedis.get(messageKey) ?: return@withContext false
 
                     // 解析消息
                     val data = json.decodeFromString<Map<String, String>>(messageJson).toMutableMap()
@@ -247,13 +251,13 @@ class RedisMemoryStorage(
             try {
                 jedisPool.resource.use { jedis ->
                     // 获取消息信息
-                    val messageJson = jedis.get(messageKey(messageId)) ?: return null
+                    val messageJson = jedis.get(messageKey(messageId)) ?: return@withContext null
 
                     // 解析消息
                     val data = json.decodeFromString<Map<String, String>>(messageJson)
 
                     // 获取优先级
-                    val priorityName = data["priority"] ?: return null
+                    val priorityName = data["priority"] ?: return@withContext null
 
                     try {
                         MemoryPriority.valueOf(priorityName)
@@ -274,7 +278,7 @@ class RedisMemoryStorage(
                 jedisPool.resource.use { jedis ->
                     // 获取消息信息
                     val messageKey = messageKey(messageId)
-                    val messageJson = jedis.get(messageKey) ?: return false
+                    val messageJson = jedis.get(messageKey) ?: return@withContext false
 
                     // 解析消息
                     val data = json.decodeFromString<Map<String, String>>(messageJson).toMutableMap()
@@ -301,57 +305,62 @@ class RedisMemoryStorage(
             try {
                 jedisPool.resource.use { jedis ->
                     val result = mutableListOf<MessagePriorityInfo>()
+                    val scanParams = ScanParams().count(100)
+                    var cursor = "0"
 
-                    // 获取所有线程
-                    val threadIds = jedis.zrange(threadListKey(), 0, -1)
+                    // 扫描所有消息键
+                    do {
+                        val scanResult = jedis.scan(cursor, scanParams.match("${keyPrefix}message:*"))
+                        cursor = scanResult.cursor
+                        val keys = scanResult.result
 
-                    // 遍历每个线程的消息
-                    for (threadId in threadIds) {
-                        val threadMessagesKey = threadMessagesKey(threadId)
-                        val messageIds = jedis.zrange(threadMessagesKey, 0, -1)
+                        if (keys.isNotEmpty()) {
+                            // 批量获取消息内容
+                            val pipeline = jedis.pipelined()
+                            val responses = keys.map { key -> pipeline.get(key) }
+                            pipeline.sync()
 
-                        // 获取每个消息的信息
-                        for (messageId in messageIds) {
-                            val messageJson = jedis.get(messageKey(messageId)) ?: continue
-                            val data = json.decodeFromString<Map<String, String>>(messageJson)
+                            // 解析消息
+                            for (i in keys.indices) {
+                                val messageJson = responses[i].get() ?: continue
+                                val data = json.decodeFromString<Map<String, String>>(messageJson)
 
-                            // 解析优先级
-                            val priority = data["priority"]?.let {
-                                try {
-                                    MemoryPriority.valueOf(it)
+                                val messageId = data["id"] ?: continue
+                                val priorityName = data["priority"] ?: MemoryPriority.MEDIUM.name
+                                val lastAccessedAtStr = data["lastAccessedAt"] ?: data["createdAt"] ?: continue
+                                val createdAtStr = data["createdAt"] ?: continue
+
+                                val priority = try {
+                                    MemoryPriority.valueOf(priorityName)
                                 } catch (e: IllegalArgumentException) {
-                                    null
+                                    MemoryPriority.MEDIUM
                                 }
-                            }
 
-                            // 解析时间
-                            val lastAccessedAt = data["lastAccessedAt"]?.let {
-                                try {
-                                    Instant.parse(it)
+                                val lastAccessedAt = try {
+                                    Instant.parse(lastAccessedAtStr)
                                 } catch (e: Exception) {
                                     null
                                 }
-                            }
 
-                            val createdAt = data["createdAt"]?.let {
-                                try {
-                                    Instant.parse(it)
+                                val createdAt = try {
+                                    Instant.parse(createdAtStr)
                                 } catch (e: Exception) {
                                     null
                                 }
-                            }
 
-                            result.add(MessagePriorityInfo(
-                                messageId = messageId,
-                                priority = priority,
-                                lastAccessedAt = lastAccessedAt,
-                                createdAt = createdAt
-                            ))
+                                if (lastAccessedAt != null && createdAt != null) {
+                                    result.add(MessagePriorityInfo(
+                                        messageId = messageId,
+                                        priority = priority,
+                                        lastAccessedAt = lastAccessedAt,
+                                        createdAt = createdAt
+                                    ))
+                                }
+                            }
                         }
-                    }
+                    } while (cursor != "0")
 
                     result
-                    }
                 }
             } catch (e: Exception) {
                 logger.error("获取Redis所有消息优先级失败: ${e.message}")
@@ -365,7 +374,7 @@ class RedisMemoryStorage(
             try {
                 jedisPool.resource.use { jedis ->
                     val threadKey = threadKey(threadId)
-                    val threadJson = jedis.get(threadKey) ?: return null
+                    val threadJson = jedis.get(threadKey) ?: return@withContext null
 
                     parseMemoryThread(threadJson)
                 }
@@ -384,7 +393,7 @@ class RedisMemoryStorage(
                     val threadIds = jedis.zrevrange(threadListKey(), offset.toLong(), (offset + limit - 1).toLong())
 
                     if (threadIds.isEmpty()) {
-                        return emptyList<MemoryThread>()
+                        return@withContext emptyList<MemoryThread>()
                     }
 
                     // 获取线程内容
@@ -413,7 +422,7 @@ class RedisMemoryStorage(
                 jedisPool.resource.use { jedis ->
                     // 获取当前线程
                     val threadKey = threadKey(threadId)
-                    val threadJson = jedis.get(threadKey) ?: return false
+                    val threadJson = jedis.get(threadKey) ?: return@withContext false
 
                     val thread = parseMemoryThread(threadJson)
 
@@ -421,25 +430,27 @@ class RedisMemoryStorage(
                     val updatedThread = thread.copy(
                         title = updates["title"] as? String ?: thread.title,
                         updatedAt = updates["updatedAt"] as? Instant ?: Clock.System.now(),
+                        metadata = updates["metadata"] as? Map<String, String> ?: thread.metadata,
                         messageCount = updates["messageCount"] as? Int ?: thread.messageCount
                     )
 
                     // 序列化更新后的线程
-                    val updatedThreadJson = json.encodeToString(
+                    val updatedJson = json.encodeToString(
                         mapOf(
                             "id" to updatedThread.id,
-                            "title" to updatedThread.title,
+                            "title" to (updatedThread.title ?: ""),
                             "createdAt" to updatedThread.createdAt.toString(),
                             "updatedAt" to updatedThread.updatedAt.toString(),
-                            "messageCount" to updatedThread.messageCount
+                            "metadata" to (updatedThread.metadata ?: emptyMap<String, String>()),
+                            "messageCount" to (updatedThread.messageCount.toString())
                         )
                     )
 
                     // 保存更新后的线程
-                    jedis.setex(threadKey, expireTime, updatedThreadJson)
-
-                    // 更新线程列表中的分数（更新时间）
-                    jedis.zadd(threadListKey(), updatedThread.updatedAt.toEpochMilliseconds().toDouble(), threadId)
+                    val pipeline = jedis.pipelined()
+                    pipeline.setex(threadKey, expireTime, updatedJson)
+                    pipeline.zadd(threadListKey(), updatedThread.updatedAt.toEpochMilliseconds().toDouble(), threadId)
+                    pipeline.sync()
 
                     true
                 }
@@ -451,30 +462,30 @@ class RedisMemoryStorage(
     }
 
     /**
-     * 清理过期的内存数据。
+     * 清理过期数据。
      *
-     * @param days 过期天数
+     * @param olderThan 清理早于此时间的数据
      * @return 清理的记录数
      */
-    suspend fun cleanupExpiredData(days: Int): Int {
+    suspend fun cleanup(olderThan: Instant): Int {
         return withContext(Dispatchers.IO) {
             try {
+                var count = 0
                 jedisPool.resource.use { jedis ->
-                    var count = 0
-                    val expireTime = Clock.System.now().toEpochMilliseconds() - TimeUnit.DAYS.toMillis(days.toLong())
-
                     // 清理过期线程
-                    val expiredThreads = jedis.zrangeByScore(threadListKey(), 0.0, expireTime.toDouble())
-                    if (expiredThreads.isNotEmpty()) {
-                        expiredThreads.forEach { threadId ->
-                            if (deleteThread(threadId)) {
-                                count++
-                            }
+                    val expiredThreads = jedis.zrangeByScore(
+                        threadListKey(),
+                        0.0,
+                        olderThan.toEpochMilliseconds().toDouble()
+                    )
+
+                    for (threadId in expiredThreads) {
+                        if (deleteThread(threadId)) {
+                            count++
                         }
                     }
-
-                    count
                 }
+                count
             } catch (e: Exception) {
                 logger.error("清理Redis过期数据失败: ${e.message}")
                 0
@@ -482,25 +493,25 @@ class RedisMemoryStorage(
         }
     }
 
-    // 辅助方法：解析内存消息
-    private fun parseMemoryMessage(json: String): MemoryMessage? {
+    // 辅助方法：解析消息JSON
+    private fun parseMemoryMessage(messageJson: String): MemoryMessage? {
         return try {
-            val data = this.json.decodeFromString<Map<String, String>>(json)
-
-            // 创建简单消息
-            val message = SimpleMessage(
-                role = ai.kastrax.memory.api.MessageRole.valueOf(data["role"] ?: "USER"),
-                content = data["content"] ?: "",
-                name = data["name"],
-                toolCalls = emptyList(), // 简化实现，实际应解析工具调用
-                toolCallId = data["toolCallId"]
-            )
+            val data = json.decodeFromString<Map<String, String>>(messageJson)
 
             MemoryMessage(
-                id = data["id"] ?: UUID.randomUUID().toString(),
+                id = data["id"] ?: "",
                 threadId = data["threadId"] ?: "",
-                message = message,
-                createdAt = data["createdAt"]?.let { Instant.parse(it) } ?: Clock.System.now()
+                message = SimpleMessage(
+                    role = ai.kastrax.memory.api.MessageRole.valueOf(data["role"] ?: "USER"),
+                    content = data["content"] ?: "",
+                    name = data["name"]?.takeIf { it.isNotBlank() },
+                    toolCalls = emptyList(), // 简化实现，实际应解析工具调用
+                    toolCallId = data["toolCallId"]?.takeIf { it.isNotBlank() }
+                ),
+                createdAt = data["createdAt"]?.let { Instant.parse(it) } ?: Clock.System.now(),
+                priority = data["priority"]?.let { MemoryPriority.valueOf(it) },
+                lastAccessedAt = data["lastAccessedAt"]?.let { Instant.parse(it) },
+                accessCount = data["accessCount"]?.toIntOrNull() ?: 0
             )
         } catch (e: Exception) {
             logger.error("Failed to parse memory message: ${e.message}")
@@ -508,15 +519,16 @@ class RedisMemoryStorage(
         }
     }
 
-    // 辅助方法：解析内存线程
-    private fun parseMemoryThread(json: String): MemoryThread {
-        val data = this.json.decodeFromString<Map<String, String>>(json)
+    // 辅助方法：解析线程JSON
+    private fun parseMemoryThread(threadJson: String): MemoryThread {
+        val data = json.decodeFromString<Map<String, String>>(threadJson)
 
         return MemoryThread(
-            id = data["id"] ?: UUID.randomUUID().toString(),
-            title = data["title"],
+            id = data["id"] ?: "",
+            title = data["title"]?.takeIf { it.isNotBlank() },
             createdAt = data["createdAt"]?.let { Instant.parse(it) } ?: Clock.System.now(),
             updatedAt = data["updatedAt"]?.let { Instant.parse(it) } ?: Clock.System.now(),
+            metadata = data["metadata"]?.let { json.decodeFromString<Map<String, String>>(it) },
             messageCount = data["messageCount"]?.toIntOrNull() ?: 0
         )
     }
