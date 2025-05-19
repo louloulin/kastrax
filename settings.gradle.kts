@@ -9,29 +9,22 @@ pluginManagement {
 
     // 定义插件版本
     plugins {
-        kotlin("multiplatform") version "1.9.22"
-        kotlin("jvm") version "1.9.22"
-        kotlin("plugin.serialization") version "1.9.22"
+        kotlin("multiplatform") version "2.1.10"
+        kotlin("jvm") version "2.1.10"
+        kotlin("plugin.serialization") version "2.1.10"
+        kotlin("plugin.spring") version "2.1.10"
+        kotlin("plugin.allopen") version "2.1.10"
         id("com.android.library") version "8.1.0"
         id("org.graalvm.buildtools.native") version "0.10.6"
     }
 }
 
-// 为kastrax-codex模块配置版本目录
+// 配置版本目录
 dependencyResolutionManagement {
     repositories {
         mavenCentral()
         google()
         maven { url = uri("https://maven.pkg.jetbrains.space/public/p/ktor/eap") }
-    }
-
-    // 只为kastrax-codex模块配置版本目录
-    versionCatalogs {
-        if (System.getProperty("kastrax.codex.enabled") == "true") {
-            create("libs") {
-                from(files("kastrax-codex/gradle/libs.versions.toml"))
-            }
-        }
     }
 }
 

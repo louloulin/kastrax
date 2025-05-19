@@ -9,7 +9,9 @@ import actor.proto.mailbox.MessageInvoker
 import actor.proto.mailbox.ResumeMailbox
 import actor.proto.mailbox.SuspendMailbox
 import actor.proto.mailbox.SystemMessage
-import kotlinx.coroutines.runBlocking
+import ai.kastrax.runtime.coroutines.KastraxCoroutineGlobal
+import ai.kastrax.runtime.coroutines.KastraxCoroutineRuntime
+import ai.kastrax.runtime.coroutines.KastraxCoroutineRuntimeFactory
 import java.time.Duration
 import java.util.*
 class ActorContext(
@@ -298,9 +300,10 @@ class ActorContext(
             }
             else -> {
                 val c = this
+                val runtime = KastraxCoroutineRuntimeFactory.getRuntime()
                 when (message) {
-                    is MessageEnvelope -> runBlocking { senderMiddleware.invoke(c, target, message) }
-                    else -> runBlocking { senderMiddleware.invoke(c, target, MessageEnvelope(message, null, null)) }
+                    is MessageEnvelope -> runtime.runBlocking { senderMiddleware.invoke(c, target, message) }
+                    else -> runtime.runBlocking { senderMiddleware.invoke(c, target, MessageEnvelope(message, null, null)) }
                 }
             }
         }

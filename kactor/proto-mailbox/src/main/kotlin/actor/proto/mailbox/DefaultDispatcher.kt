@@ -2,6 +2,7 @@ package actor.proto.mailbox
 
 import ai.kastrax.runtime.coroutines.KastraxCoroutineRuntime
 import ai.kastrax.runtime.coroutines.KastraxCoroutineRuntimeFactory
+import ai.kastrax.runtime.coroutines.KastraxCoroutineGlobal
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -19,7 +20,7 @@ import kotlin.coroutines.CoroutineContext
  */
 class DefaultDispatcher(
     context: CoroutineContext = Dispatchers.Default,
-    private val runtime: KastraxCoroutineRuntime? = null,
+    private val runtime: KastraxCoroutineRuntime = KastraxCoroutineRuntimeFactory.getRuntime(),
     override var throughput: Int = 300
 ) : Dispatcher {
     // We could create a jobless GlobalScope root scope and replace the default dispatcher with our dispatcher
@@ -29,17 +30,10 @@ class DefaultDispatcher(
     private val scope : CoroutineScope = CoroutineScope(context) + SupervisorJob()
 
     override fun schedule(mailbox:Mailbox) {
-        if (runtime != null) {
-            // 使用kastrax-runtime
-            val kastraxScope = runtime.getScope(this)
-            kastraxScope.launch {
-                mailbox.run()
-            }
-        } else {
-            // 使用kotlinx.coroutines
-            scope.launch {
-                mailbox.run()
-            }
+        // 使用kastrax-runtime
+        val kastraxScope = runtime.getScope(this)
+        kastraxScope.launch {
+            mailbox.run()
         }
     }
 
