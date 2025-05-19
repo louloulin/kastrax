@@ -19,7 +19,7 @@ import kotlin.coroutines.EmptyCoroutineContext
  * @return 代码块的返回值
  */
 suspend fun <T> withIO(block: suspend () -> T): T {
-    return KastraxCoroutineGlobal.withIO(block)
+    return KastraxDispatcherFactory.io().withContext(block)
 }
 
 /**
@@ -31,7 +31,7 @@ suspend fun <T> withIO(block: suspend () -> T): T {
  * @return 代码块的返回值
  */
 suspend fun <T> withCompute(block: suspend () -> T): T {
-    return KastraxCoroutineGlobal.withCompute(block)
+    return KastraxDispatcherFactory.compute().withContext(block)
 }
 
 /**
@@ -43,7 +43,28 @@ suspend fun <T> withCompute(block: suspend () -> T): T {
  * @return 代码块的返回值
  */
 suspend fun <T> withUI(block: suspend () -> T): T {
-    return KastraxCoroutineGlobal.withUI(block)
+    return KastraxDispatcherFactory.ui().withContext(block)
+}
+
+/**
+ * 在默认调度器上执行代码块
+ *
+ * @param block 要执行的代码块
+ * @return 代码块的返回值
+ */
+suspend fun <T> withDefault(block: suspend () -> T): T {
+    return KastraxDispatcherFactory.default().withContext(block)
+}
+
+/**
+ * 在指定任务类型的调度器上执行代码块
+ *
+ * @param taskType 任务类型
+ * @param block 要执行的代码块
+ * @return 代码块的返回值
+ */
+suspend fun <T> withTaskType(taskType: KastraxDispatcherFactory.TaskType, block: suspend () -> T): T {
+    return KastraxDispatcherFactory.getDispatcher(taskType).withContext(block)
 }
 
 /**
@@ -91,6 +112,41 @@ fun getScope(owner: Any): KastraxCoroutineScope {
  */
 fun launch(owner: Any, block: suspend () -> Unit): KastraxJob {
     return KastraxCoroutineGlobal.getScope(owner).launch(block)
+}
+
+/**
+ * 在协程作用域中启动一个新的协程，带异常处理
+ *
+ * @param owner 作用域拥有者
+ * @param block 要执行的代码块
+ * @param onError 异常处理器
+ * @return 协程作业
+ */
+fun launchSafe(owner: Any, block: suspend () -> Unit, onError: (Throwable) -> Unit): KastraxJob {
+    return KastraxCoroutineGlobal.getScope(owner).launchSafe(block, onError)
+}
+
+/**
+ * 在协程作用域中异步执行并返回结果
+ *
+ * @param owner 作用域拥有者
+ * @param block 要执行的代码块
+ * @return 延迟结果
+ */
+fun <T> async(owner: Any, block: suspend () -> T): KastraxDeferred<T> {
+    return KastraxCoroutineGlobal.getScope(owner).async(block)
+}
+
+/**
+ * 在协程作用域中异步执行并返回结果，带异常处理
+ *
+ * @param owner 作用域拥有者
+ * @param block 要执行的代码块
+ * @param onError 异常处理器
+ * @return 延迟结果
+ */
+fun <T> asyncSafe(owner: Any, block: suspend () -> T, onError: (Throwable) -> T): KastraxDeferred<T> {
+    return KastraxCoroutineGlobal.getScope(owner).asyncSafe(block, onError)
 }
 
 /**

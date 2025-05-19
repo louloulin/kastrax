@@ -60,7 +60,7 @@ object KastraxCoroutineGlobal {
      * @return 代码块的返回值
      */
     suspend fun <T> withIO(block: suspend () -> T): T {
-        return getRuntime().ioDispatcher().withContext(block)
+        return KastraxDispatcherFactory.io().withContext(block)
     }
 
     /**
@@ -70,7 +70,7 @@ object KastraxCoroutineGlobal {
      * @return 代码块的返回值
      */
     suspend fun <T> withCompute(block: suspend () -> T): T {
-        return getRuntime().computeDispatcher().withContext(block)
+        return KastraxDispatcherFactory.compute().withContext(block)
     }
 
     /**
@@ -80,7 +80,28 @@ object KastraxCoroutineGlobal {
      * @return 代码块的返回值
      */
     suspend fun <T> withUI(block: suspend () -> T): T {
-        return getRuntime().uiDispatcher().withContext(block)
+        return KastraxDispatcherFactory.ui().withContext(block)
+    }
+
+    /**
+     * 在默认调度器上执行代码块
+     *
+     * @param block 要执行的代码块
+     * @return 代码块的返回值
+     */
+    suspend fun <T> withDefault(block: suspend () -> T): T {
+        return KastraxDispatcherFactory.default().withContext(block)
+    }
+
+    /**
+     * 在指定任务类型的调度器上执行代码块
+     *
+     * @param taskType 任务类型
+     * @param block 要执行的代码块
+     * @return 代码块的返回值
+     */
+    suspend fun <T> withTaskType(taskType: KastraxDispatcherFactory.TaskType, block: suspend () -> T): T {
+        return KastraxDispatcherFactory.getDispatcher(taskType).withContext(block)
     }
 
     /**
@@ -130,7 +151,7 @@ object KastraxCoroutineGlobal {
      * @return IO调度器
      */
     fun ioDispatcher(): KastraxDispatcher {
-        return getRuntime().ioDispatcher()
+        return KastraxDispatcherFactory.io()
     }
 
     /**
@@ -139,7 +160,7 @@ object KastraxCoroutineGlobal {
      * @return 计算调度器
      */
     fun computeDispatcher(): KastraxDispatcher {
-        return getRuntime().computeDispatcher()
+        return KastraxDispatcherFactory.compute()
     }
 
     /**
@@ -148,6 +169,25 @@ object KastraxCoroutineGlobal {
      * @return UI调度器
      */
     fun uiDispatcher(): KastraxDispatcher {
-        return getRuntime().uiDispatcher()
+        return KastraxDispatcherFactory.ui()
+    }
+
+    /**
+     * 获取默认调度器
+     *
+     * @return 默认调度器
+     */
+    fun defaultDispatcher(): KastraxDispatcher {
+        return KastraxDispatcherFactory.default()
+    }
+
+    /**
+     * 获取指定任务类型的调度器
+     *
+     * @param taskType 任务类型
+     * @return 调度器
+     */
+    fun getDispatcher(taskType: KastraxDispatcherFactory.TaskType): KastraxDispatcher {
+        return KastraxDispatcherFactory.getDispatcher(taskType)
     }
 }
