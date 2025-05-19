@@ -36,6 +36,7 @@ dependencies {
     add("implementation", "org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
     add("implementation", "org.jetbrains.kotlinx:kotlinx-coroutines-jdk8:1.7.3")
     add("implementation", project(":kastrax-runtime:kastrax-runtime-api"))
+    add("implementation", project(":kastrax-runtime:kastrax-runtime-jvm"))
 
     // Prometheus 依赖
     add("implementation", "io.prometheus:simpleclient:0.16.0")

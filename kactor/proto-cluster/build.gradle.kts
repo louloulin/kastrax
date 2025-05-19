@@ -6,6 +6,8 @@ plugins {
 dependencies {
     api(project(":kactor:proto-actor"))
     api(project(":kactor:proto-remote"))
+    implementation(project(":kastrax-runtime:kastrax-runtime-api"))
+    implementation(project(":kastrax-runtime:kastrax-runtime-jvm"))
 
     implementation("io.github.microutils:kotlin-logging:2.0.11")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.0")

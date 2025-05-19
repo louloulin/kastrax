@@ -10,6 +10,8 @@ dependencies {
     // Project dependencies
     implementation(project(":kastrax-core"))
     implementation(project(":kastrax-memory-api"))
+    implementation(project(":kastrax-runtime:kastrax-runtime-api"))
+    implementation(project(":kastrax-runtime:kastrax-runtime-jvm"))
 
     // Kotlin
     implementation(kotlin("stdlib"))

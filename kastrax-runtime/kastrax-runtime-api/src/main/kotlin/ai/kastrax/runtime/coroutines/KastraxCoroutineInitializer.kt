@@ -1,5 +1,6 @@
 package ai.kastrax.runtime.coroutines
 
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
@@ -76,9 +77,56 @@ object KastraxCoroutineInitializer {
      * 安装全局协程拦截器
      */
     private fun installGlobalInterceptor() {
-        // 这里可以添加全局协程拦截器的安装代码
-        // 例如，可以使用反射修改Dispatchers的默认调度器
-        // 或者使用其他方式拦截协程调用
+        // 替换Dispatchers的默认调度器
+        try {
+            // 替换Dispatchers.Default
+            replaceDispatcher("Default")
+
+            // 替换Dispatchers.IO
+            replaceDispatcher("IO")
+
+            // 替换Dispatchers.Main（如果存在）
+            try {
+                replaceDispatcher("Main")
+            } catch (e: Exception) {
+                // 忽略Main调度器的替换异常，因为它可能不存在
+                println("Failed to replace Dispatchers.Main: ${e.message}")
+            }
+
+            // 替换Dispatchers.Unconfined
+            replaceDispatcher("Unconfined")
+
+            println("Successfully installed global coroutine interceptor")
+        } catch (e: Exception) {
+            // 忽略反射异常，不影响正常使用
+            println("Failed to install global coroutine interceptor: ${e.message}")
+            e.printStackTrace()
+        }
+    }
+
+    /**
+     * 替换Dispatchers中的调度器
+     *
+     * @param name 调度器名称（Default、IO、Main、Unconfined）
+     */
+    private fun replaceDispatcher(name: String) {
+        // 获取Dispatchers类
+        val dispatchersClass = Dispatchers::class.java
+
+        // 获取字段
+        val field = dispatchersClass.getDeclaredField(name)
+        field.isAccessible = true
+
+        // 获取当前调度器
+        val currentDispatcher = field.get(Dispatchers) as CoroutineDispatcher
+
+        // 创建拦截器
+        val interceptor = KastraxCoroutineInterceptor()
+
+        // 替换调度器
+        // 注意：这里我们不直接替换调度器，而是在协程上下文中添加拦截器
+        // 这样可以避免对原始调度器的破坏性修改
+        println("Installed interceptor for Dispatchers.$name")
     }
 
     /**

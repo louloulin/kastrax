@@ -4,8 +4,8 @@ import ai.kastrax.core.agent.Agent
 import ai.kastrax.core.agent.AgentStatus
 import ai.kastrax.core.agent.analysis.*
 import ai.kastrax.core.common.KastraXBase
+import ai.kastrax.runtime.coroutines.KastraxCoroutineGlobal
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -105,8 +105,8 @@ class AgentPerformanceMonitorImpl(
     private val metricsCollector: AgentMetricsCollector,
     private val metricsStorage: AgentMetricsStorage
 ) : AgentPerformanceMonitor, KastraXBase(component = "AGENT_PERFORMANCE", name = "monitor") {
-    private val monitoringScope = CoroutineScope(Dispatchers.Default)
-    private val monitoringJobs = ConcurrentHashMap<Pair<String, String?>, Job>()
+    private val monitoringScope = KastraxCoroutineGlobal.getScope("AgentPerformanceMonitor")
+    private val monitoringJobs = ConcurrentHashMap<Pair<String, String?>, kotlinx.coroutines.Job>()
     private var performanceThresholds = AgentPerformanceThresholds()
 
     private val _performanceMetricsFlow = MutableSharedFlow<AgentPerformanceMetrics>(
@@ -176,7 +176,7 @@ class AgentPerformanceMonitorImpl(
             }
         }
 
-        monitoringJobs[key] = job
+        monitoringJobs[key] = job as kotlinx.coroutines.Job
         return true
     }
 

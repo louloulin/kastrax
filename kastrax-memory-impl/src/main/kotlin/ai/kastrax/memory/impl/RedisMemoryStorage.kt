@@ -86,8 +86,8 @@ class RedisMemoryStorage(
                     val messageIds = jedis.zrevrange(threadMessagesKey, 0, (limit - 1).toLong())
 
                     if (messageIds.isEmpty()) {
-                        return@withContext emptyList<MemoryMessage>()
-                    }
+                        emptyList<MemoryMessage>()
+                    } else {
 
                     // 获取消息内容
                     val pipeline = jedis.pipelined()
@@ -197,8 +197,8 @@ class RedisMemoryStorage(
             try {
                 jedisPool.resource.use { jedis ->
                     // 获取消息信息
-                    val messageJson = jedis.get(messageKey(messageId)) ?: return@withContext false
-                    val message = parseMemoryMessage(messageJson) ?: return@withContext false
+                    val messageJson = jedis.get(messageKey(messageId)) ?: return false
+                    val message = parseMemoryMessage(messageJson) ?: return false
 
                     // 删除消息
                     val pipeline = jedis.pipelined()
@@ -221,7 +221,7 @@ class RedisMemoryStorage(
                 jedisPool.resource.use { jedis ->
                     // 获取消息信息
                     val messageKey = messageKey(messageId)
-                    val messageJson = jedis.get(messageKey) ?: return@withContext false
+                    val messageJson = jedis.get(messageKey) ?: return false
 
                     // 解析消息
                     val data = json.decodeFromString<Map<String, String>>(messageJson).toMutableMap()
@@ -247,13 +247,13 @@ class RedisMemoryStorage(
             try {
                 jedisPool.resource.use { jedis ->
                     // 获取消息信息
-                    val messageJson = jedis.get(messageKey(messageId)) ?: return@withContext null
+                    val messageJson = jedis.get(messageKey(messageId)) ?: return null
 
                     // 解析消息
                     val data = json.decodeFromString<Map<String, String>>(messageJson)
 
                     // 获取优先级
-                    val priorityName = data["priority"] ?: return@withContext null
+                    val priorityName = data["priority"] ?: return null
 
                     try {
                         MemoryPriority.valueOf(priorityName)
@@ -274,7 +274,7 @@ class RedisMemoryStorage(
                 jedisPool.resource.use { jedis ->
                     // 获取消息信息
                     val messageKey = messageKey(messageId)
-                    val messageJson = jedis.get(messageKey) ?: return@withContext false
+                    val messageJson = jedis.get(messageKey) ?: return false
 
                     // 解析消息
                     val data = json.decodeFromString<Map<String, String>>(messageJson).toMutableMap()
@@ -351,6 +351,7 @@ class RedisMemoryStorage(
                     }
 
                     result
+                    }
                 }
             } catch (e: Exception) {
                 logger.error("获取Redis所有消息优先级失败: ${e.message}")
@@ -364,7 +365,7 @@ class RedisMemoryStorage(
             try {
                 jedisPool.resource.use { jedis ->
                     val threadKey = threadKey(threadId)
-                    val threadJson = jedis.get(threadKey) ?: return@withContext null
+                    val threadJson = jedis.get(threadKey) ?: return null
 
                     parseMemoryThread(threadJson)
                 }
@@ -383,7 +384,7 @@ class RedisMemoryStorage(
                     val threadIds = jedis.zrevrange(threadListKey(), offset.toLong(), (offset + limit - 1).toLong())
 
                     if (threadIds.isEmpty()) {
-                        return@withContext emptyList<MemoryThread>()
+                        return emptyList<MemoryThread>()
                     }
 
                     // 获取线程内容
@@ -412,7 +413,7 @@ class RedisMemoryStorage(
                 jedisPool.resource.use { jedis ->
                     // 获取当前线程
                     val threadKey = threadKey(threadId)
-                    val threadJson = jedis.get(threadKey) ?: return@withContext false
+                    val threadJson = jedis.get(threadKey) ?: return false
 
                     val thread = parseMemoryThread(threadJson)
 

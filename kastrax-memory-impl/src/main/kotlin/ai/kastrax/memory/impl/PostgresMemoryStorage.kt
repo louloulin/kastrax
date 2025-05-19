@@ -207,7 +207,7 @@ class PostgresMemoryStorage(
                                 while (resultSet.next()) {
                                     messages.add(resultSetToMemoryMessage(resultSet))
                                 }
-                                return@withContext messages
+                                return messages
                             }
                         }
                     } catch (e: Exception) {
@@ -498,7 +498,7 @@ class PostgresMemoryStorage(
                     }
 
                     if (updateFields.isEmpty()) {
-                        return@withContext false
+                        return false
                     }
 
                     val sql = "UPDATE $threadsTable SET ${updateFields.joinToString(", ")} WHERE id = ?"

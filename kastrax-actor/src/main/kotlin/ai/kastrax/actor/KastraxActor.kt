@@ -96,7 +96,7 @@ class KastraxActor(private val agent: Agent) : Actor {
             }
             is AgentStreamRequest -> {
                 // 处理流式请求
-                val job = kotlinx.coroutines.GlobalScope.launch {
+                val job = GlobalScope.launch {
                     val response = runBlocking {
                         agent.stream(msg.prompt, msg.options)
                     }

@@ -6,6 +6,8 @@ plugins {
 dependencies {
     // kastrax 依赖
     implementation(project(":kastrax-core"))
+    implementation(project(":kastrax-runtime:kastrax-runtime-api"))
+    implementation(project(":kastrax-runtime:kastrax-runtime-jvm"))
 
     // kactor 依赖
     implementation(project(":kactor:proto-actor"))
