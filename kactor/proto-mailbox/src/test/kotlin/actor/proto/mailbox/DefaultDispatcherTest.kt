@@ -23,7 +23,7 @@ class DefaultDispatcherTest {
 
         val dispatcher1 = DefaultDispatcher()
         val threadPool = Executors.newWorkStealingPool().asCoroutineDispatcher()
-        val dispatcher2 = DefaultDispatcher(threadPool, 300)
+        val dispatcher2 = DefaultDispatcher(threadPool)
 
         dispatcher1.schedule(mailbox1)
         dispatcher1.schedule(mailbox2)

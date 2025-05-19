@@ -1,15 +1,21 @@
 package ai.kastrax.core.runtime
 
-import ai.kastrax.runtime.coroutines.KastraxJob
+import ai.kastrax.runtime.coroutines.*
 
 /**
  * 在IO调度器上执行代码块
  *
  * @param block 要执行的代码块
  * @return 代码块的返回值
+ *
+ * @deprecated 使用 ai.kastrax.runtime.coroutines.withIO 替代
  */
+@Deprecated(
+    message = "使用 ai.kastrax.runtime.coroutines.withIO 替代",
+    replaceWith = ReplaceWith("withIO(block)", "ai.kastrax.runtime.coroutines.withIO")
+)
 suspend fun <T> withIO(block: suspend () -> T): T {
-    return KastraxCoroutineRuntimeProvider.ioDispatcher().withContext(block)
+    return ai.kastrax.runtime.coroutines.withIO(block)
 }
 
 /**
@@ -17,9 +23,15 @@ suspend fun <T> withIO(block: suspend () -> T): T {
  *
  * @param block 要执行的代码块
  * @return 代码块的返回值
+ *
+ * @deprecated 使用 ai.kastrax.runtime.coroutines.withCompute 替代
  */
+@Deprecated(
+    message = "使用 ai.kastrax.runtime.coroutines.withCompute 替代",
+    replaceWith = ReplaceWith("withCompute(block)", "ai.kastrax.runtime.coroutines.withCompute")
+)
 suspend fun <T> withCompute(block: suspend () -> T): T {
-    return KastraxCoroutineRuntimeProvider.computeDispatcher().withContext(block)
+    return ai.kastrax.runtime.coroutines.withCompute(block)
 }
 
 /**
@@ -27,9 +39,15 @@ suspend fun <T> withCompute(block: suspend () -> T): T {
  *
  * @param block 要执行的代码块
  * @return 代码块的返回值
+ *
+ * @deprecated 使用 ai.kastrax.runtime.coroutines.withUI 替代
  */
+@Deprecated(
+    message = "使用 ai.kastrax.runtime.coroutines.withUI 替代",
+    replaceWith = ReplaceWith("withUI(block)", "ai.kastrax.runtime.coroutines.withUI")
+)
 suspend fun <T> withUI(block: suspend () -> T): T {
-    return KastraxCoroutineRuntimeProvider.uiDispatcher().withContext(block)
+    return ai.kastrax.runtime.coroutines.withUI(block)
 }
 
 /**
@@ -38,11 +56,15 @@ suspend fun <T> withUI(block: suspend () -> T): T {
  * @param owner 作用域拥有者
  * @param block 要执行的代码块
  * @return 协程作业
+ *
+ * @deprecated 使用 ai.kastrax.runtime.coroutines.launch 替代
  */
+@Deprecated(
+    message = "使用 ai.kastrax.runtime.coroutines.launch 替代",
+    replaceWith = ReplaceWith("launch(owner, block)", "ai.kastrax.runtime.coroutines.launch")
+)
 fun launchCoroutine(owner: Any, block: suspend () -> Unit): KastraxJob {
-    return KastraxCoroutineRuntimeProvider.getScope(owner).launch {
-        block()
-    }
+    return ai.kastrax.runtime.coroutines.launch(owner, block)
 }
 
 /**
@@ -50,7 +72,13 @@ fun launchCoroutine(owner: Any, block: suspend () -> Unit): KastraxJob {
  *
  * @param block 要运行的代码块
  * @return 代码块的返回值
+ *
+ * @deprecated 使用 ai.kastrax.runtime.coroutines.runBlockingKastrax 替代
  */
+@Deprecated(
+    message = "使用 ai.kastrax.runtime.coroutines.runBlockingKastrax 替代",
+    replaceWith = ReplaceWith("runBlockingKastrax(block)", "ai.kastrax.runtime.coroutines.runBlockingKastrax")
+)
 fun <T> runBlockingCoroutine(block: suspend () -> T): T {
-    return KastraxCoroutineRuntimeProvider.runBlocking(block)
+    return ai.kastrax.runtime.coroutines.runBlockingKastrax(block)
 }

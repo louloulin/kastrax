@@ -81,6 +81,19 @@ fun getScope(owner: Any): KastraxCoroutineScope {
 }
 
 /**
+ * 在协程作用域中启动一个新的协程
+ *
+ * 替代kotlinx.coroutines.GlobalScope.launch
+ *
+ * @param owner 作用域拥有者
+ * @param block 要执行的代码块
+ * @return 协程作业
+ */
+fun launch(owner: Any, block: suspend () -> Unit): KastraxJob {
+    return KastraxCoroutineGlobal.getScope(owner).launch(block)
+}
+
+/**
  * 创建一个新的协程作用域
  *
  * 替代CoroutineScope(context)

@@ -11,6 +11,8 @@ dependencies {
     // ProtoActor 依赖项
     implementation(project(":kactor:proto-actor"))
     implementation(project(":kactor:proto-mailbox"))
+    implementation(project(":kastrax-runtime:kastrax-runtime-api"))
+    implementation(project(":kastrax-runtime:kastrax-runtime-jvm"))
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
     implementation("org.slf4j:slf4j-simple:2.0.9")
 }
