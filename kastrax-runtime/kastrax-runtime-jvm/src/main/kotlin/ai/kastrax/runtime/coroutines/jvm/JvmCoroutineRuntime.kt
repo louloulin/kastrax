@@ -13,6 +13,11 @@ class JvmCoroutineRuntime : KastraxCoroutineRuntime {
         return JvmCoroutineScope(scope)
     }
 
+    override fun getScope(context: kotlin.coroutines.CoroutineContext): KastraxCoroutineScope {
+        val scope = CoroutineScope(context + SupervisorJob())
+        return JvmCoroutineScope(scope)
+    }
+
     override fun ioDispatcher(): KastraxDispatcher {
         return JvmDispatcher(Dispatchers.IO)
     }

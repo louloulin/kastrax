@@ -867,9 +867,17 @@ class IdeaCoroutineRuntimeTest : LightJavaCodeInsightFixtureTestCase() {
   - [x] RootContext：添加使用kastrax-runtime的扩展方法
   - [x] Dispatchers：使默认调度器可配置
   - [x] 测试：添加性能比较测试
+- [x] kastrax-runtime：协程运行时模块
+  - [x] KastraxCoroutineGlobal：提供全局的kastrax-runtime实例
+  - [x] KastraxCoroutineExtensions：提供便捷的协程扩展函数
+  - [x] KastraxCoroutineInterceptor：拦截协程调用，替换为kastrax协程运行时
+  - [x] KastraxCoroutineInitializer：初始化全局协程运行时
+  - [x] 测试：添加单元测试验证集成
 - [x] kastrax-core：核心功能模块
-  - [x] KastraxCoroutineRuntimeProvider：提供全局的kastrax-runtime实例
-  - [x] CoroutineExtensions：提供便捷的协程扩展函数
+  - [x] KastraxCoreRuntimeInitializer：初始化kastrax-core模块的运行时
+  - [x] KastraxCoreRuntimeConfig：配置kastrax-core模块的协程运行时
+  - [x] KastraxCoreRuntimeAutoInitializer：自动初始化kastrax-core模块的协程运行时
+  - [x] KastraxCoreCoroutineExtensions：提供便捷的协程扩展函数
   - [x] 测试：添加单元测试验证集成
 
 所有已实现的模块均通过了测试，并可以正常工作。这一实现使得kastrax将能够：

@@ -18,6 +18,10 @@ class TestCoroutineRuntime(
         return TestCoroutineScope(testScope)
     }
 
+    override fun getScope(context: kotlin.coroutines.CoroutineContext): KastraxCoroutineScope {
+        return TestCoroutineScope(testScope)
+    }
+
     override fun ioDispatcher(): KastraxDispatcher {
         return TestDispatcher(testDispatcher)
     }
@@ -44,6 +48,20 @@ class TestCoroutineRuntime(
     @kotlinx.coroutines.ExperimentalCoroutinesApi
     fun runCurrent() {
         testScope.testScheduler.runCurrent()
+    }
+
+    /**
+     * 设置是否自动推进虚拟时间
+     *
+     * @param autoAdvance 是否自动推进虚拟时间
+     */
+    @kotlinx.coroutines.ExperimentalCoroutinesApi
+    fun setAutoAdvance(autoAdvance: Boolean) {
+        // 在测试环境中，我们可以使用advanceUntilIdle来模拟自动推进
+        if (autoAdvance) {
+            // 立即运行所有待处理的协程
+            testScope.testScheduler.advanceUntilIdle()
+        }
     }
 
     /**
