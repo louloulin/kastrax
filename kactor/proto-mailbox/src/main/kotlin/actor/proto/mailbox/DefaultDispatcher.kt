@@ -29,9 +29,13 @@ class DefaultDispatcher(
     //This way we get a normal scope that could be cancelled if needed
     private val scope : CoroutineScope = CoroutineScope(context) + SupervisorJob()
 
+    /**
+     * 调度邮箱执行
+     * 使用context而不是this作为参数传递给runtime.getScope()，确保使用正确的协程上下文
+     */
     override fun schedule(mailbox:Mailbox) {
-        // 使用kastrax-runtime
-        val kastraxScope = runtime.getScope(this)
+        // 使用kastrax-runtime，并传入正确的上下文
+        val kastraxScope = runtime.getScope(scope.coroutineContext)
         kastraxScope.launch {
             mailbox.run()
         }

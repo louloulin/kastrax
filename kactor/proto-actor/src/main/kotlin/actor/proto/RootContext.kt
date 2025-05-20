@@ -8,7 +8,7 @@ import actor.proto.middleware.SpawnFunc
 import actor.proto.middleware.SpawnMiddleware
 import actor.proto.middleware.makeSpawnMiddlewareChain
 import actor.proto.middleware.makeSenderMiddlewareChain
-import kotlinx.coroutines.runBlocking
+import ai.kastrax.runtime.coroutines.KastraxCoroutineGlobal
 import java.time.Duration
 
 /**
@@ -158,7 +158,7 @@ class RootContext(val actorSystem: ActorSystem) : SenderContext, SpawnerContext,
                     is MessageEnvelope -> message
                     else -> MessageEnvelope(message, null, null)
                 }
-                runBlocking { senderMiddleware!!.invoke(this@RootContext, target, envelope) }
+                KastraxCoroutineGlobal.runBlocking { senderMiddleware!!.invoke(this@RootContext, target, envelope) }
             }
         }
     }

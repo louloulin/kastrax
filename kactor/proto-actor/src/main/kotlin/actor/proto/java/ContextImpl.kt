@@ -2,10 +2,10 @@ package actor.proto.java
 
 import actor.proto.PID
 import actor.proto.Props
+import ai.kastrax.runtime.coroutines.KastraxCoroutineGlobal
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.async
 import kotlinx.coroutines.future.asCompletableFuture
-import kotlinx.coroutines.runBlocking
 import java.time.Duration
 import java.util.concurrent.CompletableFuture
 
@@ -32,9 +32,9 @@ class ContextImpl(private val actor: Actor) : Context {
     override fun setReceiveTimeout(duration: Duration) = ctx.setReceiveTimeout(duration)
     override fun getReceiveTimeout(): Duration = ctx.getReceiveTimeout()
     override fun cancelReceiveTimeout() = ctx.cancelReceiveTimeout()
-    override fun send(target: PID, message: Any) = runBlocking { ctx.send(target, message) }
-    override fun request(target: PID, message: Any) = runBlocking { ctx.request(target, message) }
-    override fun respond(message: Any) = runBlocking { ctx.respond(message) }
+    override fun send(target: PID, message: Any) = KastraxCoroutineGlobal.runBlocking { ctx.send(target, message) }
+    override fun request(target: PID, message: Any) = KastraxCoroutineGlobal.runBlocking { ctx.request(target, message) }
+    override fun respond(message: Any) = KastraxCoroutineGlobal.runBlocking { ctx.respond(message) }
     override fun <T> requestAwait(target: PID, message: Any, timeout: Duration): CompletableFuture<T> {
         val d = GlobalScope.async {
             ctx.requestAwait<T>(target, message, timeout)
