@@ -5,7 +5,7 @@ import actor.proto.cluster.Cluster
 import actor.proto.cluster.ClusterConfig
 import actor.proto.cluster.IdentityLookup
 import actor.proto.remote.RemoteConfig
-import kotlinx.coroutines.runBlocking
+import ai.kastrax.runtime.coroutines.KastraxCoroutineGlobal
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.mockito.Mockito.mock
@@ -14,7 +14,7 @@ import org.mockito.kotlin.whenever
 class P2PClusterProviderTest {
 
     @Test
-    fun `should start member successfully`() = runBlocking {
+    fun `should start member successfully`() = KastraxCoroutineGlobal.runBlocking {
         // Arrange
         val config = P2PClusterConfig(
             clusterName = "test-cluster",
@@ -47,7 +47,7 @@ class P2PClusterProviderTest {
     }
 
     @Test
-    fun `should start client successfully`() = runBlocking {
+    fun `should start client successfully`() = KastraxCoroutineGlobal.runBlocking {
         // Arrange
         val config = P2PClusterConfig(
             clusterName = "test-cluster",
@@ -80,7 +80,7 @@ class P2PClusterProviderTest {
     }
 
     @Test
-    fun `should shutdown gracefully`() = runBlocking {
+    fun `should shutdown gracefully`() = KastraxCoroutineGlobal.runBlocking {
         // Arrange
         val config = P2PClusterConfig(
             clusterName = "test-cluster",
