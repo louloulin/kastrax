@@ -1,0 +1,53 @@
+spring:
+  application:
+    name: kastrax-ai2db
+  datasource:
+    url: ${DATASOURCE_URL:jdbc:postgresql://localhost:5432/kastrax_ai2db}
+    username: ${DATASOURCE_USERNAME:postgres}
+    password: ${DATASOURCE_PASSWORD:postgres}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+    show-sql: false
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    locations: classpath:db/migration
+
+server:
+  port: ${PORT:8080}
+  servlet:
+    context-path: /api
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  endpoint:
+    health:
+      show-details: when_authorized
+
+logging:
+  level:
+    com.kastrax.ai2db: ${LOG_LEVEL:INFO}
+    org.springframework: INFO
+    org.hibernate: INFO
+
+security:
+  jwt:
+    secret: ${JWT_SECRET:changeThisToASecureSecretInProduction}
+    expiration: ${JWT_EXPIRATION:86400000} # 24 hours in milliseconds
+
+kastrax:
+  llm:
+    api-key: ${KASTRAX_LLM_API_KEY:}
+    url: ${KASTRAX_LLM_URL:}
+  vector:
+    api-key: ${KASTRAX_VECTOR_API_KEY:}
+    url: ${KASTRAX_VECTOR_URL:} 

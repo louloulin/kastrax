@@ -1,0 +1,1 @@
+rootProject.name = "kastrax-ai2db-backend" 
