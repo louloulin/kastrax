@@ -8,6 +8,7 @@ build/
 *.class
 *.log
 *.ctxt
+.kotlin/
 
 # IDE - IntelliJ IDEA
 .idea/
@@ -17,6 +18,7 @@ build/
 *.iws
 out/
 .intellijPlatform
+.intel/
 temp_extract
 # Local configuration files
 local.properties
@@ -47,4 +49,5 @@ logs/
 *~
 
 # Gradle property files
-# gradle-wrapper.properties should be included in version control 
+# gradle-wrapper.properties should be included in version control
+
