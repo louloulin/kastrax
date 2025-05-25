@@ -1,5 +1,5 @@
 # KastraX AI2DB 实施指南
-
+ 
 ## 项目结构
 
 ```
@@ -376,6 +376,19 @@ kastrax-ai2db/
    - 后续请求使用令牌进行认证
 
 ## 总体架构设计
+
+### 项目目标
+
+KastraX AI2DB旨在提供一个强大的AI驱动数据库查询和管理平台，支持自然语言到SQL的转换，简化数据库操作，提高用户效率。它集成了Kastrax LLM技术，提供智能的查询生成、模式管理和结果处理能力。
+
+### 技术栈
+
+- **后端**: Kotlin, Spring Boot, Kastrax LLM
+- **前端**: React, TypeScript, Vite
+- **数据库**: 支持MySQL、PostgreSQL等关系数据库
+- **容器化**: Docker, Docker Compose
+- **测试**: JUnit, Playwright
+- **CI/CD**: GitHub Actions
 
 ### 系统架构图
 
