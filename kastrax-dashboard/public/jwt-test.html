@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JWT Authentication Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        h1, h2 {
+            color: #333;
+        }
+        .container {
+            margin-bottom: 20px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input[type="text"],
+        input[type="password"],
+        textarea {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            padding: 10px 15px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        .error {
+            color: #D32F2F;
+            background-color: #FFEBEE;
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+        }
+        .success {
+            color: #388E3C;
+            background-color: #E8F5E9;
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+        }
+        pre {
+            background-color: #f5f5f5;
+            padding: 10px;
+            border-radius: 4px;
+            overflow: auto;
+            max-height: 300px;
+        }
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        .button-secondary {
+            background-color: #2196F3;
+        }
+        .button-warning {
+            background-color: #FF9800;
+        }
+        .button-danger {
+            background-color: #F44336;
+        }
+    </style>
+</head>
+<body>
+    <h1>JWT Authentication Test</h1>
+    
+    <div class="container">
+        <h2>Authentication</h2>
+        <div class="form-group">
+            <label for="username">Username:</label>
+            <input type="text" id="username" value="admin">
+        </div>
+        <div class="form-group">
+            <label for="password">Password:</label>
+            <input type="password" id="password" value="datalink">
+        </div>
+        <div class="button-group">
+            <button id="login-button">Login</button>
+            <button id="logout-button" class="button-danger">Logout</button>
+        </div>
+        <div id="auth-status"></div>
+    </div>
+    
+    <div class="container">
+        <h2>Token Information</h2>
+        <div class="form-group">
+            <label for="token">JWT Token:</label>
+            <textarea id="token" rows="3" readonly></textarea>
+        </div>
+        <div class="button-group">
+            <button id="decode-button" class="button-secondary">Decode Token</button>
+            <button id="verify-button" class="button-warning">Verify Token</button>
+        </div>
+        <div id="token-info"></div>
+    </div>
+    
+    <div class="container">
+        <h2>API Test</h2>
+        <div class="button-group">
+            <button id="user-info-button" class="button-secondary">Get User Info</button>
+            <button id="test-endpoint-button" class="button-warning">Test Protected Endpoint</button>
+        </div>
+        <div id="api-result"></div>
+    </div>
+    
+    <script>
+        // Base URLs to try
+        const API_BASE_URLS = [
+            'http://localhost:8080',  // Default Spring Boot port
+            'http://localhost:8081',  // Alternative port
+            'http://localhost:3000',  // Default Node.js port
+            'http://localhost:4000',  // Alternative Node.js port
+            ''                        // Relative URL (same origin)
+        ];
+        const LOGIN_ENDPOINT = '/api/auth/login';
+        const USER_INFO_ENDPOINT = '/api/auth/user/info';
+        
+        // DOM elements
+        const usernameInput = document.getElementById('username');
+        const passwordInput = document.getElementById('password');
+        const loginButton = document.getElementById('login-button');
+        const logoutButton = document.getElementById('logout-button');
+        const authStatus = document.getElementById('auth-status');
+        const tokenTextarea = document.getElementById('token');
+        const decodeButton = document.getElementById('decode-button');
+        const verifyButton = document.getElementById('verify-button');
+        const tokenInfo = document.getElementById('token-info');
+        const userInfoButton = document.getElementById('user-info-button');
+        const testEndpointButton = document.getElementById('test-endpoint-button');
+        const apiResult = document.getElementById('api-result');
+        
+        // Load token from localStorage
+        function loadToken() {
+            const token = localStorage.getItem('token');
+            if (token) {
+                tokenTextarea.value = token;
+                authStatus.innerHTML = '<div class="success">Token loaded from localStorage</div>';
+                return token;
+            } else {
+                tokenTextarea.value = '';
+                authStatus.innerHTML = '<div class="error">No token found in localStorage</div>';
+                return null;
+            }
+        }
+        
+        // Save token to localStorage
+        function saveToken(token) {
+            localStorage.setItem('token', token);
+            tokenTextarea.value = token;
+            authStatus.innerHTML = '<div class="success">Token saved to localStorage</div>';
+        }
+        
+        // Clear token from localStorage
+        function clearToken() {
+            localStorage.removeItem('token');
+            localStorage.removeItem('username');
+            tokenTextarea.value = '';
+            authStatus.innerHTML = '<div class="error">Token cleared from localStorage</div>';
+            tokenInfo.innerHTML = '';
+            apiResult.innerHTML = '';
+        }
+        
+        // Decode JWT token
+        function decodeToken(token) {
+            try {
+                const parts = token.split('.');
+                if (parts.length !== 3) {
+                    throw new Error('Invalid token format');
+                }
+                
+                const header = JSON.parse(atob(parts[0].replace(/-/g, '+').replace(/_/g, '/')));
+                const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')));
+                
+                return {
+                    header,
+                    payload,
+                    signature: parts[2]
+                };
+            } catch (error) {
+                console.error('Error decoding token:', error);
+                throw error;
+            }
+        }
+        
+        // Login function
+        async function login(username, password) {
+            authStatus.innerHTML = '<div>Authenticating...</div>';
+            
+            // Try each base URL
+            for (const baseUrl of API_BASE_URLS) {
+                try {
+                    // Try form data approach
+                    const formData = new FormData();
+                    formData.append('username', username);
+                    formData.append('password', password);
+                    
+                    try {
+                        const response = await fetch(`${baseUrl}${LOGIN_ENDPOINT}`, {
+                            method: 'POST',
+                            body: formData
+                        });
+                        
+                        if (response.ok) {
+                            const data = await response.json();
+                            const token = data.token || data.accessToken;
+                            
+                            if (token) {
+                                saveToken(token);
+                                localStorage.setItem('username', username);
+                                authStatus.innerHTML = `<div class="success">Authentication successful (form data approach, base URL: ${baseUrl || 'relative'})</div>`;
+                                return token;
+                            }
+                        }
+                    } catch (formError) {
+                        console.log('Form data approach failed:', formError);
+                    }
+                    
+                    // Try JSON approach
+                    try {
+                        const response = await fetch(`${baseUrl}${LOGIN_ENDPOINT}`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({ username, password })
+                        });
+                        
+                        if (response.ok) {
+                            const data = await response.json();
+                            const token = data.token || data.accessToken;
+                            
+                            if (token) {
+                                saveToken(token);
+                                localStorage.setItem('username', username);
+                                authStatus.innerHTML = `<div class="success">Authentication successful (JSON approach, base URL: ${baseUrl || 'relative'})</div>`;
+                                return token;
+                            }
+                        }
+                    } catch (jsonError) {
+                        console.log('JSON approach failed:', jsonError);
+                    }
+                } catch (error) {
+                    console.log(`Failed with base URL ${baseUrl}:`, error);
+                }
+            }
+            
+            // If we get here, all base URLs failed
+            authStatus.innerHTML = '<div class="error">Authentication failed with all base URLs</div>';
+            throw new Error('Authentication failed with all base URLs');
+        }
+        
+        // Get user info function
+        async function getUserInfo(token) {
+            apiResult.innerHTML = '<div>Getting user info...</div>';
+            
+            // Try each base URL
+            for (const baseUrl of API_BASE_URLS) {
+                try {
+                    const response = await fetch(`${baseUrl}${USER_INFO_ENDPOINT}`, {
+                        method: 'GET',
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'X-Token': token
+                        }
+                    });
+                    
+                    if (response.ok) {
+                        const data = await response.json();
+                        apiResult.innerHTML = `
+                            <div class="success">User info retrieved successfully (base URL: ${baseUrl || 'relative'})</div>
+                            <pre>${JSON.stringify(data, null, 2)}</pre>
+                        `;
+                        return data;
+                    }
+                } catch (error) {
+                    console.log(`Failed with base URL ${baseUrl}:`, error);
+                }
+            }
+            
+            // If we get here, all base URLs failed
+            apiResult.innerHTML = '<div class="error">Failed to get user info with all base URLs</div>';
+            throw new Error('Failed to get user info with all base URLs');
+        }
+        
+        // Event listeners
+        loginButton.addEventListener('click', async () => {
+            const username = usernameInput.value;
+            const password = passwordInput.value;
+            
+            if (!username || !password) {
+                authStatus.innerHTML = '<div class="error">Username and password are required</div>';
+                return;
+            }
+            
+            try {
+                await login(username, password);
+            } catch (error) {
+                console.error('Login error:', error);
+                authStatus.innerHTML = `<div class="error">Login error: ${error.message}</div>`;
+            }
+        });
+        
+        logoutButton.addEventListener('click', () => {
+            clearToken();
+        });
+        
+        decodeButton.addEventListener('click', () => {
+            const token = tokenTextarea.value;
+            
+            if (!token) {
+                tokenInfo.innerHTML = '<div class="error">No token provided</div>';
+                return;
+            }
+            
+            try {
+                const decoded = decodeToken(token);
+                tokenInfo.innerHTML = `
+                    <div class="success">Token decoded successfully</div>
+                    <h3>Header</h3>
+                    <pre>${JSON.stringify(decoded.header, null, 2)}</pre>
+                    <h3>Payload</h3>
+                    <pre>${JSON.stringify(decoded.payload, null, 2)}</pre>
+                    <h3>Signature</h3>
+                    <pre>${decoded.signature}</pre>
+                `;
+            } catch (error) {
+                tokenInfo.innerHTML = `<div class="error">Error decoding token: ${error.message}</div>`;
+            }
+        });
+        
+        verifyButton.addEventListener('click', async () => {
+            const token = tokenTextarea.value;
+            
+            if (!token) {
+                tokenInfo.innerHTML = '<div class="error">No token provided</div>';
+                return;
+            }
+            
+            tokenInfo.innerHTML = '<div>Verifying token...</div>';
+            
+            try {
+                // Try to get user info to verify the token
+                await getUserInfo(token);
+                tokenInfo.innerHTML = '<div class="success">Token is valid (verified with backend)</div>';
+            } catch (error) {
+                tokenInfo.innerHTML = `<div class="error">Token verification failed: ${error.message}</div>`;
+            }
+        });
+        
+        userInfoButton.addEventListener('click', async () => {
+            const token = tokenTextarea.value || localStorage.getItem('token');
+            
+            if (!token) {
+                apiResult.innerHTML = '<div class="error">No token available</div>';
+                return;
+            }
+            
+            try {
+                await getUserInfo(token);
+            } catch (error) {
+                apiResult.innerHTML = `<div class="error">Error getting user info: ${error.message}</div>`;
+            }
+        });
+        
+        testEndpointButton.addEventListener('click', async () => {
+            const token = tokenTextarea.value || localStorage.getItem('token');
+            
+            if (!token) {
+                apiResult.innerHTML = '<div class="error">No token available</div>';
+                return;
+            }
+            
+            apiResult.innerHTML = '<div>Testing protected endpoint...</div>';
+            
+            // Try each base URL
+            for (const baseUrl of API_BASE_URLS) {
+                try {
+                    const response = await fetch(`${baseUrl}${USER_INFO_ENDPOINT}`, {
+                        method: 'GET',
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'X-Token': token
+                        }
+                    });
+                    
+                    if (response.ok) {
+                        const data = await response.json();
+                        apiResult.innerHTML = `
+                            <div class="success">Protected endpoint test successful (base URL: ${baseUrl || 'relative'})</div>
+                            <pre>${JSON.stringify(data, null, 2)}</pre>
+                        `;
+                        return;
+                    }
+                } catch (error) {
+                    console.log(`Failed with base URL ${baseUrl}:`, error);
+                }
+            }
+            
+            // If we get here, all base URLs failed
+            apiResult.innerHTML = '<div class="error">Protected endpoint test failed with all base URLs</div>';
+        });
+        
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            loadToken();
+        });
+    </script>
+</body>
+</html>

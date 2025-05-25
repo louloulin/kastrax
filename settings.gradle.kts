@@ -146,3 +146,6 @@ include(":kastrax-runtime:kastrax-runtime-jvm")
 // 暂时注释掉kastrax-runtime-idea模块，因为无法找到IntelliJ IDEA的依赖
 // include(":kastrax-runtime:kastrax-runtime-idea")
 include(":kastrax-runtime:kastrax-runtime-test")
+
+include(":kastrax-ai2db:backend")
+

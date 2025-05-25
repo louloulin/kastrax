@@ -22,6 +22,10 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.0")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-jdk8:1.8.0")
 
+    // kastrax-runtime 依赖
+    implementation(project(":kastrax-runtime:kastrax-runtime-api"))
+    implementation(project(":kastrax-runtime:kastrax-runtime-jvm"))
+
     // 测试依赖
     testImplementation("org.junit.jupiter:junit-jupiter-api:5.7.0")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.7.0")

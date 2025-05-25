@@ -1,0 +1,10 @@
+{
+  "editor.formatOnSave": true,
+  "typescript.tsdk": "node_modules\\typescript\\lib",
+  "files.eol": "\n",
+  "editor.tabSize": 2,
+  "editor.codeActionsOnSave": {
+    "source.organizeImports": "explicit"
+  },
+  "jest.runMode": "on-demand"
+}

@@ -9,6 +9,10 @@ dependencies {
     implementation("io.github.microutils:kotlin-logging:2.0.11")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.5.2")
 
+    // kastrax-runtime 依赖
+    implementation(project(":kastrax-runtime:kastrax-runtime-api"))
+    implementation(project(":kastrax-runtime:kastrax-runtime-jvm"))
+
     // Protobuf dependencies
     implementation("com.google.protobuf:protobuf-java:3.21.12")
     implementation("com.google.protobuf:protobuf-kotlin:3.21.12")

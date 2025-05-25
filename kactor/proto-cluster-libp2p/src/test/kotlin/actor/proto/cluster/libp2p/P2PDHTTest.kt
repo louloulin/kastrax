@@ -7,7 +7,7 @@ import actor.proto.cluster.ClusterConfig
 import actor.proto.cluster.ClusterIdentity
 import actor.proto.cluster.IdentityLookup
 import actor.proto.remote.RemoteConfig
-import kotlinx.coroutines.runBlocking
+import ai.kastrax.runtime.coroutines.KastraxCoroutineGlobal
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
@@ -45,7 +45,7 @@ class P2PDHTTest {
     }
 
     @Test
-    fun `should put and get value`() = runBlocking {
+    fun `should put and get value`() = KastraxCoroutineGlobal.runBlocking {
         // Arrange
         val key = "test-key"
         val value = "test-value".toByteArray()
@@ -61,7 +61,7 @@ class P2PDHTTest {
     }
 
     @Test
-    fun `should return null for non-existent key`() = runBlocking {
+    fun `should return null for non-existent key`() = KastraxCoroutineGlobal.runBlocking {
         // Arrange
         val key = "non-existent-key"
 
@@ -73,7 +73,7 @@ class P2PDHTTest {
     }
 
     @Test
-    fun `should register and lookup actor`() = runBlocking {
+    fun `should register and lookup actor`() = KastraxCoroutineGlobal.runBlocking {
         // Arrange
         val clusterIdentity = ClusterIdentity("test-kind", "test-id")
         val pid = PID("test-node", "test-kind/test-id")
@@ -90,7 +90,7 @@ class P2PDHTTest {
     }
 
     @Test
-    fun `should return null for non-existent actor`() = runBlocking {
+    fun `should return null for non-existent actor`() = KastraxCoroutineGlobal.runBlocking {
         // Arrange
         val clusterIdentity = ClusterIdentity("non-existent-kind", "non-existent-id")
 

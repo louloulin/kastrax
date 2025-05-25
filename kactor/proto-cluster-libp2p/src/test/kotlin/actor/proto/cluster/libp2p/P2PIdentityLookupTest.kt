@@ -11,7 +11,7 @@ import actor.proto.cluster.Kind
 import actor.proto.cluster.MemberList
 import actor.proto.cluster.PidCache
 import actor.proto.remote.RemoteConfig
-import kotlinx.coroutines.runBlocking
+import ai.kastrax.runtime.coroutines.KastraxCoroutineGlobal
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -46,7 +46,7 @@ class P2PIdentityLookupTest {
     }
 
     @Test
-    fun `should setup identity lookup`() = runBlocking {
+    fun `should setup identity lookup`() = KastraxCoroutineGlobal.runBlocking {
         // Arrange
         val kinds = mapOf("test-kind" to Kind("test-kind", Props()))
 
@@ -57,7 +57,7 @@ class P2PIdentityLookupTest {
     }
 
     @Test
-    fun `should lookup local actor`() = runBlocking {
+    fun `should lookup local actor`() = KastraxCoroutineGlobal.runBlocking {
         // Arrange
         val kinds = mapOf("test-kind" to Kind("test-kind", Props()))
         identityLookup.setup(cluster, kinds, false)
@@ -84,7 +84,7 @@ class P2PIdentityLookupTest {
     }
 
     @Test
-    fun `should lookup remote actor`() = runBlocking {
+    fun `should lookup remote actor`() = KastraxCoroutineGlobal.runBlocking {
         // Arrange
         val kinds = mapOf("test-kind" to Kind("test-kind", Props()))
         identityLookup.setup(cluster, kinds, false)
@@ -102,7 +102,7 @@ class P2PIdentityLookupTest {
     }
 
     @Test
-    fun `should return cached pid if available`() = runBlocking {
+    fun `should return cached pid if available`() = KastraxCoroutineGlobal.runBlocking {
         // Arrange
         val kinds = mapOf("test-kind" to Kind("test-kind", Props()))
         identityLookup.setup(cluster, kinds, false)

@@ -2,7 +2,7 @@ package actor.proto
 
 import actor.proto.logging.DefaultLoggerFactory
 import actor.proto.logging.Logger
-import kotlinx.coroutines.runBlocking
+import ai.kastrax.runtime.coroutines.KastraxCoroutineGlobal
 import java.time.Duration
 
 class ActorClient(messageHeader: MessageHeader = MessageHeader.EMPTY, senderMiddleware: List<SenderMiddleware> = listOf()) : SenderContext {
@@ -40,8 +40,8 @@ class ActorClient(messageHeader: MessageHeader = MessageHeader.EMPTY, senderMidd
             else -> {
                 val c = this
                 when (message) {
-                    is MessageEnvelope -> runBlocking { senderMiddleware.invoke(c, target, message) }
-                    else -> runBlocking { senderMiddleware.invoke(c, target, MessageEnvelope(message, null, null)) }
+                    is MessageEnvelope -> KastraxCoroutineGlobal.runBlocking { senderMiddleware.invoke(c, target, message) }
+                    else -> KastraxCoroutineGlobal.runBlocking { senderMiddleware.invoke(c, target, MessageEnvelope(message, null, null)) }
                 }
             }
         }

@@ -2,13 +2,15 @@ package ai.kastrax.runtime.coroutines
 
 import ai.kastrax.runtime.coroutines.test.TestCoroutineRuntime
 import kotlinx.coroutines.delay
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNotNull
-import org.junit.Before as BeforeEach
-import org.junit.After as AfterEach
-import org.junit.Test
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNotNull
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.AfterEach
+import org.junit.jupiter.api.Test
 import java.util.concurrent.atomic.AtomicInteger
 
+@ExperimentalCoroutinesApi
 class KastraxCoroutineGlobalTest {
 
     private lateinit var testRuntime: TestCoroutineRuntime

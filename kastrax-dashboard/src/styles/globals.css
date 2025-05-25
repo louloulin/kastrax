@@ -1,0 +1,117 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Optimize font loading with font-display: swap */
+@font-face {
+  font-family: "Inter";
+  src: url("../assets/Inter-VariableFont_slnt,wght.ttf") format("truetype");
+  font-display: swap; /* Use fallback font while loading */
+  font-weight: 100 900; /* Support variable font weight range */
+  font-style: normal;
+}
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 240 10% 3.9%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 3.9%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 3.9%;
+
+    --primary: 160 84% 39%;  /* Supabase 绿色 */
+    --primary-foreground: 355.7 100% 97.3%;
+
+    --secondary: 240 4.8% 95.9%;
+    --secondary-foreground: 240 5.9% 10%;
+
+    --muted: 240 4.8% 95.9%;
+    --muted-foreground: 240 3.8% 46.1%;
+
+    --accent: 240 4.8% 95.9%;
+    --accent-foreground: 240 5.9% 10%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 240 5.9% 90%;
+    --input: 240 5.9% 90%;
+
+    --ring: 160 84% 39%;
+
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    --background: 20 14.3% 4.1%;
+    --foreground: 0 0% 95%;
+
+    --card: 24 9.8% 10%;
+    --card-foreground: 0 0% 95%;
+
+    --popover: 0 0% 9%;
+    --popover-foreground: 0 0% 95%;
+
+    --primary: 160 84% 39%;  /* Supabase 绿色 */
+    --primary-foreground: 144.9 80.4% 10%;
+
+    --secondary: 240 3.7% 15.9%;
+    --secondary-foreground: 0 0% 98%;
+
+    --muted: 0 0% 15%;
+    --muted-foreground: 240 5% 64.9%;
+
+    --accent: 12 6.5% 15.1%;
+    --accent-foreground: 0 0% 98%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 85.7% 97.3%;
+
+    --border: 240 3.7% 15.9%;
+    --input: 240 3.7% 15.9%;
+
+    --ring: 160 84% 39%;
+
+    --radius: 4px;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+}
+
+/* Supabase 风格的组件样式 */
+@layer components {
+  .supabase-card {
+    @apply bg-card rounded-lg border border-border shadow-sm p-6;
+  }
+
+  .supabase-sidebar-item {
+    @apply flex items-center space-x-2 px-3 py-2 rounded-md text-sm hover:bg-secondary transition-colors;
+  }
+
+  .supabase-sidebar-item.active {
+    @apply bg-primary/10 text-primary;
+  }
+
+  .supabase-sidebar-item:not(.active) {
+    @apply text-muted-foreground hover:text-foreground;
+  }
+
+  .supabase-button-primary {
+    @apply bg-primary text-primary-foreground hover:bg-primary/90 rounded-md px-4 py-2 text-sm font-medium transition-all;
+  }
+
+  .supabase-input {
+    @apply rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2;
+  }
+}

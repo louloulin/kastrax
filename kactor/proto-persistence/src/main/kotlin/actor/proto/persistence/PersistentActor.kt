@@ -3,7 +3,7 @@ package actor.proto.persistence
 import actor.proto.Actor
 import actor.proto.Context
 import actor.proto.MessageEnvelope
-import kotlinx.coroutines.runBlocking
+import ai.kastrax.runtime.coroutines.KastraxCoroutineGlobal
 
 /**
  * PersistentActor is an actor that can persist its state.
@@ -73,7 +73,7 @@ abstract class PersistentActor : Actor, Receiver {
             // Initialize the actor with the provider
             val provider = message as? Provider ?: return
             // We need to call init in a coroutine because it's a suspend function
-            kotlinx.coroutines.runBlocking {
+            KastraxCoroutineGlobal.runBlocking {
                 init(provider, this@receive)
             }
             return
