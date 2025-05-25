@@ -161,7 +161,7 @@ KastraX follows a modular architecture with the following components:
 
 Detailed documentation is available in the `docs` directory and in the `kastrax-doc` module, which contains the source for our documentation website.
 
-Visit our [Official Documentation](https://docs.kastrax.ai/) for comprehensive guides and API references.
+Visit our [Official Documentation](https://kastrax-doc.vercel.app/en/docs) for comprehensive guides and API references.
 
 Key documentation topics include:
 
@@ -174,6 +174,25 @@ Key documentation topics include:
 - Schema validation with Zod
 - Server deployment options
 - Best practices and patterns
+
+## Inspiration & Acknowledgments
+
+KastraX is inspired by and builds upon several excellent projects in the AI agent ecosystem:
+
+### Mastra Framework
+
+We would like to acknowledge [Mastra](https://github.com/mas-3/mastra), an innovative TypeScript-based AI agent framework. KastraX draws significant inspiration from Mastra's architectural patterns and agent design philosophy, while adapting these concepts to leverage Kotlin's unique strengths. Our team conducted a thorough analysis of Mastra's structure and functionality, which greatly influenced KastraX's design. For more details, see our [Mastra Analysis Document](docs/mastra_analysis.md).
+
+### Augment Code
+
+KastraX's programming assistant features were developed with reference to [Augment Code](https://github.com/augment-code), particularly its approach to IDE integration and code analysis. The kastrax-code module implements many similar capabilities, providing intelligent coding assistance powered by LLMs.
+
+### Other Inspirations
+
+- Kotlin's coroutines and DSL capabilities that enable our expressive API design
+- The Actor model as implemented by the kactor library
+- The open-source LLM ecosystem and its rapid advancement
+- The broader AI research community and their contributions to agent architecture
 
 ## Examples
 
