@@ -1,0 +1,34 @@
+{
+    "people": [
+        {
+            "name": "John Doe",
+            "age": 30,
+            "city": "New York",
+            "skills": ["Java", "Kotlin", "Python"]
+        },
+        {
+            "name": "Jane Smith",
+            "age": 25,
+            "city": "London",
+            "skills": ["JavaScript", "TypeScript", "React"]
+        },
+        {
+            "name": "Bob Johnson",
+            "age": 40,
+            "city": "Paris",
+            "skills": ["C++", "Rust", "Go"]
+        }
+    ],
+    "companies": [
+        {
+            "name": "Tech Corp",
+            "location": "New York",
+            "employees": 500
+        },
+        {
+            "name": "Data Systems",
+            "location": "London",
+            "employees": 200
+        }
+    ]
+}

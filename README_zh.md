@@ -12,7 +12,7 @@
   [![Discord](https://img.shields.io/discord/1234567890?color=5865F2&label=discord)](https://discord.gg/kastrax)
 </div>
 
-KastraX 是一个用 Kotlin 构建的现代 AI 代理框架，受到 Mastra 和 Kastra 的启发。它提供了一套全面的工具和抽象，用于构建 AI 驱动的应用程序，注重类型安全、模块化和开发者体验。
+KastraX 是一个用 Kotlin 构建的现代 AI 代理框架，受到 Mastra的启发。它提供了一套全面的工具和抽象，用于构建 AI 驱动的应用程序，注重类型安全、模块化和开发者体验。
 
 ## 目录
 

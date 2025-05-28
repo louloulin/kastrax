@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<data>
+    <people>
+        <person id="1">
+            <name>John Doe</name>
+            <age>30</age>
+            <city>New York</city>
+            <department>Engineering</department>
+        </person>
+        <person id="2">
+            <name>Jane Smith</name>
+            <age>25</age>
+            <city>London</city>
+            <department>Marketing</department>
+        </person>
+        <person id="3">
+            <name>Bob Johnson</name>
+            <age>40</age>
+            <city>Paris</city>
+            <department>Finance</department>
+        </person>
+    </people>
+    <projects>
+        <project id="A">
+            <name>Website Redesign</name>
+            <lead>Jane Smith</lead>
+        </project>
+        <project id="B">
+            <name>Mobile App</name>
+            <lead>John Doe</lead>
+        </project>
+    </projects>
+</data>

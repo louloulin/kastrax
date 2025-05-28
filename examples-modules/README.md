@@ -1,4 +1,26 @@
-# Kastrax 示例模块
+# KastraX 示例模块
+
+本目录包含了KastraX框架的各种示例，展示了不同功能和使用场景。
+
+## 🆕 新增模块
+
+### 🤖 流式代理 (Streaming Agent)
+位于 `streaming-agent/` 模块，包含：
+- **BasicStreamingExample.kt** - 基础流式生成示例
+- **AdvancedStreamingExample.kt** - 高级流式处理，包含会话管理和并发处理
+- **InteractiveChatExample.kt** - 交互式聊天体验
+
+### 🔧 MCP 协议支持
+位于 `mcp/` 模块，包含：
+- **AgentAsMCPServer.kt** - 将代理暴露为MCP服务
+- **AgentWithMCPTools.kt** - 使用MCP工具的代理
+- **StreamingAgentExample.kt** - MCP环境下的流式处理
+- **RealTimeStreamingExample.kt** - 实时流式处理与工具调用
+- **SimpleMCPClient.kt** - 基础MCP客户端
+- **SimpleMCPServer.kt** - 基础MCP服务器
+- **MultiServerMCP.kt** - 多服务器MCP集成
+
+## 📁 原有模块
 
 这个目录包含了Kastrax框架的各种示例，按照功能分类组织成多个子模块。
 

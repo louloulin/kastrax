@@ -20,7 +20,7 @@ fun main() = runBlocking {
         // 使用 Deepseek 模型
         model = deepSeek {
             model(DeepSeekModel.DEEPSEEK_CHAT)
-            apiKey(System.getenv("DEEPSEEK_API_KEY") ?: "your-api-key-here")
+            apiKey("sk-85e83081df28490b9ae63188f0cb4f79")
             temperature(0.7)
             maxTokens(2000)
             timeout(60000) // 60秒超时
