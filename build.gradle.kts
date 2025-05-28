@@ -2,6 +2,7 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import io.gitlab.arturbosch.detekt.extensions.DetektExtension
 import org.gradle.api.publish.PublishingExtension
 import org.gradle.api.publish.maven.MavenPublication
+import org.gradle.plugins.signing.SigningExtension
 
 buildscript {
     repositories {
@@ -61,6 +62,48 @@ allprojects {
                         if (publications.findByName("maven") == null) {
                             create<MavenPublication>("maven") {
                                 from(components["java"])
+                                
+                                // 配置POM信息以满足Maven Central要求
+                                pom {
+                                    name.set(project.name)
+                                    description.set(project.description ?: "Kastrax AI Framework - ${project.name}")
+                                    url.set("https://github.com/kastrax/kastrax")
+                                    
+                                    licenses {
+                                        license {
+                                            name.set("Apache License 2.0")
+                                            url.set("https://www.apache.org/licenses/LICENSE-2.0")
+                                        }
+                                    }
+                                    
+                                    developers {
+                                        developer {
+                                            id.set("lumos-team")
+                                            name.set("louloulin")
+                                            email.set("729883852@qq.com")
+                                        }
+                                    }
+                                    
+                                    scm {
+                                        connection.set("scm:git:https://github.com/louloulin/kastrax.git")
+                                         developerConnection.set("scm:git:ssh://github.com/louloulin/kastrax.git")
+                                        url.set("https://github.com/louloulin/kastrax.git/tree/main")
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    
+                    repositories {
+                        maven {
+                            name = "OSSRH"
+                            val releasesRepoUrl = "https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/"
+                            val snapshotsRepoUrl = "https://s01.oss.sonatype.org/content/repositories/snapshots/"
+                            url = uri(if (version.toString().endsWith("SNAPSHOT")) snapshotsRepoUrl else releasesRepoUrl)
+                            
+                            credentials {
+                                username = findProperty("ossrhUsername") as String? ?: System.getenv("OSSRH_USERNAME")
+                                password = findProperty("ossrhPassword") as String? ?: System.getenv("OSSRH_PASSWORD")
                             }
                         }
                     }
@@ -69,6 +112,20 @@ allprojects {
                 // 为使用enforced platform的模块抑制验证错误
                 tasks.withType<GenerateModuleMetadata>().configureEach {
                     suppressedValidationErrors.add("enforced-platform")
+                }
+            }
+        }
+        
+        // 配置签名
+        plugins.withId("signing") {
+            configure<SigningExtension> {
+                val signingKey = findProperty("signing.keyId") as String? ?: System.getenv("SIGNING_KEY_ID")
+                val signingPassword = findProperty("signing.password") as String? ?: System.getenv("SIGNING_PASSWORD")
+                val signingSecretKey = findProperty("signing.secretKeyRingFile") as String? ?: System.getenv("SIGNING_SECRET_KEY_RING_FILE")
+                
+                if (signingKey != null && signingPassword != null && signingSecretKey != null) {
+                    useInMemoryPgpKeys(signingKey, signingPassword)
+                    sign(extensions.getByType<PublishingExtension>().publications)
                 }
             }
         }
