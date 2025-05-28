@@ -56,15 +56,13 @@ fun main() = runBlocking {
             }
             
             handler { params ->
-                val question = params["question"] as? String ?: "今天天气怎么样？"
+                val question = params["question"] as String
                 
                 // 使用代理生成回答
                 val response = weatherAgent.generate(question)
                 
-                mapOf(
-                    "answer" to response.text,
-                    "timestamp" to System.currentTimeMillis()
-                )
+                // 返回代理的回答
+                response.text
             }
         }
     }

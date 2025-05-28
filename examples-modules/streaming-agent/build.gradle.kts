@@ -15,6 +15,9 @@ dependencies {
     // 协程依赖
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
     
+    // 日期时间依赖
+    implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.4.1")
+    
     // 日志依赖
     implementation("ch.qos.logback:logback-classic:1.4.11")
 }

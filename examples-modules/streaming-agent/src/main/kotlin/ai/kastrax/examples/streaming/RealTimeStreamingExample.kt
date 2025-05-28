@@ -1,4 +1,4 @@
-package ai.kastrax.examples.mcp
+package ai.kastrax.examples.streaming
 
 import ai.kastrax.core.agent.agent
 import ai.kastrax.core.agent.AgentStreamOptions
@@ -8,6 +8,7 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collect
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.*
 import kotlin.random.Random
 
 /**
@@ -34,17 +35,22 @@ fun main() = runBlocking {
             name = "getCurrentTime"
             description = "获取当前时间"
             
-            handler {
+            inputSchema = buildJsonObject {
+                put("type", "object")
+                put("properties", buildJsonObject {})
+            }
+            
+            execute = { input ->
                 val currentTime = System.currentTimeMillis()
                 val dateTime = java.time.Instant.ofEpochMilli(currentTime)
                     .atZone(java.time.ZoneId.systemDefault())
                     .toString()
                 
-                mapOf(
-                    "timestamp" to currentTime,
-                    "datetime" to dateTime,
-                    "formatted" to java.time.LocalDateTime.now().toString()
-                )
+                buildJsonObject {
+                    put("timestamp", currentTime)
+                    put("datetime", dateTime)
+                    put("formatted", java.time.LocalDateTime.now().toString())
+                }
             }
         }
         
@@ -52,17 +58,22 @@ fun main() = runBlocking {
         tool {
             name = "getWeather"
             description = "获取指定城市的天气信息"
-            parameters {
-                parameter {
-                    name = "city"
-                    type = "string"
-                    description = "城市名称"
-                    required = true
-                }
+            
+            inputSchema = buildJsonObject {
+                put("type", "object")
+                put("properties", buildJsonObject {
+                    put("city", buildJsonObject {
+                        put("type", "string")
+                        put("description", "城市名称")
+                    })
+                })
+                put("required", buildJsonArray {
+                    add("city")
+                })
             }
             
-            handler { params ->
-                val city = params["city"] as? String ?: "未知城市"
+            execute = { input ->
+                val city = input.jsonObject["city"]?.jsonPrimitive?.content ?: "未知城市"
                 
                 // 模拟网络延迟
                 delay(1000)
@@ -71,13 +82,13 @@ fun main() = runBlocking {
                 val temperatures = listOf(15, 18, 22, 25, 28, 30, 32)
                 val conditions = listOf("晴朗", "多云", "小雨", "阴天", "雷阵雨")
                 
-                mapOf(
-                    "city" to city,
-                    "temperature" to temperatures.random(),
-                    "condition" to conditions.random(),
-                    "humidity" to Random.nextInt(30, 90),
-                    "windSpeed" to Random.nextInt(5, 25)
-                )
+                buildJsonObject {
+                    put("city", city)
+                    put("temperature", temperatures.random())
+                    put("condition", conditions.random())
+                    put("humidity", Random.nextInt(30, 90))
+                    put("windSpeed", Random.nextInt(5, 25))
+                }
             }
         }
         
@@ -85,17 +96,22 @@ fun main() = runBlocking {
         tool {
             name = "calculate"
             description = "执行数学计算"
-            parameters {
-                parameter {
-                    name = "expression"
-                    type = "string"
-                    description = "数学表达式"
-                    required = true
-                }
+            
+            inputSchema = buildJsonObject {
+                put("type", "object")
+                put("properties", buildJsonObject {
+                    put("expression", buildJsonObject {
+                        put("type", "string")
+                        put("description", "数学表达式")
+                    })
+                })
+                put("required", buildJsonArray {
+                    add("expression")
+                })
             }
             
-            handler { params ->
-                val expression = params["expression"] as? String ?: "0"
+            execute = { input ->
+                val expression = input.jsonObject["expression"]?.jsonPrimitive?.content ?: "0"
                 
                 try {
                     // 简单的计算逻辑（实际应用中应使用更安全的表达式解析器）
@@ -122,17 +138,17 @@ fun main() = runBlocking {
                         else -> expression.toDoubleOrNull() ?: 0.0
                     }
                     
-                    mapOf(
-                        "expression" to expression,
-                        "result" to result,
-                        "success" to true
-                    )
+                    buildJsonObject {
+                        put("expression", expression)
+                        put("result", result)
+                        put("success", true)
+                    }
                 } catch (e: Exception) {
-                    mapOf(
-                        "expression" to expression,
-                        "error" to e.message,
-                        "success" to false
-                    )
+                    buildJsonObject {
+                        put("expression", expression)
+                        put("error", e.message ?: "Unknown error")
+                        put("success", false)
+                    }
                 }
             }
         }

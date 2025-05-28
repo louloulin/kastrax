@@ -1,4 +1,4 @@
-package ai.kastrax.examples.mcp
+package ai.kastrax.examples.streaming
 
 import ai.kastrax.core.agent.agent
 import ai.kastrax.core.agent.AgentStreamOptions

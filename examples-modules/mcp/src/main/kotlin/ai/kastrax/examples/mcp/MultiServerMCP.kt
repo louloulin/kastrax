@@ -46,10 +46,9 @@ fun main() = runBlocking {
             // model = openAi("gpt-4")
         }
         
-        // 使用代理，传入工具集
+        // 使用代理
         val response = agent.generate(
-            "纽约的天气怎么样？苹果公司的股票价格是多少？",
-            toolsets = toolsets
+            "纽约的天气怎么样？苹果公司的股票价格是多少？"
         )
         println("Agent response: ${response.text}")
     } finally {
