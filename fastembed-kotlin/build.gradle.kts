@@ -137,52 +137,7 @@ tasks.jar {
     }
 }
 
-// Configure publishing
-publishing {
-    publications {
-        create<MavenPublication>("maven") {
-            from(components["java"])
 
-            pom {
-                name.set("FastEmbed Kotlin")
-                description.set("Kotlin bindings for the fastembed-rs library")
-                url.set("https://github.com/kastrax/fastembed-kotlin")
-
-                licenses {
-                    license {
-                        name.set("Apache License, Version 2.0")
-                        url.set("https://www.apache.org/licenses/LICENSE-2.0")
-                    }
-                }
-
-                developers {
-                    developer {
-                        id.set("kastrax")
-                        name.set("KastraX Team")
-                        email.set("info@kastrax.ai")
-                    }
-                }
-
-                scm {
-                    connection.set("scm:git:git://github.com/kastrax/fastembed-kotlin.git")
-                    developerConnection.set("scm:git:ssh://github.com/kastrax/fastembed-kotlin.git")
-                    url.set("https://github.com/kastrax/fastembed-kotlin")
-                }
-            }
-        }
-    }
-
-    repositories {
-        maven {
-            name = "GitHubPackages"
-            url = uri("https://maven.pkg.github.com/kastrax/fastembed-kotlin")
-            credentials {
-                username = project.findProperty("gpr.user") as String? ?: System.getenv("GITHUB_USERNAME")
-                password = project.findProperty("gpr.key") as String? ?: System.getenv("GITHUB_TOKEN")
-            }
-        }
-    }
-}
 
 // Configure signing
 signing {

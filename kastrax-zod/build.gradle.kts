@@ -53,11 +53,3 @@ kotlin {
 tasks.dokkaHtml.configure {
     outputDirectory.set(buildDir.resolve("dokka"))
 }
-
-publishing {
-    publications {
-        create<MavenPublication>("maven") {
-            from(components["java"])
-        }
-    }
-}

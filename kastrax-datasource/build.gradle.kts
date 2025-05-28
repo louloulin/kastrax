@@ -3,7 +3,6 @@ plugins {
     kotlin("plugin.serialization")
     id("org.jetbrains.dokka")
     id("io.gitlab.arturbosch.detekt")
-    `maven-publish`
 }
 
 dependencies {
@@ -48,17 +47,5 @@ tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
     kotlinOptions {
         jvmTarget = "17"
         freeCompilerArgs = listOf("-Xjsr305=strict")
-    }
-}
-
-publishing {
-    publications {
-        create<MavenPublication>("maven") {
-            groupId = "ai.kastrax"
-            artifactId = "kastrax-datasource"
-            version = "0.1.0"
-
-            from(components["java"])
-        }
     }
 }

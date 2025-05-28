@@ -1,5 +1,7 @@
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import io.gitlab.arturbosch.detekt.extensions.DetektExtension
+import org.gradle.api.publish.PublishingExtension
+import org.gradle.api.publish.maven.MavenPublication
 
 buildscript {
     repositories {
@@ -44,6 +46,26 @@ allprojects {
             buildUponDefaultConfig = true
             autoCorrect = true
             ignoreFailures = true
+        }
+    }
+
+    // 为非测试模块配置 maven-publish
+    if (!project.name.contains("test") && project != rootProject) {
+        apply(plugin = "maven-publish")
+        
+        plugins.withId("java") {
+            plugins.withId("maven-publish") {
+                configure<PublishingExtension> {
+                    publications {
+                        // 只有当没有现有的maven publication时才创建
+                        if (publications.findByName("maven") == null) {
+                            create<MavenPublication>("maven") {
+                                from(components["java"])
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 }

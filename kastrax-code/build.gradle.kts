@@ -93,11 +93,12 @@ intellijPlatform {
         password = providers.environmentVariable("PRIVATE_KEY_PASSWORD")
     }
 
-    publishing {
-        token = providers.environmentVariable("PUBLISH_TOKEN")
-        // Release channel
-        channels = listOf("default")
-    }
+    // Publishing configuration moved to global setup
+    // publishing {
+    //     token = providers.environmentVariable("PUBLISH_TOKEN")
+    //     // Release channel
+    //     channels = listOf("default")
+    // }
 
     pluginVerification {
         ides {

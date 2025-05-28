@@ -58,14 +58,4 @@ tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
     }
 }
 
-publishing {
-    publications {
-        create<MavenPublication>("maven") {
-            groupId = "ai.kastrax"
-            artifactId = "kastrax-gemini"
-            version = "0.1.0"
-
-            from(components["java"])
-        }
-    }
-}
+// Publishing configuration moved to global setup

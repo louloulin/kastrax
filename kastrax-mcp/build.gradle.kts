@@ -141,48 +141,4 @@ java {
     withJavadocJar()
 }
 
-publishing {
-    publications {
-        create<MavenPublication>("maven") {
-            from(components["java"])
-
-            pom {
-                name.set("KastraX MCP")
-                description.set("Model Context Protocol (MCP) implementation for KastraX")
-                url.set("https://github.com/kastrax/kastrax")
-
-                licenses {
-                    license {
-                        name.set("The Apache License, Version 2.0")
-                        url.set("https://www.apache.org/licenses/LICENSE-2.0.txt")
-                    }
-                }
-
-                developers {
-                    developer {
-                        id.set("kastrax")
-                        name.set("KastraX Team")
-                        email.set("info@kastrax.ai")
-                    }
-                }
-
-                scm {
-                    connection.set("scm:git:git://github.com/kastrax/kastrax.git")
-                    developerConnection.set("scm:git:ssh://github.com/kastrax/kastrax.git")
-                    url.set("https://github.com/kastrax/kastrax")
-                }
-            }
-        }
-    }
-
-    repositories {
-        maven {
-            name = "GitHubPackages"
-            url = uri("https://maven.pkg.github.com/kastrax/kastrax")
-            credentials {
-                username = System.getenv("GITHUB_ACTOR")
-                password = System.getenv("GITHUB_TOKEN")
-            }
-        }
-    }
-}
+// Publishing configuration moved to global setup

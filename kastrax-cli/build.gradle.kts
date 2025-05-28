@@ -5,7 +5,6 @@ plugins {
     id("io.ktor.plugin") apply false
 
     application
-    `maven-publish`
 }
 
 repositories {
@@ -88,14 +87,3 @@ tasks.jar {
     dependsOn(":kastrax-store:jar")
 }
 
-publishing {
-    publications {
-        create<MavenPublication>("maven") {
-            groupId = "ai.kastrax"
-            artifactId = "kastrax-cli"
-            version = "0.1.0"
-
-            from(components["java"])
-        }
-    }
-}

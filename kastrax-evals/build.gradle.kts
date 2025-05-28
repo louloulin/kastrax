@@ -2,7 +2,6 @@ plugins {
     kotlin("jvm")
     kotlin("plugin.serialization")
     id("org.jetbrains.dokka")
-    `maven-publish`
 }
 
 repositories {
@@ -44,14 +43,4 @@ kotlin {
     jvmToolchain(17)
 }
 
-publishing {
-    publications {
-        create<MavenPublication>("maven") {
-            groupId = "ai.kastrax"
-            artifactId = "kastrax-evals"
-            version = "0.1.0"
-
-            from(components["java"])
-        }
-    }
-}
+// Publishing configuration moved to global setup

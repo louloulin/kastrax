@@ -107,17 +107,7 @@ kotlin {
     jvmToolchain(17)
 }
 
-publishing {
-    publications {
-        create<MavenPublication>("maven") {
-            groupId = "ai.kastrax"
-            artifactId = "kastrax-rag"
-            version = "0.1.0"
-
-            from(components["java"])
-        }
-    }
-}
+// Publishing configuration moved to global setup
 
 application {
     mainClass.set("ai.kastrax.rag.examples.RagVerificationExample")

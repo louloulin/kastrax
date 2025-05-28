@@ -105,7 +105,7 @@ subprojects {
 }
 
 configure(subprojects.filter { it.name != "examples" }) {
-    apply(plugin = "maven-publish")
+    // apply(plugin = "maven-publish") // 使用全局配置
     apply(plugin = "jacoco")
 
     configure<JacocoPluginExtension> {
@@ -128,37 +128,7 @@ configure(subprojects.filter { it.name != "examples" }) {
         dependsOn(tasks["classes"])
     }
 
-    configure<PublishingExtension> {
-        publications {
-            create<MavenPublication>("maven") {
-                from(components["java"])
-                artifact(tasks["sourcesJar"])
-
-                pom {
-                    description.set("Proto.Actor is a Next generation Actor Model framework")
-                    name.set("Proto.Actor")
-                    url.set("http://proto.actor")
-                    licenses {
-                        license {
-                            name.set("Apache License, Version 2.0")
-                            url.set("http://www.apache.org/licenses/LICENSE-2.0.txt")
-                            distribution.set("repo")
-                        }
-                    }
-                    developers {
-                        developer {
-                            id.set("rogeralsing")
-                            name.set("Roger Alsing")
-                            email.set("rogeralsing@gmail.com")
-                        }
-                    }
-                    scm {
-                        url.set("https://github.com/AsynkronIT/protoactor-kotlin")
-                    }
-                }
-            }
-        }
-    }
+    // PublishingExtension配置已移至全局配置
 
     tasks.named<JacocoReport>("jacocoTestReport") {
         reports {
