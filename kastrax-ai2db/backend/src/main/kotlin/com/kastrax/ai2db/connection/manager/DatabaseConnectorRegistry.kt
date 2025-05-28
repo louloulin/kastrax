@@ -1,9 +1,12 @@
 package com.kastrax.ai2db.connection.manager
 
 import com.kastrax.ai2db.connection.connector.DatabaseConnector
+import com.kastrax.ai2db.connection.connector.MySQLConnector
+import com.kastrax.ai2db.connection.connector.PostgreSQLConnector
+import com.kastrax.ai2db.connection.connector.SQLServerConnector
 import com.kastrax.ai2db.connection.model.DatabaseType
 import org.springframework.stereotype.Component
-import javax.annotation.PostConstruct
+import jakarta.annotation.PostConstruct
 
 /**
  * Registry for database connectors

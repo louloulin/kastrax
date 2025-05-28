@@ -5,6 +5,7 @@ import com.kastrax.ai2db.connection.model.DatabaseType
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import org.springframework.data.repository.Repository
+import org.springframework.stereotype.Service
 import java.util.Optional
 
 /**

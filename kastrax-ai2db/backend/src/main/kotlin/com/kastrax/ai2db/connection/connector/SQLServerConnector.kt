@@ -248,7 +248,7 @@ class SQLServerConnector : DatabaseConnector {
             .param("tableName", tableName)
             .param("columnName", columnName)
             .query(Int::class.java)
-            .listOrEmpty()
+            .list()
             .isNotEmpty()
 
             ColumnMetadata(

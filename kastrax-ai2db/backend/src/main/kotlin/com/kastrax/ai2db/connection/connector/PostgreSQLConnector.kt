@@ -240,7 +240,7 @@ class PostgreSQLConnector : DatabaseConnector {
             .param("tableName", tableName)
             .param("columnName", columnName)
             .query(Int::class.java)
-            .listOrEmpty()
+            .list()
             .isNotEmpty()
 
             // Check if column is auto-increment (serial or identity column)
@@ -258,7 +258,7 @@ class PostgreSQLConnector : DatabaseConnector {
                 .param("tableName", tableName)
                 .param("columnName", columnName)
                 .query(Int::class.java)
-                .listOrEmpty()
+                .list()
                 .isNotEmpty()
             }
 
