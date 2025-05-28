@@ -1,14 +1,14 @@
 plugins {
-    kotlin("jvm")
-    kotlin("plugin.serialization")
+    kotlin("jvm") version "2.1.10"
+    kotlin("plugin.serialization") version "2.1.10"
     application
 }
 
 dependencies {
     // 项目依赖
-    implementation("ai.kastrax:kastrax-core")
-    implementation("ai.kastrax:kastrax-deepseek")
-    implementation("ai.kastrax:kastrax-zod")
+    implementation(project(":kastrax-core"))
+    implementation(project(":kastrax-integrations:kastrax-deepseek"))
+    implementation(project(":kastrax-zod"))
 
     // Kotlin 序列化依赖
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.0")
