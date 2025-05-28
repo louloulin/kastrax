@@ -26,5 +26,5 @@ dependencies {
 }
 
 application {
-    mainClass.set("ai.kastrax.examples.agent.HelloAgentKt")
+    mainClass.set("ai.kastrax.examples.agent.SimpleStreamingExampleKt")
 }
