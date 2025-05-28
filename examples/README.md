@@ -1,98 +1,150 @@
-# KastraX 示例
+# KastraX 示例模块
 
-这个目录包含了使用KastraX AI Agent框架的示例程序，展示了如何使用框架的各种功能。示例按功能模块分类，方便学习和参考。
+本目录包含了KastraX框架的各种示例，展示了不同功能和使用场景。
 
-## 示例目录结构
+## 🆕 新增模块
 
-```
-examples/
-├── agent/                # 代理相关示例
-├── memory/               # 内存系统示例
-├── rag/                  # 检索增强生成示例
-├── tools/                # 工具使用示例
-├── workflow/             # 工作流示例
-├── integrations/         # 不同模型集成示例
-│   ├── openai/           # OpenAI模型示例
-│   ├── deepseek/         # DeepSeek模型示例
-│   └── anthropic/        # Anthropic模型示例
-└── README.md             # 主要示例文档
-```
+### 🤖 流式代理 (Streaming Agent)
+位于 `streaming-agent/` 模块，包含：
+- **BasicStreamingExample.kt** - 基础流式生成示例
+- **AdvancedStreamingExample.kt** - 高级流式处理，包含会话管理和并发处理
+- **InteractiveChatExample.kt** - 交互式聊天体验
 
-## 示例分类
+### 🔧 MCP 协议支持
+位于 `mcp/` 模块，包含：
+- **AgentAsMCPServer.kt** - 将代理暴露为MCP服务
+- **AgentWithMCPTools.kt** - 使用MCP工具的代理
+- **StreamingAgentExample.kt** - MCP环境下的流式处理
+- **RealTimeStreamingExample.kt** - 实时流式处理与工具调用
+- **SimpleMCPClient.kt** - 基础MCP客户端
+- **SimpleMCPServer.kt** - 基础MCP服务器
+- **MultiServerMCP.kt** - 多服务器MCP集成
 
-### 代理示例 (agent/)
+## 📁 原有模块
 
-代理示例展示了如何创建和使用KastraX代理，包括基本代理配置、多代理系统和代理网络。
+这个目录包含了Kastrax框架的各种示例，按照功能分类组织成多个子模块。
 
-- **SimpleAgentExample.kt**: 基本代理设置和使用
-- **MultiAgentExample.kt**: 多个代理协同工作
-- **AgentNetworkExample.kt**: 代理网络通信
+## 模块结构
 
-### 内存系统示例 (memory/)
+- **workflow**: 工作流相关示例
+- **rag**: RAG（检索增强生成）相关示例
+- **memory**: 内存相关示例
+- **tools**: 工具相关示例
+- **agent**: Agent相关示例
+- **other**: 其他示例
+- **plugin**: 插件相关示例
 
-内存系统示例展示了如何使用KastraX的内存功能，包括基本内存使用、语义搜索和工作内存。
+## 如何运行示例
 
-- **BasicMemoryExample.kt**: 简单内存使用
-- **SemanticSearchExample.kt**: 使用语义搜索与内存
-- **WorkingMemoryExample.kt**: 工作内存实现
-- **PersistentMemoryExample.kt**: 持久化内存存储
+### 使用脚本运行
 
-### RAG示例 (rag/)
-
-RAG示例展示了如何使用KastraX的检索增强生成功能，包括文档分块、向量嵌入和混合搜索。
-
-- **BasicRAGExample.kt**: 简单RAG实现
-- **ChunkingExample.kt**: 文档分块策略
-- **EmbeddingExample.kt**: 文档向量嵌入
-- **HybridSearchExample.kt**: 结合关键词和语义搜索
-
-### 工具示例 (tools/)
-
-工具示例展示了如何创建和使用KastraX工具，包括基本工具、Web搜索工具和文件系统工具。
-
-- **BasicToolExample.kt**: 创建和使用简单工具
-- **WebSearchToolExample.kt**: Web搜索工具实现
-- **FileSystemToolExample.kt**: 文件系统操作
-- **CustomToolExample.kt**: 创建自定义工具
-
-### 工作流示例 (workflow/)
-
-工作流示例展示了如何使用KastraX的工作流功能，包括基本工作流、并行执行和条件分支。
-
-- **SimpleWorkflowExample.kt**: 基本工作流创建
-- **ParallelWorkflowExample.kt**: 并行执行步骤
-- **ConditionalWorkflowExample.kt**: 条件分支
-- **DynamicWorkflowExample.kt**: 动态生成工作流
-
-### 集成示例 (integrations/)
-
-集成示例展示了如何使用KastraX与不同的模型提供商集成，包括OpenAI、DeepSeek和Anthropic。
-
-- **OpenAIExample.kt**: 使用OpenAI模型
-- **DeepSeekExample.kt**: 使用DeepSeek模型
-- **AnthropicExample.kt**: 使用Anthropic模型
-
-## 运行示例
-
-要运行示例，请使用以下命令：
+在项目根目录下，运行以下命令：
 
 ```bash
-# 编译和运行特定示例
-cd kastra
-./gradlew run --args="ai.kastrax.examples.<category>.<ExampleName>Kt"
-
-# 例如，运行简单代理示例
-./gradlew run --args="ai.kastrax.examples.agent.SimpleAgentExampleKt"
+./run_examples_modules.sh <类别> [示例名称]
 ```
 
-## 学习路径
+例如：
 
-如果你是KastraX的新用户，我们建议按照以下顺序学习这些示例：
+```bash
+# 运行动态工作流示例
+./run_examples_modules.sh workflow dynamic
 
-1. **agent/SimpleAgentExample.kt**: 基础的Agent创建和使用
-2. **tools/BasicToolExample.kt**: 基本工具创建和使用
-3. **memory/BasicMemoryExample.kt**: 基本内存系统使用
-4. **workflow/SimpleWorkflowExample.kt**: 基本工作流创建和使用
-5. **rag/BasicRAGExample.kt**: 基本RAG实现
+# 运行基础RAG示例
+./run_examples_modules.sh rag basic
 
-然后，你可以根据自己的需求探索更高级的示例。
+# 运行所有示例
+./run_examples_modules.sh all
+```
+
+### 使用Gradle运行
+
+在`examples-modules`目录下，运行以下命令：
+
+```bash
+./gradlew run --args="<类别> [示例名称]"
+```
+
+例如：
+
+```bash
+# 运行动态工作流示例
+./gradlew run --args="workflow dynamic"
+
+# 运行基础RAG示例
+./gradlew run --args="rag basic"
+
+# 运行所有示例
+./gradlew run --args="all"
+```
+
+### 直接运行特定示例
+
+每个子模块都有自己的Gradle任务来运行特定的示例：
+
+```bash
+# 运行动态工作流示例
+./gradlew :workflow:runDynamicWorkflowExample
+
+# 运行基础RAG示例
+./gradlew :rag:runRAGExample
+
+# 运行工作内存示例
+./gradlew :memory:runWorkingMemoryExample
+```
+
+## 可用的示例
+
+### 工作流示例
+
+- **WorkflowExample**: 基础工作流示例，实现了内容创作工作流，包括研究、写作和编辑三个步骤。
+- **DynamicWorkflowExample**: 动态工作流示例，实现了动态工作流，可以在运行时生成和组合工作流。
+- **AdvancedWorkflowExample**: 高级工作流示例，实现了高级工作流功能，包括内容生成、审核、改进、并行处理和最终处理步骤。
+- **WorkflowRetryExample**: 工作流重试示例，实现了工作流重试机制，可以在步骤失败时自动重试。
+
+### RAG示例
+
+- **RAGExample**: 基础RAG示例，实现了基础RAG系统，可以从文档中检索信息并生成回答。
+- **RAGWorkflowExample**: RAG工作流示例，实现了RAG工作流，包含研究、分析和报告生成步骤。
+- **FastEmbedRAGExample**: 快速嵌入RAG示例，实现了使用本地嵌入模型的RAG系统，无需依赖外部API。
+
+### 内存示例
+
+- **WorkingMemoryExample**: 工作内存示例，实现了工作内存功能，可以记录和更新用户信息和对话上下文。
+- **MemoryCompressionExample**: 内存压缩示例，实现了内存压缩功能，可以在对话变长时自动压缩历史记录。
+- **MemoryManagerExample**: 内存管理器示例，实现了记忆管理器，可以进行高级查询、导出和管理对话记忆。
+- **TagsAndSharingExample**: 标签和共享示例，实现了标签和线程共享功能，可以对消息进行分类和在不同线程之间共享消息。
+
+### 工具示例
+
+- **AdvancedZodToolExample**: 高级Zod工具示例，实现了高级Zod工具，包括复杂数据结构的验证和转换。
+- **DataClassZodToolExample**: 数据类Zod工具示例，实现了使用数据类的Zod工具，包括用户数据验证。
+- **DateTimeToolExample**: 日期时间工具示例，实现了日期时间工具，包括获取当前时间、格式化、解析、加减和时区转换等功能。
+- **ZodAdvancedToolExample**: Zod高级工具示例，实现了高级Zod工具，包括用户搜索功能和复杂数据结构处理。
+- **ZodCalculatorExample**: Zod计算器示例，实现了计算器工具，可以执行基本的数学运算。
+- **ZodCalculatorToolExample**: Zod计算器工具示例，实现了使用数据类的计算器工具，包括输入验证和结果格式化。
+
+### Agent示例
+
+- **ZodAgentExample**: Zod代理示例，实现了使用Zod工具的Agent，可以执行数学计算和日期时间处理。
+- **AdaptiveAgentExample**: 自适应代理示例，实现了一个自适应Agent，可以根据用户偏好调整响应。
+- **AdvancedAgentExample**: 高级代理示例，实现了一个高级Agent，具有更复杂的功能。
+- **AgentStateExample**: 代理状态示例，实现了Agent状态管理和会话控制功能。
+- **AgentVersioningExample**: 代理版本控制示例，实现了Agent版本控制和回滚功能。
+- **GoalOrientedAgentExample**: 目标导向代理示例，实现了目标导向Agent，可以自动提取目标并分解任务。
+- **ReflectiveAgentExample**: 反思型代理示例，实现了反思型Agent，可以对自己的响应进行反思和学习。
+- **HierarchicalAgentExample**: 分层代理示例，实现了分层Agent，包含协调器和多个专业子Agent。
+- **AgentNetworkExample**: 代理网络示例，实现了Agent网络，包含多个专业Agent协同工作。
+
+### 其他示例
+
+- **DataSourceExample**: 数据源示例，实现了数据源功能，可以从不同来源加载和处理数据。
+- **AnthropicDirectStreamingExample**: Anthropic直接流式示例，实现了Anthropic模型的直接流式调用，可以实时获取模型输出。
+- **AnthropicStreamingExample**: Anthropic流式示例，实现了Anthropic模型的流式调用，可以实时获取模型输出。
+- **GeminiDirectStreamingExample**: Gemini直接流式示例，实现了Gemini模型的直接流式调用，可以实时获取模型输出。
+- **GeminiStreamingExample**: Gemini流式示例，实现了Gemini模型的流式调用，可以实时获取模型输出。
+
+### 插件相关示例
+
+- **HttpConnectorPlugin**: HTTP连接器插件示例，实现了HTTP连接器插件，可以通过HTTP协议连接外部服务。
+- **HttpStepPlugin**: HTTP步骤插件示例，实现了HTTP步骤插件，可以在工作流中执行HTTP请求。
