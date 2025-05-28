@@ -16,24 +16,24 @@ import java.util.*
 import javax.sql.DataSource
 
 /**
- * MySQL implementation of the DatabaseConnector interface using JdbcClient
+ * PostgreSQL implementation of the DatabaseConnector interface using JdbcClient
  */
 @Component
-class MySQLConnector : DatabaseConnector {
-    
+class PostgreSQLConnector : DatabaseConnector {
+
     /**
-     * Connect to a MySQL database
+     * Connect to a PostgreSQL database
      */
     override suspend fun connect(config: ConnectionConfig): Connection = withContext(Dispatchers.IO) {
         try {
             val dataSource = createDataSource(config)
-            
+
             // Create JdbcClient from dataSource to test the connection
             val jdbcClient = JdbcClient.create(dataSource)
-            
+
             // Validate connection
             jdbcClient.sql("SELECT 1").query(Int::class.java).single()
-            
+
             return@withContext Connection(
                 id = UUID.randomUUID().toString(),
                 config = config,
@@ -42,44 +42,44 @@ class MySQLConnector : DatabaseConnector {
                 dataSource = dataSource
             )
         } catch (e: Exception) {
-            throw ConnectionException("Failed to connect to MySQL database: ${e.message}", e)
+            throw ConnectionException("Failed to connect to PostgreSQL database: ${e.message}", e)
         }
     }
-    
+
     /**
-     * Disconnect from a MySQL database
+     * Disconnect from a PostgreSQL database
      */
     override suspend fun disconnect(connection: Connection): Boolean = withContext(Dispatchers.IO) {
         try {
             (connection.dataSource as? SingleConnectionDataSource)?.destroy()
             return@withContext true
         } catch (e: Exception) {
-            throw ConnectionException("Failed to disconnect from MySQL database: ${e.message}", e)
+            throw ConnectionException("Failed to disconnect from PostgreSQL database: ${e.message}", e)
         }
     }
-    
+
     /**
-     * Test a MySQL database connection
+     * Test a PostgreSQL database connection
      */
     override suspend fun testConnection(config: ConnectionConfig): ConnectionStatus = withContext(Dispatchers.IO) {
         try {
             val dataSource = createDataSource(config)
             val jdbcClient = JdbcClient.create(dataSource)
-            
+
             // Test connection
             jdbcClient.sql("SELECT 1").query(Int::class.java).single()
-            
+
             // Close connection
             (dataSource as? SingleConnectionDataSource)?.destroy()
-            
+
             return@withContext ConnectionStatus.CONNECTED
         } catch (e: Exception) {
             return@withContext ConnectionStatus.FAILED
         }
     }
-    
+
     /**
-     * Get metadata about a MySQL database
+     * Get metadata about a PostgreSQL database
      */
     override suspend fun getMetadata(connection: Connection): DatabaseMetadata = withContext(Dispatchers.IO) {
         try {
@@ -96,28 +96,36 @@ class MySQLConnector : DatabaseConnector {
             val driverVersion = metaData.driverVersion
 
             // Get list of tables and views
+            // In PostgreSQL, we need to exclude tables from pg_catalog and information_schema schemas
             val tableRows = jdbcClient.sql(
                 """
-                SELECT TABLE_NAME, TABLE_TYPE, TABLE_COMMENT 
-                FROM INFORMATION_SCHEMA.TABLES 
-                WHERE TABLE_SCHEMA = :schema
+                SELECT 
+                    table_name, 
+                    table_type,
+                    obj_description(
+                        (table_schema || '.' || table_name)::regclass::oid, 'pg_class'
+                    ) as table_comment
+                FROM 
+                    information_schema.tables 
+                WHERE 
+                    table_schema = current_schema()
+                    AND table_schema NOT IN ('pg_catalog', 'information_schema')
                 """
             )
-            .param("schema", connection.config.database)
             .query { rs, _ ->
                 mapOf(
-                    "TABLE_NAME" to rs.getString("TABLE_NAME"),
-                    "TABLE_TYPE" to rs.getString("TABLE_TYPE"),
-                    "TABLE_COMMENT" to (rs.getString("TABLE_COMMENT") ?: "")
+                    "table_name" to rs.getString("table_name"),
+                    "table_type" to rs.getString("table_type"),
+                    "table_comment" to (rs.getString("table_comment") ?: "")
                 )
             }
             .list()
 
             // Process each table
             for (tableRow in tableRows) {
-                val tableName = tableRow["TABLE_NAME"] as String
-                val tableType = tableRow["TABLE_TYPE"] as String
-                val tableComment = tableRow["TABLE_COMMENT"] as String
+                val tableName = tableRow["table_name"] as String
+                val tableType = tableRow["table_type"] as String
+                val tableComment = tableRow["table_comment"] as String
 
                 // Get columns for this table
                 val columns = getTableColumns(jdbcClient, connection.config.database, tableName)
@@ -144,7 +152,7 @@ class MySQLConnector : DatabaseConnector {
                 )
 
                 // Add table or view
-                if (tableType.contains("VIEW", ignoreCase = true)) {
+                if (tableType == "VIEW") {
                     views.add(tableMetadata)
                 } else {
                     tables.add(tableMetadata)
@@ -196,35 +204,75 @@ class MySQLConnector : DatabaseConnector {
         val columns = jdbcClient.sql(
             """
             SELECT 
-                COLUMN_NAME, 
-                DATA_TYPE, 
-                COLUMN_TYPE,
-                CHARACTER_MAXIMUM_LENGTH, 
-                IS_NULLABLE, 
-                COLUMN_KEY, 
-                EXTRA, 
-                COLUMN_DEFAULT, 
-                COLUMN_COMMENT, 
-                ORDINAL_POSITION 
-            FROM INFORMATION_SCHEMA.COLUMNS 
-            WHERE TABLE_SCHEMA = :schema AND TABLE_NAME = :tableName 
-            ORDER BY ORDINAL_POSITION
+                column_name, 
+                data_type, 
+                udt_name,
+                character_maximum_length, 
+                is_nullable, 
+                column_default,
+                ordinal_position,
+                pg_catalog.col_description(
+                    (current_schema() || '.' || :tableName)::regclass::oid, 
+                    ordinal_position
+                ) as column_comment
+            FROM 
+                information_schema.columns
+            WHERE 
+                table_schema = current_schema() AND table_name = :tableName
+            ORDER BY 
+                ordinal_position
             """
         )
-        .param("schema", schema)
         .param("tableName", tableName)
         .query { rs, _ ->
+            val columnName = rs.getString("column_name")
+
+            // Check if column is a primary key
+            val isPrimaryKey = jdbcClient.sql(
+                """
+                SELECT 1 FROM pg_index idx
+                JOIN pg_attribute att ON att.attrelid = idx.indrelid AND att.attnum = ANY(idx.indkey)
+                WHERE idx.indrelid = :tableName::regclass
+                AND idx.indisprimary
+                AND att.attname = :columnName
+                """
+            )
+            .param("tableName", tableName)
+            .param("columnName", columnName)
+            .query(Int::class.java)
+            .listOrEmpty()
+            .isNotEmpty()
+
+            // Check if column is auto-increment (serial or identity column)
+            val isAutoIncrement = if (rs.getString("column_default")?.contains("nextval") == true) {
+                true
+            } else {
+                jdbcClient.sql(
+                    """
+                    SELECT 1 FROM pg_attribute att
+                    WHERE att.attrelid = :tableName::regclass
+                    AND att.attname = :columnName
+                    AND pg_get_serial_sequence(current_schema() || '.' || :tableName, :columnName) IS NOT NULL
+                    """
+                )
+                .param("tableName", tableName)
+                .param("columnName", columnName)
+                .query(Int::class.java)
+                .listOrEmpty()
+                .isNotEmpty()
+            }
+
             ColumnMetadata(
-                name = rs.getString("COLUMN_NAME"),
-                dataType = rs.getString("DATA_TYPE"),
-                typeName = rs.getString("COLUMN_TYPE"),
-                size = rs.getObject("CHARACTER_MAXIMUM_LENGTH")?.toString()?.toIntOrNull() ?: 0,
-                nullable = rs.getString("IS_NULLABLE") == "YES",
-                primaryKey = rs.getString("COLUMN_KEY") == "PRI",
-                autoIncrement = rs.getString("EXTRA").contains("auto_increment", ignoreCase = true),
-                defaultValue = rs.getString("COLUMN_DEFAULT"),
-                comment = rs.getString("COLUMN_COMMENT").ifEmpty { null },
-                ordinalPosition = rs.getInt("ORDINAL_POSITION")
+                name = columnName,
+                dataType = rs.getString("data_type"),
+                typeName = rs.getString("udt_name"),
+                size = rs.getObject("character_maximum_length")?.toString()?.toIntOrNull() ?: 0,
+                nullable = rs.getString("is_nullable") == "YES",
+                primaryKey = isPrimaryKey,
+                autoIncrement = isAutoIncrement,
+                defaultValue = rs.getString("column_default"),
+                comment = rs.getString("column_comment"),
+                ordinalPosition = rs.getInt("ordinal_position")
             )
         }
         .list()
@@ -243,35 +291,37 @@ class MySQLConnector : DatabaseConnector {
         val primaryKeys = jdbcClient.sql(
             """
             SELECT 
-                k.CONSTRAINT_NAME, 
-                k.COLUMN_NAME
-            FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS t 
-            JOIN INFORMATION_SCHEMA.KEY_COLUMN_USAGE k 
-            ON t.CONSTRAINT_NAME = k.CONSTRAINT_NAME 
+                tc.constraint_name,
+                kcu.column_name
+            FROM 
+                information_schema.table_constraints tc
+            JOIN 
+                information_schema.key_column_usage kcu
+              ON tc.constraint_name = kcu.constraint_name
             WHERE 
-                t.TABLE_SCHEMA = :schema 
-                AND t.TABLE_NAME = :tableName 
-                AND t.CONSTRAINT_TYPE = 'PRIMARY KEY'
-            ORDER BY k.ORDINAL_POSITION
+                tc.constraint_type = 'PRIMARY KEY' 
+                AND tc.table_schema = current_schema() 
+                AND tc.table_name = :tableName
+            ORDER BY 
+                kcu.ordinal_position
             """
         )
-        .param("schema", schema)
         .param("tableName", tableName)
         .query { rs, _ ->
             mapOf(
-                "CONSTRAINT_NAME" to rs.getString("CONSTRAINT_NAME"),
-                "COLUMN_NAME" to rs.getString("COLUMN_NAME")
+                "constraint_name" to rs.getString("constraint_name"),
+                "column_name" to rs.getString("column_name")
             )
         }
         .list()
 
         // Group by constraint name
         return primaryKeys
-            .groupBy { it["CONSTRAINT_NAME"] as String }
+            .groupBy { it["constraint_name"] as String }
             .map { (constraintName, columns) ->
                 Index(
                     name = constraintName,
-                    columnNames = columns.map { it["COLUMN_NAME"] as String },
+                    columnNames = columns.map { it["column_name"] as String },
                     unique = true,
                     type = "PRIMARY"
                 )
@@ -288,48 +338,56 @@ class MySQLConnector : DatabaseConnector {
     ): List<ForeignKey> {
         val foreignKeys = jdbcClient.sql(
             """
-            SELECT 
-                k.CONSTRAINT_NAME, 
-                k.COLUMN_NAME, 
-                k.REFERENCED_TABLE_NAME, 
-                k.REFERENCED_COLUMN_NAME,
-                r.UPDATE_RULE,
-                r.DELETE_RULE
-            FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE k
-            JOIN INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS r
-            ON k.CONSTRAINT_NAME = r.CONSTRAINT_NAME
+            SELECT
+                tc.constraint_name,
+                kcu.column_name,
+                ccu.table_name AS foreign_table_name,
+                ccu.column_name AS foreign_column_name,
+                rc.update_rule,
+                rc.delete_rule
+            FROM 
+                information_schema.table_constraints tc
+            JOIN 
+                information_schema.key_column_usage kcu
+              ON tc.constraint_name = kcu.constraint_name
+            JOIN 
+                information_schema.constraint_column_usage ccu
+              ON ccu.constraint_name = tc.constraint_name
+            JOIN
+                information_schema.referential_constraints rc
+              ON rc.constraint_name = tc.constraint_name
             WHERE 
-                k.TABLE_SCHEMA = :schema 
-                AND k.TABLE_NAME = :tableName 
-                AND k.REFERENCED_TABLE_NAME IS NOT NULL
-            ORDER BY k.CONSTRAINT_NAME, k.ORDINAL_POSITION
+                tc.constraint_type = 'FOREIGN KEY'
+                AND tc.table_schema = current_schema()
+                AND tc.table_name = :tableName
+            ORDER BY 
+                kcu.constraint_name, kcu.ordinal_position
             """
         )
-        .param("schema", schema)
         .param("tableName", tableName)
         .query { rs, _ ->
             mapOf(
-                "CONSTRAINT_NAME" to rs.getString("CONSTRAINT_NAME"),
-                "COLUMN_NAME" to rs.getString("COLUMN_NAME"),
-                "REFERENCED_TABLE_NAME" to rs.getString("REFERENCED_TABLE_NAME"),
-                "REFERENCED_COLUMN_NAME" to rs.getString("REFERENCED_COLUMN_NAME"),
-                "UPDATE_RULE" to rs.getString("UPDATE_RULE"),
-                "DELETE_RULE" to rs.getString("DELETE_RULE")
+                "constraint_name" to rs.getString("constraint_name"),
+                "column_name" to rs.getString("column_name"),
+                "foreign_table_name" to rs.getString("foreign_table_name"),
+                "foreign_column_name" to rs.getString("foreign_column_name"),
+                "update_rule" to rs.getString("update_rule"),
+                "delete_rule" to rs.getString("delete_rule")
             )
         }
         .list()
 
         // Group by constraint name
         return foreignKeys
-            .groupBy { it["CONSTRAINT_NAME"] as String }
+            .groupBy { it["constraint_name"] as String }
             .map { (constraintName, columns) ->
                 ForeignKey(
                     name = constraintName,
-                    columnNames = columns.map { it["COLUMN_NAME"] as String },
-                    referencedTableName = columns.first()["REFERENCED_TABLE_NAME"] as String,
-                    referencedColumnNames = columns.map { it["REFERENCED_COLUMN_NAME"] as String },
-                    updateRule = columns.first()["UPDATE_RULE"] as String,
-                    deleteRule = columns.first()["DELETE_RULE"] as String
+                    columnNames = columns.map { it["column_name"] as String },
+                    referencedTableName = columns.first()["foreign_table_name"] as String,
+                    referencedColumnNames = columns.map { it["foreign_column_name"] as String },
+                    updateRule = columns.first()["update_rule"] as String,
+                    deleteRule = columns.first()["delete_rule"] as String
                 )
             }
     }
@@ -345,41 +403,244 @@ class MySQLConnector : DatabaseConnector {
         val indexes = jdbcClient.sql(
             """
             SELECT
-                INDEX_NAME,
-                COLUMN_NAME,
-                NON_UNIQUE,
-                INDEX_TYPE
-            FROM INFORMATION_SCHEMA.STATISTICS
+                i.relname AS index_name,
+                a.attname AS column_name,
+                ix.indisunique AS is_unique,
+                am.amname AS index_type
+            FROM
+                pg_index ix
+            JOIN
+                pg_class i ON i.oid = ix.indexrelid
+            JOIN
+                pg_class t ON t.oid = ix.indrelid
+            JOIN
+                pg_attribute a ON a.attrelid = t.oid AND a.attnum = ANY(ix.indkey)
+            JOIN
+                pg_am am ON am.oid = i.relam
+            LEFT JOIN
+                pg_namespace n ON n.oid = t.relnamespace
             WHERE
-                TABLE_SCHEMA = :schema
-                AND TABLE_NAME = :tableName
-                AND INDEX_NAME != 'PRIMARY'
-            ORDER BY INDEX_NAME, SEQ_IN_INDEX
+                t.relname = :tableName
+                AND n.nspname = current_schema()
+                AND NOT ix.indisprimary  -- Exclude primary keys
+            ORDER BY
+                i.relname, a.attnum
             """
         )
-        .param("schema", schema)
         .param("tableName", tableName)
         .query { rs, _ ->
             mapOf(
-                "INDEX_NAME" to rs.getString("INDEX_NAME"),
-                "COLUMN_NAME" to rs.getString("COLUMN_NAME"),
-                "NON_UNIQUE" to rs.getBoolean("NON_UNIQUE"),
-                "INDEX_TYPE" to rs.getString("INDEX_TYPE")
+                "index_name" to rs.getString("index_name"),
+                "column_name" to rs.getString("column_name"),
+                "is_unique" to rs.getBoolean("is_unique"),
+                "index_type" to rs.getString("index_type")
             )
         }
         .list()
 
         // Group by index name
         return indexes
-            .groupBy { it["INDEX_NAME"] as String }
+            .groupBy { it["index_name"] as String }
             .map { (indexName, columns) ->
                 Index(
                     name = indexName,
-                    columnNames = columns.map { it["COLUMN_NAME"] as String },
-                    unique = !(columns.first()["NON_UNIQUE"] as Boolean),
-                    type = columns.first()["INDEX_TYPE"] as String
+                    columnNames = columns.map { it["column_name"] as String },
+                    unique = columns.first()["is_unique"] as Boolean,
+                    type = columns.first()["index_type"] as String
                 )
             }
+    }
+
+    /**
+     * Execute a query on a PostgreSQL database
+     */
+    override suspend fun executeQuery(
+        connection: Connection,
+        query: String,
+        parameters: List<Any>,
+        timeout: Long
+    ): QueryResult = withContext(Dispatchers.IO) {
+        val jdbcClient = JdbcClient.create(connection.dataSource!!)
+
+        try {
+            val startTime = System.currentTimeMillis()
+
+            // Execute query with dynamic parameters
+            val sqlOperation = jdbcClient.sql(query)
+
+            // Add parameters if provided
+            val parameterizedSql = if (parameters.isNotEmpty()) {
+                // For positional parameters, add them in order
+                parameters.foldIndexed(sqlOperation) { index, acc, param ->
+                    acc.param(index + 1, param)
+                }
+            } else {
+                sqlOperation
+            }
+
+            // Get column metadata
+            val columns = mutableListOf<ColumnData>()
+            // Store rows as Maps for flexibility
+            val rows = mutableListOf<Map<String, Any?>>()
+
+            // Execute query with automatic mapping to Map<String, Any?>
+            parameterizedSql
+                .query { rs, _ ->
+                    // Extract column metadata if we haven't yet
+                    if (columns.isEmpty()) {
+                        val metaData = rs.metaData
+                        val columnCount = metaData.columnCount
+
+                        for (i in 1..columnCount) {
+                            columns.add(
+                                ColumnData(
+                                    name = metaData.getColumnName(i),
+                                    label = metaData.getColumnLabel(i),
+                                    type = metaData.getColumnClassName(i),
+                                    typeName = metaData.getColumnTypeName(i)
+                                )
+                            )
+                        }
+                    }
+
+                    // Extract row data as Map
+                    val row = mutableMapOf<String, Any?>()
+                    for (column in columns) {
+                        row[column.name] = rs.getObject(column.name)
+                    }
+                    rows.add(row)
+                }
+                .list()
+
+            val executionTime = System.currentTimeMillis() - startTime
+
+            return@withContext QueryResult(
+                columns = columns,
+                rows = rows,
+                rowCount = rows.size,
+                executionTime = executionTime,
+                success = true
+            )
+        } catch (e: Exception) {
+            // Return error result
+            return@withContext QueryResult(
+                error = e.message,
+                success = false
+            )
+        }
+    }
+
+    /**
+     * Execute an update operation on a PostgreSQL database
+     */
+    override suspend fun executeUpdate(
+        connection: Connection,
+        query: String,
+        parameters: List<Any>
+    ): UpdateResult = withContext(Dispatchers.IO) {
+        val jdbcClient = JdbcClient.create(connection.dataSource!!)
+
+        try {
+            val startTime = System.currentTimeMillis()
+            val keyHolder = GeneratedKeyHolder()
+
+            // Execute update and capture generated keys
+            val updatedRows = connection.dataSource!!.connection.use { conn ->
+                conn.prepareStatement(query, PreparedStatement.RETURN_GENERATED_KEYS).use { ps ->
+                    // Set parameters
+                    parameters.forEachIndexed { index, param ->
+                        ps.setObject(index + 1, param)
+                    }
+
+                    // Execute update
+                    ps.executeUpdate()
+
+                    // Collect generated keys
+                    val rs = ps.generatedKeys
+                    val keys = mutableListOf<Any>()
+                    while (rs.next()) {
+                        keys.add(rs.getObject(1))
+                    }
+
+                    // Store keys in keyHolder
+                    keys.forEach { keyHolder.keyList.add(mapOf("GENERATED_KEY" to it)) }
+
+                    ps.updateCount
+                }
+            }
+
+            val executionTime = System.currentTimeMillis() - startTime
+
+            return@withContext UpdateResult(
+                affectedRows = updatedRows,
+                generatedKeys = keyHolder.keyList.map { it["GENERATED_KEY"] ?: it.values.first() },
+                executionTime = executionTime,
+                success = true
+            )
+        } catch (e: Exception) {
+            return@withContext UpdateResult(
+                error = e.message,
+                success = false
+            )
+        }
+    }
+
+    /**
+     * Begin a transaction
+     */
+    override suspend fun beginTransaction(connection: Connection): Transaction = withContext(Dispatchers.IO) {
+        try {
+            val jdbcConn = connection.dataSource!!.connection
+            jdbcConn.autoCommit = false
+
+            return@withContext Transaction(
+                id = UUID.randomUUID().toString(),
+                connection = connection,
+                createdAt = Instant.now(),
+                isActive = true
+            )
+        } catch (e: Exception) {
+            throw TransactionException("Failed to begin transaction: ${e.message}", e)
+        }
+    }
+
+    /**
+     * Commit a transaction
+     */
+    override suspend fun commitTransaction(transaction: Transaction) = withContext(Dispatchers.IO) {
+        try {
+            val jdbcConn = transaction.connection.dataSource!!.connection
+            jdbcConn.commit()
+            jdbcConn.autoCommit = true
+        } catch (e: Exception) {
+            throw TransactionException("Failed to commit transaction: ${e.message}", e)
+        }
+    }
+
+    /**
+     * Rollback a transaction
+     */
+    override suspend fun rollbackTransaction(transaction: Transaction) = withContext(Dispatchers.IO) {
+        try {
+            val jdbcConn = transaction.connection.dataSource!!.connection
+            jdbcConn.rollback()
+            jdbcConn.autoCommit = true
+        } catch (e: Exception) {
+            throw TransactionException("Failed to rollback transaction: ${e.message}", e)
+        }
+    }
+
+    /**
+     * Create a DataSource for a PostgreSQL connection
+     */
+    private fun createDataSource(config: ConnectionConfig): DataSource {
+        val dataSource = SingleConnectionDataSource()
+        dataSource.url = config.toJdbcUrl()
+        dataSource.username = config.username
+        dataSource.password = config.password
+        dataSource.setSuppressClose(true)
+        dataSource.setDriverClassName("org.postgresql.Driver")
+        return dataSource
     }
 
     /**
@@ -389,17 +650,9 @@ class MySQLConnector : DatabaseConnector {
         relationships: List<Relationship>,
         tables: List<TableMetadata>
     ): List<Relationship> {
+        // Similar implementation as in MySQLConnector
         // Create a map of tables by name for quick lookup
         val tableMap = tables.associateBy { it.name }
-
-        // Create a map to count how many foreign keys point to each table
-        val referenceCount = mutableMapOf<String, Int>()
-
-        // Count references
-        relationships.forEach { relationship ->
-            referenceCount[relationship.targetTable] =
-                (referenceCount[relationship.targetTable] ?: 0) + 1
-        }
 
         // Analyze each relationship
         return relationships.map { relationship ->
@@ -444,212 +697,4 @@ class MySQLConnector : DatabaseConnector {
             relationship.copy(type = type)
         }
     }
-    
-    /**
-     * Execute a query on a MySQL database
-     */
-    override suspend fun executeQuery(
-        connection: Connection, 
-        query: String,
-        parameters: List<Any>,
-        timeout: Long
-    ): QueryResult = withContext(Dispatchers.IO) {
-        val jdbcClient = JdbcClient.create(connection.dataSource!!)
-        
-        try {
-            val startTime = System.currentTimeMillis()
-            
-            // Execute query with dynamic parameters
-            val sqlOperation = jdbcClient.sql(query)
-            
-            // Add parameters if provided
-            val parameterizedSql = if (parameters.isNotEmpty()) {
-                // For positional parameters, add them in order
-                parameters.foldIndexed(sqlOperation) { index, acc, param ->
-                    acc.param(index + 1, param)
-                }
-            } else {
-                sqlOperation
-            }
-            
-            // Get column metadata
-            val columns = mutableListOf<ColumnData>()
-            // Store rows as Maps for flexibility
-            val rows = mutableListOf<Map<String, Any?>>()
-
-            // Execute query with automatic mapping to Map<String, Any?>
-            parameterizedSql
-                .query { rs, _ ->
-                    // Extract column metadata if we haven't yet
-                    if (columns.isEmpty()) {
-                        val metaData = rs.metaData
-                        val columnCount = metaData.columnCount
-
-                        for (i in 1..columnCount) {
-                            columns.add(
-                                ColumnData(
-                                    name = metaData.getColumnName(i),
-                                    label = metaData.getColumnLabel(i),
-                                    type = metaData.getColumnClassName(i),
-                                    typeName = metaData.getColumnTypeName(i)
-                                )
-                            )
-                        }
-                    }
-
-                    // Extract row data as Map
-                    val row = mutableMapOf<String, Any?>()
-                    for (column in columns) {
-                        row[column.name] = rs.getObject(column.name)
-                    }
-                    rows.add(row)
-                }
-                .list()
-
-            val executionTime = System.currentTimeMillis() - startTime
-            
-            return@withContext QueryResult(
-                columns = columns,
-                rows = rows,
-                rowCount = rows.size,
-                executionTime = executionTime,
-                success = true
-            )
-        } catch (e: Exception) {
-            // Return error result
-            return@withContext QueryResult(
-                error = e.message,
-                success = false
-            )
-        }
-    }
-    
-    /**
-     * Execute an update operation on a MySQL database
-     */
-    override suspend fun executeUpdate(
-        connection: Connection,
-        query: String,
-        parameters: List<Any>
-    ): UpdateResult = withContext(Dispatchers.IO) {
-        val jdbcClient = JdbcClient.create(connection.dataSource!!)
-        
-        try {
-            val startTime = System.currentTimeMillis()
-            val keyHolder = GeneratedKeyHolder()
-
-            // Execute update and capture generated keys
-            val updatedRows = connection.dataSource!!.connection.use { conn ->
-                conn.prepareStatement(query, PreparedStatement.RETURN_GENERATED_KEYS).use { ps ->
-                    // Set parameters
-                    parameters.forEachIndexed { index, param ->
-                        ps.setObject(index + 1, param)
-                    }
-
-                    // Execute update
-                    ps.executeUpdate()
-
-                    // Collect generated keys
-                    val rs = ps.generatedKeys
-                    val keys = mutableListOf<Any>()
-                    while (rs.next()) {
-                        keys.add(rs.getObject(1))
-                    }
-
-                    // Store keys in keyHolder
-                    keys.forEach { keyHolder.keyList.add(mapOf("GENERATED_KEY" to it)) }
-
-                    ps.updateCount
-                }
-            }
-
-            val executionTime = System.currentTimeMillis() - startTime
-            
-            return@withContext UpdateResult(
-                affectedRows = updatedRows,
-                generatedKeys = keyHolder.keyList.map { it["GENERATED_KEY"] ?: it.values.first() },
-                executionTime = executionTime,
-                success = true
-            )
-        } catch (e: Exception) {
-            return@withContext UpdateResult(
-                error = e.message,
-                success = false
-            )
-        }
-    }
-    
-    /**
-     * Begin a transaction
-     */
-    override suspend fun beginTransaction(connection: Connection): Transaction = withContext(Dispatchers.IO) {
-        try {
-            val jdbcConn = connection.dataSource!!.connection
-            jdbcConn.autoCommit = false
-
-            return@withContext Transaction(
-                id = UUID.randomUUID().toString(),
-                connection = connection,
-                createdAt = Instant.now(),
-                isActive = true
-            )
-        } catch (e: Exception) {
-            throw TransactionException("Failed to begin transaction: ${e.message}", e)
-        }
-    }
-    
-    /**
-     * Commit a transaction
-     */
-    override suspend fun commitTransaction(transaction: Transaction) = withContext(Dispatchers.IO) {
-        try {
-            val jdbcConn = transaction.connection.dataSource!!.connection
-            jdbcConn.commit()
-            jdbcConn.autoCommit = true
-        } catch (e: Exception) {
-            throw TransactionException("Failed to commit transaction: ${e.message}", e)
-        }
-    }
-    
-    /**
-     * Rollback a transaction
-     */
-    override suspend fun rollbackTransaction(transaction: Transaction) = withContext(Dispatchers.IO) {
-        try {
-            val jdbcConn = transaction.connection.dataSource!!.connection
-            jdbcConn.rollback()
-            jdbcConn.autoCommit = true
-        } catch (e: Exception) {
-            throw TransactionException("Failed to rollback transaction: ${e.message}", e)
-        }
-    }
-    
-    /**
-     * Create a DataSource for a MySQL connection
-     */
-    private fun createDataSource(config: ConnectionConfig): DataSource {
-        val dataSource = SingleConnectionDataSource()
-        dataSource.url = config.toJdbcUrl()
-        dataSource.username = config.username
-        dataSource.password = config.password
-        dataSource.setSuppressClose(true)
-        dataSource.setDriverClassName("com.mysql.cj.jdbc.Driver")
-        return dataSource
-    }
 }
-
-/**
- * Exception thrown when a connection operation fails
- */
-class ConnectionException(message: String, cause: Throwable? = null) : RuntimeException(message, cause)
-
-/**
- * Exception thrown when a query operation fails
- */
-class QueryException(message: String, cause: Throwable? = null) : RuntimeException(message, cause)
-
-/**
- * Exception thrown when a transaction operation fails
- */
-class TransactionException(message: String, cause: Throwable? = null) : RuntimeException(message, cause)
-

@@ -3,6 +3,7 @@ package com.kastrax.ai2db.connection.model
 import java.sql.Connection as JavaSqlConnection
 import java.time.Instant
 import javax.sql.DataSource
+import java.util.UUID
 
 /**
  * Types of databases supported by the application
@@ -156,27 +157,140 @@ data class ConnectionConfig(
  * Represents an active database connection
  */
 data class Connection(
-    val id: String,
+    val id: String = UUID.randomUUID().toString(),
     val config: ConnectionConfig,
-    val connectedAt: Instant = Instant.now(),
-    val dataSource: DataSource? = null, // DataSource for JDBC connections
-    val rawConnection: Any? = null // The actual native connection (MongoDB Client, Redis Client, etc.)
-)
+    val status: ConnectionStatus = ConnectionStatus.PENDING,
+    val dataSource: DataSource? = null,
+    val jdbcConnection: JavaSqlConnection? = null,
+    val createdAt: Instant = Instant.now(),
+    val lastUsedAt: Instant = Instant.now(),
+    val connectedAt: Instant? = null,
+    val disconnectedAt: Instant? = null,
+    val errorMessage: String? = null
+) {
+    /**
+     * Check if the connection is active
+     */
+    fun isActive(): Boolean = status == ConnectionStatus.CONNECTED && jdbcConnection != null &&
+                            !(jdbcConnection?.isClosed ?: true)
+
+    /**
+     * Create a copy of this connection with updated status
+     */
+    fun withStatus(newStatus: ConnectionStatus, error: String? = null): Connection {
+        return this.copy(
+            status = newStatus,
+            errorMessage = error ?: this.errorMessage,
+            connectedAt = if (newStatus == ConnectionStatus.CONNECTED) Instant.now() else this.connectedAt,
+            disconnectedAt = if (newStatus == ConnectionStatus.DISCONNECTED) Instant.now() else this.disconnectedAt
+        )
+    }
+
+    /**
+     * Update the last used timestamp
+     */
+    fun markAsUsed(): Connection {
+        return this.copy(lastUsedAt = Instant.now())
+    }
+}
 
 /**
  * Represents a database transaction
  */
 data class Transaction(
-    val id: String,
+    val id: String = UUID.randomUUID().toString(),
     val connection: Connection,
-    val jdbcConnection: JavaSqlConnection,
-    val startTime: Long = System.currentTimeMillis()
+    val createdAt: Instant = Instant.now(),
+    val completedAt: Instant? = null,
+    val isActive: Boolean = true
 )
 
 /**
- * Information about a column in a query result
+ * Column metadata model
  */
-data class Column(
+data class ColumnMetadata(
+    val name: String,
+    val dataType: String,
+    val typeName: String,
+    val size: Int,
+    val nullable: Boolean,
+    val primaryKey: Boolean = false,
+    val autoIncrement: Boolean = false,
+    val defaultValue: String? = null,
+    val comment: String? = null,
+    val ordinalPosition: Int
+)
+
+/**
+ * Table metadata model
+ */
+data class TableMetadata(
+    val name: String,
+    val schema: String,
+    val type: String,  // TABLE, VIEW, etc.
+    val columns: List<ColumnMetadata> = emptyList(),
+    val primaryKeys: List<String> = emptyList(),
+    val foreignKeys: List<ForeignKey> = emptyList(),
+    val indexes: List<Index> = emptyList(),
+    val comment: String? = null
+)
+
+/**
+ * Foreign key model
+ */
+data class ForeignKey(
+    val name: String,
+    val columnNames: List<String>,
+    val referencedTableName: String,
+    val referencedColumnNames: List<String>,
+    val updateRule: String,
+    val deleteRule: String
+)
+
+/**
+ * Index model
+ */
+data class Index(
+    val name: String,
+    val columnNames: List<String>,
+    val unique: Boolean,
+    val type: String? = null
+)
+
+/**
+ * Database metadata model
+ */
+data class DatabaseMetadata(
+    val databaseName: String,
+    val schemaName: String?,
+    val tables: List<TableMetadata> = emptyList(),
+    val views: List<TableMetadata> = emptyList(),
+    val databaseProductName: String,
+    val databaseProductVersion: String,
+    val driverName: String,
+    val driverVersion: String,
+    val relationships: List<Relationship> = emptyList(),
+    val fetchedAt: Instant = Instant.now()
+)
+
+/**
+ * Relationship between tables
+ */
+data class Relationship(
+    val id: String = UUID.randomUUID().toString(),
+    val sourceTable: String,
+    val sourceColumns: List<String>,
+    val targetTable: String,
+    val targetColumns: List<String>,
+    val type: RelationshipType,
+    val name: String? = null,
+    val foreignKeyName: String? = null
+)
+
+/**
+ * Column data for a result set
+ */
+data class ColumnData(
     val name: String,
     val label: String,
     val type: String,
@@ -187,83 +301,41 @@ data class Column(
  * Result of a database query
  */
 data class QueryResult(
-    val columns: List<Column>,
-    val rows: List<List<Any?>>,
-    val rowCount: Int,
-    val executionTimeMs: Long,
-    val warnings: List<String> = emptyList(),
-    val metadata: Map<String, Any> = emptyMap()
+    val columns: List<ColumnData> = emptyList(),
+    val rows: List<Map<String, Any?>> = emptyList(),
+    val rowCount: Int = 0,
+    val executionTime: Long = 0,
+    val truncated: Boolean = false,
+    val hasMoreRows: Boolean = false,
+    val error: String? = null,
+    val success: Boolean = true
 )
 
 /**
  * Result of a database update operation
  */
 data class UpdateResult(
-    val rowsAffected: Int,
-    val generatedKeys: List<Any> = listOf(),
-    val executionTimeMs: Long
+    val affectedRows: Int = 0,
+    val generatedKeys: List<Any> = emptyList(),
+    val executionTime: Long = 0,
+    val error: String? = null,
+    val success: Boolean = true
 )
 
 /**
- * Metadata about a database table column
+ * Connection exception class
  */
-data class ColumnMetadata(
-    val name: String,
-    val dataType: String,
-    val typeName: String,
-    val size: Int?,
-    val isNullable: Boolean,
-    val isPrimaryKey: Boolean,
-    val isForeignKey: Boolean,
-    val defaultValue: String?,
-    val description: String? = null,
-    val position: Int
-)
+class ConnectionException(message: String, cause: Throwable? = null) :
+    RuntimeException(message, cause)
 
 /**
- * Metadata about a database index
+ * Query exception class
  */
-data class IndexMetadata(
-    val name: String,
-    val columns: List<String>,
-    val isUnique: Boolean,
-    val type: String? = null
-)
+class QueryException(message: String, cause: Throwable? = null) :
+    RuntimeException(message, cause)
 
 /**
- * Metadata about a database table
+ * Transaction exception class
  */
-data class TableMetadata(
-    val name: String,
-    val schema: String? = null,
-    val columns: MutableList<ColumnMetadata>,
-    val primaryKey: List<String>,
-    val indexes: List<IndexMetadata> = listOf(),
-    val rowCount: Long? = null,
-    val description: String? = null
-)
-
-/**
- * Represents a relationship between two database tables
- */
-data class Relationship(
-    val id: String,
-    val sourceTable: String,
-    val sourceColumn: String,
-    val targetTable: String,
-    val targetColumn: String,
-    val relationshipType: RelationshipType
-)
-
-/**
- * Metadata about a database
- */
-data class DatabaseMetadata(
-    val databaseName: String,
-    val databaseType: DatabaseType,
-    val version: String,
-    val tables: List<TableMetadata>,
-    val relationships: List<Relationship> = emptyList(),
-    val schemas: List<String> = emptyList(),
-    val properties: Map<String, String> = emptyMap()
-) 
+class TransactionException(message: String, cause: Throwable? = null) :
+    RuntimeException(message, cause)
