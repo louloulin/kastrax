@@ -2,6 +2,7 @@ package ai.kastrax.examples.streaming
 
 import ai.kastrax.core.agent.agent
 import ai.kastrax.core.agent.AgentStreamOptions
+import ai.kastrax.core.llm.LlmMessageRole
 import ai.kastrax.integrations.openai.openAi
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.delay
@@ -268,8 +269,8 @@ fun main() = runBlocking {
             println("消息总数: ${messages?.size ?: 0}")
             
             messages?.let { msgList ->
-                val userMessages = msgList.filter { it.message.role == "user" }
-                val assistantMessages = msgList.filter { it.message.role == "assistant" }
+                val userMessages = msgList.filter { it.message.role == LlmMessageRole.USER }
+                val assistantMessages = msgList.filter { it.message.role == LlmMessageRole.ASSISTANT }
                 
                 println("用户消息: ${userMessages.size}")
                 println("助手消息: ${assistantMessages.size}")

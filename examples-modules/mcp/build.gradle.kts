@@ -5,9 +5,10 @@ plugins {
 
 dependencies {
     // 项目依赖
-    implementation("ai.kastrax:kastrax-core")
-    implementation("ai.kastrax:kastrax-deepseek")
-    implementation("ai.kastrax:kastrax-zod")
+    implementation(project(":kastrax-core"))
+    implementation(project(":kastrax-integrations:kastrax-deepseek"))
+    implementation(project(":kastrax-zod"))
+    implementation(project(":kastrax-mcp"))
     
     // Kotlin 序列化依赖
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.0")

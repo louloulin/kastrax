@@ -2,6 +2,7 @@ package ai.kastrax.examples.streaming
 
 import ai.kastrax.core.agent.agent
 import ai.kastrax.core.agent.AgentStreamOptions
+import ai.kastrax.core.llm.LlmMessageRole
 import ai.kastrax.integrations.openai.openAi
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.delay
@@ -138,9 +139,9 @@ fun main() = runBlocking {
     
     val sessionMessages = chatAgent.getSessionMessages(chatSession?.id ?: "")
     sessionMessages?.let { messages ->
-        val userMsgCount = messages.count { it.message.role == "user" }
-        val assistantMsgCount = messages.count { it.message.role == "assistant" }
-        val totalChars = messages.filter { it.message.role == "assistant" }
+        val userMsgCount = messages.count { it.message.role == LlmMessageRole.USER }
+        val assistantMsgCount = messages.count { it.message.role == LlmMessageRole.ASSISTANT }
+        val totalChars = messages.filter { it.message.role == LlmMessageRole.ASSISTANT }
             .sumOf { it.message.content.length }
         
         println("📈 会话统计:")
@@ -155,7 +156,7 @@ fun main() = runBlocking {
         
         println("\n📝 最近的对话:")
         messages.takeLast(6).forEach { message ->
-            val role = if (message.message.role == "user") "👤 用户" else "🤖 助手"
+            val role = if (message.message.role == LlmMessageRole.USER) "👤 用户" else "🤖 助手"
             val content = if (message.message.content.length > 100) {
                 message.message.content.take(100) + "..."
             } else {
