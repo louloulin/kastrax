@@ -1,10 +1,11 @@
 package ai.kastrax.examples.agent
 
-import ai.kastrax.core.agent.AgentGenerateOptions
+import ai.kastrax.core.agent.AgentStreamOptions
 import ai.kastrax.core.agent.agent
 import ai.kastrax.integrations.deepseek.deepSeek
 import ai.kastrax.integrations.deepseek.DeepSeekModel
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.flow.collect
 
 /**
  * Deepseek Agent 示例
@@ -55,8 +56,8 @@ fun deepseekAgentExample() = runBlocking {
         // 设置 LLM 模型
         model = llm
 
-        // 配置默认生成选项
-        defaultGenerateOptions {
+        // 配置默认流式选项
+        defaultStreamOptions {
             temperature(0.7)
             maxTokens(2000)
         }
@@ -71,17 +72,45 @@ fun deepseekAgentExample() = runBlocking {
         "请解释一下量子计算的基本原理"
     )
 
-    // 逐个提问并获取回答
+    // 逐个提问并获取流式回答
     questions.forEachIndexed { index, question ->
         println("\n问题 ${index + 1}: $question")
 
-        // 创建生成选项
-        val options = AgentGenerateOptions()
+        // 创建流式选项
+        val options = AgentStreamOptions(
+            temperature = 0.7,
+            maxTokens = 2000
+        )
 
-        // 生成回答
-        val response = agent.generate(question, options)
+        try {
+            // 生成流式回答
+            val response = agent.stream(question, options)
 
-        println("回答:")
-        println(response.text)
+            println("回答:")
+            
+            // 处理流式文本响应
+            response.textStream?.collect { chunk ->
+                print(chunk)
+                // 添加小延迟模拟打字效果
+                kotlinx.coroutines.delay(25)
+            } ?: run {
+                // 如果没有流式响应，显示完整文本
+                print(response.text)
+            }
+            
+            println() // 换行
+            
+            // 处理工具调用（如果有）
+            if (response.toolCalls.isNotEmpty()) {
+                println("\n检测到工具调用:")
+                response.toolCalls.forEach { toolCall ->
+                    println("- 工具: ${toolCall.name}")
+                    println("  参数: ${toolCall.arguments}")
+                }
+            }
+            
+        } catch (e: Exception) {
+            println("生成回答时发生错误: ${e.message}")
+        }
     }
 }

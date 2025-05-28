@@ -92,21 +92,34 @@ fun agentStateExample() = runBlocking {
     val thinkingState = agent.updateState(AgentStatus.THINKING)
     println("状态更新为: ${thinkingState?.status}")
 
-    // 生成响应
-    val response = agent.generate(
-        "计算 25 + 17 的结果",
-        AgentGenerateOptions(threadId = session?.id)
-    )
+    // 生成流式响应
+    try {
+        val response = agent.stream(
+            "计算 25 + 17 的结果",
+            AgentStreamOptions(threadId = session?.id)
+        )
 
-    // 打印响应
-    println("助手: ${response.text}")
-    println("状态: ${response.state?.status}")
-    println("工具调用: ${response.toolCalls.size}")
-    if (response.toolCalls.isNotEmpty()) {
-        println("工具名称: ${response.toolCalls[0].name}")
-        println("工具结果: ${response.toolResults[response.toolCalls[0].id]?.result}")
+        // 打印流式响应
+        print("助手: ")
+        response.textStream?.collect { chunk ->
+            print(chunk)
+            kotlinx.coroutines.delay(30)
+        } ?: run {
+            print(response.text)
+        }
+        
+        println() // 换行
+        println("状态: ${response.state?.status}")
+        println("工具调用: ${response.toolCalls.size}")
+        if (response.toolCalls.isNotEmpty()) {
+            println("工具名称: ${response.toolCalls[0].name}")
+            println("工具结果: ${response.toolResults[response.toolCalls[0].id]?.result}")
+        }
+        println()
+        
+    } catch (e: Exception) {
+        println("生成响应时发生错误: ${e.message}")
     }
-    println()
 
     // 获取会话消息
     println("=== 会话消息 ===")

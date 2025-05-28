@@ -1,6 +1,6 @@
 package ai.kastrax.examples.agent
 
-import ai.kastrax.core.agent.AgentGenerateOptions
+import ai.kastrax.core.agent.AgentStreamOptions
 import ai.kastrax.core.agent.agent
 import ai.kastrax.core.agent.architecture.goalOrientedAgent
 import ai.kastrax.core.agent.architecture.GoalPriority
@@ -9,6 +9,7 @@ import ai.kastrax.core.agent.architecture.TaskStatus
 import ai.kastrax.integrations.deepseek.deepSeek
 import ai.kastrax.integrations.deepseek.DeepSeekModel
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.flow.collect
 import kotlinx.datetime.Clock
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.plus
@@ -90,15 +91,30 @@ fun main() = runBlocking {
     val sessionId = "session-123"
     val prompt = "我想学习Kotlin的协程，请帮我制定一个学习计划，包括基础概念、实际应用和最佳实践。"
 
-    val options = AgentGenerateOptions()
+    val options = AgentStreamOptions()
     val optionsWithMetadata = options.copy(metadata = mapOf("sessionId" to sessionId))
-    val response = goalOrientedAgent.generate(
-        prompt = prompt,
-        options = optionsWithMetadata
-    )
+    
+    try {
+        val response = goalOrientedAgent.stream(
+            prompt = prompt,
+            options = optionsWithMetadata
+        )
 
-    println("目标导向Agent响应:")
-    println(response.text)
+        println("目标导向Agent响应:")
+        
+        // 处理流式文本响应
+        response.textStream?.collect { chunk ->
+            print(chunk)
+            kotlinx.coroutines.delay(35)
+        } ?: run {
+            print(response.text)
+        }
+        
+        println() // 换行
+        
+    } catch (e: Exception) {
+        println("生成响应时发生错误: ${e.message}")
+    }
 
     // 查看自动创建的目标和任务
     val goals = goalOrientedAgent.getAllGoals()

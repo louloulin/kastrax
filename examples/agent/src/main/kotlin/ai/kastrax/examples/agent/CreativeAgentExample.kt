@@ -1,7 +1,7 @@
 package ai.kastrax.examples.agent
 
 import ai.kastrax.core.agent.Agent
-import ai.kastrax.core.agent.AgentGenerateOptions
+import ai.kastrax.core.agent.AgentStreamOptions
 import ai.kastrax.core.agent.AgentResponse
 import ai.kastrax.core.agent.agent
 import ai.kastrax.core.agent.autonomy.AgentAutonomy
@@ -61,12 +61,27 @@ fun creativeAgentExample() = runBlocking {
     // 获取自主性管理器
     val autonomy = creativeAgent.getAutonomy()
 
-    println("\n1. 标准响应生成")
+    println("\n1. 标准流式响应生成")
     println("-------------------")
     println("响应: ")
-    // 生成标准响应
-    val response = creativeAgent.generate("What is creativity?")
-    println(response.text)
+    
+    try {
+        // 生成流式响应
+        val response = creativeAgent.stream("What is creativity?", AgentStreamOptions())
+        
+        // 处理流式文本响应
+        response.textStream?.collect { chunk ->
+            print(chunk)
+            kotlinx.coroutines.delay(30)
+        } ?: run {
+            print(response.text)
+        }
+        
+        println() // 换行
+        
+    } catch (e: Exception) {
+        println("生成响应时发生错误: ${e.message}")
+    }
 
     println("\n2. 创意内容生成")
     println("-------------------")

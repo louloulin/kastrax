@@ -1,9 +1,11 @@
 package ai.kastrax.examples.agent
 
+import ai.kastrax.core.agent.AgentStreamOptions
 import ai.kastrax.core.agent.agent
 import ai.kastrax.integrations.deepseek.DeepSeekModel
 import ai.kastrax.integrations.deepseek.deepSeek
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.flow.collect
 
 /**
  * 简单代理示例
@@ -43,16 +45,32 @@ fun main() = runBlocking {
         "请解释量子计算的基本原理。"
     )
     
-    // 使用代理回答问题
+    // 使用代理流式回答问题
     questions.forEachIndexed { index, question ->
         println("\n问题 ${index + 1}: $question")
         println("生成回答中...")
         
-        val response = myAgent.generate(question)
-        
-        println("\n回答 ${index + 1}:")
-        println("----------")
-        println(response.text)
+        try {
+            val response = myAgent.stream(question, AgentStreamOptions())
+            
+            println("\n回答 ${index + 1}:")
+            println("----------")
+            
+            // 处理流式文本响应
+            response.textStream?.collect { chunk ->
+                print(chunk)
+                // 添加小延迟模拟打字效果
+                kotlinx.coroutines.delay(30)
+            } ?: run {
+                // 如果没有流式响应，显示完整文本
+                print(response.text)
+            }
+            
+            println() // 换行
+            
+        } catch (e: Exception) {
+            println("生成回答时发生错误: ${e.message}")
+        }
     }
     
     println("\n简单代理示例完成")

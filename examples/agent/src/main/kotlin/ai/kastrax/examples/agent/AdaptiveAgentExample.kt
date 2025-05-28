@@ -1,13 +1,14 @@
 package ai.kastrax.examples.agent
 
 import ai.kastrax.core.agent.Agent
-import ai.kastrax.core.agent.AgentGenerateOptions
+import ai.kastrax.core.agent.AgentStreamOptions
 import ai.kastrax.core.agent.agent
 import ai.kastrax.core.agent.architecture.adaptiveAgent
 import ai.kastrax.core.agent.architecture.UserPreference
 import ai.kastrax.integrations.deepseek.deepSeek
 import ai.kastrax.integrations.deepseek.DeepSeekModel
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.flow.collect
 
 /**
  * 自适应Agent示例
@@ -54,16 +55,31 @@ fun main(args: Array<String>) = runBlocking {
         )
     )
 
-    // 使用自适应Agent生成响应
-    val options = AgentGenerateOptions()
+    // 使用自适应Agent生成流式响应
+    val options = AgentStreamOptions()
     val optionsWithMetadata = options.copy(metadata = mapOf("userId" to userId))
-    val response = adaptiveAgent.generate(
-        prompt = "请介绍一下Kotlin语言的特点",
-        options = optionsWithMetadata
-    )
+    
+    try {
+        val response = adaptiveAgent.stream(
+            prompt = "请介绍一下Kotlin语言的特点",
+            options = optionsWithMetadata
+        )
 
-    println("自适应Agent响应:")
-    println(response.text)
+        println("自适应Agent响应:")
+        
+        // 处理流式文本响应
+        response.textStream?.collect { chunk ->
+            print(chunk)
+            kotlinx.coroutines.delay(40)
+        } ?: run {
+            print(response.text)
+        }
+        
+        println() // 换行
+        
+    } catch (e: Exception) {
+        println("生成响应时发生错误: ${e.message}")
+    }
 
     // 提供反馈
     // 注意：在实际应用中，交互ID应该从响应中获取

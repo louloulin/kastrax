@@ -1,12 +1,13 @@
 package ai.kastrax.examples.agent
 
-import ai.kastrax.core.agent.AgentGenerateOptions
+import ai.kastrax.core.agent.AgentStreamOptions
 import ai.kastrax.core.agent.agent
 import ai.kastrax.core.agent.architecture.HierarchicalAgent
 import ai.kastrax.core.agent.architecture.hierarchicalAgent
 import ai.kastrax.integrations.deepseek.deepSeek
 import ai.kastrax.integrations.deepseek.DeepSeekModel
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.flow.collect
 
 /**
  * 分层Agent示例
@@ -94,35 +95,77 @@ fun main() = runBlocking {
     val techPrompt = "请解释Kotlin协程与Java线程的区别，并给出一些实际应用场景。"
     println("\n技术问题: $techPrompt")
 
-    val techResponse = hierarchicalAgent1.generate(
-        prompt = techPrompt,
-        options = AgentGenerateOptions()
-    )
+    try {
+        val techResponse = hierarchicalAgent1.stream(
+            prompt = techPrompt,
+            options = AgentStreamOptions()
+        )
 
-    println("回答:")
-    println(techResponse.text)
+        println("回答:")
+        
+        // 处理流式文本响应
+        techResponse.textStream?.collect { chunk ->
+            print(chunk)
+            kotlinx.coroutines.delay(30)
+        } ?: run {
+            print(techResponse.text)
+        }
+        
+        println() // 换行
+        
+    } catch (e: Exception) {
+        println("生成响应时发生错误: ${e.message}")
+    }
 
     // 创意问题示例
     val creativePrompt = "我需要为一个科技初创公司设计logo，有什么创意建议？"
     println("\n创意问题: $creativePrompt")
 
-    val creativeResponse = hierarchicalAgent1.generate(
-        prompt = creativePrompt,
-        options = AgentGenerateOptions()
-    )
+    try {
+        val creativeResponse = hierarchicalAgent1.stream(
+            prompt = creativePrompt,
+            options = AgentStreamOptions()
+        )
 
-    println("回答:")
-    println(creativeResponse.text)
+        println("回答:")
+        
+        // 处理流式文本响应
+        creativeResponse.textStream?.collect { chunk ->
+            print(chunk)
+            kotlinx.coroutines.delay(30)
+        } ?: run {
+            print(creativeResponse.text)
+        }
+        
+        println() // 换行
+        
+    } catch (e: Exception) {
+        println("生成响应时发生错误: ${e.message}")
+    }
 
     // 复杂问题示例（需要多个专家协作）
     val complexPrompt = "我想开发一个编程学习平台，需要考虑技术实现、创意设计和教育内容。请给我一些建议。"
     println("\n复杂问题: $complexPrompt")
 
-    val complexResponse = hierarchicalAgent1.generate(
-        prompt = complexPrompt,
-        options = AgentGenerateOptions()
-    )
+    try {
+        val complexResponse = hierarchicalAgent1.stream(
+            prompt = complexPrompt,
+            options = AgentStreamOptions()
+        )
 
-    println("回答:")
-    println(complexResponse.text)
+        println("回答:")
+        
+        // 处理流式文本响应
+        complexResponse.textStream?.collect { chunk ->
+            print(chunk)
+            kotlinx.coroutines.delay(30)
+        } ?: run {
+            print(complexResponse.text)
+        }
+        
+        println() // 换行
+        
+    } catch (e: Exception) {
+        println("生成响应时发生错误: ${e.message}")
+    }
 }

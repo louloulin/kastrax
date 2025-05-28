@@ -1,12 +1,13 @@
 package ai.kastrax.examples.agent
 
-import ai.kastrax.core.agent.AgentGenerateOptions
+import ai.kastrax.core.agent.AgentStreamOptions
 import ai.kastrax.core.agent.agent
 import ai.kastrax.core.agent.architecture.ReflectiveAgent
 import ai.kastrax.core.agent.architecture.reflectiveAgent
 import ai.kastrax.integrations.deepseek.deepSeek
 import ai.kastrax.integrations.deepseek.DeepSeekModel
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.flow.collect
 
 /**
  * 反思型Agent示例
@@ -55,29 +56,59 @@ fun main() = runBlocking {
     val prompt1 = "什么是大语言模型？它们是如何工作的？"
     println("\n问题1: $prompt1")
 
-    val options1 = AgentGenerateOptions()
+    val options1 = AgentStreamOptions()
     val optionsWithMetadata1 = options1.copy(metadata = mapOf("sessionId" to sessionId))
-    val response1 = reflectiveAgent.generate(
-        prompt = prompt1,
-        options = optionsWithMetadata1
-    )
+    
+    try {
+        val response1 = reflectiveAgent.stream(
+            prompt = prompt1,
+            options = optionsWithMetadata1
+        )
 
-    println("回答1:")
-    println(response1.text)
+        println("回答1:")
+        
+        // 处理流式文本响应
+        response1.textStream?.collect { chunk ->
+            print(chunk)
+            kotlinx.coroutines.delay(25)
+        } ?: run {
+            print(response1.text)
+        }
+        
+        println() // 换行
+        
+    } catch (e: Exception) {
+        println("生成响应时发生错误: ${e.message}")
+    }
 
     // 第二个问题
     val prompt2 = "大语言模型面临哪些挑战和局限性？"
     println("\n问题2: $prompt2")
 
-    val options2 = AgentGenerateOptions()
+    val options2 = AgentStreamOptions()
     val optionsWithMetadata2 = options2.copy(metadata = mapOf("sessionId" to sessionId))
-    val response2 = reflectiveAgent.generate(
-        prompt = prompt2,
-        options = optionsWithMetadata2
-    )
+    
+    try {
+        val response2 = reflectiveAgent.stream(
+            prompt = prompt2,
+            options = optionsWithMetadata2
+        )
 
-    println("回答2:")
-    println(response2.text)
+        println("回答2:")
+        
+        // 处理流式文本响应
+        response2.textStream?.collect { chunk ->
+            print(chunk)
+            kotlinx.coroutines.delay(25)
+        } ?: run {
+            print(response2.text)
+        }
+        
+        println() // 换行
+        
+    } catch (e: Exception) {
+        println("生成响应时发生错误: ${e.message}")
+    }
 
     // 查看会话的反思记录
     val reflections = reflectiveAgent.getSessionReflections(sessionId)
