@@ -17,6 +17,7 @@ subprojects {
     apply(plugin = "org.jetbrains.kotlin.jvm")
     apply(plugin = "org.jetbrains.kotlin.plugin.serialization")
     apply(plugin = "application")
+    apply(plugin = "java")
 
     dependencies {
         // 公共依赖
@@ -44,6 +45,11 @@ subprojects {
 
         // Actor集成
         implementation(project(":kastrax-actor"))
+    }
+
+    java {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
 
     tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
