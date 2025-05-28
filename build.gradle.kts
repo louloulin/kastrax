@@ -65,6 +65,11 @@ allprojects {
                         }
                     }
                 }
+                
+                // 为使用enforced platform的模块抑制验证错误
+                tasks.withType<GenerateModuleMetadata>().configureEach {
+                    suppressedValidationErrors.add("enforced-platform")
+                }
             }
         }
     }
