@@ -51,6 +51,7 @@ include(":kastrax-integrations:kastrax-openai")
 include(":kastrax-integrations:kastrax-deepseek")
 include(":kastrax-integrations:kastrax-anthropic")
 include(":kastrax-integrations:kastrax-gemini")
+include(":kastrax-integrations:kastrax-qwen")
 
 // 代码库理解模块
 include(":kastrax-codebase")
