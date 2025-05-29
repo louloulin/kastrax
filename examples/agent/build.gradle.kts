@@ -8,6 +8,7 @@ dependencies {
     // 项目依赖
     implementation(project(":kastrax-core"))
     implementation(project(":kastrax-integrations:kastrax-deepseek"))
+    implementation(project(":kastrax-integrations:kastrax-qwen"))
     implementation(project(":kastrax-zod"))
 
     // Kotlin 序列化依赖
@@ -26,5 +27,5 @@ dependencies {
 }
 
 application {
-    mainClass.set("ai.kastrax.examples.agent.SimpleStreamingExampleKt")
+    mainClass.set("ai.kastrax.examples.agent.SimpleQwenAgentKt")
 }
