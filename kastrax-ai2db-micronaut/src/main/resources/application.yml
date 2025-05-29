@@ -1,0 +1,58 @@
+micronaut:
+  application:
+    name: kastrax-ai2db
+  server:
+    port: 8080
+    cors:
+      enabled: true
+  security:
+    authentication: bearer
+    token:
+      jwt:
+        signatures:
+          secret:
+            generator:
+              secret: "${JWT_SECRET:your-secret-key-change-in-production}"
+        generator:
+          access-token:
+            expiration: 3600
+
+datasources:
+  default:
+    url: "${DB_URL:jdbc:postgresql://localhost:5432/kastrax_ai2db}"
+    username: "${DB_USERNAME:kastrax}"
+    password: "${DB_PASSWORD:password}"
+    driver-class-name: "${DB_DRIVER:org.postgresql.Driver}"
+    dialect: POSTGRES
+    maximum-pool-size: 20
+    minimum-idle: 5
+
+flyway:
+  datasources:
+    default:
+      enabled: true
+      locations: classpath:db/migration
+
+kastrax:
+  ai2db:
+    plugins:
+      directory: "${PLUGIN_DIR:./plugins}"
+      auto-discovery: true
+      scan-packages:
+        - "com.kastrax.ai2db.plugins"
+    llm:
+      provider: "${LLM_PROVIDER:openai}"
+      api-key: "${LLM_API_KEY:}"
+      base-url: "${LLM_BASE_URL:https://api.openai.com/v1}"
+      model: "${LLM_MODEL:gpt-3.5-turbo}"
+      timeout: 30000
+    schema:
+      cache-ttl: 3600
+      max-cache-size: 1000
+
+logger:
+  levels:
+    com.kastrax.ai2db: DEBUG
+    io.micronaut.data: DEBUG
+    org.flywaydb: INFO
+    root: INFO
