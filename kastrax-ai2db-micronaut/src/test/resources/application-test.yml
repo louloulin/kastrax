@@ -1,0 +1,98 @@
+micronaut:
+  application:
+    name: kastrax-ai2db-test
+  server:
+    port: -1  # Random port for testing
+    cors:
+      enabled: true
+      configurations:
+        web:
+          allowed-origins:
+            - "*"
+          allowed-methods:
+            - GET
+            - POST
+            - PUT
+            - DELETE
+            - OPTIONS
+          allowed-headers:
+            - "*"
+          exposed-headers:
+            - "*"
+          allow-credentials: true
+          max-age: 3600
+
+  security:
+    authentication: bearer
+    token:
+      jwt:
+        signatures:
+          secret:
+            generator:
+              secret: "test-secret-key-for-jwt-signing-in-test-environment-only"
+        generator:
+          access-token:
+            expiration: 3600
+
+datasources:
+  default:
+    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    username: sa
+    password: ""
+    driver-class-name: org.h2.Driver
+    dialect: H2
+    maximum-pool-size: 5
+    minimum-idle: 1
+
+flyway:
+  datasources:
+    default:
+      enabled: false  # Disable for testing
+
+# KastraX AI2DB Plugin System Configuration
+kastrax:
+  ai2db:
+    plugins:
+      directory: "./plugins"
+      auto-discovery: true
+      scan-packages:
+        - "com.kastrax.ai2db.plugins"
+    
+    # LLM Configuration for Testing
+    llm:
+      provider: "mock"  # Use mock provider for testing
+      api-key: "test-api-key"
+      base-url: "http://localhost:8080/mock"
+      model: "gpt-3.5-turbo"
+      timeout: 30000
+      max-tokens: 4000
+      temperature: 0.1
+    
+    # Schema Cache Configuration
+    schema:
+      cache-ttl: 300  # 5 minutes for testing
+      max-cache-size: 10
+
+# Logging Configuration
+logger:
+  levels:
+    com.kastrax.ai2db: DEBUG
+    io.micronaut: INFO
+    org.hibernate: WARN
+    org.flywaydb: INFO
+    root: INFO
+
+# Test-specific configurations
+test:
+  database:
+    cleanup: true
+    seed-data: true
+  
+  mock:
+    llm:
+      enabled: true
+      response-delay: 100  # milliseconds
+    
+    connections:
+      enabled: true
+      auto-create: true
