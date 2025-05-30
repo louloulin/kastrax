@@ -13,11 +13,12 @@ import java.sql.Connection
 import java.sql.DatabaseMetaData
 import java.sql.ResultSet
 import java.sql.Statement
+import javax.sql.DataSource
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
-@ExtendWith(MockKExtension::class)
+@ExtendWith(io.mockk.junit5.MockKExtension::class)
 class MySQLConnectorTest {
 
     @MockK
@@ -57,13 +58,13 @@ class MySQLConnectorTest {
 
         // Mock createDataSource method
         mockkStatic("org.springframework.jdbc.core.simple.JdbcClientKt")
-        every { JdbcClient.create(any()) } returns jdbcClient
+        every { JdbcClient.create(any<DataSource>()) } returns jdbcClient
 
         // Setup mocks for default behavior
         every { dataSource.connection } returns connection
         every { connection.createStatement() } returns statement
         every { connection.metaData } returns metaData
-        every { statement.executeQuery(any()) } returns resultSet
+        every { statement.executeQuery(any<String>()) } returns resultSet
         every { resultSet.next() } returns true andThen false
         every { resultSet.getInt(1) } returns 1
 

@@ -9,16 +9,18 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 import org.springframework.jdbc.core.simple.JdbcClient
 import org.springframework.jdbc.core.RowMapper
+import org.springframework.jdbc.core.ResultSetExtractor
 import org.springframework.jdbc.datasource.SingleConnectionDataSource
 import java.sql.Connection
 import java.sql.DatabaseMetaData
 import java.sql.ResultSet
 import java.sql.Statement
+import javax.sql.DataSource
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
-@ExtendWith(MockKExtension::class)
+@ExtendWith(io.mockk.junit5.MockKExtension::class)
 class PostgreSQLConnectorTest {
 
     @MockK
@@ -58,13 +60,13 @@ class PostgreSQLConnectorTest {
 
         // Mock createDataSource method
         mockkStatic("org.springframework.jdbc.core.simple.JdbcClientKt")
-        every { JdbcClient.create(any()) } returns jdbcClient
+        every { JdbcClient.create(any<DataSource>()) } returns jdbcClient
 
         // Setup mocks for default behavior
         every { dataSource.connection } returns connection
         every { connection.createStatement() } returns statement
         every { connection.metaData } returns metaData
-        every { statement.executeQuery(any()) } returns resultSet
+        every { statement.executeQuery(any<String>()) } returns resultSet
         every { resultSet.next() } returns true andThen false
         every { resultSet.getInt(1) } returns 1
 
@@ -251,7 +253,7 @@ class PostgreSQLConnectorTest {
 
         // Mock JdbcClient query operations
         val sqlOperationMock = mockk<JdbcClient.StatementSpec>()
-        val queryMapperMock = mockk<JdbcClient.ResultSetExtractor<Any>>()
+        val queryMapperMock = mockk<JdbcClient.MappedQuerySpec<Map<String, Any?>>>()
 
         every { jdbcClient.sql(testQuery) } returns sqlOperationMock
         every { sqlOperationMock.param(1, 1) } returns sqlOperationMock
