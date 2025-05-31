@@ -2,13 +2,20 @@ package com.kastrax.ai2db.nl2sql.agent
 
 import ai.kastrax.core.agent.Agent
 import ai.kastrax.core.agent.AgentGenerateOptions
-import ai.kastrax.core.agent.AgentGenerateResult
+import ai.kastrax.core.agent.AgentResponse
+import ai.kastrax.core.agent.AgentStreamOptions
+import ai.kastrax.core.agent.version.AgentVersion
+import ai.kastrax.core.llm.LlmMessage
 import ai.kastrax.memory.api.Memory
+import ai.kastrax.core.agent.SessionInfo
+import ai.kastrax.core.agent.SessionMessage
+import ai.kastrax.rag.RagResult
+import ai.kastrax.core.agent.version.AgentVersionManager
 import ai.kastrax.memory.api.MessageRole
-import ai.kastrax.memory.api.SimpleMessage
+import ai.kastrax.memory.impl.SimpleMessage
 import ai.kastrax.rag.RAG
 import ai.kastrax.rag.RagProcessOptions
-import ai.kastrax.core.tool.Tool
+import ai.kastrax.core.tools.Tool
 import com.kastrax.ai2db.connection.model.DatabaseType
 import com.kastrax.ai2db.nl2sql.model.SQLGenerationResult
 import com.kastrax.ai2db.nl2sql.service.SQLGenerationService
@@ -31,33 +38,49 @@ class NL2SQLAgent(
     private val tools: List<Tool>,
     private val sqlGenerationService: SQLGenerationService
 ) : Agent {
+
+    override val versionManager: AgentVersionManager? = null
     
     private val logger = LoggerFactory.getLogger(NL2SQLAgent::class.java)
     
-    override val id: String = "nl2sql-agent"
-    override val version: String = "1.0.0"
-    override val name: String = "NL2SQL智能代理"
-    override val description: String = "基于Kastrax框架的智能自然语言到SQL转换代理"
+    override val name: String = "nl2sql-agent"
     
     /**
-     * 生成SQL查询
+     * 生成SQL查询 - 使用消息列表
      */
     override suspend fun generate(
-        input: String,
+        messages: List<LlmMessage>,
         options: AgentGenerateOptions
-    ): AgentGenerateResult = withContext(Dispatchers.IO) {
+    ): AgentResponse {
+        val input = messages.lastOrNull()?.content ?: ""
+        return generate(input, options)
+    }
+
+    /**
+     * 生成SQL查询 - 使用单个提示
+     */
+    override suspend fun generate(
+        prompt: String,
+        options: AgentGenerateOptions
+    ): AgentResponse = withContext(Dispatchers.IO) {
+        val input = prompt
         logger.info("NL2SQL Agent processing query: {}", input)
         
         try {
             val threadId = options.threadId ?: "default"
             
-            // 1. 从Memory获取对话历史
-            val conversationHistory = memory.getMessages(threadId, limit = 10)
-            logger.debug("Retrieved {} messages from conversation history", conversationHistory.size)
-            
-            // 2. 使用RAG检索相关知识
+            // 1. 获取对话历史
+        val conversationHistory = memory.getMessages(
+            threadId = threadId,
+            limit = 10
+        )
+        logger.debug("Retrieved {} messages from conversation history", conversationHistory.size)
+        
+        // 2. 使用RAG检索相关知识
             val ragContext = rag.retrieveContext(
                 query = input,
+                limit = 5,
+                minScore = 0.0,
                 options = RagProcessOptions(
                     useHybridSearch = true,
                     useSemanticRetrieval = true,
@@ -70,12 +93,16 @@ class NL2SQLAgent(
             val schemaInfo = getSchemaInfo(options.metadata)
             
             // 4. 构建增强提示
-            val enhancedPrompt = buildEnhancedPrompt(
+        val enhancedPrompt = buildEnhancedPrompt(
+            query = input,
+            conversationHistory = conversationHistory.map { memoryMsg -> memoryMsg.message },
+            ragContext = RagResult(
+                documents = ragContext.documents,
                 query = input,
-                conversationHistory = conversationHistory,
-                ragContext = ragContext,
-                schemaInfo = schemaInfo
-            )
+                metadata = emptyMap()
+            ),
+            schemaInfo = schemaInfo
+        )
             
             // 5. 生成SQL
             val sqlResult = sqlGenerationService.generateSQL(
@@ -94,26 +121,21 @@ class NL2SQLAgent(
             memory.saveMessage(
                 SimpleMessage(
                     role = MessageRole.ASSISTANT,
-                    content = sqlResult.sql,
-                    metadata = mapOf(
-                        "confidence" to sqlResult.confidence.toString(),
-                        "explanation" to sqlResult.explanation,
-                        "validation" to validationResult.toString()
-                    )
+                    content = sqlResult.sql
                 ),
                 threadId
             )
             
             logger.info("Successfully generated SQL with confidence: {}", sqlResult.confidence)
             
-            return@withContext AgentGenerateResult(
-                content = sqlResult.sql,
-                metadata = mapOf(
+            return@withContext AgentResponse(
+                text = sqlResult.sql,
+                result = mapOf(
                     "confidence" to sqlResult.confidence,
                     "explanation" to sqlResult.explanation,
                     "validation" to validationResult,
                     "timestamp" to Instant.now().toString(),
-                    "agent_version" to version
+                    "agent_name" to name
                 )
             )
             
@@ -128,11 +150,7 @@ class NL2SQLAgent(
             memory.saveMessage(
                 SimpleMessage(
                     role = MessageRole.ASSISTANT,
-                    content = "Error: ${e.message}",
-                    metadata = mapOf(
-                        "error" to true.toString(),
-                        "error_type" to e.javaClass.simpleName
-                    )
+                    content = "Error: ${e.message}"
                 ),
                 options.threadId ?: "default"
             )
@@ -141,6 +159,118 @@ class NL2SQLAgent(
         }
     }
     
+    /**
+     * Stream a response from the agent.
+     */
+    override suspend fun stream(
+        prompt: String,
+        options: AgentStreamOptions
+    ): AgentResponse {
+        // For now, just delegate to generate method
+        return generate(prompt, AgentGenerateOptions())
+    }
+
+    /**
+     * Reset the agent's state.
+     */
+    override suspend fun reset() {
+        // Reset implementation if needed
+        logger.info("NL2SQL Agent state reset")
+    }
+
+    /**
+     * Get the agent's current state.
+     */
+    override suspend fun getState(): ai.kastrax.core.agent.AgentState? {
+        // Return current state if needed
+        return null
+    }
+
+    /**
+     * Update the agent's state.
+     */
+    override suspend fun updateState(status: ai.kastrax.core.agent.AgentStatus): ai.kastrax.core.agent.AgentState? {
+        // Update state implementation if needed
+        return null
+    }
+
+    /**
+     * Create a new version of the agent.
+     */
+    override suspend fun createVersion(
+        instructions: String,
+        name: String?,
+        description: String?,
+        metadata: Map<String, String>,
+        activateImmediately: Boolean
+    ): AgentVersion? {
+        // Create version implementation if needed
+        return null
+    }
+
+    /**
+     * Get versions of the agent.
+     */
+    override suspend fun getVersions(
+        limit: Int,
+        offset: Int
+    ): List<AgentVersion>? {
+        // Get versions implementation if needed
+        return null
+    }
+
+    /**
+     * Get the active version of the agent.
+     */
+    override suspend fun getActiveVersion(): AgentVersion? {
+        // Get active version implementation if needed
+        return null
+    }
+
+    /**
+     * Activate a version of the agent.
+     */
+    override suspend fun activateVersion(versionId: String): AgentVersion? {
+        // Activate version implementation if needed
+        return null
+    }
+
+    /**
+     * Rollback to a version of the agent.
+     */
+    override suspend fun rollbackToVersion(versionId: String): AgentVersion? {
+        // Rollback to version implementation if needed
+        return null
+    }
+
+    /**
+     * Create a new session.
+     */
+    override suspend fun createSession(
+        title: String?,
+        resourceId: String?,
+        metadata: Map<String, String>
+    ): SessionInfo? {
+        // Create session implementation if needed
+        return null
+    }
+
+    /**
+     * Get session information.
+     */
+    override suspend fun getSession(sessionId: String): SessionInfo? {
+        // Get session implementation if needed
+        return null
+    }
+
+    /**
+     * Get session messages.
+     */
+    override suspend fun getSessionMessages(sessionId: String, limit: Int): List<SessionMessage>? {
+        // Get session messages implementation if needed
+        return null
+    }
+
     /**
      * 转换自然语言到SQL的便捷方法
      */
@@ -159,9 +289,9 @@ class NL2SQLAgent(
             
             SQLConversionResult(
                 isSuccess = true,
-                sql = result.content,
-                confidence = result.metadata["confidence"] as? Double ?: 0.0,
-                explanation = result.metadata["explanation"] as? String ?: "",
+                sql = result.text,
+                confidence = (result.result as? Map<String, Any>)?.get("confidence") as? Double ?: 0.0,
+                explanation = (result.result as? Map<String, Any>)?.get("explanation") as? String ?: "",
                 error = null
             )
         } catch (e: Exception) {
@@ -181,7 +311,7 @@ class NL2SQLAgent(
     private fun buildEnhancedPrompt(
         query: String,
         conversationHistory: List<ai.kastrax.memory.api.Message>,
-        ragContext: ai.kastrax.rag.RagResult,
+        ragContext: RagResult,
         schemaInfo: DatabaseSchema?
     ): String {
         val promptBuilder = StringBuilder()
@@ -285,9 +415,19 @@ class NL2SQLAgent(
      * 解析Tool结果为DatabaseSchema
      */
     private fun parseSchemaFromToolResult(output: Any): DatabaseSchema? {
-        // 这里需要根据实际的Tool输出格式进行解析
-        // 暂时返回null，实际实现时需要根据具体格式进行解析
-        return null
+        return try {
+            when (output) {
+                is Map<*, *> -> {
+                    val schemaMap = output as? Map<String, Any>
+                    schemaMap?.get("schema") as? DatabaseSchema
+                }
+                is DatabaseSchema -> output
+                else -> null
+            }
+        } catch (e: Exception) {
+            logger.warn("Failed to parse schema from tool result", e)
+            null
+        }
     }
 }
 

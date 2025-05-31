@@ -6,6 +6,7 @@ plugins {
     kotlin("jvm") version "2.1.10"
     kotlin("plugin.spring") version "2.1.10"
     kotlin("plugin.jpa") version "2.1.10"
+    kotlin("plugin.serialization") version "2.1.10"
 }
 
 group = "com.kastrax"
@@ -34,6 +35,7 @@ dependencies {
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
     implementation("io.projectreactor.kotlin:reactor-kotlin-extensions")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-reactor")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.0")
     
     // Database
     implementation("org.flywaydb:flyway-core")
@@ -49,9 +51,13 @@ dependencies {
     // Logging
     implementation("io.github.microutils:kotlin-logging-jvm:3.0.5")
     
-    // Kastrax Integration (to be implemented)
-    // implementation("com.kastrax:kastrax-llm-client:1.0.0")
-    // implementation("com.kastrax:kastrax-vector-client:1.0.0")
+    // Kastrax Integration
+    implementation(project(":kastrax-core"))
+    implementation(project(":kastrax-memory-api"))
+    implementation(project(":kastrax-memory-impl"))
+    implementation(project(":kastrax-rag"))
+    implementation(project(":kastrax-integrations:kastrax-deepseek"))
+    implementation(project(":kastrax-integrations:kastrax-openai"))
     
     // Testing
     testImplementation("org.springframework.boot:spring-boot-starter-test") {

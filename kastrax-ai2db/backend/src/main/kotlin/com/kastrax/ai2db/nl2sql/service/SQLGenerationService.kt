@@ -3,6 +3,8 @@ package com.kastrax.ai2db.nl2sql.service
 import com.kastrax.ai2db.nl2sql.model.SQLGenerationResult
 import com.kastrax.ai2db.nl2sql.model.QueryType
 import com.kastrax.ai2db.nl2sql.model.QueryComplexity
+import com.kastrax.ai2db.nl2sql.model.ConversionExplanation
+import com.kastrax.ai2db.nl2sql.model.ConversionStep
 import com.kastrax.ai2db.schema.model.DatabaseSchema
 import org.springframework.stereotype.Service
 import org.slf4j.LoggerFactory
@@ -147,9 +149,10 @@ class SQLGenerationService {
         if (upperSQL.contains("UNION")) complexityScore += 3
         
         return when {
-            complexityScore <= 1 -> QueryComplexity.LOW
+            complexityScore <= 1 -> QueryComplexity.SIMPLE
             complexityScore <= 4 -> QueryComplexity.MEDIUM
-            else -> QueryComplexity.HIGH
+            complexityScore <= 7 -> QueryComplexity.COMPLEX
+            else -> QueryComplexity.VERY_COMPLEX
         }
     }
 }
