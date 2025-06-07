@@ -1,4 +1,5 @@
 plugins {
+    id("com.vanniktech.maven.publish")
     kotlin("jvm")
     kotlin("plugin.allopen")
     kotlin("plugin.serialization")
@@ -68,4 +69,12 @@ allOpen {
     annotation("jakarta.ws.rs.Path")
     annotation("jakarta.enterprise.context.ApplicationScoped")
     annotation("io.quarkus.test.junit.QuarkusTest")
+}
+
+// 配置 vanniktech maven publish 插件
+mavenPublishing {
+    pom {
+        name.set("Kastrax Server Quarkus")
+        description.set("Quarkus server implementation for Kastrax")
+    }
 }

@@ -1,4 +1,5 @@
 plugins {
+    id("com.vanniktech.maven.publish")
     kotlin("jvm")
     application
 }
@@ -43,4 +44,12 @@ java {
 
 application {
     mainClass.set("ai.kastrax.observability.examples.ProfilingExample")
+}
+
+// 配置 vanniktech maven publish 插件
+mavenPublishing {
+    pom {
+        name.set("Kastrax Observability")
+        description.set("Monitoring and observability tools for Kastrax")
+    }
 }

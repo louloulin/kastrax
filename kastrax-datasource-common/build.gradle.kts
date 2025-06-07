@@ -1,4 +1,5 @@
 plugins {
+    id("com.vanniktech.maven.publish")
     kotlin("jvm")
     id("io.gitlab.arturbosch.detekt")
 }
@@ -29,4 +30,12 @@ dependencies {
 
 tasks.test {
     useJUnitPlatform()
+}
+
+// 配置 vanniktech maven publish 插件
+mavenPublishing {
+    pom {
+        name.set("Kastrax Datasource Common")
+        description.set("Common data source interfaces for Kastrax")
+    }
 }

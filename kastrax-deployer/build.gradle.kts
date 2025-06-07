@@ -1,4 +1,5 @@
 plugins {
+    id("com.vanniktech.maven.publish")
     kotlin("jvm")
     kotlin("plugin.serialization")
     id("org.jetbrains.dokka")
@@ -61,3 +62,11 @@ kotlin {
     jvmToolchain(17)
 }
 
+
+// 配置 vanniktech maven publish 插件
+mavenPublishing {
+    pom {
+        name.set("Kastrax Deployer")
+        description.set("Deployment tools for Kastrax applications")
+    }
+}

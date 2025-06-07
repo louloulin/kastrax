@@ -3,6 +3,7 @@ val logbackVersion: String by project
 val koinVersion: String by project
 
 plugins {
+    id("com.vanniktech.maven.publish")
     kotlin("jvm")
     id("io.ktor.plugin")
     id("org.jetbrains.kotlin.plugin.serialization")
@@ -125,4 +126,12 @@ tasks.withType<Test> {
 // 禁用shadowJar
 tasks.named("shadowJar") {
     enabled = false
+}
+
+// 配置 vanniktech maven publish 插件
+mavenPublishing {
+    pom {
+        name.set("Kastrax Server Ktor")
+        description.set("Ktor server implementation for Kastrax")
+    }
 }

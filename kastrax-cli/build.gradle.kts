@@ -1,4 +1,5 @@
 plugins {
+    id("com.vanniktech.maven.publish")
     kotlin("jvm")
     kotlin("plugin.serialization")
     id("org.jetbrains.dokka")
@@ -87,3 +88,11 @@ tasks.jar {
     dependsOn(":kastrax-store:jar")
 }
 
+
+// 配置 vanniktech maven publish 插件
+mavenPublishing {
+    pom {
+        name.set("Kastrax CLI")
+        description.set("Command-line interface for Kastrax")
+    }
+}

@@ -1,4 +1,5 @@
 plugins {
+    id("com.vanniktech.maven.publish")
     kotlin("jvm")
     kotlin("plugin.serialization")
     id("org.jetbrains.dokka")
@@ -44,3 +45,11 @@ kotlin {
 }
 
 // Publishing configuration moved to global setup
+
+// 配置 vanniktech maven publish 插件
+mavenPublishing {
+    pom {
+        name.set("Kastrax Evals")
+        description.set("Evaluation framework for AI models in Kastrax")
+    }
+}

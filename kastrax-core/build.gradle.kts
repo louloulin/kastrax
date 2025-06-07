@@ -3,7 +3,7 @@ plugins {
     kotlin("plugin.serialization")
     id("org.jetbrains.dokka")
     id("io.gitlab.arturbosch.detekt")
-    `maven-publish`
+    id("com.vanniktech.maven.publish")
 }
 
 dependencies {
@@ -71,4 +71,13 @@ detekt {
     buildUponDefaultConfig = true
     autoCorrect = true
     ignoreFailures = true
+}
+
+// 配置 vanniktech maven publish 插件
+// 大部分配置通过 gradle.properties 文件设置
+mavenPublishing {
+    pom {
+        name.set("Kastrax Core")
+        description.set("Core components and APIs for the Kastrax AI Framework")
+    }
 }

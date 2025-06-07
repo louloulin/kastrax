@@ -3,7 +3,7 @@ plugins {
     kotlin("plugin.serialization")
     id("org.jetbrains.dokka")
     id("io.gitlab.arturbosch.detekt")
-    `maven-publish`
+    id("com.vanniktech.maven.publish")
 }
 
 dependencies {
@@ -59,3 +59,11 @@ tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
 }
 
 // Publishing configuration moved to global setup
+
+// 配置 vanniktech maven publish 插件
+mavenPublishing {
+    pom {
+        name.set("Kastrax Anthropic")
+        description.set("Anthropic integration for Kastrax")
+    }
+}

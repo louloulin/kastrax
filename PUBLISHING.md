@@ -2,14 +2,16 @@
 
 本指南详细说明如何将 Kastrax 项目发布到 Maven Central 仓库。
 
+> **注意**: 本项目现在使用 `vanniktech/gradle-maven-publish-plugin` 来简化发布流程。
+
 ## 前置条件
 
-### 1. 注册 Sonatype OSSRH 账户
+### 1. 注册 Sonatype Central Portal 账户
 
-1. 访问 [Sonatype JIRA](https://issues.sonatype.org/)
-2. 创建账户并登录
-3. 创建一个新的项目票据来申请 `ai.kastrax` 组ID
-4. 等待 Sonatype 团队批准你的请求
+1. 访问 [Sonatype Central Portal](https://central.sonatype.com/)
+2. 使用GitHub账户登录或创建新账户
+3. 验证命名空间 `ai.kastrax`（通过DNS TXT记录或GitHub仓库验证）
+4. 生成发布令牌
 
 ### 2. 生成 GPG 密钥对
 
@@ -23,8 +25,8 @@ gpg --list-keys
 # 导出公钥到密钥服务器
 gpg --keyserver keyserver.ubuntu.com --send-keys YOUR_KEY_ID
 
-# 导出私钥（用于签名）
-gpg --export-secret-keys YOUR_KEY_ID > secring.gpg
+# 导出私钥（用于签名，ASCII格式）
+gpg --armor --export-secret-keys YOUR_KEY_ID
 ```
 
 ## 配置
@@ -34,64 +36,68 @@ gpg --export-secret-keys YOUR_KEY_ID > secring.gpg
 在你的环境中设置以下变量：
 
 ```bash
-export OSSRH_USERNAME="your-sonatype-username"
-export OSSRH_PASSWORD="your-sonatype-password"
+export MAVEN_CENTRAL_USERNAME="your-central-portal-username"
+export MAVEN_CENTRAL_PASSWORD="your-central-portal-token"
 export SIGNING_KEY_ID="your-gpg-key-id"
 export SIGNING_PASSWORD="your-gpg-key-password"
-export SIGNING_SECRET_KEY_RING_FILE="/path/to/secring.gpg"
+export SIGNING_SECRET_KEY="your-gpg-private-key-ascii"
 ```
 
-### 2. Gradle 属性配置（可选）
+### 2. Gradle 属性配置（推荐）
 
 在 `~/.gradle/gradle.properties` 中添加：
 
 ```properties
-ossrhUsername=your-sonatype-username
-ossrhPassword=your-sonatype-password
+mavenCentralUsername=your-central-portal-username
+mavenCentralPassword=your-central-portal-token
 signing.keyId=your-gpg-key-id
 signing.password=your-gpg-key-password
-signing.secretKeyRingFile=/path/to/secring.gpg
+signing.secretKey=your-gpg-private-key-ascii
 ```
+
+> **提示**: 使用 `signing.secretKey` 而不是 `signing.secretKeyRingFile` 可以避免文件路径问题。
 
 ## 发布流程
 
-### 1. 准备发布版本
-
-确保版本号不包含 `SNAPSHOT` 后缀：
-
-```kotlin
-// 在 build.gradle.kts 中
-version = "1.0.0"  // 而不是 "1.0.0-SNAPSHOT"
-```
-
-### 2. 应用签名插件到需要发布的模块
-
-在需要发布的子模块的 `build.gradle.kts` 中添加：
-
-```kotlin
-plugins {
-    // ... 其他插件
-    signing
-}
-```
-
-### 3. 执行发布
+### 方法1: 使用发布脚本（推荐）
 
 ```bash
-# 发布到 staging 仓库
-./gradlew publishToSonatype
+# 发布SNAPSHOT版本
+./scripts/publish.sh snapshot
 
-# 或者发布所有模块
-./gradlew publish
+# 发布正式版本
+./scripts/publish.sh release
 ```
 
-### 4. 在 Sonatype 中管理发布
+### 方法2: 手动发布
 
-1. 登录 [Nexus Repository Manager](https://s01.oss.sonatype.org/)
-2. 进入 "Staging Repositories"
-3. 找到你的发布（通常以 `aikastrax-` 开头）
-4. 选择并点击 "Close" 来验证发布
-5. 验证通过后，点击 "Release" 来发布到 Maven Central
+#### 1. 准备发布版本
+
+确保版本号配置正确：
+
+```properties
+# 在 gradle.properties 中
+VERSION_NAME=0.1.0  # 正式版本
+# 或
+VERSION_NAME=0.1.0-SNAPSHOT  # 快照版本
+```
+
+#### 2. 执行发布
+
+```bash
+# 发布到 Maven Central Portal
+./gradlew publishToMavenCentral
+
+# 或者发布所有模块并自动发布到Central
+./gradlew publishToMavenCentral --no-configuration-cache
+```
+
+#### 3. 检查发布状态
+
+1. 登录 [Sonatype Central Portal](https://central.sonatype.com/)
+2. 查看 "Deployments" 页面
+3. 检查发布状态和验证结果
+4. 如果启用了自动发布，包将自动同步到Maven Central
 
 ## 自动化发布（推荐）
 

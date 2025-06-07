@@ -2,7 +2,7 @@ plugins {
     kotlin("jvm")
     kotlin("plugin.serialization")
     id("org.jetbrains.dokka")
-    `maven-publish`
+    id("com.vanniktech.maven.publish")
     application
 }
 
@@ -111,4 +111,12 @@ kotlin {
 
 application {
     mainClass.set("ai.kastrax.rag.examples.RagVerificationExample")
+}
+
+// 配置 vanniktech maven publish 插件
+mavenPublishing {
+    pom {
+        name.set("Kastrax RAG")
+        description.set("Retrieval-Augmented Generation components for Kastrax")
+    }
 }

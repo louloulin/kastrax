@@ -1,4 +1,5 @@
 plugins {
+    id("com.vanniktech.maven.publish")
     kotlin("jvm")
     kotlin("plugin.serialization")
     id("org.jetbrains.dokka")
@@ -68,4 +69,11 @@ kotlin {
 
 detekt {
     config.setFrom("$rootDir/detekt.yml")
+}
+// 配置 vanniktech maven publish 插件
+mavenPublishing {
+    pom {
+        name.set("Kastrax Qwen")
+        description.set("Qwen integration for Kastrax")
+    }
 }

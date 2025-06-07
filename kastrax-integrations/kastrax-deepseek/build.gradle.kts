@@ -3,7 +3,7 @@ plugins {
     kotlin("plugin.serialization")
     id("org.jetbrains.dokka")
     id("io.gitlab.arturbosch.detekt")
-    `maven-publish`
+    id("com.vanniktech.maven.publish")
 }
 
 dependencies {
@@ -61,5 +61,13 @@ tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
     kotlinOptions {
         jvmTarget = "17"
         freeCompilerArgs = listOf("-Xjsr305=strict")
+    }
+}
+
+// 配置 vanniktech maven publish 插件
+mavenPublishing {
+    pom {
+        name.set("Kastrax DeepSeek")
+        description.set("DeepSeek integration for Kastrax")
     }
 }

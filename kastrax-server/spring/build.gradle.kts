@@ -1,6 +1,7 @@
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
+    id("com.vanniktech.maven.publish")
     id("org.springframework.boot")
     id("io.spring.dependency-management")
     kotlin("jvm")
@@ -60,4 +61,12 @@ tasks.withType<KotlinCompile> {
 
 tasks.withType<Test> {
     useJUnitPlatform()
+}
+
+// 配置 vanniktech maven publish 插件
+mavenPublishing {
+    pom {
+        name.set("Kastrax Server Spring")
+        description.set("Spring Boot server implementation for Kastrax")
+    }
 }

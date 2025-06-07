@@ -2,7 +2,7 @@ plugins {
     kotlin("jvm")
     kotlin("plugin.serialization")
     id("org.jetbrains.dokka")
-    `maven-publish`
+    id("com.vanniktech.maven.publish")
 }
 
 group = "ai.kastrax"
@@ -52,4 +52,12 @@ kotlin {
 
 tasks.dokkaHtml.configure {
     outputDirectory.set(buildDir.resolve("dokka"))
+}
+
+// 配置 vanniktech maven publish 插件
+mavenPublishing {
+    pom {
+        name.set("Kastrax Zod")
+        description.set("Schema validation and type safety for Kastrax")
+    }
 }
