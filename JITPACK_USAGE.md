@@ -1,5 +1,14 @@
 # 📦 Kastrax JitPack 使用指南
 
+## 🎯 包名配置说明
+
+Kastrax项目已配置为使用`ai.kastrax`作为主要包名，同时支持通过JitPack进行分发。
+
+### 📋 两种使用方式
+
+1. **直接使用发布包** (推荐): `ai.kastrax:module-name:version`
+2. **通过JitPack**: `com.github.louloulin:kastrax:version`
+
 ## 🚀 快速开始
 
 ### 添加仓库
