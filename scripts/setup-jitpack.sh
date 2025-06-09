@@ -198,18 +198,18 @@ repositories {
 \`\`\`kotlin
 dependencies {
     // 核心模块
-    implementation("com.github.louloulin.kastrax:kastrax-core:$version")
-    
+    implementation("ai.kastrax:kastrax-core:$version")
+
     // 内存管理
-    implementation("com.github.louloulin.kastrax:kastrax-memory-api:$version")
-    
+    implementation("ai.kastrax:kastrax-memory-api:$version")
+
     // RAG系统
-    implementation("com.github.louloulin.kastrax:kastrax-rag:$version")
-    
+    implementation("ai.kastrax:kastrax-rag:$version")
+
     // 数据验证
-    implementation("com.github.louloulin.kastrax:kastrax-zod:$version")
-    
-    // 或者使用完整项目
+    implementation("ai.kastrax:kastrax-zod:$version")
+
+    // 或者使用完整项目 (通过JitPack)
     implementation("com.github.louloulin:kastrax:$version")
 }
 \`\`\`
@@ -224,10 +224,10 @@ dependencies {
 
 | 模块 | 依赖 | 描述 |
 |------|------|------|
-| kastrax-core | \`com.github.louloulin.kastrax:kastrax-core:$version\` | 核心框架 |
-| kastrax-memory-api | \`com.github.louloulin.kastrax:kastrax-memory-api:$version\` | 内存管理API |
-| kastrax-rag | \`com.github.louloulin.kastrax:kastrax-rag:$version\` | RAG系统 |
-| kastrax-zod | \`com.github.louloulin.kastrax:kastrax-zod:$version\` | 数据验证 |
+| kastrax-core | \`ai.kastrax:kastrax-core:$version\` | 核心框架 |
+| kastrax-memory-api | \`ai.kastrax:kastrax-memory-api:$version\` | 内存管理API |
+| kastrax-rag | \`ai.kastrax:kastrax-rag:$version\` | RAG系统 |
+| kastrax-zod | \`ai.kastrax:kastrax-zod:$version\` | 数据验证 |
 
 ## 🎯 版本信息
 
@@ -240,7 +240,11 @@ dependencies {
 
 要使用新版本，只需更新版本号:
 \`\`\`kotlin
+// 通过JitPack使用
 implementation("com.github.louloulin:kastrax:NEW_VERSION")
+
+// 或者直接使用发布的包
+implementation("ai.kastrax:kastrax-core:NEW_VERSION")
 \`\`\`
 
 JitPack会自动构建新版本。

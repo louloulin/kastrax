@@ -28,7 +28,7 @@ allprojects {
     // 只为根项目设置group和version，子项目会继承或自己设置
     if (project == rootProject) {
         group = "ai.kastrax"
-        version = "0.1.0"
+        version = "0.1.1"
     }
 
     repositories {

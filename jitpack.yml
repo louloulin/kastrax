@@ -9,8 +9,10 @@ before_install:
 
 # 自定义安装脚本
 install:
-  - echo "开始构建..."
-  - ./gradlew publishToMavenLocal -x test
+  - echo "开始构建Kastrax项目..."
+  - echo "Group: ai.kastrax"
+  - echo "Version: 0.1.0"
+  - ./gradlew clean build publishToMavenLocal -x test --info
 
 # 构建后脚本
 after_success:
