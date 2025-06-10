@@ -86,23 +86,85 @@ enum class GradeLevel(val displayName: String, val numericValue: Int) {
  */
 @Serializable
 data class LearningProfile(
+    val studentId: StudentId,
     val learningStyle: LearningStyle,
     val preferredContentTypes: Set<ContentType>,
-    val currentDifficultyLevel: DifficultyLevel,
+    val currentLevel: DifficultyLevel,
     val subjectPreferences: Map<Subject, PreferenceLevel>,
     val knowledgeState: Map<Topic, MasteryLevel>,
     val cognitiveAbilities: CognitiveAbilities,
-    val motivationFactors: MotivationProfile
+    val motivationFactors: MotivationProfile,
+    val skillLevels: Map<Skill, ai.kastrax.edutech.recommendation.SkillLevel> = emptyMap(),
+    val activityHistory: List<ActivityRecord> = emptyList(),
+    val preferences: Map<String, String> = emptyMap(),
+    val goals: List<String> = emptyList(),
+    val createdAt: kotlinx.datetime.Instant = kotlinx.datetime.Clock.System.now(),
+    val updatedAt: kotlinx.datetime.Instant = kotlinx.datetime.Clock.System.now()
 ) {
     companion object {
-        fun default(): LearningProfile = LearningProfile(
+        fun createDefault(studentId: StudentId = StudentId.generate()): LearningProfile = LearningProfile(
+            studentId = studentId,
             learningStyle = LearningStyle.BALANCED,
             preferredContentTypes = setOf(ContentType.TEXT, ContentType.VIDEO),
-            currentDifficultyLevel = DifficultyLevel.BEGINNER,
+            currentLevel = DifficultyLevel.BEGINNER,
             subjectPreferences = emptyMap(),
             knowledgeState = emptyMap(),
             cognitiveAbilities = CognitiveAbilities.default(),
             motivationFactors = MotivationProfile.default()
+        )
+
+        fun fromInitialData(
+            studentId: StudentId,
+            initialData: ai.kastrax.edutech.recommendation.ProfileInitialData
+        ): LearningProfile = LearningProfile(
+            studentId = studentId,
+            learningStyle = initialData.learningStyle ?: LearningStyle.BALANCED,
+            preferredContentTypes = setOf(ContentType.TEXT, ContentType.VIDEO),
+            currentLevel = DifficultyLevel.BEGINNER,
+            subjectPreferences = emptyMap(),
+            knowledgeState = emptyMap(),
+            cognitiveAbilities = CognitiveAbilities.default(),
+            motivationFactors = MotivationProfile.default(),
+            goals = initialData.goals
+        )
+
+        // 保持向后兼容性
+        fun default(): LearningProfile = createDefault()
+    }
+
+    /**
+     * 应用档案更新
+     */
+    fun applyUpdates(updates: ai.kastrax.edutech.recommendation.ProfileUpdates): LearningProfile {
+        return copy(
+            learningStyle = updates.learningStyle ?: learningStyle,
+            skillLevels = skillLevels + updates.skillLevels,
+            preferences = preferences + updates.preferences,
+            goals = updates.goals ?: goals,
+            updatedAt = kotlinx.datetime.Clock.System.now()
+        )
+    }
+
+    /**
+     * 添加活动记录
+     */
+    fun addActivityRecord(
+        activity: LearningActivity,
+        performance: ai.kastrax.edutech.recommendation.ActivityPerformance
+    ): LearningProfile {
+        val record = ActivityRecord(
+            activityId = activity.id,
+            activityType = activity.type,
+            topic = activity.topic,
+            duration = performance.completionTime,
+            performance = performance,
+            completed = performance.completed,
+            timestamp = kotlinx.datetime.Clock.System.now()
+        )
+
+        return copy(
+            activityHistory = activityHistory + record,
+            updatedAt = kotlinx.datetime.Clock.System.now()
         )
     }
 }
@@ -117,6 +179,15 @@ enum class LearningStyle(val description: String) {
     KINESTHETIC("动觉学习者 - 偏好实践操作和体验学习"),
     READING_WRITING("读写学习者 - 偏好文本阅读和写作练习"),
     BALANCED("平衡型 - 多种学习方式结合");
+
+    val displayName: String
+        get() = when (this) {
+            VISUAL -> "视觉型"
+            AUDITORY -> "听觉型"
+            KINESTHETIC -> "动手型"
+            READING_WRITING -> "读写型"
+            BALANCED -> "平衡型"
+        }
     
     fun getMultiplierFor(contentType: ContentType): Double = when (this) {
         VISUAL -> when (contentType) {
@@ -299,3 +370,17 @@ enum class GoalOrientation(val description: String) {
     PERFORMANCE("表现导向 - 专注于成绩和排名"),
     BALANCED("平衡导向 - 兼顾理解和表现")
 }
+
+/**
+ * 活动记录
+ */
+@Serializable
+data class ActivityRecord(
+    val activityId: ActivityId,
+    val activityType: ActivityType,
+    val topic: Topic,
+    val duration: Int,
+    val performance: ai.kastrax.edutech.recommendation.ActivityPerformance,
+    val completed: Boolean,
+    val timestamp: kotlinx.datetime.Instant
+)
