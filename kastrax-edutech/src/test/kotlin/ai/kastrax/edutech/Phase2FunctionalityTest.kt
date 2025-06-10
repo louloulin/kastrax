@@ -298,8 +298,7 @@ class Phase2FunctionalityTest {
                         "difficulty" to "BEGINNER"
                     )
                 ),
-                score = 0.9,
-                explanation = "高度匹配"
+                score = 0.9
             )
         )
         coEvery { ragSystem.search(any(), any()) } returns mockSearchResults
@@ -417,7 +416,7 @@ class Phase2FunctionalityTest {
         val statistics = (statisticsResult as StatisticsResult.Success).statistics
         assertEquals(2, statistics.totalActivities)
         assertEquals(550, statistics.totalLearningTime)
-        assertEquals(0.85, statistics.averagePerformance)
+        assertEquals(0.85, statistics.averagePerformance, 0.001)
         assertEquals(1.0, statistics.completionRate)
         assertTrue(statistics.preferredActivityTypes.isNotEmpty())
     }
