@@ -12,6 +12,7 @@ dependencies {
     implementation(project(":kastrax-memory-api"))
     implementation(project(":kastrax-memory-impl"))
     implementation(project(":kastrax-rag"))
+    implementation(project(":kastrax-store"))
     implementation(project(":kastrax-zod"))
     implementation(project(":kastrax-actor"))
 
@@ -53,6 +54,11 @@ dependencies {
     // Machine Learning Libraries
     implementation("org.jetbrains.kotlinx:multik-core:0.2.2")
     implementation("org.jetbrains.kotlinx:multik-default:0.2.2")
+
+    // JWT Authentication
+    implementation("io.jsonwebtoken:jjwt-api:0.11.5")
+    implementation("io.jsonwebtoken:jjwt-impl:0.11.5")
+    implementation("io.jsonwebtoken:jjwt-jackson:0.11.5")
 
     // Testing Dependencies
     testImplementation("org.jetbrains.kotlin:kotlin-test")
