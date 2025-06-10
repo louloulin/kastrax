@@ -263,6 +263,7 @@ enum class ActivityType(val displayName: String, val category: ActivityCategory)
     QUIZ("测验", ActivityCategory.ASSESSMENT),
     EXAM("考试", ActivityCategory.ASSESSMENT),
     ASSIGNMENT("作业", ActivityCategory.ASSESSMENT),
+    ASSESSMENT("评估", ActivityCategory.ASSESSMENT),
     
     DISCUSSION("讨论", ActivityCategory.INTERACTION),
     COLLABORATION("协作", ActivityCategory.INTERACTION),

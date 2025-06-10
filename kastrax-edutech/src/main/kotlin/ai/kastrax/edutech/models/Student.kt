@@ -257,11 +257,13 @@ enum class Subject(val displayName: String, val category: SubjectCategory) {
     COMPUTER_SCIENCE("计算机科学", SubjectCategory.STEM),
     CHINESE("语文", SubjectCategory.LANGUAGE),
     ENGLISH("英语", SubjectCategory.LANGUAGE),
+    LANGUAGE_ARTS("语言艺术", SubjectCategory.LANGUAGE),
     HISTORY("历史", SubjectCategory.HUMANITIES),
     GEOGRAPHY("地理", SubjectCategory.HUMANITIES),
     ART("美术", SubjectCategory.ARTS),
     MUSIC("音乐", SubjectCategory.ARTS),
-    PHYSICAL_EDUCATION("体育", SubjectCategory.PHYSICAL);
+    PHYSICAL_EDUCATION("体育", SubjectCategory.PHYSICAL),
+    GENERAL("通用", SubjectCategory.HUMANITIES);
 }
 
 @Serializable
