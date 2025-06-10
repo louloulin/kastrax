@@ -32,6 +32,7 @@ rootProject.name = "kastrax"
 
 include(":kastrax-core")
 include(":kastrax-zod")
+include(":kastrax-edutech")
 include(":kastrax-memory-api")
 include(":kastrax-memory-impl")
 include(":kastrax-rag")
