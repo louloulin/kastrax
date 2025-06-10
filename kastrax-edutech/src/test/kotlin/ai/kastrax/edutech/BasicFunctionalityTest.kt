@@ -230,7 +230,7 @@ class BasicFunctionalityTest {
         assertFalse(content.isSuitableForLearningStyle(LearningStyle.KINESTHETIC))
         
         assertTrue(content.isSuitableForDifficulty(DifficultyLevel.INTERMEDIATE))
-        assertTrue(content.isSuitableForDifficulty(DifficultyLevel.BEGINNER, allowAdjacent = true))
+        assertTrue(content.isSuitableForDifficulty(DifficultyLevel.ELEMENTARY, allowAdjacent = true))
         assertFalse(content.isSuitableForDifficulty(DifficultyLevel.BEGINNER, allowAdjacent = false))
         
         val summary = content.createSummary(50)
