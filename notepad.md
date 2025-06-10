@@ -1,34 +1,52 @@
+@ed2.md 按照计划新建分支，开发功能，开发完成后增加测试验证，验证通过后 更新 @ed2.md 标记实现的功能
 
-按  @kastrax-code/src/main/x21.md 计划， 在 @kastrax-code 执行gradle build -x test 分析问题，分析kastrax等模块的代码实现，修复问题，修复后更新 @kastrax-code/src/main/x21.md   标记实现的功能，ui部分修复参考kastrax-codex ui部分代码实现
+基于ed2.md文档中详细规划的教育科技AI解决方案实施计划，执行以下完整的开发工作流程：
 
-按照 @kastrax-code/src/main/kastrax-code/src/main/mm.md 实现相关的功能，实现后增加测试验证，验证通过后更新 @kastrax-code/src/main/kastrax-code/src/main/mm.md 标记实现的功能
+**1. 分支管理与项目初始化**
+- 为ed2.md第5.2节详细开发计划中的每个核心组件创建独立的功能分支
+- 分支命名规范：`feature/edutech-[阶段]-[组件名]-v[版本]`
+  - 示例：`feature/edutech-phase1-lms-integration-v0.1.1`
+  - 示例：`feature/edutech-phase2-personalized-engine-v0.1.1`
+  - 示例：`feature/edutech-phase3-intelligent-grading-v0.1.1`
+- 每个分支对应ed2.md中16周实施计划的具体里程碑和交付物
 
-@kastrax-code/src/main/x23.md 按计划，参考kastrax整个代码实现，实现后增加测试验证，验证通过后更新 @kastrax-code/src/main/x23.md 标记实现的功能，全局搜索idea ui的资料，同时参考codex的ui代码
+**2. 技术实现阶段**
+- **架构遵循**：严格按照ed2.md第3.1节系统架构设计，使用Kastrax框架的以下核心能力：
+  - Actor模型：实现ed2.md第2.1节描述的StudentActor和TeacherActor并发管理
+  - 记忆系统：实现第2.2节的多层次记忆架构（短期/长期/工作记忆）
+  - RAG系统：集成第2.3节的智能内容检索和知识图谱功能
+  - 工具系统：开发第2.4节定义的教育专用工具集
+- **代码质量**：
+  - 使用Kotlin强类型系统确保ed2.md第2.5节强调的类型安全优势
+  - 实现ed2.md第3.2节定义的核心数据实体和API设计
+  - 遵循ai.kastrax包命名规范，确保与JitPack发布配置一致
+- **功能实现**：按照ed2.md第3.3节用户体验流程，实现学生、教师、管理员的完整交互流程
 
+**3. 测试与验证体系**
+- **单元测试**：针对每个教育AI组件编写测试，确保代码覆盖率>80%
+- **集成测试**：验证教育模块与Kastrax核心框架的兼容性和性能
+- **端到端测试**：测试ed2.md第3.4节定义的完整教育工作流程
+- **性能验证**：确保达到ed2.md第5.3节定义的成功指标：
+  - 系统响应时间 <200ms
+  - 并发用户支持 >10,000
+  - 系统可用性 >99.5%
+  - 推荐准确率 >75%
+  - 批改准确率 >85%
+- **商业指标验证**：验证ed2.md第4.3节收入模式的技术可行性
 
-@kastrax-code/src/main/x24.md 按计划，参考kastrax整个代码实现，实现后增加测试验证，验证通过后更新 @kastrax-code/src/main/x24.md 标记实现的功能，全局搜索idea ui的资料，同时参考codex的ui代码
+**4. 文档更新与项目跟踪**
+- **进度更新**：在ed2.md第5.2节详细开发计划中标记已完成的任务和里程碑
+- **实施记录**：记录与原计划的偏差、技术决策变更和经验教训
+- **API文档**：更新ed2.md第3.3节API设计，补充实际实现的接口规范
+- **部署指南**：基于实际实现更新JitPack发布流程和使用说明
+- **风险评估**：更新ed2.md第5.4节风险识别，记录已缓解的风险和新发现的问题
 
-@kastrax-code/src/main/x25.md 按计划，参考kastrax整个代码实现，实现后增加测试验证，验证通过后更新 @kastrax-code/src/main/x25.md 标记实现的功能，全局搜索idea ui的资料，同时参考codex的ui代码
+**5. 代码审查与合并流程**
+- 创建详细的Pull Request，包含：
+  - 实现功能与ed2.md规划的对应关系
+  - 性能测试结果和基准对比
+  - 对整体教育科技解决方案的贡献度评估
+- 确保合并后的代码能够通过JitPack构建，维护ai.kastrax包的发布质量
+- 更新版本号并触发新的JitPack发布（如需要）
 
-开始将kastrax-runtime集成到其他模块中，如kastrax-core和kactor
-
-按计划 @augment1.md 实现相关功能，充分分析kastrax的代码，重点是kastrax-core和kastrax-codebase，实现相关功能，实现后增加测试验证，验证通过后更新 @augment1.md 标记实现的功能
-
-
-按照 @xc7.md 技术实现协程改造功能，优先改造kactor和kastrax-core，实现后增加测试验证，验证通过后更新 @xc7.md 标记实现的功能
-
-按照 @runtime2.md 计划实现相关相关功能改造，改造完成后增加测试验证，验证通过更新 @runtime2.md 标记完成的功能
-
-
-@runtimes3.md 按照整个计划，继续实现改造迁移，实现后更新，实现后增加测试验证，验证通过更新 @runtimes3.md 标记实现的功能
-
-@xf12.md 按计划实现相关功能，实现后增加测试验证验证通过后更新 @xf12.md 标记实现的功能
-
-@ai2db2.md 按计划实现相关的功能，实现增加测试验证验证通过后，更新 @ai2db2.md 标记实现的功能
-
-@ai2db2.md 按计划实现相关的功能 工作空间在 @kastrax-ai2db ，实现增加测试验证验证通过后，更新 @ai2db2.md 标记实现的功能
-
-
-按计划迁移  的功能，迁移后增加测试验证，验证通过后更新  标记实现的功能，分析micronaut下哪个数据框架性能最好就使用那个
-
-nl.md 按照计划改成ai2db模块下的 nl2sql 功能，实现完代码后，增加测试验证，验证通过后，更新 nl.md 标记实现的功能
+**执行优先级**：按照ed2.md第5.1节项目时间线，优先实现第一阶段（Week 1-4）的基础平台搭建，然后依次推进核心功能开发和高级功能实现。
