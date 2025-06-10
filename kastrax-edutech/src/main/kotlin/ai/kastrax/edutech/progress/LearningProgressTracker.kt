@@ -12,37 +12,7 @@ import java.util.*
 
 // 进度跟踪数据模型
 
-/**
- * 学习活动
- */
-@Serializable
-data class LearningActivity(
-    val id: String = "activity_${UUID.randomUUID()}",
-    val type: ActivityType,
-    val subject: Subject,
-    val topic: Topic,
-    val difficulty: DifficultyLevel,
-    val skillsInvolved: Set<Skill>,
-    val createdAt: Instant = Clock.System.now()
-) {
-    companion object {
-        fun create(
-            type: ActivityType,
-            topic: Topic,
-            difficulty: DifficultyLevel,
-            skillsInvolved: Set<Skill>,
-            subject: Subject = Subject.GENERAL
-        ): LearningActivity {
-            return LearningActivity(
-                type = type,
-                subject = subject,
-                topic = topic,
-                difficulty = difficulty,
-                skillsInvolved = skillsInvolved
-            )
-        }
-    }
-}
+// 使用models包中的LearningActivity
 
 /**
  * 活动表现
@@ -472,7 +442,7 @@ class LearningProgressTracker {
                     timeSpan = if (filteredTrajectory.isNotEmpty()) {
                         filteredTrajectory.last().timestamp.minus(filteredTrajectory.first().timestamp)
                     } else {
-                        kotlinx.time.Duration.ZERO
+                        kotlin.time.Duration.ZERO
                     }
                 )
             )

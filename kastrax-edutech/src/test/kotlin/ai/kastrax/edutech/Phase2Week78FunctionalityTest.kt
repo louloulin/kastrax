@@ -180,7 +180,7 @@ class Phase2Week78FunctionalityTest {
     @Test
     fun `should create and grade multiple choice assessment`() = runTest {
         // Given
-        val mockLLMProvider = mockk<LLMProvider>()
+        val mockLLMProvider = mockk<LlmProvider>()
         val assessmentRepository = InMemoryAssessmentRepository()
         val assessmentService = AssessmentService(mockLLMProvider, assessmentRepository)
         
@@ -232,7 +232,7 @@ class Phase2Week78FunctionalityTest {
             assessmentId = assessment.id,
             studentId = studentId,
             answers = answers,
-            startedAt = Clock.System.now().minus(kotlinx.time.Duration.parse("PT5M")),
+            startedAt = Clock.System.now().minus(kotlin.time.Duration.parse("PT5M")),
             timeSpent = 300
         )
         
@@ -294,14 +294,15 @@ class Phase2Week78FunctionalityTest {
         val progressTracker = LearningProgressTracker()
         val studentId = StudentId.generate()
         
-        val activity = LearningActivity.create(
+        val activity = ai.kastrax.edutech.models.LearningActivity.create(
             type = ActivityType.READING,
             topic = Topic("数学基础"),
             difficulty = DifficultyLevel.BEGINNER,
-            skillsInvolved = setOf(Skill.LOGICAL_REASONING)
+            skillsInvolved = setOf(Skill.LOGICAL_REASONING),
+            subject = Subject.MATHEMATICS
         )
         
-        val performance = ActivityPerformance(
+        val performance = ai.kastrax.edutech.progress.ActivityPerformance(
             accuracy = 0.85,
             completionTime = 300,
             engagementLevel = 0.9,
@@ -333,18 +334,18 @@ class Phase2Week78FunctionalityTest {
         
         // 记录多个学习活动
         val activities = listOf(
-            LearningActivity.create(ActivityType.READING, Topic("加法"), DifficultyLevel.BEGINNER, setOf(Skill.LOGICAL_REASONING)),
-            LearningActivity.create(ActivityType.PRACTICE, Topic("减法"), DifficultyLevel.BEGINNER, setOf(Skill.PROBLEM_SOLVING)),
-            LearningActivity.create(ActivityType.QUIZ, Topic("乘法"), DifficultyLevel.INTERMEDIATE, setOf(Skill.ANALYTICAL_THINKING))
+            ai.kastrax.edutech.models.LearningActivity.create(ActivityType.READING, Topic("加法"), DifficultyLevel.BEGINNER, setOf(Skill.LOGICAL_REASONING), Subject.MATHEMATICS),
+            ai.kastrax.edutech.models.LearningActivity.create(ActivityType.PRACTICE, Topic("减法"), DifficultyLevel.BEGINNER, setOf(Skill.PROBLEM_SOLVING), Subject.MATHEMATICS),
+            ai.kastrax.edutech.models.LearningActivity.create(ActivityType.QUIZ, Topic("乘法"), DifficultyLevel.INTERMEDIATE, setOf(Skill.ANALYTICAL_THINKING), Subject.MATHEMATICS)
         )
         
         val performances = listOf(
-            ActivityPerformance(0.8, 200, 0.9, true),
-            ActivityPerformance(0.9, 250, 0.8, true),
-            ActivityPerformance(0.7, 300, 0.85, true)
+            ai.kastrax.edutech.progress.ActivityPerformance(0.8, 200, 0.9, true),
+            ai.kastrax.edutech.progress.ActivityPerformance(0.9, 250, 0.8, true),
+            ai.kastrax.edutech.progress.ActivityPerformance(0.7, 300, 0.85, true)
         )
-        
-        activities.zip(performances).forEach { (activity, performance) ->
+
+        activities.zip(performances).forEach { (activity: ai.kastrax.edutech.models.LearningActivity, performance: ai.kastrax.edutech.progress.ActivityPerformance) ->
             progressTracker.recordLearningProgress(studentId, activity, performance)
         }
         
@@ -371,14 +372,15 @@ class Phase2Week78FunctionalityTest {
         val studentId = StudentId.generate()
         
         // 记录低表现的学习活动
-        val activity = LearningActivity.create(
+        val activity = ai.kastrax.edutech.models.LearningActivity.create(
             type = ActivityType.PRACTICE,
             topic = Topic("数学练习"),
             difficulty = DifficultyLevel.BEGINNER,
-            skillsInvolved = setOf(Skill.LOGICAL_REASONING)
+            skillsInvolved = setOf(Skill.LOGICAL_REASONING),
+            subject = Subject.MATHEMATICS
         )
         
-        val lowPerformance = ActivityPerformance(
+        val lowPerformance = ai.kastrax.edutech.progress.ActivityPerformance(
             accuracy = 0.4, // 低表现
             completionTime = 100,
             engagementLevel = 0.5,
@@ -407,14 +409,15 @@ class Phase2Week78FunctionalityTest {
         val studentId = StudentId.generate()
         
         // 记录一些学习活动
-        val activity = LearningActivity.create(
+        val activity = ai.kastrax.edutech.models.LearningActivity.create(
             type = ActivityType.READING,
             topic = Topic("物理基础"),
             difficulty = DifficultyLevel.INTERMEDIATE,
-            skillsInvolved = setOf(Skill.ANALYTICAL_THINKING)
+            skillsInvolved = setOf(Skill.ANALYTICAL_THINKING),
+            subject = Subject.PHYSICS
         )
-        
-        val performance = ActivityPerformance(0.85, 400, 0.9, true)
+
+        val performance = ai.kastrax.edutech.progress.ActivityPerformance(0.85, 400, 0.9, true)
         progressTracker.recordLearningProgress(studentId, activity, performance)
         
         // When

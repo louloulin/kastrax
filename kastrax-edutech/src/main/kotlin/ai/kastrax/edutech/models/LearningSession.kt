@@ -186,6 +186,7 @@ data class SessionMetrics(
 data class LearningActivity(
     val id: ActivityId,
     val type: ActivityType,
+    val subject: Subject = Subject.GENERAL,
     val topic: Topic,
     val difficulty: DifficultyLevel,
     val skillsInvolved: Set<Skill>,
@@ -205,12 +206,14 @@ data class LearningActivity(
             type: ActivityType,
             topic: Topic,
             difficulty: DifficultyLevel,
-            skillsInvolved: Set<Skill>
+            skillsInvolved: Set<Skill>,
+            subject: Subject = Subject.GENERAL
         ): LearningActivity {
             val now = kotlinx.datetime.Clock.System.now()
             return LearningActivity(
                 id = ActivityId.generate(),
                 type = type,
+                subject = subject,
                 topic = topic,
                 difficulty = difficulty,
                 skillsInvolved = skillsInvolved,

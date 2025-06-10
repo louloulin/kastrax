@@ -221,7 +221,7 @@ data class ContentTemplate(
         objectives: List<String>,
         difficulty: String,
         audience: String,
-        parameters: Map<String, Any> = emptyMap()
+        parameters: Map<String, String> = emptyMap()
     ): String {
         var prompt = promptTemplate
             .replace("{topic}", topic)
@@ -309,11 +309,11 @@ sealed class MultimodalGenerationResult {
  */
 sealed class ParameterOptimizationResult {
     data class Success(
-        val optimizedParameters: Map<String, Any>,
+        val optimizedParameters: Map<String, String>,
         val improvementAreas: List<String>,
         val confidenceScore: Double
     ) : ParameterOptimizationResult()
-    
+
     data class Failure(val error: String) : ParameterOptimizationResult()
 }
 
