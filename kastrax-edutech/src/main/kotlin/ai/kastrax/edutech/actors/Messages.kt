@@ -380,7 +380,7 @@ data class LearningProgressReport(
     val achievements: List<Achievement>,
     val areasForImprovement: List<ImprovementArea>,
     val nextMilestones: List<Milestone>
-)
+) : Message
 
 @Serializable
 data class OverallProgress(
@@ -520,3 +520,217 @@ enum class AnalysisType {
     ENGAGEMENT_METRICS,
     PREDICTIVE_ANALYSIS
 }
+
+// ============= 响应消息 =============
+
+/**
+ * 班级操作完成
+ */
+@Serializable
+data class ClassActionCompleted(
+    val action: ClassAction,
+    val result: String
+) : Message
+
+/**
+ * 内容生成完成
+ */
+@Serializable
+data class ContentGenerated(
+    val content: GeneratedContent
+) : Message
+
+/**
+ * 进度分析完成
+ */
+@Serializable
+data class ProgressAnalysisCompleted(
+    val analysisType: AnalysisType,
+    val results: AnalysisResult,
+    val improvements: List<ClassImprovement>,
+    val timestamp: kotlinx.datetime.Instant
+) : Message
+
+/**
+ * 学生注册
+ */
+@Serializable
+data class RegisterStudent(
+    val studentId: StudentId
+) : Message
+
+/**
+ * 学生注册完成
+ */
+@Serializable
+data class StudentRegistered(
+    val studentId: StudentId
+) : Message
+
+/**
+ * 学生注销
+ */
+@Serializable
+data class UnregisterStudent(
+    val studentId: StudentId
+) : Message
+
+/**
+ * 学生注销完成
+ */
+@Serializable
+data class StudentUnregistered(
+    val studentId: StudentId
+) : Message
+
+/**
+ * 班级广播
+ */
+@Serializable
+data class BroadcastToClass(
+    val message: String
+) : Message
+
+/**
+ * 消息广播完成
+ */
+@Serializable
+data class MessageBroadcasted(
+    val message: String
+) : Message
+
+/**
+ * 更新课程
+ */
+@Serializable
+data class UpdateCurriculum(
+    val curriculum: String
+) : Message
+
+/**
+ * 课程更新完成
+ */
+@Serializable
+data class CurriculumUpdated(
+    val curriculum: String
+) : Message
+
+/**
+ * 安排评估
+ */
+@Serializable
+data class ScheduleAssessment(
+    val assessment: String
+) : Message
+
+/**
+ * 评估安排完成
+ */
+@Serializable
+data class AssessmentScheduled(
+    val assessment: String
+) : Message
+
+// ============= 支持类型定义 =============
+
+/**
+ * 生成的内容
+ */
+@Serializable
+data class GeneratedContent(
+    val id: String,
+    val title: String,
+    val content: String,
+    val type: ContentType,
+    val subject: Subject,
+    val difficulty: DifficultyLevel,
+    val estimatedDuration: Long, // 分钟
+    val objectives: List<String>,
+    val metadata: Map<String, String> = emptyMap()
+)
+
+/**
+ * 分析结果
+ */
+@Serializable
+sealed class AnalysisResult {
+    @Serializable
+    data class OverallPerformance(
+        val averagePerformance: Double,
+        val completionRate: Double,
+        val totalActivities: Int,
+        val studentCount: Int,
+        val performanceDistribution: Map<String, Int>
+    ) : AnalysisResult()
+
+    @Serializable
+    data class IndividualProgress(
+        val studentProgress: List<StudentProgressData>
+    ) : AnalysisResult()
+
+    @Serializable
+    data class SubjectPerformance(
+        val subjectData: Map<String, Double>
+    ) : AnalysisResult()
+
+    @Serializable
+    data class SkillDevelopment(
+        val skillData: Map<String, Double>
+    ) : AnalysisResult()
+
+    @Serializable
+    data class EngagementMetrics(
+        val engagementData: Map<String, Double>
+    ) : AnalysisResult()
+
+    @Serializable
+    data class PredictiveAnalysis(
+        val predictions: List<String>
+    ) : AnalysisResult()
+}
+
+/**
+ * 班级改进建议
+ */
+@Serializable
+data class ClassImprovement(
+    val area: String,
+    val description: String,
+    val priority: Priority,
+    val suggestedActions: List<String>,
+    val estimatedImpact: ImpactLevel
+)
+
+/**
+ * 影响级别
+ */
+@Serializable
+enum class ImpactLevel {
+    LOW, MEDIUM, HIGH, CRITICAL
+}
+
+/**
+ * 学生进度数据
+ */
+@Serializable
+data class StudentProgressData(
+    val studentId: StudentId,
+    val performance: Double,
+    val completionRate: Double,
+    val timeSpent: Long, // 分钟
+    val activitiesCompleted: Int
+)
+
+/**
+ * 内容生成请求
+ */
+@Serializable
+data class ContentGenerationRequest(
+    val type: ContentType,
+    val subject: Subject,
+    val difficulty: DifficultyLevel,
+    val objectives: List<String>,
+    val targetAudience: String,
+    val constraints: ContentConstraints,
+    val context: List<String> = emptyList() // 简化为字符串列表
+)

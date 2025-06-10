@@ -2,13 +2,7 @@
 
 基于ed2.md文档中详细规划的教育科技AI解决方案实施计划，执行以下完整的开发工作流程：
 
-**1. 分支管理与项目初始化**
-- 为ed2.md第5.2节详细开发计划中的每个核心组件创建独立的功能分支
-- 分支命名规范：`feature/edutech-[阶段]-[组件名]-v[版本]`
-  - 示例：`feature/edutech-phase1-lms-integration-v0.1.1`
-  - 示例：`feature/edutech-phase2-personalized-engine-v0.1.1`
-  - 示例：`feature/edutech-phase3-intelligent-grading-v0.1.1`
-- 每个分支对应ed2.md中16周实施计划的具体里程碑和交付物
+周实施计划的具体里程碑和交付物
 
 **2. 技术实现阶段**
 - **架构遵循**：严格按照ed2.md第3.1节系统架构设计，使用Kastrax框架的以下核心能力：

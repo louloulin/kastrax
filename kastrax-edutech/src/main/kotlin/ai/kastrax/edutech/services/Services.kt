@@ -179,7 +179,6 @@ data class PersonalizedLearningPlan(
     }
     
     fun getNextRecommendation(): LearningRecommendation? = nextRecommendations.firstOrNull()
-    fun getUpcomingMilestones(): List<Milestone> = upcomingMilestones
     fun updateGoals(newGoals: List<LearningGoal>): PersonalizedLearningPlan = this
 }
 

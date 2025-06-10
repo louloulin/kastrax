@@ -1,26 +1,24 @@
 package ai.kastrax.edutech.actors
 
 import ai.kastrax.memory.api.Memory
+import ai.kastrax.rag.RAG
 import ai.kastrax.edutech.models.*
-import ai.kastrax.edutech.services.LearningAnalytics
-import ai.kastrax.edutech.services.PersonalizationEngine
+import ai.kastrax.edutech.services.*
 import kotlinx.datetime.Instant
-import kotlinx.serialization.Serializable
 import mu.KotlinLogging
-import java.time.Duration
 
 /**
- * 学生Actor - 实现ed2.md第2.1节Actor模型在教育场景的应用
- *
- * 管理单个学生的学习状态，实现真正的分布式学习管理
+ * 简化的学生Actor - 实现ed2.md第2.1节Actor模型在教育场景的应用
+ * 
+ * 管理单个学生的学习状态，实现分布式学习管理
  */
 class StudentActor(
     private val studentId: StudentId,
     private val memorySystem: Memory,
-    private val ragSystem: RAGSystem,
+    private val ragSystem: RAG,
     private val learningAnalytics: LearningAnalytics,
     private val personalizationEngine: PersonalizationEngine
-) : Actor {
+) {
     
     private val logger = KotlinLogging.logger {}
     
@@ -29,10 +27,10 @@ class StudentActor(
     private var learningState = LearningState.initial(studentId)
     private var personalizedPlan = PersonalizedLearningPlan.empty(studentId)
     
-    override suspend fun Context.receive(msg: Any) {
+    suspend fun receive(msg: Any): Message? {
         logger.debug { "StudentActor[$studentId] received message: ${msg::class.simpleName}" }
-
-        try {
+        
+        return try {
             when (msg) {
                 is StartLearningSession -> handleStartSession(msg)
                 is ProcessLearningActivity -> handleLearningActivity(msg)
@@ -44,7 +42,10 @@ class StudentActor(
                 is CompleteLearningSession -> handleCompleteSession(msg)
                 is UpdateLearningGoals -> handleGoalUpdate(msg)
                 is RecordMetacognition -> handleMetacognitionRecord(msg)
-                else -> logger.warn { "Unknown message type: ${message::class.simpleName}" }
+                else -> {
+                    logger.warn { "Unknown message type: ${msg::class.simpleName}" }
+                    null
+                }
             }
         } catch (e: Exception) {
             logger.error(e) { "Error processing message in StudentActor[$studentId]" }
@@ -52,7 +53,7 @@ class StudentActor(
         }
     }
     
-    private suspend fun Context.handleStartSession(message: StartLearningSession) {
+    private suspend fun handleStartSession(message: StartLearningSession): Message {
         logger.info { "Starting learning session for student $studentId" }
         
         // 创建新的学习会话
@@ -67,9 +68,9 @@ class StudentActor(
         
         // 保存到记忆系统
         memorySystem.saveMessage(
-            message = ai.kastrax.memory.api.Message(
+            message = SimpleMessage(
                 content = "Started learning session: ${currentSession!!.id}",
-                role = "system"
+                role = ai.kastrax.memory.api.MessageRole.SYSTEM
             ),
             threadId = studentId.toString()
         )
@@ -81,11 +82,11 @@ class StudentActor(
             currentState = learningState
         )
         
-        // 回复确认
-        respond(SessionStarted(currentSession!!.id, personalizedPlan.nextRecommendations))
+        // 返回确认消息
+        return SessionStarted(currentSession!!.id, personalizedPlan.nextRecommendations)
     }
     
-    private suspend fun Context.handleLearningActivity(message: ProcessLearningActivity) {
+    private suspend fun handleLearningActivity(message: ProcessLearningActivity): Message {
         val session = currentSession ?: throw IllegalStateException("No active session")
         
         logger.debug { "Processing learning activity: ${message.activity.type}" }
@@ -115,9 +116,9 @@ class StudentActor(
         
         // 保存学习记录到记忆系统
         memorySystem.saveMessage(
-            message = ai.kastrax.memory.api.Message(
+            message = SimpleMessage(
                 content = "Completed activity: ${processedActivity.type} - Performance: ${processedActivity.performance}%",
-                role = "system"
+                role = ai.kastrax.memory.api.MessageRole.SYSTEM
             ),
             threadId = studentId.toString()
         )
@@ -126,19 +127,17 @@ class StudentActor(
         val feedback = generateLearningFeedback(processedActivity, performanceAnalysis)
         val nextRecommendation = personalizedPlan.getNextRecommendation()
         
-        // 回复处理结果
-        respond(
-            ActivityProcessed(
-                activityId = processedActivity.id,
-                performance = processedActivity.performance,
-                feedback = feedback,
-                nextRecommendation = nextRecommendation,
-                updatedMetrics = currentSession!!.sessionMetrics
-            )
+        // 返回处理结果
+        return ActivityProcessed(
+            activityId = processedActivity.id,
+            performance = processedActivity.performance,
+            feedback = feedback,
+            nextRecommendation = nextRecommendation,
+            updatedMetrics = currentSession!!.sessionMetrics
         )
     }
     
-    private suspend fun Context.handlePersonalizationUpdate(message: UpdatePersonalization) {
+    private suspend fun handlePersonalizationUpdate(message: UpdatePersonalization): Message {
         logger.debug { "Updating personalization for student $studentId" }
         
         // 更新学习档案
@@ -153,17 +152,17 @@ class StudentActor(
         
         // 保存更新到记忆系统
         memorySystem.saveMessage(
-            message = ai.kastrax.memory.api.Message(
-                content = "Updated personalization: ${msg.profileUpdates}",
-                role = "system"
+            message = SimpleMessage(
+                content = "Updated personalization: ${message.profileUpdates}",
+                role = ai.kastrax.memory.api.MessageRole.SYSTEM
             ),
             threadId = studentId.toString()
         )
-
-        respond(PersonalizationUpdated(personalizedPlan.summary))
+        
+        return PersonalizationUpdated(personalizedPlan.summary)
     }
     
-    private suspend fun Context.handleProgressQuery(message: GetLearningProgress) {
+    private suspend fun handleProgressQuery(message: GetLearningProgress): Message {
         logger.debug { "Generating progress report for student $studentId" }
         
         val progressReport = LearningProgressReport(
@@ -175,23 +174,18 @@ class StudentActor(
             recentActivities = learningState.getRecentActivities(limit = 10),
             achievements = learningState.getAchievements(),
             areasForImprovement = learningAnalytics.identifyImprovementAreas(learningState),
-            nextMilestones = personalizedPlan.getUpcomingMilestones()
+            nextMilestones = personalizedPlan.upcomingMilestones
         )
         
-        respond(progressReport)
+        return progressReport
     }
     
-    private suspend fun Context.handleRecommendationRequest(message: GetRecommendations) {
+    private suspend fun handleRecommendationRequest(message: GetRecommendations): Message {
         logger.debug { "Generating recommendations for student $studentId" }
         
         // 使用RAG系统检索相关学习资源
         val relevantResources = ragSystem.search(
             query = buildRecommendationQuery(message.context, learningState),
-            filters = mapOf(
-                "difficulty" to learningState.currentDifficultyLevel.name,
-                "subject" to message.context.subject?.name,
-                "learningStyle" to learningState.learningProfile.learningStyle.name
-            ),
             limit = 10
         )
         
@@ -203,29 +197,44 @@ class StudentActor(
             availableResources = relevantResources
         )
         
-        respond(RecommendationsGenerated(recommendations))
+        return RecommendationsGenerated(recommendations)
     }
     
+    private suspend fun handlePauseSession(message: PauseLearningSession): Message {
+        currentSession = currentSession?.copy(status = SessionStatus.PAUSED)
+        return SessionPaused(currentSession!!.id)
+    }
+    
+    private suspend fun handleResumeSession(message: ResumeLearningSession): Message {
+        currentSession = currentSession?.copy(status = SessionStatus.ACTIVE)
+        return SessionResumed(currentSession!!.id)
+    }
+    
+    private suspend fun handleCompleteSession(message: CompleteLearningSession): Message {
+        currentSession = currentSession?.complete()
+        learningState = learningState.completeSession(currentSession!!)
+        return SessionCompleted(currentSession!!.id, currentSession!!.sessionMetrics)
+    }
+    
+    private suspend fun handleGoalUpdate(message: UpdateLearningGoals): Message {
+        personalizedPlan = personalizedPlan.updateGoals(message.newGoals)
+        return GoalsUpdated(message.newGoals)
+    }
+    
+    private suspend fun handleMetacognitionRecord(message: RecordMetacognition): Message {
+        learningState = learningState.recordMetacognition(message.reflection)
+        return MetacognitionRecorded(message.reflection.id)
+    }
+    
+    // 辅助方法
     private suspend fun processActivity(activity: LearningActivity): LearningActivity {
-        // 记录活动开始
-        val startTime = kotlinx.datetime.Clock.System.now()
-        
-        // 模拟活动处理逻辑
-        // 在实际实现中，这里会调用具体的学习活动处理器
-        
-        // 计算表现分数（这里是简化版本）
+        // 简化的活动处理逻辑
         val performance = calculateActivityPerformance(activity, learningState)
-        
-        // 生成反馈
         val feedback = generateActivityFeedback(activity, performance)
-        
         return activity.complete(performance, feedback)
     }
     
-    private fun calculateActivityPerformance(
-        activity: LearningActivity, 
-        state: LearningState
-    ): Double {
+    private fun calculateActivityPerformance(activity: LearningActivity, state: LearningState): Double {
         // 基于学生能力和活动难度计算表现
         val basePerformance = when (activity.difficulty) {
             DifficultyLevel.BEGINNER -> 85.0
@@ -236,9 +245,7 @@ class StudentActor(
         }
         
         // 根据学习风格调整
-        val styleMultiplier = state.learningProfile.learningStyle.getMultiplierFor(
-            ContentType.TEXT // 简化处理，实际应根据活动类型确定
-        )
+        val styleMultiplier = state.learningProfile.learningStyle.getMultiplierFor(ContentType.TEXT)
         
         // 添加随机变化模拟真实表现
         val randomVariation = (-10..10).random()
@@ -256,10 +263,7 @@ class StudentActor(
         }
     }
     
-    private fun generateLearningFeedback(
-        activity: LearningActivity,
-        analysis: PerformanceAnalysis
-    ): LearningFeedback {
+    private fun generateLearningFeedback(activity: LearningActivity, analysis: PerformanceAnalysis): LearningFeedback {
         return LearningFeedback(
             activityId = activity.id,
             overallScore = activity.performance,
@@ -281,10 +285,7 @@ class StudentActor(
         }
     }
     
-    private fun buildRecommendationQuery(
-        context: RecommendationContext,
-        state: LearningState
-    ): String {
+    private fun buildRecommendationQuery(context: RecommendationContext, state: LearningState): String {
         return buildString {
             append("学习推荐查询: ")
             context.subject?.let { append("学科=${it.displayName} ") }
@@ -295,34 +296,16 @@ class StudentActor(
             }
         }
     }
-    
-    // 其他处理方法的简化实现
-    private suspend fun Context.handlePauseSession(message: PauseLearningSession) {
-        currentSession = currentSession?.copy(status = SessionStatus.PAUSED)
-        respond(SessionPaused(currentSession!!.id))
-    }
-
-    private suspend fun Context.handleResumeSession(message: ResumeLearningSession) {
-        currentSession = currentSession?.copy(status = SessionStatus.ACTIVE)
-        respond(SessionResumed(currentSession!!.id))
-    }
-
-    private suspend fun Context.handleCompleteSession(message: CompleteLearningSession) {
-        currentSession = currentSession?.complete()
-        learningState = learningState.completeSession(currentSession!!)
-        respond(SessionCompleted(currentSession!!.id, currentSession!!.sessionMetrics))
-    }
-
-    private suspend fun Context.handleGoalUpdate(message: UpdateLearningGoals) {
-        personalizedPlan = personalizedPlan.updateGoals(message.newGoals)
-        respond(GoalsUpdated(message.newGoals))
-    }
-
-    private suspend fun Context.handleMetacognitionRecord(message: RecordMetacognition) {
-        learningState = learningState.recordMetacognition(message.reflection)
-        respond(MetacognitionRecorded(message.reflection.id))
-    }
 }
+
+// 简单的Message实现
+data class SimpleMessage(
+    override val content: String,
+    override val role: ai.kastrax.memory.api.MessageRole,
+    override val name: String? = null,
+    override val toolCalls: List<ai.kastrax.memory.api.ToolCall> = emptyList(),
+    override val toolCallId: String? = null
+) : ai.kastrax.memory.api.Message
 
 // 异常类定义
 class LearningDataException(message: String, cause: Throwable? = null) : Exception(message, cause)
