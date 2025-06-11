@@ -103,8 +103,8 @@ class SimpleCodeExecutor : CodeExecutor {
                 testCase = testCase,
                 actualOutput = if (passed) testCase.expectedOutput else "错误输出",
                 passed = passed,
-                executionTime = (50..200).random().toLong(),
-                memoryUsage = (1024..4096).random().toLong()
+                executionTime = (50..200)Random.nextInt().toLong(),
+                memoryUsage = (1024..4096)Random.nextInt().toLong()
             )
         }
     }
