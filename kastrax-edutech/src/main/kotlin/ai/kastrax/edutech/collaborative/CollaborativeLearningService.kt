@@ -471,7 +471,7 @@ class CollaborativeLearningService {
     
     private suspend fun updateCollaborativeProfiles(
         session: CollaborativeSession,
-        analysis: CollaborationAnalysis
+        analysis: FinalCollaborationReport
     ) {
         // 根据会话分析结果更新参与者的协作档案
         println("Updating collaborative profiles for session ${session.id}")

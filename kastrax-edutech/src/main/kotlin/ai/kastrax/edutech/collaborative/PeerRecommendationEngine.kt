@@ -436,14 +436,28 @@ class PeerRecommendationEngine {
         profile2: CollaborativeProfile
     ): Map<String, Double> {
         val allSkills = profile1.skillContributions.keys.union(profile2.skillContributions.keys)
-        
+
         return allSkills.associateWith { skill ->
             val skill1 = profile1.skillContributions[skill]?.ordinal?.toDouble() ?: 0.0
             val skill2 = profile2.skillContributions[skill]?.ordinal?.toDouble() ?: 0.0
-            
+
             // 互补性：技能差异越大，互补性越高
             1.0 - abs(skill1 - skill2) / 4.0 // 假设技能等级0-4
         }
+    }
+
+    private fun analyzeSkillComplementarity(
+        profile1: CollaborativeProfile,
+        profile2: CollaborativeProfile
+    ): Map<String, Double> {
+        return calculateSkillComplementarity(profile1, profile2)
+    }
+
+    private fun analyzeStyleComplementarity(
+        profile1: CollaborativeProfile,
+        profile2: CollaborativeProfile
+    ): Double {
+        return calculateStyleComplementarity(profile1, profile2)
     }
     
     private fun calculateStyleComplementarity(

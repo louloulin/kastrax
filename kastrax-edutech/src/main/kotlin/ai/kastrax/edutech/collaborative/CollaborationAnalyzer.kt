@@ -434,11 +434,13 @@ class CollaborationAnalyzer {
     }
     
     private fun calculateParticipationScore(metrics: ParticipationMetrics): Double {
-        return (metrics.contributionQuality + 
+        return (metrics.contributionQuality +
                 when (metrics.engagementLevel) {
-                    EngagementLevel.HIGH -> 1.0
+                    EngagementLevel.VERY_HIGH -> 1.0
+                    EngagementLevel.HIGH -> 0.9
                     EngagementLevel.MEDIUM -> 0.7
-                    EngagementLevel.LOW -> 0.3
+                    EngagementLevel.LOW -> 0.4
+                    EngagementLevel.VERY_LOW -> 0.2
                 }) / 2.0
     }
     
@@ -514,3 +516,153 @@ class CollaborationAnalyzer {
  * 协作分析异常
  */
 class CollaborationAnalysisException(message: String, cause: Throwable? = null) : Exception(message, cause)
+
+/**
+ * 学习成果评估器
+ */
+class LearningOutcomesEvaluator {
+
+    /**
+     * 评估学习成果
+     */
+    suspend fun evaluate(
+        sessionId: SessionId,
+        learningObjectives: List<String>,
+        participants: List<SessionParticipant>,
+        activities: List<CollaborativeActivity>,
+        interactions: List<CollaborativeInteraction>
+    ): LearningOutcomesAnalysis {
+
+        val objectiveAchievement = learningObjectives.associateWith { objective ->
+            // 简化实现：基于相关交互评估目标达成度
+            val relatedInteractions = interactions.filter { interaction ->
+                interaction.content.text?.contains(objective, ignoreCase = true) == true
+            }
+            minOf(1.0, relatedInteractions.size / 5.0) // 假设5个相关交互表示完全达成
+        }
+
+        val skillDevelopment = participants.associate { participant ->
+            participant.studentId to mapOf(
+                "协作技能" to (participant.contributionScore / 20.0).coerceAtMost(1.0),
+                "沟通技能" to when (participant.engagementLevel) {
+                    EngagementLevel.VERY_HIGH -> 0.9
+                    EngagementLevel.HIGH -> 0.8
+                    EngagementLevel.MEDIUM -> 0.6
+                    EngagementLevel.LOW -> 0.4
+                    EngagementLevel.VERY_LOW -> 0.2
+                },
+                "领导技能" to if (participant.role == ParticipantRole.LEADER) 0.8 else 0.5
+            )
+        }
+
+        val knowledgeGain = participants.associate { participant ->
+            participant.studentId to (participant.contributionScore / 15.0).coerceAtMost(1.0)
+        }
+
+        val collaborationSkillImprovement = participants.associate { participant ->
+            participant.studentId to (participant.contributionScore / 10.0).coerceAtMost(1.0)
+        }
+
+        return LearningOutcomesAnalysis(
+            objectiveAchievement = objectiveAchievement,
+            skillDevelopment = skillDevelopment,
+            knowledgeGain = knowledgeGain,
+            collaborationSkillImprovement = collaborationSkillImprovement
+        )
+    }
+}
+
+/**
+ * 建议生成器
+ */
+class RecommendationGenerator {
+
+    /**
+     * 生成协作建议
+     */
+    suspend fun generate(
+        session: CollaborativeSession,
+        participationMetrics: Map<StudentId, ParticipationMetrics>,
+        groupDynamics: GroupDynamicsAnalysis
+    ): List<CollaborationRecommendation> {
+        val recommendations = mutableListOf<CollaborationRecommendation>()
+
+        // 1. 基于参与度生成建议
+        val lowParticipation = participationMetrics.filter { (_, metrics) ->
+            metrics.engagementLevel == EngagementLevel.LOW || metrics.engagementLevel == EngagementLevel.VERY_LOW
+        }
+
+        if (lowParticipation.isNotEmpty()) {
+            recommendations.add(
+                CollaborationRecommendation(
+                    type = RecommendationType.ENGAGEMENT_BOOST,
+                    targetParticipants = lowParticipation.keys.toList(),
+                    description = "提升低参与度学生的积极性",
+                    priority = RecommendationPriority.HIGH,
+                    actionItems = listOf(
+                        "直接邀请发言",
+                        "分配具体任务",
+                        "提供个性化鼓励"
+                    ),
+                    expectedOutcome = "增加学生参与度和贡献"
+                )
+            )
+        }
+
+        // 2. 基于小组动态生成建议
+        if (groupDynamics.cohesionScore < 0.6) {
+            recommendations.add(
+                CollaborationRecommendation(
+                    type = RecommendationType.GROUP_RESTRUCTURING,
+                    targetParticipants = session.participants.map { it.studentId },
+                    description = "改善小组凝聚力",
+                    priority = RecommendationPriority.MEDIUM,
+                    actionItems = listOf(
+                        "组织团队建设活动",
+                        "明确共同目标",
+                        "建立协作规范"
+                    ),
+                    expectedOutcome = "提高小组凝聚力和协作效果"
+                )
+            )
+        }
+
+        // 3. 基于沟通效果生成建议
+        if (groupDynamics.communicationEffectiveness < 0.6) {
+            recommendations.add(
+                CollaborationRecommendation(
+                    type = RecommendationType.COMMUNICATION_IMPROVEMENT,
+                    targetParticipants = session.participants.map { it.studentId },
+                    description = "改善沟通效果",
+                    priority = RecommendationPriority.MEDIUM,
+                    actionItems = listOf(
+                        "提供沟通技巧培训",
+                        "建立沟通规范",
+                        "使用结构化讨论方法"
+                    ),
+                    expectedOutcome = "提高沟通质量和效率"
+                )
+            )
+        }
+
+        // 4. 基于冲突水平生成建议
+        if (groupDynamics.conflictLevel == ConflictLevel.HIGH || groupDynamics.conflictLevel == ConflictLevel.SEVERE) {
+            recommendations.add(
+                CollaborationRecommendation(
+                    type = RecommendationType.CONFLICT_INTERVENTION,
+                    targetParticipants = session.participants.map { it.studentId },
+                    description = "解决小组冲突",
+                    priority = RecommendationPriority.CRITICAL,
+                    actionItems = listOf(
+                        "进行冲突调解",
+                        "重新分配角色",
+                        "建立冲突解决机制"
+                    ),
+                    expectedOutcome = "降低冲突水平，恢复协作"
+                )
+            )
+        }
+
+        return recommendations
+    }
+}

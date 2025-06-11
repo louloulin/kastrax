@@ -155,7 +155,18 @@ class GroupDynamicsAnalyzer {
         interactions: List<CollaborativeInteraction>,
         activities: List<CollaborativeActivity>
     ): List<CollaborationPattern> {
-        return patternRecognizer.recognizePatterns(interactions, activities)
+        // 需要将activities转换为participants
+        val participants = activities.map { activity ->
+            SessionParticipant(
+                studentId = activity.participantId,
+                role = ParticipantRole.MEMBER,
+                joinTime = activity.timestamp,
+                contributionScore = 10.0,
+                engagementLevel = EngagementLevel.MEDIUM
+            )
+        }.distinctBy { it.studentId }
+
+        return patternRecognizer.recognizePatterns(interactions, participants)
     }
     
     // ==================== 私有计算方法 ====================
@@ -1040,3 +1051,95 @@ data class KnowledgeBuildingSequence(
     val participants: List<StudentId>,
     val knowledgeDepth: Double
 )
+
+/**
+ * 协作模式识别器
+ */
+class CollaborationPatternRecognizer {
+
+    /**
+     * 识别协作模式
+     */
+    suspend fun recognizePatterns(
+        interactions: List<CollaborativeInteraction>,
+        participants: List<SessionParticipant>
+    ): List<CollaborationPattern> {
+        val patterns = mutableListOf<CollaborationPattern>()
+
+        // 1. 识别领导模式
+        val leadershipPattern = recognizeLeadershipPattern(interactions, participants)
+        if (leadershipPattern != null) {
+            patterns.add(leadershipPattern)
+        }
+
+        // 2. 识别协作模式
+        val collaborationPattern = recognizeCollaborationPattern(interactions)
+        if (collaborationPattern != null) {
+            patterns.add(collaborationPattern)
+        }
+
+        // 3. 识别沟通模式
+        val communicationPattern = recognizeCommunicationPattern(interactions)
+        if (communicationPattern != null) {
+            patterns.add(communicationPattern)
+        }
+
+        return patterns
+    }
+
+    private fun recognizeLeadershipPattern(
+        interactions: List<CollaborativeInteraction>,
+        participants: List<SessionParticipant>
+    ): CollaborationPattern? {
+        val leaders = participants.filter { it.role == ParticipantRole.LEADER }
+        if (leaders.isEmpty()) return null
+
+        return CollaborationPattern(
+            type = PatternType.LEADERSHIP,
+            participants = leaders.map { it.studentId },
+            impact = 0.8,
+            frequency = leaders.size.toDouble() / participants.size
+        )
+    }
+
+    private fun recognizeCollaborationPattern(
+        interactions: List<CollaborativeInteraction>
+    ): CollaborationPattern? {
+        val collaborativeInteractions = interactions.filter {
+            it.type in listOf(InteractionType.SHARE, InteractionType.COMMENT, InteractionType.QUESTION)
+        }
+
+        if (collaborativeInteractions.size < interactions.size * 0.3) return null
+
+        return CollaborationPattern(
+            type = PatternType.COLLABORATION,
+            participants = collaborativeInteractions.map { it.participantId }.distinct(),
+            impact = collaborativeInteractions.size.toDouble() / interactions.size,
+            frequency = 1.0
+        )
+    }
+
+    private fun recognizeCommunicationPattern(
+        interactions: List<CollaborativeInteraction>
+    ): CollaborationPattern? {
+        val communicationInteractions = interactions.filter {
+            it.type in listOf(InteractionType.MESSAGE, InteractionType.COMMENT)
+        }
+
+        if (communicationInteractions.size < interactions.size * 0.5) return null
+
+        return CollaborationPattern(
+            type = PatternType.COMMUNICATION,
+            participants = communicationInteractions.map { it.participantId }.distinct(),
+            impact = communicationInteractions.size.toDouble() / interactions.size,
+            frequency = 1.0
+        )
+    }
+}
+
+
+
+/**
+ * 小组动态分析异常
+ */
+class GroupDynamicsAnalysisException(message: String, cause: Throwable? = null) : Exception(message, cause)

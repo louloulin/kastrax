@@ -432,9 +432,11 @@ class ParticipationTracker {
         val interactionRate = interactions.size.toDouble() / sessionDuration.inWholeHours.coerceAtLeast(1)
         
         return when {
+            interactionRate >= 15 -> EngagementLevel.VERY_HIGH
             interactionRate >= 10 -> EngagementLevel.HIGH
             interactionRate >= 5 -> EngagementLevel.MEDIUM
-            else -> EngagementLevel.LOW
+            interactionRate >= 2 -> EngagementLevel.LOW
+            else -> EngagementLevel.VERY_LOW
         }
     }
     
