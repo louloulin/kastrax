@@ -113,7 +113,7 @@ class AssessmentEngine {
         studentId: String,
         answers: List<String>
     ): Map<String, Any> {
-        val score = (70..95)Random.nextInt()
+        val score = Random.nextInt(70, 96)
         
         return mapOf(
             "submissionId" to "submission_${System.currentTimeMillis()}",

@@ -248,7 +248,7 @@ class StudentActor(
         val styleMultiplier = state.learningProfile.learningStyle.getMultiplierFor(ContentType.TEXT)
         
         // 添加随机变化模拟真实表现
-        val randomVariation = (-10..10)Random.nextInt()
+        val randomVariation = Random.nextInt(1, 100)Random.nextInt()
         
         return (basePerformance * styleMultiplier + randomVariation).coerceIn(0.0, 100.0)
     }

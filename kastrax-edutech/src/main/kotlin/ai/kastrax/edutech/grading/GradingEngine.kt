@@ -65,7 +65,7 @@ class GradingEngine(
             } catch (e: SecurityException) {
                 mapOf(
                     "submissionId" to submissionId,
-                    "error" to e.message,
+                    "error" to (e.message ?: "Unknown error"),
                     "status" to "failed"
                 )
             }
@@ -105,7 +105,7 @@ class GradingEngine(
         
         return mapOf(
             "submissionId" to submissionId,
-            "score" to (75..90)Random.nextInt(),
+            "score" to Random.nextInt(75, 91),
             "feedback" to "Revised grading based on: $reason",
             "gradedAt" to Clock.System.now().toString(),
             "grader" to graderId,

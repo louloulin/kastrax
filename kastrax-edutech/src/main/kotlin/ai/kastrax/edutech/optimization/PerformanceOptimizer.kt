@@ -26,13 +26,13 @@ class PerformanceOptimizer {
                 "connection_pool_optimization",
                 "cache_configuration"
             ),
-            "performance_gain" to (20.0..35.0)Random.nextInt(),
+            "performance_gain" to Random.nextDouble(20.0, 35.0),
             "optimizedAt" to Clock.System.now().toString(),
             "details" to mapOf(
-                "indexes_created" to (5..15)Random.nextInt(),
-                "slow_queries_optimized" to (3..8)Random.nextInt(),
-                "connection_pool_size" to (20..50)Random.nextInt(),
-                "cache_hit_rate_improvement" to (0.15..0.25)Random.nextInt()
+                "indexes_created" to Random.nextInt(5, 16),
+                "slow_queries_optimized" to Random.nextInt(3, 9),
+                "connection_pool_size" to Random.nextInt(20, 51),
+                "cache_hit_rate_improvement" to Random.nextDouble(0.15, 0.25)
             )
         )
     }
@@ -44,13 +44,13 @@ class PerformanceOptimizer {
      */
     fun monitorDatabasePerformance(): Map<String, Any> {
         return mapOf(
-            "query_time_avg" to (35.0..55.0)Random.nextInt(),
-            "query_time_max" to (150.0..300.0)Random.nextInt(),
-            "connection_pool_usage" to (0.65..0.85)Random.nextInt(),
-            "cache_hit_rate" to (0.85..0.95)Random.nextInt(),
-            "active_connections" to (15..45)Random.nextInt(),
-            "slow_queries_count" to (0..5)Random.nextInt(),
-            "deadlocks_count" to (0..2)Random.nextInt(),
+            "query_time_avg" to Random.nextDouble(35.0, 55.0),
+            "query_time_max" to Random.nextDouble(150.0, 300.0),
+            "connection_pool_usage" to Random.nextDouble(0.65, 0.85),
+            "cache_hit_rate" to Random.nextDouble(0.85, 0.95),
+            "active_connections" to Random.nextInt(15, 46),
+            "slow_queries_count" to Random.nextInt(0, 6),
+            "deadlocks_count" to Random.nextInt(0, 3),
             "monitoredAt" to Clock.System.now().toString()
         )
     }
@@ -69,13 +69,13 @@ class PerformanceOptimizer {
                 "memory_allocation_optimization",
                 "cache_warming_strategy"
             ),
-            "performance_gain" to (15.0..30.0)Random.nextInt(),
+            "performance_gain" to Random.nextDouble(15.0, 30.0),
             "optimizedAt" to Clock.System.now().toString(),
             "details" to mapOf(
-                "hit_rate_before" to (0.75..0.85)Random.nextInt(),
-                "hit_rate_after" to (0.88..0.95)Random.nextInt(),
-                "memory_usage_reduction" to (0.10..0.20)Random.nextInt(),
-                "response_time_improvement" to (0.25..0.40)Random.nextInt()
+                "hit_rate_before" to Random.nextDouble(0.75, 0.85),
+                "hit_rate_after" to Random.nextDouble(0.88, 0.95),
+                "memory_usage_reduction" to Random.nextDouble(0.1, 0.2),
+                "response_time_improvement" to Random.nextDouble(0.25, 0.4)
             )
         )
     }
@@ -87,15 +87,15 @@ class PerformanceOptimizer {
      */
     fun monitorMemoryUsage(): Map<String, Any> {
         val heapMax = 2048.0
-        val heapUsed = (400.0..1600.0)Random.nextInt()
+        val heapUsed = Random.nextDouble(400.0, 1600.0)
         
         return mapOf(
             "heap_used" to heapUsed,
             "heap_max" to heapMax,
             "heap_usage_percentage" to (heapUsed / heapMax),
-            "non_heap_used" to (50.0..200.0)Random.nextInt(),
-            "gc_count" to (3..15)Random.nextInt(),
-            "gc_time_total" to (100..500)Random.nextInt(), // 毫秒
+            "non_heap_used" to Random.nextDouble(50.0, 200.0),
+            "gc_count" to Random.nextInt(3, 16),
+            "gc_time_total" to Random.nextInt(100, 501), // 毫秒
             "memory_leak_detected" to false,
             "memory_pressure" to when {
                 heapUsed / heapMax > 0.9 -> "high"
@@ -114,7 +114,7 @@ class PerformanceOptimizer {
     fun optimizeMemory(): Map<String, Any> {
         return mapOf(
             "optimization_type" to "memory",
-            "memory_freed" to (64.0..256.0)Random.nextInt(),
+            "memory_freed" to Random.nextDouble(64.0, 256.0),
             "gc_triggered" to true,
             "optimizations_applied" to listOf(
                 "object_pool_optimization",
@@ -122,7 +122,7 @@ class PerformanceOptimizer {
                 "memory_leak_fixes",
                 "cache_size_adjustment"
             ),
-            "performance_gain" to (10.0..25.0)Random.nextInt(),
+            "performance_gain" to Random.nextDouble(10.0, 25.0),
             "optimizedAt" to Clock.System.now().toString()
         )
     }
@@ -139,15 +139,15 @@ class PerformanceOptimizer {
             "database_optimization" to true,
             "actor_optimization" to true,
             "network_optimization" to true,
-            "improvement_percentage" to (25.0..45.0)Random.nextInt(),
-            "response_time_before" to (250..400)Random.nextInt(), // 毫秒
-            "response_time_after" to (120..200)Random.nextInt(), // 毫秒
+            "improvement_percentage" to Random.nextDouble(25.0, 45.0),
+            "response_time_before" to Random.nextInt(250, 401), // 毫秒
+            "response_time_after" to Random.nextInt(120, 201), // 毫秒
             "optimizedAt" to Clock.System.now().toString(),
             "details" to mapOf(
-                "cache_hit_rate_improvement" to (0.10..0.20)Random.nextInt(),
-                "database_query_optimization" to (0.30..0.50)Random.nextInt(),
-                "actor_pool_optimization" to (0.15..0.25)Random.nextInt(),
-                "network_latency_reduction" to (0.05..0.15)Random.nextInt()
+                "cache_hit_rate_improvement" to Random.nextDouble(0.1, 0.2),
+                "database_query_optimization" to Random.nextDouble(0.3, 0.5),
+                "actor_pool_optimization" to Random.nextDouble(0.15, 0.25),
+                "network_latency_reduction" to Random.nextDouble(0.05, 0.15)
             )
         )
     }
@@ -161,9 +161,9 @@ class PerformanceOptimizer {
     fun measureResponseTime(requestId: String): Duration {
         // 模拟不同的响应时间
         val responseTimeMs = when {
-            requestId.contains("fast") -> (50..100)Random.nextInt()
-            requestId.contains("slow") -> (300..500)Random.nextInt()
-            else -> (120..200)Random.nextInt()
+            requestId.contains("fast") -> Random.nextInt(50, 101)
+            requestId.contains("slow") -> Random.nextInt(300, 501)
+            else -> Random.nextInt(120, 201)
         }
         
         return responseTimeMs.milliseconds
@@ -183,13 +183,13 @@ class PerformanceOptimizer {
                 "dispatcher_tuning",
                 "mailbox_optimization"
             ),
-            "performance_gain" to (18.0..32.0)Random.nextInt(),
+            "performance_gain" to Random.nextDouble(18.0, 32.0),
             "optimizedAt" to Clock.System.now().toString(),
             "details" to mapOf(
-                "actor_pool_size_before" to (10..20)Random.nextInt(),
-                "actor_pool_size_after" to (25..50)Random.nextInt(),
-                "message_throughput_improvement" to (0.20..0.40)Random.nextInt(),
-                "latency_reduction" to (0.15..0.30)Random.nextInt()
+                "actor_pool_size_before" to Random.nextInt(10, 21),
+                "actor_pool_size_after" to Random.nextInt(25, 51),
+                "message_throughput_improvement" to Random.nextDouble(0.2, 0.4),
+                "latency_reduction" to Random.nextDouble(0.15, 0.3)
             )
         )
     }
@@ -204,10 +204,10 @@ class PerformanceOptimizer {
             "reportId" to "perf_report_${System.currentTimeMillis()}",
             "generatedAt" to Clock.System.now().toString(),
             "summary" to mapOf(
-                "overall_performance_score" to (75..95)Random.nextInt(),
-                "critical_issues" to (0..2)Random.nextInt(),
-                "warnings" to (1..5)Random.nextInt(),
-                "optimizations_available" to (3..8)Random.nextInt()
+                "overall_performance_score" to Random.nextInt(75, 96),
+                "critical_issues" to Random.nextInt(0, 3),
+                "warnings" to Random.nextInt(1, 6),
+                "optimizations_available" to Random.nextInt(3, 9)
             ),
             "database" to monitorDatabasePerformance(),
             "memory" to monitorMemoryUsage(),
@@ -217,7 +217,7 @@ class PerformanceOptimizer {
                 "Tune garbage collection parameters",
                 "Implement query result caching",
                 "Optimize actor dispatcher configuration"
-            ).shuffled().take((3..5)Random.nextInt())
+            ).shuffled().take(Random.nextInt(3, 6))
         )
     }
     

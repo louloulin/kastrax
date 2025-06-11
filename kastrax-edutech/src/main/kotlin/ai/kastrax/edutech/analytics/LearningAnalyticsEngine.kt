@@ -62,9 +62,9 @@ class LearningAnalyticsEngine {
                 "currentFocus" to listOf("mathematics", "programming", "writing")Random.nextInt()
             ),
             "todayProgress" to mapOf(
-                "totalTime" to (60..300)Random.nextInt(), // 分钟
-                "completedLessons" to (2..8)Random.nextInt(),
-                "averageScore" to (75..95)Random.nextInt()
+                "totalTime" to Random.nextInt(60, 301), // 分钟
+                "completedLessons" to Random.nextInt(2, 9),
+                "averageScore" to Random.nextInt(75, 96)
             ),
             "alerts" to generateAlerts(userId),
             "monitoredAt" to Clock.System.now().toString()
@@ -83,20 +83,20 @@ class LearningAnalyticsEngine {
             "userId" to userId,
             "period" to period,
             "performance" to mapOf(
-                "averageScore" to (78..92)Random.nextInt(),
-                "completionRate" to (0.75..0.95)Random.nextInt(),
+                "averageScore" to Random.nextInt(78, 93),
+                "completionRate" to Random.nextDouble(0.75, 0.95),
                 "improvementTrend" to listOf("increasing", "stable", "decreasing")Random.nextInt(),
                 "strongAreas" to listOf("problem_solving", "critical_thinking"),
                 "weakAreas" to listOf("time_management", "attention_to_detail")
             ),
             "engagement" to mapOf(
-                "totalTime" to (1200..3600)Random.nextInt(), // 分钟
-                "sessionCount" to (20..60)Random.nextInt(),
-                "averageSessionLength" to (30..90)Random.nextInt(), // 分钟
+                "totalTime" to Random.nextInt(1200, 3601), // 分钟
+                "sessionCount" to Random.nextInt(20, 61),
+                "averageSessionLength" to Random.nextInt(30, 91), // 分钟
                 "peakLearningHours" to listOf("09:00-11:00", "14:00-16:00", "19:00-21:00")
             ),
             "predictions" to mapOf(
-                "nextWeekPerformance" to (80..95)Random.nextInt(),
+                "nextWeekPerformance" to Random.nextInt(80, 96),
                 "riskLevel" to listOf("low", "medium", "high")Random.nextInt(),
                 "recommendedActions" to generateActionRecommendations()
             ),
@@ -124,15 +124,15 @@ class LearningAnalyticsEngine {
      */
     private fun generatePredictions(userId: String): Map<String, Any> {
         return mapOf(
-            "completion_probability" to (0.65..0.95)Random.nextInt(),
-            "grade_prediction" to (75..95)Random.nextInt(),
-            "mastery_timeline" to "${(2..8)Random.nextInt()} weeks",
+            "completion_probability" to Random.nextDouble(0.65, 0.95),
+            "grade_prediction" to Random.nextInt(75, 96),
+            "mastery_timeline" to "${Random.nextInt(2, 9)} weeks",
             "risk_factors" to listOf(
                 "time_management", "concept_difficulty", "motivation_level"
-            ).shuffled().take((0..2)Random.nextInt()),
+            ).shuffled().take(Random.nextInt(0, 3)),
             "success_indicators" to listOf(
                 "consistent_practice", "active_participation", "help_seeking_behavior"
-            ).shuffled().take((1..3)Random.nextInt())
+            ).shuffled().take(Random.nextInt(1, 4))
         )
     }
     
@@ -193,7 +193,7 @@ class LearningAnalyticsEngine {
             )
         )
         
-        return alertTypes.shuffled().take((0..2)Random.nextInt())
+        return alertTypes.shuffled().take(Random.nextInt(0, 3))
     }
     
     /**
@@ -206,6 +206,6 @@ class LearningAnalyticsEngine {
             "Seek instructor feedback",
             "Form study groups",
             "Use supplementary learning resources"
-        ).shuffled().take((2..3)Random.nextInt())
+        ).shuffled().take(Random.nextInt(2, 4))
     }
 }

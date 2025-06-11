@@ -3,6 +3,7 @@ package ai.kastrax.edutech.grading
 import kotlinx.datetime.Instant
 import kotlinx.serialization.Serializable
 import kotlin.time.Duration
+import kotlin.random.Random
 
 /**
  * 代码分析结果
@@ -103,8 +104,8 @@ class SimpleCodeExecutor : CodeExecutor {
                 testCase = testCase,
                 actualOutput = if (passed) testCase.expectedOutput else "错误输出",
                 passed = passed,
-                executionTime = (50..200)Random.nextInt().toLong(),
-                memoryUsage = (1024..4096)Random.nextInt().toLong()
+                executionTime = Random.nextInt(50, 201).toLong(),
+                memoryUsage = Random.nextInt(1024, 4097).toLong()
             )
         }
     }
