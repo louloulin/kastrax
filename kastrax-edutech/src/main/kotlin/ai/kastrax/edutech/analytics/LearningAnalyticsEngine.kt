@@ -59,7 +59,7 @@ class LearningAnalyticsEngine {
                 "startTime" to Clock.System.now().toString(),
                 "activeDuration" to Random.nextInt(15, 121), // 分钟
                 "completedTasks" to Random.nextInt(1, 6),
-                "currentFocus" to listOf("mathematics", "programming", "writing")Random.nextInt()
+                "currentFocus" to listOf("mathematics", "programming", "writing").random()
             ),
             "todayProgress" to mapOf(
                 "totalTime" to Random.nextInt(60, 301), // 分钟
@@ -85,7 +85,7 @@ class LearningAnalyticsEngine {
             "performance" to mapOf(
                 "averageScore" to Random.nextInt(78, 93),
                 "completionRate" to Random.nextDouble(0.75, 0.95),
-                "improvementTrend" to listOf("increasing", "stable", "decreasing")Random.nextInt(),
+                "improvementTrend" to listOf("increasing", "stable", "decreasing").random(),
                 "strongAreas" to listOf("problem_solving", "critical_thinking"),
                 "weakAreas" to listOf("time_management", "attention_to_detail")
             ),
@@ -97,7 +97,7 @@ class LearningAnalyticsEngine {
             ),
             "predictions" to mapOf(
                 "nextWeekPerformance" to Random.nextInt(80, 96),
-                "riskLevel" to listOf("low", "medium", "high")Random.nextInt(),
+                "riskLevel" to listOf("low", "medium", "high").random(),
                 "recommendedActions" to generateActionRecommendations()
             ),
             "generatedAt" to Clock.System.now().toString()

@@ -4,6 +4,7 @@ plugins {
     id("org.jetbrains.dokka")
     id("io.gitlab.arturbosch.detekt")
     id("com.vanniktech.maven.publish")
+    application
 }
 
 dependencies {
@@ -145,4 +146,9 @@ mavenPublishing {
             url.set("https://github.com/louloulin/kastrax")
         }
     }
+}
+
+// Application configuration for running demos
+application {
+    mainClass.set("ai.kastrax.edutech.demo.BasicFunctionalityDemo")
 }

@@ -6,6 +6,7 @@ import ai.kastrax.edutech.models.*
 import ai.kastrax.edutech.services.*
 import kotlinx.datetime.Instant
 import mu.KotlinLogging
+import kotlin.random.Random
 
 /**
  * 简化的学生Actor - 实现ed2.md第2.1节Actor模型在教育场景的应用
@@ -248,7 +249,7 @@ class StudentActor(
         val styleMultiplier = state.learningProfile.learningStyle.getMultiplierFor(ContentType.TEXT)
         
         // 添加随机变化模拟真实表现
-        val randomVariation = Random.nextInt(1, 100)Random.nextInt()
+        val randomVariation = Random.nextInt(-5, 6)
         
         return (basePerformance * styleMultiplier + randomVariation).coerceIn(0.0, 100.0)
     }

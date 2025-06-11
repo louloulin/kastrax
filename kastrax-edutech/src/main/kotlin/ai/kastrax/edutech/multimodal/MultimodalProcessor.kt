@@ -140,7 +140,7 @@ class MultimodalProcessor {
             mapOf(
                 "scene_id" to index,
                 "type" to scene,
-                "start_time" to (index * 60..index * 60 + 30)Random.nextInt(),
+                "start_time" to (index * 60..index * 60 + 30).random(),
                 "duration" to Random.nextInt(30, 181),
                 "confidence" to Random.nextDouble(0.8, 0.95)
             )
@@ -161,7 +161,7 @@ class MultimodalProcessor {
         
         return sampleTexts.mapIndexed { index, text ->
             mapOf(
-                "timestamp" to (index * 30..index * 30 + 25)Random.nextInt(),
+                "timestamp" to (index * 30..index * 30 + 25).random(),
                 "text" to text,
                 "confidence" to Random.nextDouble(0.85, 0.98)
             )
@@ -174,7 +174,7 @@ class MultimodalProcessor {
     private fun analyzeVideoContent(): Map<String, Any> {
         return mapOf(
             "topics" to listOf("mathematics", "problem_solving", "examples").shuffled().take(2),
-            "complexity_level" to listOf("beginner", "intermediate", "advanced")Random.nextInt(),
+            "complexity_level" to listOf("beginner", "intermediate", "advanced").random(),
             "educational_value" to Random.nextDouble(0.75, 0.95),
             "engagement_factors" to listOf("visual_aids", "clear_explanation", "examples")
         )
@@ -200,7 +200,7 @@ class MultimodalProcessor {
             "noise_level" to Random.nextDouble(0.05, 0.2),
             "clarity" to Random.nextDouble(0.8, 0.95),
             "volume_consistency" to Random.nextDouble(0.85, 0.98),
-            "background_noise" to listOf("minimal", "moderate", "high")Random.nextInt()
+            "background_noise" to listOf("minimal", "moderate", "high").random()
         )
     }
     
@@ -216,7 +216,7 @@ class MultimodalProcessor {
         
         return mapOf(
             "emotions" to emotions,
-            "dominant_emotion" to emotions.maxByOrNull { it.value }?.key,
+            "dominant_emotion" to (emotions.maxByOrNull { it.value }?.key ?: "neutral"),
             "confidence" to Random.nextDouble(0.75, 0.9)
         )
     }
