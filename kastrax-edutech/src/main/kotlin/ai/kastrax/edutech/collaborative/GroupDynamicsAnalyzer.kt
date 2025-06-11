@@ -155,12 +155,13 @@ class GroupDynamicsAnalyzer {
         interactions: List<CollaborativeInteraction>,
         activities: List<CollaborativeActivity>
     ): List<CollaborationPattern> {
-        // 需要将activities转换为participants
-        val participants = activities.map { activity ->
+        // 从交互中提取参与者信息
+        val participants = interactions.map { interaction ->
             SessionParticipant(
-                studentId = activity.participantId,
+                studentId = interaction.participantId,
                 role = ParticipantRole.MEMBER,
-                joinTime = activity.timestamp,
+                joinedAt = interaction.timestamp,
+                status = ParticipantStatus.ACTIVE,
                 contributionScore = 10.0,
                 engagementLevel = EngagementLevel.MEDIUM
             )
@@ -1095,10 +1096,10 @@ class CollaborationPatternRecognizer {
         if (leaders.isEmpty()) return null
 
         return CollaborationPattern(
-            type = PatternType.LEADERSHIP,
+            type = PatternType.LEADERSHIP_ROTATION,
             participants = leaders.map { it.studentId },
-            impact = 0.8,
-            frequency = leaders.size.toDouble() / participants.size
+            frequency = leaders.size.toDouble() / participants.size,
+            impact = PatternImpact.POSITIVE
         )
     }
 
@@ -1112,10 +1113,10 @@ class CollaborationPatternRecognizer {
         if (collaborativeInteractions.size < interactions.size * 0.3) return null
 
         return CollaborationPattern(
-            type = PatternType.COLLABORATION,
+            type = PatternType.CREATIVE_COLLABORATION,
             participants = collaborativeInteractions.map { it.participantId }.distinct(),
-            impact = collaborativeInteractions.size.toDouble() / interactions.size,
-            frequency = 1.0
+            frequency = collaborativeInteractions.size.toDouble() / interactions.size,
+            impact = PatternImpact.POSITIVE
         )
     }
 
@@ -1129,10 +1130,10 @@ class CollaborationPatternRecognizer {
         if (communicationInteractions.size < interactions.size * 0.5) return null
 
         return CollaborationPattern(
-            type = PatternType.COMMUNICATION,
+            type = PatternType.PEER_SUPPORT,
             participants = communicationInteractions.map { it.participantId }.distinct(),
-            impact = communicationInteractions.size.toDouble() / interactions.size,
-            frequency = 1.0
+            frequency = communicationInteractions.size.toDouble() / interactions.size,
+            impact = PatternImpact.POSITIVE
         )
     }
 }

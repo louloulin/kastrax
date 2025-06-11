@@ -7,6 +7,7 @@ import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
 import kotlinx.serialization.Serializable
 import kotlin.math.*
+import kotlin.random.Random
 
 /**
  * Week 23-24: 同伴学习推荐引擎
@@ -32,23 +33,23 @@ class PeerRecommendationEngine {
         topic: String
     ): List<PeerRecommendation> {
         val studentProfile = profileService.getCollaborativeProfile(studentId)
-            ?: return emptyList()
-        
+            ?: createDefaultProfile(studentId) // 如果没有profile，创建一个默认的
+
         // 1. 获取潜在学习伙伴
         val potentialPeers = findPotentialPeers(studentId, subject, topic)
-        
+
         // 2. 计算兼容性和互补性
         val peerAnalysis = analyzePeerCompatibility(studentProfile, potentialPeers)
-        
+
         // 3. 生成不同类型的推荐
         val recommendations = mutableListOf<PeerRecommendation>()
-        
+
         recommendations.addAll(generateStudyPartnerRecommendations(studentProfile, peerAnalysis))
         recommendations.addAll(generateMentorRecommendations(studentProfile, peerAnalysis))
         recommendations.addAll(generateMenteeRecommendations(studentProfile, peerAnalysis))
         recommendations.addAll(generateSkillExchangeRecommendations(studentProfile, peerAnalysis))
         recommendations.addAll(generateProjectPartnerRecommendations(studentProfile, peerAnalysis))
-        
+
         // 4. 排序和过滤
         return recommendations
             .sortedByDescending { it.compatibilityScore }
@@ -87,20 +88,9 @@ class PeerRecommendationEngine {
         student1Id: StudentId,
         student2Id: StudentId
     ): LearningComplementarityAnalysis {
-        val profile1 = profileService.getCollaborativeProfile(student1Id)
-        val profile2 = profileService.getCollaborativeProfile(student2Id)
-        
-        if (profile1 == null || profile2 == null) {
-            return LearningComplementarityAnalysis(
-                overallComplementarity = 0.0,
-                skillComplementarity = emptyMap(),
-                styleComplementarity = 0.0,
-                goalAlignment = 0.0,
-                mutualBenefits = emptyList(),
-                collaborationPotential = CollaborationPotential.LOW
-            )
-        }
-        
+        val profile1 = profileService.getCollaborativeProfile(student1Id) ?: createDefaultProfile(student1Id)
+        val profile2 = profileService.getCollaborativeProfile(student2Id) ?: createDefaultProfile(student2Id)
+
         return LearningComplementarityAnalysis(
             overallComplementarity = calculateOverallComplementarity(profile1, profile2),
             skillComplementarity = analyzeSkillComplementarity(profile1, profile2),
@@ -129,6 +119,56 @@ class PeerRecommendationEngine {
         ).filter { it.studentId.value != studentId.value }
     }
     
+    private fun createDefaultProfile(studentId: StudentId): CollaborativeProfile {
+        return CollaborativeProfile(
+            studentId = studentId,
+            collaborationStyle = CollaborationStyle(
+                leadership = LeadershipStyle.COLLABORATIVE,
+                participation = ParticipationStyle.MODERATELY_ACTIVE,
+                conflictResolution = ConflictResolutionStyle.COLLABORATIVE,
+                workingStyle = WorkingStyle.FLEXIBLE,
+                feedbackStyle = FeedbackStyle.CONSTRUCTIVE
+            ),
+            communicationPreferences = CommunicationPreferences(
+                preferredChannels = setOf(CommunicationChannel.TEXT_CHAT, CommunicationChannel.VIDEO_CALL),
+                responseTimeExpectation = kotlin.time.Duration.parse("PT30M"),
+                formalityLevel = FormalityLevel.SEMI_FORMAL,
+                languagePreferences = listOf("zh-CN"),
+                availabilityWindows = emptyList()
+            ),
+            skillContributions = mapOf(
+                "数学" to SkillLevel.INTERMEDIATE,
+                "编程" to SkillLevel.INTERMEDIATE,
+                "写作" to SkillLevel.INTERMEDIATE
+            ),
+            pastCollaborations = emptyList(),
+            performanceMetrics = CollaborationMetrics(
+                totalSessions = 5,
+                averagePerformance = 0.7,
+                preferredGroupSizeMin = 3,
+                preferredGroupSizeMax = 5,
+                successfulCollaborations = 3,
+                leadershipExperience = 1,
+                mentorshipExperience = 0,
+                conflictResolutionSuccess = 0.6,
+                peerRating = 0.7
+            ),
+            preferences = StudentPreferences(
+                preferredGroupSizeMin = 3,
+                preferredGroupSizeMax = 5,
+                preferredPartnerTypes = setOf(PartnerType.SIMILAR_SKILL, PartnerType.COMPLEMENTARY_SKILL),
+                avoidedPartnerTypes = emptySet(),
+                workingTimePreferences = emptyList(),
+                subjectInterests = mapOf(
+                    Subject.MATHEMATICS to InterestLevel.HIGH,
+                    Subject.COMPUTER_SCIENCE to InterestLevel.HIGH
+                ),
+                collaborationGoals = listOf(CollaborationGoal.SKILL_DEVELOPMENT, CollaborationGoal.PEER_LEARNING)
+            ),
+            lastUpdated = Clock.System.now()
+        )
+    }
+
     private fun createSampleProfile(studentIdValue: String): CollaborativeProfile {
         return CollaborativeProfile(
             studentId = StudentId(studentIdValue),
@@ -154,14 +194,14 @@ class PeerRecommendationEngine {
             pastCollaborations = emptyList(),
             performanceMetrics = CollaborationMetrics(
                 totalSessions = (1..20).random(),
-                averagePerformance = (0.3..0.9).random(),
+                averagePerformance = Random.nextDouble(0.3, 0.9),
                 preferredGroupSizeMin = 3,
                 preferredGroupSizeMax = 5,
-                successfulCollaborations = (0..15).random(),
-                leadershipExperience = (0..5).random(),
-                mentorshipExperience = (0..3).random(),
-                conflictResolutionSuccess = (0.2..0.8).random(),
-                peerRating = (0.4..0.9).random()
+                successfulCollaborations = Random.nextInt(0, 16),
+                leadershipExperience = Random.nextInt(0, 6),
+                mentorshipExperience = Random.nextInt(0, 4),
+                conflictResolutionSuccess = Random.nextDouble(0.2, 0.8),
+                peerRating = Random.nextDouble(0.4, 0.9)
             ),
             preferences = StudentPreferences(
                 preferredGroupSizeMin = 3,
@@ -649,6 +689,10 @@ class LearningPatternAnalyzer {
         return factors.distinct()
     }
 }
+
+
+
+
 
 @Serializable
 data class LearningPattern(
