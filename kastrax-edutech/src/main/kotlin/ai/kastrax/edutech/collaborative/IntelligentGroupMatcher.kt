@@ -623,7 +623,7 @@ class IntelligentGroupMatcher {
         candidates: List<GroupingCandidate>,
         selected: GroupingCandidate
     ): List<GroupAlternative> {
-        return candidates.filter { it != selected }
+        val alternatives = candidates.filter { it != selected }
             .take(3)
             .map { candidate ->
                 GroupAlternative(
@@ -631,7 +631,57 @@ class IntelligentGroupMatcher {
                     score = candidate.score,
                     reason = "基于${candidate.strategy}策略的替代方案"
                 )
+            }.toMutableList()
+
+        // 如果没有足够的替代方案，生成一些基本的替代方案
+        if (alternatives.isEmpty()) {
+            // 生成一个随机分组作为替代方案
+            val allStudents = selected.groups.flatMap { it.members.map { member -> member.studentId } }
+            val shuffledStudents = allStudents.shuffled()
+            val groupSize = selected.groups.firstOrNull()?.members?.size ?: 3
+
+            val alternativeGroups = mutableListOf<CollaborativeGroup>()
+            var index = 0
+            while (index < shuffledStudents.size) {
+                val currentGroupSize = minOf(groupSize, shuffledStudents.size - index)
+                val groupMembers = shuffledStudents.subList(index, index + currentGroupSize)
+                    .map { studentId ->
+                        // 从原始分组中找到对应的成员信息
+                        val originalMember = selected.groups.flatMap { it.members }
+                            .find { it.studentId == studentId }
+                        originalMember ?: GroupMember(
+                            studentId = studentId,
+                            profile = createDefaultProfile(studentId),
+                            contributionPotential = 0.5,
+                            compatibilityScores = emptyMap()
+                        )
+                    }
+
+                alternativeGroups.add(
+                    CollaborativeGroup(
+                        id = generateGroupId(),
+                        members = groupMembers,
+                        compatibilityScore = 0.6,
+                        balanceScore = 0.5,
+                        predictedPerformance = 0.6,
+                        recommendedRoles = groupMembers.mapIndexed { idx, member ->
+                            member.studentId to if (idx == 0) ParticipantRole.LEADER else ParticipantRole.MEMBER
+                        }.toMap()
+                    )
+                )
+                index += currentGroupSize
             }
+
+            alternatives.add(
+                GroupAlternative(
+                    groups = alternativeGroups,
+                    score = 0.6,
+                    reason = "随机重新分组的替代方案"
+                )
+            )
+        }
+
+        return alternatives
     }
     
     private fun generateRequestId(): String = "req_${System.currentTimeMillis()}"
