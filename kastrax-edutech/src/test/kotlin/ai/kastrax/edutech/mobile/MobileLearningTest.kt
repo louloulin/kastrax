@@ -107,19 +107,24 @@ class MobileLearningTest {
     }
 
     @Test
-    fun `ML-007 - 移动API请求模型测试`() = runTest {
+    fun `ML-007 - 移动学习会话模型测试`() = runTest {
         // Given
-        val request = CreateMobileSessionRequest(
+        val session = MobileLearningSession(
+            sessionId = "session_123",
             studentId = StudentId("student_123"),
-            deviceInfo = createTestDeviceInfo(),
-            preferences = createTestPreferences(StudentId("student_123"))
+            deviceId = "device_123",
+            startTime = Clock.System.now(),
+            networkCondition = NetworkCondition.WIFI,
+            isOfflineSession = false
         )
 
         // Then
-        assertEquals(StudentId("student_123"), request.studentId)
-        assertNotNull(request.deviceInfo)
-        assertNotNull(request.preferences)
-        assertEquals(DeviceType.ANDROID_PHONE, request.deviceInfo.deviceType)
+        assertNotNull(session.sessionId)
+        assertEquals(StudentId("student_123"), session.studentId)
+        assertEquals("device_123", session.deviceId)
+        assertNotNull(session.startTime)
+        assertEquals(NetworkCondition.WIFI, session.networkCondition)
+        assertFalse(session.isOfflineSession)
     }
 
     @Test
